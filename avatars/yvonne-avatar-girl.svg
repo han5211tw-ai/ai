@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff9a9e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#fecfef;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a18cd1;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="cheekGradient" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#ff9a9e;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#ff9a9e;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="512" height="512" fill="url(#bgGradient)"/>
+  
+  <!-- 外圈 -->
+  <circle cx="256" cy="256" r="200" fill="rgba(255,255,255,0.2)"/>
+  
+  <g transform="translate(256, 260)">
+    <!-- 頭髮後面 -->
+    <ellipse cx="0" cy="-20" rx="85" ry="90" fill="#5a4a3a"/>
+    <ellipse cx="-60" cy="10" rx="30" ry="50" fill="#5a4a3a"/>
+    <ellipse cx="60" cy="10" rx="30" ry="50" fill="#5a4a3a"/>
+    
+    <!-- 脖子 -->
+    <rect x="-15" y="50" width="30" height="40" fill="#f5d0c5"/>
+    
+    <!-- 身體/衣服 -->
+    <path d="M -50 90 Q -60 70 -40 60 L 40 60 Q 60 70 50 90 L 40 140 L -40 140 Z" fill="#667eea"/>
+    <!-- 領子 -->
+    <path d="M -25 60 Q 0 75 25 60" fill="none" stroke="white" stroke-width="3"/>
+    
+    <!-- 臉型 -->
+    <ellipse cx="0" cy="0" rx="65" ry="70" fill="#f5d0c5"/>
+    
+    <!-- 瀏海 -->
+    <path d="M -60 -30 Q -30 -60 0 -50 Q 30 -60 60 -30 Q 50 -10 30 -20 Q 0 -10 -30 -20 Q -50 -10 -60 -30" fill="#5a4a3a"/>
+    
+    <!-- 眉毛 -->
+    <path d="M -35 -25 Q -25 -30 -15 -25" fill="none" stroke="#5a4a3a" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 15 -25 Q 25 -30 35 -25" fill="none" stroke="#5a4a3a" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- 眼睛 -->
+    <ellipse cx="-25" cy="-10" rx="12" ry="14" fill="#333"/>
+    <ellipse cx="25" cy="-10" rx="12" ry="14" fill="#333"/>
+    <!-- 眼晴高光 -->
+    <circle cx="-22" cy="-14" r="5" fill="white"/>
+    <circle cx="28" cy="-14" r="5" fill="white"/>
+    <circle cx="-28" cy="-6" r="2" fill="white" opacity="0.5"/>
+    <circle cx="22" cy="-6" r="2" fill="white" opacity="0.5"/>
+    
+    <!-- 腮紅 -->
+    <ellipse cx="-40" cy="15" rx="12" ry="8" fill="url(#cheekGradient)"/>
+    <ellipse cx="40" cy="15" rx="12" ry="8" fill="url(#cheekGradient)"/>
+    
+    <!-- 鼻子 -->
+    <path d="M -3 10 Q 0 12 3 10" fill="none" stroke="#d4a574" stroke-width="2" stroke-linecap="round"/>
+    
+    <!-- 微笑 -->
+    <path d="M -15 28 Q 0 40 15 28" fill="none" stroke="#d47a6a" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- 耳朵 -->
+    <ellipse cx="-68" cy="0" rx="8" ry="12" fill="#f5d0c5"/>
+    <ellipse cx="68" cy="0" rx="8" ry="12" fill="#f5d0c5"/>
+    
+    <!-- 耳環 -->
+    <circle cx="-72" cy="10" r="4" fill="#ffd700"/>
+    <circle cx="72" cy="10" r="4" fill="#ffd700"/>
+  </g>
+  
+  <!-- 裝飾星星 -->
+  <polygon points="100,120 105,135 120,135 108,145 113,160 100,150 87,160 92,145 80,135 95,135" fill="#ffd700" opacity="0.7"/>
+  <polygon points="420,150 423,160 433,160 425,167 428,177 420,171 412,177 415,167 407,160 417,160" fill="#ff6b9d" opacity="0.6"/>
+  <circle cx="120" cy="380" r="5" fill="white" opacity="0.5"/>
+  <circle cx="400" cy="380" r="6" fill="white" opacity="0.4"/>
+  
+</svg>
