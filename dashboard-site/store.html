@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>門市業績表 - 電腦舖營運看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .nav {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+        .nav a:hover { background: rgba(255,255,255,0.4); }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-left: 5px solid #f5576c;
+            padding-left: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover { background: #f5f5f5; }
+        .number { font-family: 'Courier New', monospace; font-weight: bold; }
+        .highlight { color: #f5576c; font-weight: bold; }
+        .chart-container { position: relative; height: 300px; margin-top: 20px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .stat-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .stat-box h3 { font-size: 0.9em; margin-bottom: 10px; opacity: 0.9; }
+        .stat-box .number { font-size: 2em; font-weight: bold; }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #f5576c;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏬 門市業績表</h1>
+        
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+            <a href="department.html">🏢 部門業績</a>
+            <a href="store.html">🏬 門市業績</a>
+            <a href="personal.html">🧑‍💼 個人業績</a>
+            <a href="roster.html">📅 班表</a>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h3>豐原門市 五星好評</h3>
+                <div class="number">14 則</div>
+            </div>
+            <div class="stat-box">
+                <h3>潭子門市 五星好評</h3>
+                <div class="number">14 則</div>
+            </div>
+            <div class="stat-box">
+                <h3>大雅門市 五星好評</h3>
+                <div class="number">5 則</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 門市業績達成率</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>門市名稱</th>
+                        <th>目標業績</th>
+                        <th>實際業績</th>
+                        <th>毛利</th>
+                        <th>達成率</th>
+                        <th>毛利率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="highlight">豐原門市</td>
+                        <td class="number">NT$ 3,337,200</td>
+                        <td class="number">NT$ 1,956,444</td>
+                        <td class="number">NT$ 492,986</td>
+                        <td class="number">58.63%</td>
+                        <td class="number">25.20%</td>
+                    </tr>
+                    <tr>
+                        <td>潭子門市</td>
+                        <td class="number">NT$ 2,560,396</td>
+                        <td class="number">NT$ 1,217,467</td>
+                        <td class="number">NT$ 328,745</td>
+                        <td class="number">47.55%</td>
+                        <td class="number">27.00%</td>
+                    </tr>
+                    <tr>
+                        <td>大雅門市</td>
+                        <td class="number">NT$ 2,559,903</td>
+                        <td class="number">NT$ 736,793</td>
+                        <td class="number">NT$ 201,429</td>
+                        <td class="number negative">28.78%</td>
+                        <td class="number">27.34%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>📈 門市業績比較</h2>
+            <div class="chart-container">
+                <canvas id="storeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⭐ 門市五星好評數</h2>
+            <div class="chart-container">
+                <canvas id="reviewChart"></canvas>
+            </div>
+        </div>
+
+        <a href="index.html" class="back-link">← 返回首頁</a>
+    </div>
+
+    <script>
+        // 門市業績圖表
+        const ctx1 = document.getElementById('storeChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: ['豐原門市', '潭子門市', '大雅門市'],
+                datasets: [
+                    {
+                        label: '目標業績',
+                        data: [3337200, 2560396, 2559903],
+                        backgroundColor: 'rgba(200, 200, 200, 0.5)',
+                        borderColor: 'rgba(200, 200, 200, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '實際業績',
+                        data: [1956444, 1217467, 736793],
+                        backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)'],
+                        borderWidth: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return 'NT$ ' + (value/10000) + '萬'; }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 五星好評圖表
+        const ctx2 = document.getElementById('reviewChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['豐原門市', '潭子門市', '大雅門市'],
+                datasets: [{
+                    label: '五星好評數',
+                    data: [14, 14, 5],
+                    backgroundColor: ['#ffd700', '#ffd700', '#c0c0c0'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

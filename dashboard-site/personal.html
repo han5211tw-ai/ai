@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人業績 - 電腦舖營運看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .nav {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+        .nav a:hover { background: rgba(255,255,255,0.4); }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-left: 5px solid #00f2fe;
+            padding-left: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover { background: #f5f5f5; }
+        .number { font-family: 'Courier New', monospace; font-weight: bold; }
+        .rank-1 { color: #ffd700; font-weight: bold; }
+        .rank-2 { color: #c0c0c0; font-weight: bold; }
+        .rank-3 { color: #cd7f32; font-weight: bold; }
+        .chart-container { position: relative; height: 350px; margin-top: 20px; }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #00a8e8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧑‍💼 個人業績</h1>
+        
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+            <a href="department.html">🏢 部門業績</a>
+            <a href="store.html">🏬 門市業績</a>
+            <a href="personal.html">🧑‍💼 個人業績</a>
+            <a href="roster.html">📅 班表</a>
+        </div>
+
+        <div class="card">
+            <h2>🏆 個人業績排名（2026 Q1）</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>業務員</th>
+                        <th>總業績</th>
+                        <th>單數</th>
+                        <th>平均單價</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="rank-1">🥇 1</td>
+                        <td><strong>梁仁佑</strong></td>
+                        <td class="number">NT$ 1,316,644</td>
+                        <td class="number">105</td>
+                        <td class="number">NT$ 12,539</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-2">🥈 2</td>
+                        <td>林峙文</td>
+                        <td class="number">NT$ 952,417</td>
+                        <td class="number">158</td>
+                        <td class="number">NT$ 6,028</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-3">🥉 3</td>
+                        <td>林榮祺</td>
+                        <td class="number">NT$ 795,118</td>
+                        <td class="number">113</td>
+                        <td class="number">NT$ 7,037</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>劉育仕</td>
+                        <td class="number">NT$ 604,650</td>
+                        <td class="number">77</td>
+                        <td class="number">NT$ 7,853</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>鄭宇晉</td>
+                        <td class="number">NT$ 490,832</td>
+                        <td class="number">107</td>
+                        <td class="number">NT$ 4,587</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>張永承</td>
+                        <td class="number">NT$ 274,336</td>
+                        <td class="number">98</td>
+                        <td class="number">NT$ 2,799</td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>林煜捷</td>
+                        <td class="number">NT$ 218,931</td>
+                        <td class="number">58</td>
+                        <td class="number">NT$ 3,775</td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>莊圍迪</td>
+                        <td class="number">NT$ 185,295</td>
+                        <td class="number">10</td>
+                        <td class="number">NT$ 18,530</td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>張家碩</td>
+                        <td class="number">NT$ 146,673</td>
+                        <td class="number">81</td>
+                        <td class="number">NT$ 1,811</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>📊 個人業績圖表</h2>
+            <div class="chart-container">
+                <canvas id="personalChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💡 業績分析</h2>
+            <ul style="line-height: 2; padding-left: 20px;">
+                <li><strong>🏆 冠軍：</strong>梁仁佑 - 總業績 NT$ 131萬，平均單價 NT$ 12,539（專案型銷售）</li>
+                <li><strong>📈 單量王：</strong>林峙文 - 158張單，但平均單價較低（NT$ 6,028）</li>
+                <li><strong>💰 高單價：</strong>莊圍迪 - 平均單價 NT$ 18,530（僅 10 張單但金額高）</li>
+                <li><strong>⚠️ 關注：</strong>張家碩 - 單數多（81筆）但平均單價偏低（NT$ 1,811）</li>
+            </ul>
+        </div>
+
+        <a href="index.html" class="back-link">← 返回首頁</a>
+    </div>
+
+    <script>
+        // 個人業績圖表
+        const ctx = document.getElementById('personalChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['梁仁佑', '林峙文', '林榮祺', '劉育仕', '鄭宇晉', '張永承', '林煜捷', '莊圍迪', '張家碩'],
+                datasets: [{
+                    label: '總業績 (NT$)',
+                    data: [1316644, 952417, 795118, 604650, 490832, 274336, 218931, 185295, 146673],
+                    backgroundColor: [
+                        'rgba(255, 215, 0, 0.8)',
+                        'rgba(192, 192, 192, 0.8)',
+                        'rgba(205, 127, 50, 0.8)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(54, 162, 235, 0.6)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return 'NT$ ' + (value/10000) + '萬'; }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

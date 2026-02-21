@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班表 - 電腦舖營運看板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .nav {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+        .nav a:hover { background: rgba(255,255,255,0.4); }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-left: 5px solid #667eea;
+            padding-left: 15px;
+        }
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .store-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+        }
+        .store-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .staff-list {
+            list-style: none;
+        }
+        .staff-list li {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .staff-name { font-weight: 600; color: #333; }
+        .shift-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .shift-on { background: #d4edda; color: #155724; }
+        .shift-off { background: #f8d7da; color: #721c24; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-item .label { font-size: 0.85em; opacity: 0.9; margin-bottom: 5px; }
+        .stat-item .value { font-size: 1.5em; font-weight: bold; }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        td { background: white; }
+        .work-day { background: #d4edda; color: #155724; font-weight: 600; }
+        .off-day { background: #f8f7da; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 人員班表</h1>
+        
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+            <a href="department.html">🏢 部門業績</a>
+            <a href="store.html">🏬 門市業績</a>
+            <a href="personal.html">🧑‍💼 個人業績</a>
+            <a href="roster.html">📅 班表</a>
+        </div>
+
+        <div class="card">
+            <h2>📊 班表統計</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="label">本週總人數</div>
+                    <div class="value">11 人</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">豐原門市</div>
+                    <div class="value">4 人</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">潭子門市</div>
+                    <div class="value">3 人</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">大雅門市</div>
+                    <div class="value">4 人</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🏢 各門市人員配置</h2>
+            <div class="roster-grid">
+                <div class="store-card">
+                    <h3>🏪 豐原門市</h3>
+                    <ul class="staff-list">
+                        <li><span class="staff-name">林峙文</span><span class="shift-badge shift-on">值班</span></li>
+                        <li><span class="staff-name">林榮祺</span><span class="shift-badge shift-off">休假</span></li>
+                        <li><span class="staff-name">張永承</span><span class="shift-badge shift-on">值班</span></li>
+                        <li><span class="staff-name">鄭宇晉</span><span class="shift-badge shift-on">值班</span></li>
+                    </ul>
+                </div>
+                <div class="store-card">
+                    <h3>🏪 潭子門市</h3>
+                    <ul class="staff-list">
+                        <li><span class="staff-name">林煜捷</span><span class="shift-badge shift-off">休假</span></li>
+                        <li><span class="staff-name">劉育仕</span><span class="shift-badge shift-on">值班</span></li>
+                        <li><span class="staff-name">梁仁佑</span><span class="shift-badge shift-on">值班</span></li>
+                    </ul>
+                </div>
+                <div class="store-card">
+                    <h3>🏪 大雅門市</h3>
+                    <ul class="staff-list">
+                        <li><span class="staff-name">張家碩</span><span class="shift-badge shift-off">休假</span></li>
+                        <li><span class="staff-name">莊圍迪</span><span class="shift-badge shift-on">值班</span></li>
+                        <li><span class="staff-name">萬書佑</span><span class="shift-badge shift-on">值班</span></li>
+                        <li><span class="staff-name">黃柏翰</span><span class="shift-badge shift-off">休假</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📅 本週班表預覽（範例）</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>人員</th>
+                        <th>門市</th>
+                        <th>週一</th>
+                        <th>週二</th>
+                        <th>週三</th>
+                        <th>週四</th>
+                        <th>週五</th>
+                        <th>週六</th>
+                        <th>週日</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>林峙文</td>
+                        <td>豐原</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                        <td class="off-day">休</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                        <td class="off-day">休</td>
+                    </tr>
+                    <tr>
+                        <td>林榮祺</td>
+                        <td>豐原</td>
+                        <td class="off-day">休</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                        <td class="off-day">休</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                    </tr>
+                    <tr>
+                        <td>梁仁佑</td>
+                        <td>潭子</td>
+                        <td class="work-day">班</td>
+                        <td class="off-day">休</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                        <td class="work-day">班</td>
+                        <td class="off-day">休</td>
+                        <td class="work-day">班</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 15px; color: #666; font-size: 0.9em;">
+                💡 說明：以上為範例班表，實際班表請參考完整班表系統。
+            </p>
+        </div>
+
+        <a href="index.html" class="back-link">← 返回首頁</a>
+    </div>
+</body>
+</html>
