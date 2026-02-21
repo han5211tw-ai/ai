@@ -160,12 +160,6 @@
                 </div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">今日營收</div>
-                <div class="stat-value" id="todayRevenue">
-                    <div class="loading">載入中...</div>
-                </div>
-            </div>
-            <div class="stat-box">
                 <div class="stat-label">平均日營收</div>
                 <div class="stat-value" id="avgRevenue">
                     <div class="loading">載入中...</div>
@@ -206,7 +200,6 @@
                 const response = await fetch('/api/summary');
                 const data = await response.json();
                 document.getElementById('totalRevenue').textContent = formatMoney(data.total);
-                document.getElementById('todayRevenue').textContent = formatMoney(data.today);
                 document.getElementById('avgRevenue').textContent = formatMoney(data.avg);
                 document.getElementById('maxRevenue').textContent = formatMoney(data.max);
             } catch (error) {
@@ -271,10 +264,10 @@
         loadSummary();
         loadChart();
 
-        // 每 60 秒自動重新整理
+        // 每 1 小時自動重新整理（3600000 毫秒）
         setInterval(() => {
             location.reload();
-        }, 60000);
+        }, 3600000);
     </script>
 </body>
 </html>
