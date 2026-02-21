@@ -135,6 +135,16 @@
             </div>
         </div>
 
+        <div class="card">
+            <h2>🤖 AI 分析（每日 20:00 更新）</h2>
+            <div id="analysis" style="white-space: pre-line; line-height: 1.8; color: #ccd6f6;">
+                <div class="loading">載入分析中...</div>
+            </div>
+            <p style="margin-top: 15px; color: #8892b0; font-size: 0.85em;">
+                最後更新：<span id="analysisTime">--</span>
+            </p>
+        </div>
+
         <a href="index.html" class="back-link">← 返回首頁</a>
     </div>
 
@@ -232,7 +242,7 @@
                             y: {
                                 beginAtZero: true,
                                 grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { 
+                                ticks: {
                                     color: '#8892b0',
                                     callback: function(value) { return value + '%'; }
                                 }
@@ -244,6 +254,13 @@
                         }
                     }
                 });
+
+                // 載入 AI 分析
+                const analysisResponse = await fetch('/api/analysis/department');
+                const analysisData = await analysisResponse.json();
+                document.getElementById('analysis').textContent = analysisData.content;
+                document.getElementById('analysisTime').textContent = analysisData.last_update;
+
             } catch (error) {
                 console.error('載入部門資料失敗:', error);
                 document.getElementById('deptTable').innerHTML = '<div class="loading">載入失敗</div>';
