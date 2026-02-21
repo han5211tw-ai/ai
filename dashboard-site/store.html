@@ -259,7 +259,7 @@
                     }
                 });
 
-                // 繪製毛利率圖表
+                // 繪製毛利率圖表（顏色對照達成率圖表）
                 const ctx2 = document.getElementById('marginChart').getContext('2d');
                 new Chart(ctx2, {
                     type: 'bar',
@@ -268,7 +268,7 @@
                         datasets: [{
                             label: '毛利率 (%)',
                             data: perfData.map(d => d.margin_rate * 100),
-                            backgroundColor: '#00d4ff',
+                            backgroundColor: ['#00d4ff', '#7b2cbf', '#ffd700'],
                             borderRadius: 8,
                             borderWidth: 0
                         }]
