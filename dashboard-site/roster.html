@@ -114,16 +114,36 @@
             font-size: 0.85em;
             font-weight: 600;
         }
-        .shift-on { 
+        .shift-zao { 
+            background: rgba(255, 193, 7, 0.2); 
+            color: #ffc107; 
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+        .shift-wan { 
+            background: rgba(156, 39, 176, 0.2); 
+            color: #9c27b0; 
+            border: 1px solid rgba(156, 39, 176, 0.3);
+        }
+        .shift-quan { 
             background: rgba(0, 212, 255, 0.2); 
             color: #00d4ff; 
             border: 1px solid rgba(0, 212, 255, 0.3);
         }
-        .shift-off { 
-            background: rgba(255, 107, 107, 0.2); 
-            color: #ff6b6b; 
-            border: 1px solid rgba(255, 107, 107, 0.3);
+        .shift-zhi { 
+            background: rgba(76, 175, 80, 0.2); 
+            color: #4caf50; 
+            border: 1px solid rgba(76, 175, 80, 0.3);
         }
+        .shift-off { 
+            background: rgba(136, 146, 176, 0.2); 
+            color: #8892b0; 
+            border: 1px solid rgba(136, 146, 176, 0.3);
+        }
+        .shift-zao-bg { background: rgba(255, 193, 7, 0.1); color: #ffc107; font-weight: 600; }
+        .shift-wan-bg { background: rgba(156, 39, 176, 0.1); color: #9c27b0; font-weight: 600; }
+        .shift-quan-bg { background: rgba(0, 212, 255, 0.1); color: #00d4ff; font-weight: 600; }
+        .shift-zhi-bg { background: rgba(76, 175, 80, 0.1); color: #4caf50; font-weight: 600; }
+        .shift-off-bg { background: rgba(136, 146, 176, 0.1); color: #8892b0; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -188,76 +208,61 @@
                 <div class="store-card">
                     <h3>🏪 豐原門市</h3>
                     <ul class="staff-list">
-                        <li><span class="staff-name">峙文</span><span class="shift-badge shift-on">值班中</span></li>
-                        <li><span class="staff-name">榮祺</span><span class="shift-badge shift-off">休假</span></li>
+                        <li><span class="staff-name">峙文</span><span class="shift-badge shift-quan">全</span></li>
+                        <li><span class="staff-name">榮祺</span><span class="shift-badge shift-off">休</span></li>
                     </ul>
                 </div>
                 <div class="store-card">
                     <h3>🏪 潭子門市</h3>
                     <ul class="staff-list">
-                        <li><span class="staff-name">煜捷</span><span class="shift-badge shift-off">休假</span></li>
-                        <li><span class="staff-name">育仕</span><span class="shift-badge shift-on">值班中</span></li>
+                        <li><span class="staff-name">煜捷</span><span class="shift-badge shift-zao">早</span></li>
+                        <li><span class="staff-name">育仕</span><span class="shift-badge shift-wan">晚</span></li>
                     </ul>
                 </div>
                 <div class="store-card">
                     <h3>🏪 大雅門市</h3>
                     <ul class="staff-list">
-                        <li><span class="staff-name">家碩</span><span class="shift-badge shift-off">休假</span></li>
-                        <li><span class="staff-name">永承</span><span class="shift-badge shift-on">值班中</span></li>
+                        <li><span class="staff-name">家碩</span><span class="shift-badge shift-off">休</span></li>
+                        <li><span class="staff-name">永承</span><span class="shift-badge shift-quan">全</span></li>
                     </ul>
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <h2>📅 本週班表預覽</h2>
+            <h2>📅 今日班表（2026-02-21）</h2>
             <table>
                 <thead>
                     <tr>
                         <th>人員</th>
                         <th>門市</th>
-                        <th>週一</th>
-                        <th>週二</th>
-                        <th>週三</th>
-                        <th>週四</th>
-                        <th>週五</th>
-                        <th>週六</th>
-                        <th>週日</th>
+                        <th>今日班次</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>峙文</td><td>豐原</td>
-                        <td class="work">班</td><td class="work">班</td><td class="work">班</td>
-                        <td class="off">休</td><td class="work">班</td><td class="work">班</td><td class="off">休</td>
+                        <td>峙文</td><td>豐原</td><td class="shift-quan-bg">全</td>
                     </tr>
                     <tr>
-                        <td>榮祺</td><td>豐原</td>
-                        <td class="off">休</td><td class="work">班</td><td class="work">班</td>
-                        <td class="work">班</td><td class="off">休</td><td class="work">班</td><td class="work">班</td>
+                        <td>榮祺</td><td>豐原</td><td class="shift-off-bg">休</td>
                     </tr>
                     <tr>
-                        <td>煜捷</td><td>潭子</td>
-                        <td class="work">班</td><td class="off">休</td><td class="work">班</td>
-                        <td class="work">班</td><td class="work">班</td><td class="off">休</td><td class="work">班</td>
+                        <td>煜捷</td><td>潭子</td><td class="shift-zao-bg">早</td>
                     </tr>
                     <tr>
-                        <td>育仕</td><td>潭子</td>
-                        <td class="work">班</td><td class="work">班</td><td class="off">休</td>
-                        <td class="work">班</td><td class="work">班</td><td class="work">班</td><td class="off">休</td>
+                        <td>育仕</td><td>潭子</td><td class="shift-wan-bg">晚</td>
                     </tr>
                     <tr>
-                        <td>家碩</td><td>大雅</td>
-                        <td class="off">休</td><td class="work">班</td><td class="work">班</td>
-                        <td class="work">班</td><td class="off">休</td><td class="work">班</td><td class="work">班</td>
+                        <td>家碩</td><td>大雅</td><td class="shift-off-bg">休</td>
                     </tr>
                     <tr>
-                        <td>永承</td><td>大雅</td>
-                        <td class="work">班</td><td class="work">班</td><td class="off">休</td>
-                        <td class="work">班</td><td class="work">班</td><td class="off">休</td><td class="work">班</td>
+                        <td>永承</td><td>大雅</td><td class="shift-quan-bg">全</td>
                     </tr>
                 </tbody>
             </table>
+            <p style="margin-top: 20px; color: #8892b0; font-size: 0.9em;">
+                📝 班次說明：<span style="color: #ffc107;">早</span> = 早班｜<span style="color: #9c27b0;">晚</span> = 晚班｜<span style="color: #00d4ff;">全</span> = 全班｜<span style="color: #4caf50;">值</span> = 值班｜<span style="color: #8892b0;">休</span> = 休假
+            </p>
         </div>
 
         <a href="index.html" class="back-link">← 返回首頁</a>
