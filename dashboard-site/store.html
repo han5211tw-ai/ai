@@ -78,12 +78,6 @@
         tr:hover { background: rgba(255, 255, 255, 0.03); }
         .number { font-family: 'Courier New', monospace; }
         .highlight { color: #00d4ff; font-weight: bold; }
-        .star-rating {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .star { color: #ffd700; }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -121,6 +115,11 @@
             position: relative;
             height: 300px;
         }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
         .back-link {
             display: inline-block;
             margin-top: 20px;
@@ -142,77 +141,30 @@
             <a href="roster.html">📅 班表</a>
         </div>
 
-        <div class="stats-grid">
+        <div class="stats-grid" id="reviewStats">
             <div class="stat-card">
-                <h3>豐原門市 五星好評</h3>
-                <div class="number">14</div>
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-            </div>
-            <div class="stat-card">
-                <h3>潭子門市 五星好評</h3>
-                <div class="number">14</div>
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-            </div>
-            <div class="stat-card">
-                <h3>大雅門市 五星好評</h3>
-                <div class="number">5</div>
-                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <h3>載入中...</h3>
             </div>
         </div>
 
         <div class="card">
             <h2>📊 門市業績表</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>門市名稱</th>
-                        <th>目標業績</th>
-                        <th>實際業績</th>
-                        <th>毛利</th>
-                        <th>達成率</th>
-                        <th>毛利率</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="highlight">豐原門市</td>
-                        <td class="number">NT$ 3,337,200</td>
-                        <td class="number">NT$ 1,956,444</td>
-                        <td class="number">NT$ 492,986</td>
-                        <td class="number">58.63%</td>
-                        <td class="number">25.20%</td>
-                    </tr>
-                    <tr>
-                        <td>潭子門市</td>
-                        <td class="number">NT$ 2,560,396</td>
-                        <td class="number">NT$ 1,217,467</td>
-                        <td class="number">NT$ 328,745</td>
-                        <td class="number">47.55%</td>
-                        <td class="number">27.00%</td>
-                    </tr>
-                    <tr>
-                        <td>大雅門市</td>
-                        <td class="number">NT$ 2,559,903</td>
-                        <td class="number">NT$ 736,793</td>
-                        <td class="number">NT$ 201,429</td>
-                        <td class="number">28.78%</td>
-                        <td class="number">27.34%</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="storeTable">
+                <div class="loading">載入中...</div>
+            </div>
         </div>
 
         <div class="chart-row">
             <div class="card">
                 <h2>📈 門市業績達成率</h2>
                 <div class="chart-container">
-                    <canvas id="storeAchievementChart"></canvas>
+                    <canvas id="achievementChart"></canvas>
                 </div>
             </div>
             <div class="card">
                 <h2>💰 門市毛利率</h2>
                 <div class="chart-container">
-                    <canvas id="storeMarginChart"></canvas>
+                    <canvas id="marginChart"></canvas>
                 </div>
             </div>
         </div>
@@ -221,70 +173,132 @@
     </div>
 
     <script>
-        // 門市達成率圖表
-        const ctx1 = document.getElementById('storeAchievementChart').getContext('2d');
-        new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: ['豐原門市', '潭子門市', '大雅門市'],
-                datasets: [{
-                    label: '達成率 (%)',
-                    data: [58.63, 47.55, 28.78],
-                    backgroundColor: ['#00d4ff', '#7b2cbf', '#ffd700'],
-                    borderRadius: 8,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#8892b0' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#ccd6f6' }
-                    }
-                }
-            }
-        });
+        // 格式化金額
+        function formatMoney(value) {
+            return 'NT$ ' + value.toLocaleString();
+        }
 
-        // 門市毛利率圖表
-        const ctx2 = document.getElementById('storeMarginChart').getContext('2d');
-        new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: ['豐原門市', '潭子門市', '大雅門市'],
-                datasets: [{
-                    label: '毛利率 (%)',
-                    data: [25.20, 27.00, 27.34],
-                    backgroundColor: '#00d4ff',
-                    borderRadius: 8,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#8892b0' }
+        // 載入門市資料
+        async function loadStoreData() {
+            try {
+                // 載入門市業績
+                const perfResponse = await fetch('/api/performance/store');
+                const perfData = await perfResponse.json();
+                
+                // 載入五星好評
+                const reviewResponse = await fetch('/api/store/reviews');
+                const reviewData = await reviewResponse.json();
+                
+                // 填充五星好評統計
+                const reviewHtml = reviewData.map(store => `
+                    <div class="stat-card">
+                        <h3>${store.store} 五星好評</h3>
+                        <div class="number">${store.reviews}</div>
+                        <div class="stars">${'⭐'.repeat(store.reviews > 0 ? 5 : 0)}</div>
+                    </div>
+                `).join('');
+                document.getElementById('reviewStats').innerHTML = reviewHtml;
+                
+                // 填充表格
+                const tableHtml = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>門市名稱</th>
+                                <th>目標業績</th>
+                                <th>實際業績</th>
+                                <th>毛利</th>
+                                <th>達成率</th>
+                                <th>毛利率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${perfData.map(row => `
+                                <tr>
+                                    <td class="highlight">${row.name}</td>
+                                    <td class="number">${formatMoney(row.target)}</td>
+                                    <td class="number">${formatMoney(row.revenue)}</td>
+                                    <td class="number">${formatMoney(row.profit)}</td>
+                                    <td class="number">${(row.achievement_rate * 100).toFixed(2)}%</td>
+                                    <td class="number">${(row.margin_rate * 100).toFixed(2)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('storeTable').innerHTML = tableHtml;
+                
+                // 繪製達成率圖表
+                const ctx1 = document.getElementById('achievementChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: perfData.map(d => d.name),
+                        datasets: [{
+                            label: '達成率 (%)',
+                            data: perfData.map(d => d.achievement_rate * 100),
+                            backgroundColor: ['#00d4ff', '#7b2cbf', '#ffd700'],
+                            borderRadius: 8,
+                            borderWidth: 0
+                        }]
                     },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#ccd6f6' }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#8892b0' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#ccd6f6' }
+                            }
+                        }
                     }
-                }
+                });
+
+                // 繪製毛利率圖表
+                const ctx2 = document.getElementById('marginChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: perfData.map(d => d.name),
+                        datasets: [{
+                            label: '毛利率 (%)',
+                            data: perfData.map(d => d.margin_rate * 100),
+                            backgroundColor: '#00d4ff',
+                            borderRadius: 8,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#8892b0' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#ccd6f6' }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('載入門市資料失敗:', error);
+                document.getElementById('storeTable').innerHTML = '<div class="loading">載入失敗</div>';
             }
-        });
+        }
+
+        loadStoreData();
     </script>
 </body>
 </html>

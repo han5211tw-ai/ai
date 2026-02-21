@@ -114,31 +114,11 @@
             font-size: 0.85em;
             font-weight: 600;
         }
-        .shift-zao { 
-            background: rgba(255, 193, 7, 0.2); 
-            color: #ffc107; 
-            border: 1px solid rgba(255, 193, 7, 0.3);
-        }
-        .shift-wan { 
-            background: rgba(156, 39, 176, 0.2); 
-            color: #9c27b0; 
-            border: 1px solid rgba(156, 39, 176, 0.3);
-        }
-        .shift-quan { 
-            background: rgba(0, 212, 255, 0.2); 
-            color: #00d4ff; 
-            border: 1px solid rgba(0, 212, 255, 0.3);
-        }
-        .shift-zhi { 
-            background: rgba(76, 175, 80, 0.2); 
-            color: #4caf50; 
-            border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-        .shift-off { 
-            background: rgba(136, 146, 176, 0.2); 
-            color: #8892b0; 
-            border: 1px solid rgba(136, 146, 176, 0.3);
-        }
+        .shift-zao { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
+        .shift-wan { background: rgba(156, 39, 176, 0.2); color: #9c27b0; border: 1px solid rgba(156, 39, 176, 0.3); }
+        .shift-quan { background: rgba(0, 212, 255, 0.2); color: #00d4ff; border: 1px solid rgba(0, 212, 255, 0.3); }
+        .shift-zhi { background: rgba(76, 175, 80, 0.2); color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.3); }
+        .shift-off { background: rgba(136, 146, 176, 0.2); color: #8892b0; border: 1px solid rgba(136, 146, 176, 0.3); }
         .shift-zao-bg { background: rgba(255, 193, 7, 0.1); color: #ffc107; font-weight: 600; }
         .shift-wan-bg { background: rgba(156, 39, 176, 0.1); color: #9c27b0; font-weight: 600; }
         .shift-quan-bg { background: rgba(0, 212, 255, 0.1); color: #00d4ff; font-weight: 600; }
@@ -160,8 +140,11 @@
             font-weight: 600;
         }
         td { color: #ccd6f6; }
-        .work { background: rgba(0, 212, 255, 0.1); color: #00d4ff; font-weight: 600; }
-        .off { background: rgba(255, 107, 107, 0.1); color: #ff6b6b; }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
         .back-link {
             display: inline-block;
             margin-top: 20px;
@@ -183,131 +166,24 @@
             <a href="roster.html" class="active">📅 班表</a>
         </div>
 
-        <div class="stats-grid">
+        <div class="stats-grid" id="statsGrid">
             <div class="stat-box">
-                <h3>本週排班人數</h3>
-                <div class="number">6 人</div>
-            </div>
-            <div class="stat-box">
-                <h3>豐原門市</h3>
-                <div class="number">2 人</div>
-            </div>
-            <div class="stat-box">
-                <h3>潭子門市</h3>
-                <div class="number">2 人</div>
-            </div>
-            <div class="stat-box">
-                <h3>大雅門市</h3>
-                <div class="number">2 人</div>
+                <h3>載入中...</h3>
             </div>
         </div>
 
         <div class="card">
-            <h2>🏢 各門市人員配置</h2>
-            <div class="store-grid">
-                <div class="store-card">
-                    <h3>🏪 豐原門市（2/21 週六）</h3>
-                    <ul class="staff-list">
-                        <li><span class="staff-name">峙文</span><span class="shift-badge shift-quan">全</span></li>
-                        <li><span class="staff-name">榮祺</span><span class="shift-badge shift-off">休</span></li>
-                    </ul>
-                </div>
-                <div class="store-card">
-                    <h3>🏪 潭子門市（2/21 週六）</h3>
-                    <ul class="staff-list">
-                        <li><span class="staff-name">煜捷</span><span class="shift-badge shift-zao">早</span></li>
-                        <li><span class="staff-name">育仕</span><span class="shift-badge shift-wan">晚</span></li>
-                    </ul>
-                </div>
-                <div class="store-card">
-                    <h3>🏪 大雅門市（2/21 週六）</h3>
-                    <ul class="staff-list">
-                        <li><span class="staff-name">家碩</span><span class="shift-badge shift-off">休</span></li>
-                        <li><span class="staff-name">永承</span><span class="shift-badge shift-quan">全</span></li>
-                    </ul>
-                </div>
+            <h2>🏢 各門市人員配置（今日）</h2>
+            <div class="store-grid" id="todayRoster">
+                <div class="loading">載入中...</div>
             </div>
         </div>
 
         <div class="card">
             <h2>📅 當周班表（2/15 週日 ~ 2/21 週六）</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>人員</th>
-                        <th>門市</th>
-                        <th>2/15<br>週日</th>
-                        <th>2/16<br>週一</th>
-                        <th>2/17<br>週二</th>
-                        <th>2/18<br>週三</th>
-                        <th>2/19<br>週四</th>
-                        <th>2/20<br>週五</th>
-                        <th>2/21<br>週六</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>峙文</td><td>豐原</td>
-                        <td class="shift-zhi-bg">值</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-quan-bg">全</td>
-                        <td class="shift-quan-bg">全</td>
-                    </tr>
-                    <tr>
-                        <td>榮祺</td><td>豐原</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                    </tr>
-                    <tr>
-                        <td>煜捷</td><td>潭子</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-quan-bg">全</td>
-                        <td class="shift-zao-bg">早</td>
-                    </tr>
-                    <tr>
-                        <td>育仕</td><td>潭子</td>
-                        <td class="shift-zhi-bg">值</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-wan-bg">晚</td>
-                    </tr>
-                    <tr>
-                        <td>家碩</td><td>大雅</td>
-                        <td class="shift-zhi-bg">值</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-quan-bg">全</td>
-                        <td class="shift-off-bg">休</td>
-                    </tr>
-                    <tr>
-                        <td>永承</td><td>大雅</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-zao-bg">早</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-off-bg">休</td>
-                        <td class="shift-quan-bg">全</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="weeklyRoster">
+                <div class="loading">載入中...</div>
+            </div>
             <p style="margin-top: 20px; color: #8892b0; font-size: 0.9em;">
                 📝 班次說明：<span style="color: #ffc107;">早</span> = 早班｜<span style="color: #9c27b0;">晚</span> = 晚班｜<span style="color: #00d4ff;">全</span> = 全班｜<span style="color: #4caf50;">值</span> = 值班｜<span style="color: #8892b0;">休</span> = 休假
             </p>
@@ -315,5 +191,127 @@
 
         <a href="index.html" class="back-link">← 返回首頁</a>
     </div>
+
+    <script>
+        // 班次樣式映射
+        const shiftClassMap = {
+            '早': 'shift-zao-bg',
+            '晚': 'shift-wan-bg',
+            '全': 'shift-quan-bg',
+            '值': 'shift-zhi-bg',
+            '休': 'shift-off-bg'
+        };
+
+        const shiftBadgeMap = {
+            '早': 'shift-zao',
+            '晚': 'shift-wan',
+            '全': 'shift-quan',
+            '值': 'shift-zhi',
+            '休': 'shift-off'
+        };
+
+        // 日期對照表（2/15 週日 ~ 2/21 週六）
+        const weekDates = [
+            { date: '2026-02-15', display: '2/15<br>週日' },
+            { date: '2026-02-16', display: '2/16<br>週一' },
+            { date: '2026-02-17', display: '2/17<br>週二' },
+            { date: '2026-02-18', display: '2/18<br>週三' },
+            { date: '2026-02-19', display: '2/19<br>週四' },
+            { date: '2026-02-20', display: '2/20<br>週五' },
+            { date: '2026-02-21', display: '2/21<br>週六' }
+        ];
+
+        // 載入班表資料
+        async function loadRosterData() {
+            try {
+                // 載入今日班表
+                const todayResponse = await fetch('/api/roster/today');
+                const todayData = await todayResponse.json();
+                
+                // 載入當周班表
+                const weeklyResponse = await fetch('/api/roster/weekly');
+                const weeklyData = await weeklyResponse.json();
+                
+                // 計算統計數據
+                const totalStaff = Object.keys(weeklyData).length;
+                const locations = {};
+                todayData.forEach(staff => {
+                    if (!locations[staff.location]) locations[staff.location] = 0;
+                    locations[staff.location]++;
+                });
+                
+                // 填充統計
+                const statsHtml = `
+                    <div class="stat-box">
+                        <h3>本週排班人數</h3>
+                        <div class="number">${totalStaff} 人</div>
+                    </div>
+                    ${Object.entries(locations).map(([loc, count]) => `
+                        <div class="stat-box">
+                            <h3>${loc}</h3>
+                            <div class="number">${count} 人</div>
+                        </div>
+                    `).join('')}
+                `;
+                document.getElementById('statsGrid').innerHTML = statsHtml;
+                
+                // 按門市分組今日班表
+                const byLocation = {};
+                todayData.forEach(staff => {
+                    if (!byLocation[staff.location]) byLocation[staff.location] = [];
+                    byLocation[staff.location].push(staff);
+                });
+                
+                // 填充今日班表
+                const todayHtml = Object.entries(byLocation).map(([location, staffList]) => `
+                    <div class="store-card">
+                        <h3>🏪 ${location}（2/21 週六）</h3>
+                        <ul class="staff-list">
+                            ${staffList.map(staff => `
+                                <li>
+                                    <span class="staff-name">${staff.name}</span>
+                                    <span class="shift-badge ${shiftBadgeMap[staff.shift] || 'shift-off'}">${staff.shift}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+                document.getElementById('todayRoster').innerHTML = todayHtml;
+                
+                // 填充當周班表
+                const weeklyHtml = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>人員</th>
+                                <th>門市</th>
+                                ${weekDates.map(d => `<th>${d.display}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(weeklyData).map(([name, data]) => `
+                                <tr>
+                                    <td>${name}</td>
+                                    <td>${data.location}</td>
+                                    ${weekDates.map(d => {
+                                        const shift = data.shifts[d.date] || '休';
+                                        return `<td class="${shiftClassMap[shift] || 'shift-off-bg'}">${shift}</td>`;
+                                    }).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('weeklyRoster').innerHTML = weeklyHtml;
+                
+            } catch (error) {
+                console.error('載入班表失敗:', error);
+                document.getElementById('todayRoster').innerHTML = '<div class="loading">載入失敗</div>';
+                document.getElementById('weeklyRoster').innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        loadRosterData();
+    </script>
 </body>
 </html>

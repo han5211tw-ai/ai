@@ -87,6 +87,11 @@
             position: relative;
             height: 300px;
         }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
         .back-link {
             display: inline-block;
             margin-top: 20px;
@@ -110,36 +115,9 @@
 
         <div class="card">
             <h2>📊 部門業績表</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>部門名稱</th>
-                        <th>目標業績</th>
-                        <th>實際業績</th>
-                        <th>毛利</th>
-                        <th>達成率</th>
-                        <th>毛利率</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>門市部</td>
-                        <td class="number">NT$ 8,457,499</td>
-                        <td class="number highlight">NT$ 3,910,704</td>
-                        <td class="number">NT$ 1,023,160</td>
-                        <td class="number">46.24%</td>
-                        <td class="number">26.16%</td>
-                    </tr>
-                    <tr>
-                        <td>業務部</td>
-                        <td class="number">NT$ 2,629,050</td>
-                        <td class="number highlight">NT$ 1,533,790</td>
-                        <td class="number">NT$ 449,691</td>
-                        <td class="number">58.34%</td>
-                        <td class="number">29.32%</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="deptTable">
+                <div class="loading">載入中...</div>
+            </div>
         </div>
 
         <div class="chart-row">
@@ -161,64 +139,109 @@
     </div>
 
     <script>
-        // 達成率圖表
-        const ctx1 = document.getElementById('achievementChart').getContext('2d');
-        new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: ['門市部', '業務部'],
-                datasets: [{
-                    label: '達成率 (%)',
-                    data: [46.24, 58.34],
-                    backgroundColor: ['#00d4ff', '#7b2cbf'],
-                    borderRadius: 8,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#8892b0' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#ccd6f6' }
-                    }
-                }
-            }
-        });
+        // 格式化金額
+        function formatMoney(value) {
+            return 'NT$ ' + value.toLocaleString();
+        }
 
-        // 毛利率圖表
-        const ctx2 = document.getElementById('marginChart').getContext('2d');
-        new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: ['門市部', '業務部'],
-                datasets: [{
-                    data: [26.16, 29.32],
-                    backgroundColor: ['#00d4ff', '#7b2cbf'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { color: '#ccd6f6' }
+        // 載入部門資料
+        async function loadDeptData() {
+            try {
+                const response = await fetch('/api/performance/department');
+                const data = await response.json();
+                
+                // 填充表格
+                const tableHtml = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>部門名稱</th>
+                                <th>目標業績</th>
+                                <th>實際業績</th>
+                                <th>毛利</th>
+                                <th>達成率</th>
+                                <th>毛利率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(row => `
+                                <tr>
+                                    <td>${row.name}</td>
+                                    <td class="number">${formatMoney(row.target)}</td>
+                                    <td class="number highlight">${formatMoney(row.revenue)}</td>
+                                    <td class="number">${formatMoney(row.profit)}</td>
+                                    <td class="number">${(row.achievement_rate * 100).toFixed(2)}%</td>
+                                    <td class="number">${(row.margin_rate * 100).toFixed(2)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('deptTable').innerHTML = tableHtml;
+                
+                // 繪製達成率圖表
+                const ctx1 = document.getElementById('achievementChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.name),
+                        datasets: [{
+                            label: '達成率 (%)',
+                            data: data.map(d => d.achievement_rate * 100),
+                            backgroundColor: ['#00d4ff', '#7b2cbf'],
+                            borderRadius: 8,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#8892b0' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#ccd6f6' }
+                            }
+                        }
                     }
-                }
+                });
+
+                // 繪製毛利率圖表
+                const ctx2 = document.getElementById('marginChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(d => d.name),
+                        datasets: [{
+                            data: data.map(d => d.margin_rate * 100),
+                            backgroundColor: ['#00d4ff', '#7b2cbf'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#ccd6f6' }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('載入部門資料失敗:', error);
+                document.getElementById('deptTable').innerHTML = '<div class="loading">載入失敗</div>';
             }
-        });
+        }
+
+        loadDeptData();
     </script>
 </body>
 </html>

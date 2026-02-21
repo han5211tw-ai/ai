@@ -62,20 +62,9 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
         }
-        .btn-icon {
-            font-size: 2.5em;
-            margin-bottom: 15px;
-        }
-        .btn-title {
-            font-size: 1.2em;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #fff;
-        }
-        .btn-desc {
-            font-size: 0.9em;
-            color: #8892b0;
-        }
+        .btn-icon { font-size: 2.5em; margin-bottom: 15px; }
+        .btn-title { font-size: 1.2em; font-weight: 600; margin-bottom: 8px; color: #fff; }
+        .btn-desc { font-size: 0.9em; color: #8892b0; }
         .chart-section {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -101,15 +90,16 @@
             padding: 25px;
             text-align: center;
         }
-        .stat-label {
-            color: #8892b0;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
+        .stat-label { color: #8892b0; font-size: 0.9em; margin-bottom: 10px; }
         .stat-value {
             font-size: 2em;
             font-weight: bold;
             color: #00d4ff;
+        }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 20px;
         }
         .update-time {
             text-align: center;
@@ -122,7 +112,7 @@
 <body>
     <div class="container">
         <h1>🖥️ 電腦舖營運看板</h1>
-        <p class="subtitle">Tech Dashboard System v1.0</p>
+        <p class="subtitle">Tech Dashboard System v2.0 - 即時資料</p>
 
         <div class="section-title">📊 業績分析頁面</div>
         <div class="btn-grid">
@@ -165,19 +155,27 @@
         <div class="stats-row">
             <div class="stat-box">
                 <div class="stat-label">本季總營收</div>
-                <div class="stat-value" id="totalRevenue">--</div>
+                <div class="stat-value" id="totalRevenue">
+                    <div class="loading">載入中...</div>
+                </div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">今日營收</div>
-                <div class="stat-value" id="todayRevenue">--</div>
+                <div class="stat-value" id="todayRevenue">
+                    <div class="loading">載入中...</div>
+                </div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">平均日營收</div>
-                <div class="stat-value" id="avgRevenue">--</div>
+                <div class="stat-value" id="avgRevenue">
+                    <div class="loading">載入中...</div>
+                </div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">最高單日</div>
-                <div class="stat-value" id="maxRevenue">--</div>
+                <div class="stat-value" id="maxRevenue">
+                    <div class="loading">載入中...</div>
+                </div>
             </div>
         </div>
 
@@ -189,90 +187,94 @@
         </div>
 
         <div class="update-time">
-            最後更新：2026-02-21 | 資料來源：公司資料庫
+            資料即時從資料庫讀取 | 最後更新：<span id="updateTime">--</span>
         </div>
     </div>
 
     <script>
-        const salesData = [
-            {date: '2026-01-01', amount: 270641}, {date: '2026-01-02', amount: 51390},
-            {date: '2026-01-03', amount: 40565}, {date: '2026-01-04', amount: 13807},
-            {date: '2026-01-05', amount: 10686}, {date: '2026-01-06', amount: 43805},
-            {date: '2026-01-07', amount: 98867}, {date: '2026-01-08', amount: 63147},
-            {date: '2026-01-09', amount: 177962}, {date: '2026-01-10', amount: 46192},
-            {date: '2026-01-11', amount: 6980}, {date: '2026-01-12', amount: 10745},
-            {date: '2026-01-13', amount: 239637}, {date: '2026-01-14', amount: 51431},
-            {date: '2026-01-15', amount: 238578}, {date: '2026-01-16', amount: 62879},
-            {date: '2026-01-17', amount: 21372}, {date: '2026-01-18', amount: 42581},
-            {date: '2026-01-19', amount: 187992}, {date: '2026-01-20', amount: 158498},
-            {date: '2026-01-21', amount: 91231}, {date: '2026-01-22', amount: 154035},
-            {date: '2026-01-23', amount: 104160}, {date: '2026-01-24', amount: 94307},
-            {date: '2026-01-25', amount: 24704}, {date: '2026-01-26', amount: 38452},
-            {date: '2026-01-27', amount: 59184}, {date: '2026-01-28', amount: 171523},
-            {date: '2026-01-29', amount: 159232}, {date: '2026-01-30', amount: 207022},
-            {date: '2026-01-31', amount: 34745}, {date: '2026-02-01', amount: 56466},
-            {date: '2026-02-02', amount: 22191}, {date: '2026-02-03', amount: 2736},
-            {date: '2026-02-04', amount: 94770}, {date: '2026-02-05', amount: 79760},
-            {date: '2026-02-06', amount: 802672}, {date: '2026-02-07', amount: 65398},
-            {date: '2026-02-08', amount: 10481}, {date: '2026-02-09', amount: 185587},
-            {date: '2026-02-10', amount: 130959}, {date: '2026-02-11', amount: 83860},
-            {date: '2026-02-12', amount: 233452}, {date: '2026-02-13', amount: 76413},
-            {date: '2026-02-14', amount: 30053}, {date: '2026-02-15', amount: 55777},
-            {date: '2026-02-16', amount: 6372}, {date: '2026-02-17', amount: 5033},
-            {date: '2026-02-18', amount: 3700}, {date: '2026-02-19', amount: 9761},
-            {date: '2026-02-20', amount: 78321}
-        ];
+        // 格式化金額
+        function formatMoney(value) {
+            if (value >= 10000) {
+                return 'NT$ ' + (value / 10000).toFixed(1) + '萬';
+            }
+            return 'NT$ ' + value.toLocaleString();
+        }
 
-        const amounts = salesData.map(d => d.amount);
-        const total = amounts.reduce((a, b) => a + b, 0);
-        const avg = Math.round(total / amounts.length);
-        const max = Math.max(...amounts);
-        const today = amounts[amounts.length - 1];
+        // 載入總計數據
+        async function loadSummary() {
+            try {
+                const response = await fetch('/api/summary');
+                const data = await response.json();
+                document.getElementById('totalRevenue').textContent = formatMoney(data.total);
+                document.getElementById('todayRevenue').textContent = formatMoney(data.today);
+                document.getElementById('avgRevenue').textContent = formatMoney(data.avg);
+                document.getElementById('maxRevenue').textContent = formatMoney(data.max);
+            } catch (error) {
+                console.error('載入總計失敗:', error);
+            }
+        }
 
-        document.getElementById('totalRevenue').textContent = 'NT$ ' + (total/10000).toFixed(1) + '萬';
-        document.getElementById('todayRevenue').textContent = 'NT$ ' + today.toLocaleString();
-        document.getElementById('avgRevenue').textContent = 'NT$ ' + (avg/10000).toFixed(1) + '萬';
-        document.getElementById('maxRevenue').textContent = 'NT$ ' + (max/10000).toFixed(1) + '萬';
-
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: salesData.map(d => d.date.slice(5)),
-                datasets: [{
-                    label: '每日銷售金額 (NT$)',
-                    data: amounts,
-                    backgroundColor: amounts.map(v => v > 200000 ? '#ff6b6b' : '#00d4ff'),
-                    borderRadius: 4,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { 
-                            color: '#8892b0',
-                            callback: function(value) { return 'NT$ ' + (value / 1000) + 'K'; }
-                        }
+        // 載入圖表資料
+        async function loadChart() {
+            try {
+                const response = await fetch('/api/sales/daily');
+                const salesData = await response.json();
+                
+                const amounts = salesData.map(d => d.amount);
+                
+                const ctx = document.getElementById('salesChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: salesData.map(d => d.date.slice(5)),
+                        datasets: [{
+                            label: '每日銷售金額 (NT$)',
+                            data: amounts,
+                            backgroundColor: amounts.map(v => v > 200000 ? '#ff6b6b' : '#00d4ff'),
+                            borderRadius: 4,
+                            borderWidth: 0
+                        }]
                     },
-                    x: {
-                        grid: { display: false },
-                        ticks: { 
-                            color: '#8892b0',
-                            maxRotation: 45,
-                            minRotation: 45
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { 
+                                    color: '#8892b0',
+                                    callback: function(value) { return 'NT$ ' + (value / 1000) + 'K'; }
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { 
+                                    color: '#8892b0',
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
                         }
                     }
-                }
+                });
+            } catch (error) {
+                console.error('載入圖表失敗:', error);
             }
-        });
+        }
+
+        // 更新時間
+        document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
+
+        // 載入資料
+        loadSummary();
+        loadChart();
+
+        // 每 60 秒自動重新整理
+        setInterval(() => {
+            location.reload();
+        }, 60000);
     </script>
 </body>
 </html>

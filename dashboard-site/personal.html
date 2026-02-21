@@ -86,6 +86,11 @@
             height: 400px;
             margin-top: 20px;
         }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
         .back-link {
             display: inline-block;
             margin-top: 20px;
@@ -109,82 +114,9 @@
 
         <div class="card">
             <h2>🏆 個人業績排名（2026 Q1）</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>排名</th>
-                        <th>業務員</th>
-                        <th>總業績</th>
-                        <th>單數</th>
-                        <th>平均單價</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="rank-1">🥇 1</td>
-                        <td class="highlight">梁仁佑</td>
-                        <td class="number">NT$ 1,316,644</td>
-                        <td class="number">105</td>
-                        <td class="number">NT$ 12,539</td>
-                    </tr>
-                    <tr>
-                        <td class="rank-2">🥈 2</td>
-                        <td>林峙文</td>
-                        <td class="number">NT$ 952,417</td>
-                        <td class="number">158</td>
-                        <td class="number">NT$ 6,028</td>
-                    </tr>
-                    <tr>
-                        <td class="rank-3">🥉 3</td>
-                        <td>林榮祺</td>
-                        <td class="number">NT$ 795,118</td>
-                        <td class="number">113</td>
-                        <td class="number">NT$ 7,037</td>
-                    </tr>
-                    <tr>
-                        <td>4</td>
-                        <td>劉育仕</td>
-                        <td class="number">NT$ 604,650</td>
-                        <td class="number">77</td>
-                        <td class="number">NT$ 7,853</td>
-                    </tr>
-                    <tr>
-                        <td>5</td>
-                        <td>鄭宇晉</td>
-                        <td class="number">NT$ 490,832</td>
-                        <td class="number">107</td>
-                        <td class="number">NT$ 4,587</td>
-                    </tr>
-                    <tr>
-                        <td>6</td>
-                        <td>張永承</td>
-                        <td class="number">NT$ 274,336</td>
-                        <td class="number">98</td>
-                        <td class="number">NT$ 2,799</td>
-                    </tr>
-                    <tr>
-                        <td>7</td>
-                        <td>林煜捷</td>
-                        <td class="number">NT$ 218,931</td>
-                        <td class="number">58</td>
-                        <td class="number">NT$ 3,775</td>
-                    </tr>
-                    <tr>
-                        <td>8</td>
-                        <td>莊圍迪</td>
-                        <td class="number">NT$ 185,295</td>
-                        <td class="number">10</td>
-                        <td class="number">NT$ 18,530</td>
-                    </tr>
-                    <tr>
-                        <td>9</td>
-                        <td>張家碩</td>
-                        <td class="number">NT$ 146,673</td>
-                        <td class="number">81</td>
-                        <td class="number">NT$ 1,811</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="personalTable">
+                <div class="loading">載入中...</div>
+            </div>
         </div>
 
         <div class="card">
@@ -198,43 +130,90 @@
     </div>
 
     <script>
-        const ctx = document.getElementById('personalChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['梁仁佑', '林峙文', '林榮祺', '劉育仕', '鄭宇晉', '張永承', '林煜捷', '莊圍迪', '張家碩'],
-                datasets: [{
-                    label: '總業績 (NT$)',
-                    data: [1316644, 952417, 795118, 604650, 490832, 274336, 218931, 185295, 146673],
-                    backgroundColor: [
-                        '#ffd700', '#c0c0c0', '#cd7f32',
-                        '#00d4ff', '#00d4ff', '#00d4ff', '#00d4ff', '#00d4ff', '#00d4ff'
-                    ],
-                    borderRadius: 8,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { 
-                            color: '#8892b0',
-                            callback: function(value) { return 'NT$ ' + (value/10000) + '萬'; }
-                        }
+        // 格式化金額
+        function formatMoney(value) {
+            return 'NT$ ' + value.toLocaleString();
+        }
+
+        // 載入個人資料
+        async function loadPersonalData() {
+            try {
+                const response = await fetch('/api/performance/personal');
+                const data = await response.json();
+                
+                // 填充表格
+                const tableHtml = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>業務員</th>
+                                <th>總業績</th>
+                                <th>單數</th>
+                                <th>平均單價</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(row => `
+                                <tr>
+                                    <td class="${row.rank === 1 ? 'rank-1' : row.rank === 2 ? 'rank-2' : row.rank === 3 ? 'rank-3' : ''}">
+                                        ${row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : ''} ${row.rank}
+                                    </td>
+                                    <td class="${row.rank <= 3 ? 'highlight' : ''}">${row.name}</td>
+                                    <td class="number">${formatMoney(row.total)}</td>
+                                    <td class="number">${row.orders}</td>
+                                    <td class="number">${formatMoney(row.avg)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('personalTable').innerHTML = tableHtml;
+                
+                // 繪製圖表
+                const ctx = document.getElementById('personalChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.name),
+                        datasets: [{
+                            label: '總業績 (NT$)',
+                            data: data.map(d => d.total),
+                            backgroundColor: data.map((d, i) => 
+                                i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#00d4ff'
+                            ),
+                            borderRadius: 8,
+                            borderWidth: 0
+                        }]
                     },
-                    y: {
-                        grid: { display: false },
-                        ticks: { color: '#ccd6f6' }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { 
+                                    color: '#8892b0',
+                                    callback: function(value) { return 'NT$ ' + (value/10000) + '萬'; }
+                                }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { color: '#ccd6f6' }
+                            }
+                        }
                     }
-                }
+                });
+            } catch (error) {
+                console.error('載入個人資料失敗:', error);
+                document.getElementById('personalTable').innerHTML = '<div class="loading">載入失敗</div>';
             }
-        });
+        }
+
+        loadPersonalData();
     </script>
 </body>
 </html>
