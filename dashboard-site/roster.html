@@ -166,12 +166,6 @@
             <a href="roster.html" class="active">📅 班表</a>
         </div>
 
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-box">
-                <h3>載入中...</h3>
-            </div>
-        </div>
-
         <div class="card">
             <h2>🏢 各門市人員配置（今日）</h2>
             <div class="store-grid" id="todayRoster">
@@ -231,29 +225,6 @@
                 // 載入當周班表
                 const weeklyResponse = await fetch('/api/roster/weekly');
                 const weeklyData = await weeklyResponse.json();
-                
-                // 計算統計數據
-                const totalStaff = Object.keys(weeklyData).length;
-                const locations = {};
-                todayData.forEach(staff => {
-                    if (!locations[staff.location]) locations[staff.location] = 0;
-                    locations[staff.location]++;
-                });
-                
-                // 填充統計
-                const statsHtml = `
-                    <div class="stat-box">
-                        <h3>本週排班人數</h3>
-                        <div class="number">${totalStaff} 人</div>
-                    </div>
-                    ${Object.entries(locations).map(([loc, count]) => `
-                        <div class="stat-box">
-                            <h3>${loc}</h3>
-                            <div class="number">${count} 人</div>
-                        </div>
-                    `).join('')}
-                `;
-                document.getElementById('statsGrid').innerHTML = statsHtml;
                 
                 // 按門市分組今日班表
                 const byLocation = {};
