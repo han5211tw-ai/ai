@@ -207,7 +207,6 @@
                                 <th>門市名稱</th>
                                 <th>目標業績</th>
                                 <th>實際業績</th>
-                                <th>毛利</th>
                                 <th>達成率</th>
                                 <th>毛利率</th>
                             </tr>
@@ -218,7 +217,6 @@
                                     <td class="highlight">${row.name}</td>
                                     <td class="number">${formatMoney(row.target)}</td>
                                     <td class="number">${formatMoney(row.revenue)}</td>
-                                    <td class="number">${formatMoney(row.profit)}</td>
                                     <td class="number">${(row.achievement_rate * 100).toFixed(2)}%</td>
                                     <td class="number">${(row.margin_rate * 100).toFixed(2)}%</td>
                                 </tr>

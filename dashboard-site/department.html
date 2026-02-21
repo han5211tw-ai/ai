@@ -158,7 +158,6 @@
                                 <th>部門名稱</th>
                                 <th>目標業績</th>
                                 <th>實際業績</th>
-                                <th>毛利</th>
                                 <th>達成率</th>
                                 <th>毛利率</th>
                             </tr>
@@ -169,7 +168,6 @@
                                     <td>${row.name}</td>
                                     <td class="number">${formatMoney(row.target)}</td>
                                     <td class="number highlight">${formatMoney(row.revenue)}</td>
-                                    <td class="number">${formatMoney(row.profit)}</td>
                                     <td class="number">${(row.achievement_rate * 100).toFixed(2)}%</td>
                                     <td class="number">${(row.margin_rate * 100).toFixed(2)}%</td>
                                 </tr>
@@ -212,25 +210,36 @@
                     }
                 });
 
-                // 繪製毛利率圖表
+                // 繪製毛利率圖表（柱狀圖）
                 const ctx2 = document.getElementById('marginChart').getContext('2d');
                 new Chart(ctx2, {
-                    type: 'doughnut',
+                    type: 'bar',
                     data: {
                         labels: data.map(d => d.name),
                         datasets: [{
+                            label: '毛利率 (%)',
                             data: data.map(d => d.margin_rate * 100),
                             backgroundColor: ['#00d4ff', '#7b2cbf'],
+                            borderRadius: 8,
                             borderWidth: 0
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { color: '#ccd6f6' }
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { 
+                                    color: '#8892b0',
+                                    callback: function(value) { return value + '%'; }
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#ccd6f6' }
                             }
                         }
                     }
