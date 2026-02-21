@@ -198,7 +198,7 @@ def get_summary():
 
 if __name__ == '__main__':
     print("🚀 營運看板 API 服務啟動中...")
-    print("📊 請訪問: http://localhost:3344")
+    print("📊 請訪問: http://localhost:3000")
     print("💻 資料即時從資料庫讀取")
     print("-" * 50)
-    app.run(host='0.0.0.0', port=3344, debug=False)
+    app.run(host='0.0.0.0', port=3000, debug=False)
