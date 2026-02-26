@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電腦舖營運看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8892b0;
+            margin-bottom: 50px;
+            font-size: 1.1em;
+        }
+        .section-title {
+            color: #00d4ff;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            margin-bottom: 50px;
+        }
+        @media (max-width: 1100px) {
+            .btn-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .btn-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .btn-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .btn-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00d4ff;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+        }
+        .btn-icon { font-size: 2em; margin-bottom: 10px; }
+        .btn-title { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; color: #fff; }
+        .btn-desc { font-size: 0.9em; color: #8892b0; }
+        .chart-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin-top: 20px;
+        }
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+        }
+        .stat-label { color: #8892b0; font-size: 0.9em; margin-bottom: 10px; }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 20px;
+        }
+        .update-time {
+            text-align: center;
+            color: #8892b0;
+            margin-top: 40px;
+            font-size: 0.9em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        td { color: #ccd6f6; }
+        tr:hover { background: rgba(255, 255, 255, 0.03); }
+        .empty-state {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖥️ 電腦舖營運看板</h1>
+        <p class="subtitle">Tech Dashboard System v2.0</p>
+
+        <div class="section-title">📊 分析與資訊</div>
+        <div class="btn-grid">
+            <a href="department.html" class="btn-card">
+                <div class="btn-icon">🏢</div>
+                <div class="btn-title">部門</div>
+                <div class="btn-desc">達成率、毛利率、業績表</div>
+            </a>
+            <a href="store.html" class="btn-card">
+                <div class="btn-icon">🏬</div>
+                <div class="btn-title">門市</div>
+                <div class="btn-desc">達成率、毛利率、評論數</div>
+            </a>
+            <a href="business.html" class="btn-card">
+                <div class="btn-icon">💼</div>
+                <div class="btn-title">業務</div>
+                <div class="btn-desc">達成率、毛利率、出勤數</div>
+            </a>
+            <a href="personal.html" class="btn-card">
+                <div class="btn-icon">🧑‍💼</div>
+                <div class="btn-title">個人</div>
+                <div class="btn-desc">達成率、業績表、毛利率</div>
+            </a>
+            <a href="roster.html" class="btn-card">
+                <div class="btn-icon">📅</div>
+                <div class="btn-title">班表</div>
+                <div class="btn-desc">人員排班與出勤管理</div>
+            </a>
+            <a href="customer_search.html" class="btn-card">
+                <div class="btn-icon">🔍</div>
+                <div class="btn-title">客戶</div>
+                <div class="btn-desc">查詢客戶資料與消費紀錄</div>
+            </a>
+        </div>
+
+        <div class="section-title">☁️ 雲端文件連結</div>
+        <div class="btn-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 600px; margin-left: auto; margin-right: auto;">
+            <a href="needs_input.html" class="btn-card" target="_blank">
+                <div class="btn-icon">📝</div>
+                <div class="btn-title">需求表</div>
+                <div class="btn-desc">請購與調撥需求提交</div>
+            </a>
+            <a href="https://1drv.ms/x/c/6480de932f72b94e/IQCdDxO_Nke0SYeYjet7Z1ZhAevA1hWTrfGgCJ8EQc6SMT8?e=8uxM9p" class="btn-card" target="_blank">
+                <div class="btn-icon">✅</div>
+                <div class="btn-title">LINE 回覆紀錄</div>
+                <div class="btn-desc">客服對話與回覆統計</div>
+            </a>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-label">本季總營收</div>
+                <div class="stat-value" id="totalRevenue">
+                    <div class="loading">載入中...</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">平均日營收</div>
+                <div class="stat-value" id="avgRevenue">
+                    <div class="loading">載入中...</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">最高單日</div>
+                <div class="stat-value" id="maxRevenue">
+                    <div class="loading">載入中...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <div class="section-title">📈 本季每日銷售金額趨勢（2026 Q1）</div>
+            <div class="chart-container">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 採購需求表 -->
+        <div class="chart-section" style="margin-top: 40px;">
+            <div class="section-title">🛒 待處理需求清單</div>
+            <div id="needsTable">
+                <div style="color: #8892b0; text-align: center; padding: 40px;">載入中...</div>
+            </div>
+        </div>
+
+        <div class="update-time">
+            資料即時從資料庫讀取 | 最後更新：<span id="updateTime">--</span>
+        </div>
+    </div>
+
+    <script>
+        // 格式化金額
+        function formatMoney(value) {
+            if (value >= 10000) {
+                return 'NT$ ' + (value / 10000).toFixed(1) + '萬';
+            }
+            return 'NT$ ' + value.toLocaleString();
+        }
+
+        // 載入總計數據
+        async function loadSummary() {
+            try {
+                const response = await fetch('/api/summary');
+                const data = await response.json();
+                document.getElementById('totalRevenue').textContent = formatMoney(data.total);
+                document.getElementById('avgRevenue').textContent = formatMoney(data.avg);
+                document.getElementById('maxRevenue').textContent = formatMoney(data.max);
+            } catch (error) {
+                console.error('載入總計失敗:', error);
+            }
+        }
+
+        // 載入圖表資料
+        async function loadChart() {
+            try {
+                const response = await fetch('/api/sales/daily');
+                const salesData = await response.json();
+                
+                const ctx = document.getElementById('salesChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: salesData.map(d => d.date.slice(5)),
+                        datasets: [
+                            {
+                                label: '門市部',
+                                data: salesData.map(d => d.store),
+                                backgroundColor: '#00d4ff',
+                                borderRadius: 4,
+                                borderWidth: 0,
+                                stack: 'stack1'
+                            },
+                            {
+                                label: '業務部',
+                                data: salesData.map(d => d.business),
+                                backgroundColor: '#ffc107',
+                                borderRadius: 4,
+                                borderWidth: 0,
+                                stack: 'stack1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { color: '#ccd6f6' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                stacked: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: {
+                                    color: '#8892b0',
+                                    callback: function(value) { return 'NT$ ' + (value / 1000) + 'K'; }
+                                }
+                            },
+                            x: {
+                                stacked: true,
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#8892b0',
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('載入圖表失敗:', error);
+            }
+        }
+
+        // 更新時間
+        document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
+
+        // 載入需求表（只顯示請購）
+        async function loadNeeds() {
+            try {
+                const response = await fetch('/api/needs/latest');
+                const data = await response.json();
+
+                if (!data.items || data.items.length === 0) {
+                    document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
+                    return;
+                }
+
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>項次</th>
+                                <th>日期</th>
+                                <th>產品編號</th>
+                                <th>產品名稱</th>
+                                <th>數量</th>
+                                <th>需求類型</th>
+                                <th>需求用途</th>
+                                <th>需求部門</th>
+                                <th>填表人員</th>
+                                <th>備註</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items.map((item, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${item.date || '-'}</td>
+                                    <td>${item.product_code || '-'}</td>
+                                    <td>${item.display_name || item.item_name}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${item.request_type || '請購'}${item.transfer_from ? '<br><small style="color:#ffc107;">來源:' + item.transfer_from + '</small>' : ''}</td>
+                                    <td>${item.purpose === '客戶' ? '客戶:' + (item.customer_code || '-') : '備貨'}</td>
+                                    <td>${item.department || '-'}</td>
+                                    <td>${item.requester || '-'}</td>
+                                    <td style="${item.remark && (item.remark.includes('缺货') || item.remark.includes('缺貨')) ? 'color: #ff4444; font-weight: bold;' : ''}">${item.remark || ''}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('needsTable').innerHTML = html;
+            } catch (error) {
+                console.error('載入需求表失敗:', error);
+                document.getElementById('needsTable').innerHTML = '<div class="empty-state">需求資料載入失敗</div>';
+            }
+        }
+
+        // 載入資料
+        loadSummary();
+        loadChart();
+        loadNeeds();
+
+        // 每 1 小時自動重新整理（3600000 毫秒）
+        setInterval(() => {
+            location.reload();
+        }, 3600000);
+    </script>
+</body>
+</html>
