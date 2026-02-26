@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>請購調撥需求表 - 電腦舖</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { overflow-x: hidden; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .login-section, .form-section { display: none; }
+        .login-section.active, .form-section.active { display: block; }
+        
+        .login-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .login-box h2 { color: #00d4ff; margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 6px; color: #8892b0; font-size: 0.95em; }
+        input, select, textarea {
+            width: 100%;
+            max-width: 100%;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            max-width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 0.95em;
+        }
+        /* iOS Safari date input fixes */
+        input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            font-size: 16px;
+            line-height: 1.2;
+            padding: 10px 12px;
+            height: 44px;
+            border-radius: 6px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        select option { background: #1a1a2e; color: #fff; }
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            font-size: 1.05em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error-msg { color: #f44336; margin-top: 10px; font-size: 0.95em; }
+        
+        .user-info {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.05em;
+        }
+        .user-info span { color: #00d4ff; font-weight: bold; }
+        .btn-logout {
+            padding: 5px 12px;
+            font-size: 0.9em;
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #f44336;
+        }
+        
+        .input-row {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        .row-header {
+            color: #00d4ff;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .row-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .form-group.small label { font-size: 1em; }
+        .form-group.small input, .form-group.small select {
+            padding: 8px 10px;
+            font-size: 0.9em;
+            width: 100%;
+            max-width: 100%;
+            height: 44px;
+            box-sizing: border-box;
+        }
+        .date-input {
+            font-size: 16px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            height: 44px;
+        }
+        
+        .product-info {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            font-size: 1em;
+        }
+        .product-info .name { color: #00d4ff; font-weight: bold; }
+        .product-info .stock { color: #8892b0; margin-top: 4px; font-size: 1em; }
+        .product-info .stock span { 
+            display: inline-block; 
+            background: rgba(76, 175, 80, 0.2); 
+            color: #4caf50;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            margin-top: 3px;
+        }
+        .product-error { color: #f44336; }
+        
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .radio-group input[type="radio"] { width: auto; }
+        
+        .conditional-input {
+            display: none;
+            margin-top: 8px;
+        }
+        .conditional-input.active { display: block; }
+        
+        .customer-info {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            font-size: 1em;
+            color: #4caf50;
+        }
+        
+        .recent-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .recent-section h3 {
+            color: #00d4ff;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+        .recent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1em;
+            line-height: 1.6;
+        }
+        .recent-item .info {
+            flex: 1;
+            margin-right: 15px;
+        }
+        .recent-item:last-child { border-bottom: none; }
+        .recent-item .status {
+            font-size: 0.9em;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .status-pending { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .status-cancelled { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .btn-cancel {
+            padding: 4px 10px;
+            font-size: 0.85em;
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #f44336;
+            margin-left: 8px;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+            font-size: 1em;
+        }
+        .toast.success { background: rgba(76, 175, 80, 0.9); }
+        .toast.error { background: rgba(244, 67, 54, 0.9); }
+        .toast.show { display: block; animation: slideIn 0.3s; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 請購調撥需求表</h1>
+        
+        <div class="login-section active" id="loginSection">
+            <div class="login-box">
+                <h2>🔐 請輸入密碼驗證</h2>
+                <div class="form-group">
+                    <label>身分證後四碼</label>
+                    <input type="password" id="passwordInput" maxlength="4" placeholder="請輸入4位數字">
+                </div>
+                <button class="btn" onclick="verifyPassword()">驗證</button>
+                <div class="error-msg" id="loginError"></div>
+            </div>
+        </div>
+        
+        <div class="form-section" id="formSection">
+            <div class="user-info">
+                <div>填表人：<span id="userName">-</span>｜單位：<span id="userDept">-</span></div>
+                <button class="btn btn-logout" onclick="logout()">重新登入</button>
+            </div>
+            
+            <div id="inputRows">
+                <!-- Row 1 -->
+                <div class="input-row">
+                    <div class="row-header">第 1 筆</div>
+                    <div class="row-grid">
+                        <div class="form-group small">
+                            <label>日期</label>
+                            <input type="date" class="date-input" id="date1">
+                        </div>
+                        <div class="form-group small">
+                            <label>產品編號</label>
+                            <input type="text" class="product-code" id="code1" placeholder="輸入後按Enter查詢">
+                            <div class="product-info" id="info1" style="display:none;"></div>
+                        </div>
+                        <div class="form-group small">
+                            <label>數量</label>
+                            <input type="number" class="quantity" id="qty1" min="1" placeholder="數量">
+                        </div>
+                        <div class="form-group small">
+                            <label>需求類型</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="requestType1" value="請購" checked> 請購</label>
+                                <label><input type="radio" name="requestType1" value="調撥"> 調撥</label>
+                            </div>
+                            <div class="conditional-input" id="transferFrom1">
+                                <select id="transferSelect1">
+                                    <option value="">選擇來源門市</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group small">
+                            <label>需求用途</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="purpose1" value="備貨" checked> 備貨</label>
+                                <label><input type="radio" name="purpose1" value="客戶"> 客戶</label>
+                            </div>
+                            <div class="conditional-input" id="customerInput1">
+                                <input type="text" id="customerCode1" placeholder="輸入客戶編號">
+                                <div class="customer-info" id="customerInfo1" style="display:none;"></div>
+                            </div>
+                        </div>
+                        <div class="form-group small">
+                            <label>備註</label>
+                            <input type="text" class="remark" id="remark1" placeholder="選填">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Row 2 -->
+                <div class="input-row">
+                    <div class="row-header">第 2 筆</div>
+                    <div class="row-grid">
+                        <div class="form-group small">
+                            <label>日期</label>
+                            <input type="date" class="date-input" id="date2">
+                        </div>
+                        <div class="form-group small">
+                            <label>產品編號</label>
+                            <input type="text" class="product-code" id="code2" placeholder="輸入後按Enter查詢">
+                            <div class="product-info" id="info2" style="display:none;"></div>
+                        </div>
+                        <div class="form-group small">
+                            <label>數量</label>
+                            <input type="number" class="quantity" id="qty2" min="1" placeholder="數量">
+                        </div>
+                        <div class="form-group small">
+                            <label>需求類型</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="requestType2" value="請購" checked> 請購</label>
+                                <label><input type="radio" name="requestType2" value="調撥"> 調撥</label>
+                            </div>
+                            <div class="conditional-input" id="transferFrom2">
+                                <select id="transferSelect2">
+                                    <option value="">選擇來源門市</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group small">
+                            <label>需求用途</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="purpose2" value="備貨" checked> 備貨</label>
+                                <label><input type="radio" name="purpose2" value="客戶"> 客戶</label>
+                            </div>
+                            <div class="conditional-input" id="customerInput2">
+                                <input type="text" id="customerCode2" placeholder="輸入客戶編號">
+                                <div class="customer-info" id="customerInfo2" style="display:none;"></div>
+                            </div>
+                        </div>
+                        <div class="form-group small">
+                            <label>備註</label>
+                            <input type="text" class="remark" id="remark2" placeholder="選填">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Row 3 -->
+                <div class="input-row">
+                    <div class="row-header">第 3 筆</div>
+                    <div class="row-grid">
+                        <div class="form-group small">
+                            <label>日期</label>
+                            <input type="date" class="date-input" id="date3">
+                        </div>
+                        <div class="form-group small">
+                            <label>產品編號</label>
+                            <input type="text" class="product-code" id="code3" placeholder="輸入後按Enter查詢">
+                            <div class="product-info" id="info3" style="display:none;"></div>
+                        </div>
+                        <div class="form-group small">
+                            <label>數量</label>
+                            <input type="number" class="quantity" id="qty3" min="1" placeholder="數量">
+                        </div>
+                        <div class="form-group small">
+                            <label>需求類型</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="requestType3" value="請購" checked> 請購</label>
+                                <label><input type="radio" name="requestType3" value="調撥"> 調撥</label>
+                            </div>
+                            <div class="conditional-input" id="transferFrom3">
+                                <select id="transferSelect3">
+                                    <option value="">選擇來源門市</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group small">
+                            <label>需求用途</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="purpose3" value="備貨" checked> 備貨</label>
+                                <label><input type="radio" name="purpose3" value="客戶"> 客戶</label>
+                            </div>
+                            <div class="conditional-input" id="customerInput3">
+                                <input type="text" id="customerCode3" placeholder="輸入客戶編號">
+                                <div class="customer-info" id="customerInfo3" style="display:none;"></div>
+                            </div>
+                        </div>
+                        <div class="form-group small">
+                            <label>備註</label>
+                            <input type="text" class="remark" id="remark3" placeholder="選填">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="btn" onclick="submitForm()">提交送出</button>
+            </div>
+            
+            <div class="recent-section" id="recentSection" style="display:none;">
+                <h3>📝 最近提交（30分鐘內可取消）</h3>
+                <div id="recentList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        let currentUser = null;
+        const allStores = ['豐原門市', '潭子門市', '大雅門市', '業務部', '總公司倉庫'];
+        
+        // 初始化日期預設今天
+        const today = new Date().toISOString().split('T')[0];
+        document.querySelectorAll('.date-input').forEach(input => {
+            input.value = today;
+            input.min = today;
+        });
+        
+        // 監聽產品編號查詢
+        document.querySelectorAll('.product-code').forEach((input, idx) => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    queryProduct(idx + 1);
+                }
+            });
+            input.addEventListener('blur', () => {
+                if (input.value.trim()) queryProduct(idx + 1);
+            });
+        });
+        
+        // 監聽客戶編號查詢
+        [1, 2, 3].forEach(idx => {
+            const customerInput = document.getElementById(`customerCode${idx}`);
+            customerInput.addEventListener('blur', () => {
+                if (customerInput.value.trim()) queryCustomer(idx);
+            });
+            customerInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (customerInput.value.trim()) queryCustomer(idx);
+                }
+            });
+        });
+        
+        // 監聽需求類型切換（調撥/請購）
+        [1, 2, 3].forEach(idx => {
+            document.querySelectorAll(`input[name="requestType${idx}"]`).forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const transferDiv = document.getElementById(`transferFrom${idx}`);
+                    if (radio.value === '調撥' && radio.checked) {
+                        transferDiv.classList.add('active');
+                        updateTransferOptions(idx);
+                    } else {
+                        transferDiv.classList.remove('active');
+                    }
+                });
+            });
+        });
+        
+        // 監聽需求用途切換（備貨/客戶）
+        [1, 2, 3].forEach(idx => {
+            document.querySelectorAll(`input[name="purpose${idx}"]`).forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const customerDiv = document.getElementById(`customerInput${idx}`);
+                    if (radio.value === '客戶' && radio.checked) {
+                        customerDiv.classList.add('active');
+                    } else {
+                        customerDiv.classList.remove('active');
+                        document.getElementById(`customerInfo${idx}`).style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // 更新調撥來源選單（排除自己門市）
+        function updateTransferOptions(idx) {
+            const select = document.getElementById(`transferSelect${idx}`);
+            select.innerHTML = '<option value="">選擇來源門市</option>';
+            
+            const otherStores = allStores.filter(store => store !== currentUser.department);
+            otherStores.forEach(store => {
+                const option = document.createElement('option');
+                option.value = store;
+                option.textContent = store;
+                select.appendChild(option);
+            });
+        }
+        
+        // 驗證密碼
+        async function verifyPassword() {
+            const password = document.getElementById('passwordInput').value.trim();
+            if (password.length !== 4 || !/^\d{4}$/.test(password)) {
+                document.getElementById('loginError').textContent = '請輸入4位數字密碼';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data;
+                    document.getElementById('userName').textContent = data.name;
+                    document.getElementById('userDept').textContent = data.department;
+                    document.getElementById('loginSection').classList.remove('active');
+                    document.getElementById('formSection').classList.add('active');
+                    loadRecentSubmissions();
+                } else {
+                    document.getElementById('loginError').textContent = '密碼錯誤，請重新輸入';
+                }
+            } catch (error) {
+                showToast('驗證失敗，請稍後再試', 'error');
+            }
+        }
+        
+        // 登出
+        function logout() {
+            currentUser = null;
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('loginSection').classList.add('active');
+            document.getElementById('formSection').classList.remove('active');
+        }
+        
+        // 查詢產品
+        async function queryProduct(rowNum) {
+            const code = document.getElementById(`code${rowNum}`).value.trim();
+            const infoDiv = document.getElementById(`info${rowNum}`);
+            
+            if (!code) { infoDiv.style.display = 'none'; return; }
+            
+            try {
+                const response = await fetch(`/api/product/info?code=${encodeURIComponent(code)}`);
+                const data = await response.json();
+                
+                if (data.found) {
+                    let stockHtml = '';
+                    if (data.stock && data.stock.length > 0) {
+                        stockHtml = data.stock.map(s => `<span>${s.warehouse}: ${s.qty}</span>`).join('');
+                    } else {
+                        stockHtml = '<span style="color:#f44336;">無庫存</span>';
+                    }
+                    infoDiv.innerHTML = `<div class="name">${data.product_name}</div><div class="stock">${stockHtml}</div>`;
+                    infoDiv.style.display = 'block';
+                    infoDiv.classList.remove('product-error');
+                } else {
+                    infoDiv.innerHTML = '<div class="product-error">查無此產品編號</div>';
+                    infoDiv.style.display = 'block';
+                    infoDiv.classList.add('product-error');
+                }
+            } catch (error) {
+                infoDiv.innerHTML = '<div class="product-error">查詢失敗</div>';
+                infoDiv.style.display = 'block';
+            }
+        }
+        
+        // 查詢客戶
+        async function queryCustomer(idx) {
+            const code = document.getElementById(`customerCode${idx}`).value.trim();
+            const infoDiv = document.getElementById(`customerInfo${idx}`);
+            
+            if (!code) { infoDiv.style.display = 'none'; return; }
+            
+            try {
+                const response = await fetch(`/api/customer/lookup?code=${encodeURIComponent(code)}`);
+                const data = await response.json();
+                
+                if (data.found) {
+                    infoDiv.innerHTML = `${data.customer_name} ${data.phone ? '(' + data.phone + ')' : ''}`;
+                    infoDiv.style.display = 'block';
+                } else {
+                    infoDiv.innerHTML = '查無此客戶';
+                    infoDiv.style.display = 'block';
+                }
+            } catch (error) {
+                infoDiv.style.display = 'none';
+            }
+        }
+        
+        // 提交表單
+        async function submitForm() {
+            const items = [];
+            
+            [1, 2, 3].forEach(idx => {
+                const date = document.getElementById(`date${idx}`).value;
+                const code = document.getElementById(`code${idx}`).value.trim();
+                const qty = document.getElementById(`qty${idx}`).value;
+                const requestType = document.querySelector(`input[name="requestType${idx}"]:checked`).value;
+                const transferFrom = requestType === '調撥' ? document.getElementById(`transferSelect${idx}`).value : '';
+                const purpose = document.querySelector(`input[name="purpose${idx}"]:checked`).value;
+                const customer = purpose === '客戶' ? document.getElementById(`customerCode${idx}`).value.trim() : '';
+                const remark = document.getElementById(`remark${idx}`).value.trim();
+                
+                if (date && code && qty) {
+                    if (requestType === '調撥' && !transferFrom) {
+                        showToast(`第${idx}筆：請選擇調撥來源門市`, 'error');
+                        return;
+                    }
+                    if (purpose === '客戶' && !customer) {
+                        showToast(`第${idx}筆：請輸入客戶編號`, 'error');
+                        return;
+                    }
+                    items.push({
+                        date, product_code: code, quantity: parseInt(qty),
+                        request_type: requestType, transfer_from: transferFrom,
+                        purpose, customer_code: customer, remark,
+                        requester: currentUser.name, department: currentUser.department
+                    });
+                }
+            });
+            
+            if (items.length === 0) {
+                showToast('請至少填寫一筆完整資料', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/needs/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`成功新增 ${data.count} 筆需求`, 'success');
+                    clearForm();
+                    loadRecentSubmissions();
+                } else {
+                    showToast(data.message || '提交失敗', 'error');
+                }
+            } catch (error) {
+                showToast('提交失敗，請稍後再試', 'error');
+            }
+        }
+        
+        // 清空表單
+        function clearForm() {
+            [1, 2, 3].forEach(idx => {
+                document.getElementById(`code${idx}`).value = '';
+                document.getElementById(`qty${idx}`).value = '';
+                document.getElementById(`remark${idx}`).value = '';
+                document.getElementById(`customerCode${idx}`).value = '';
+                document.getElementById(`info${idx}`).style.display = 'none';
+                document.getElementById(`customerInfo${idx}`).style.display = 'none';
+                document.querySelector(`input[name="requestType${idx}"][value="請購"]`).checked = true;
+                document.querySelector(`input[name="purpose${idx}"][value="備貨"]`).checked = true;
+                document.getElementById(`transferFrom${idx}`).classList.remove('active');
+                document.getElementById(`customerInput${idx}`).classList.remove('active');
+            });
+        }
+        
+        // 載入最近提交
+        async function loadRecentSubmissions() {
+            if (!currentUser) {
+                console.log('loadRecentSubmissions: currentUser is null');
+                return;
+            }
+            
+            console.log('載入最近提交 for:', currentUser.name);
+            
+            try {
+                const response = await fetch(`/api/needs/recent?requester=${encodeURIComponent(currentUser.name)}&_=${Date.now()}`);
+                const data = await response.json();
+                
+                console.log('API 回傳:', data);
+                
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        console.log(`ID ${item.id}: status=${item.status}, can_cancel=${item.can_cancel}`);
+                    });
+                    document.getElementById('recentSection').style.display = 'block';
+                    const listHtml = data.items.map(item => `
+                        <div class="recent-item">
+                            <div class="info">
+                                <strong>${item.date}</strong> | 
+                                產品: ${item.product_code} ${item.product_name ? '(' + item.product_name + ')' : ''} | 
+                                數量: ${item.quantity} | 
+                                類型: ${item.request_type || '請購'}${item.transfer_from ? '(來源:' + item.transfer_from + ')' : ''} | 
+                                用途: ${item.purpose === '客戶' ? '客戶-' + (item.customer_code || '-') : '備貨'}
+                                ${item.remark ? ' | 備註: ' + item.remark : ''}
+                            </div>
+                            <div>
+                                <span class="status ${item.status === '待處理' ? 'status-pending' : 'status-cancelled'}">${item.status}</span>
+                                ${item.can_cancel ? `<button class="btn btn-cancel" onclick="cancelItem(${item.id})">取消</button>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                    document.getElementById('recentList').innerHTML = listHtml;
+                } else {
+                    document.getElementById('recentSection').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('載入最近提交失敗:', error);
+            }
+        }
+        
+        // 取消項目
+        async function cancelItem(id) {
+            if (!confirm('確定要取消這筆需求嗎？')) return;
+            
+            try {
+                const response = await fetch('/api/needs/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('已取消', 'success');
+                    loadRecentSubmissions();
+                } else {
+                    showToast(data.message || '取消失敗', 'error');
+                }
+            } catch (error) {
+                showToast('取消失敗', 'error');
+            }
+        }
+        
+        // 顯示提示
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

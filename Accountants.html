@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會計專區 - 電腦舖營運看板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #fef9f3 0%, #fdf6ed 50%, #fcf3e6 100%);
+            min-height: 100vh;
+            color: #4a4a4a;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e91e63, #9c27b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .nav a {
+            color: #666;
+            text-decoration: none;
+            padding: 10px 18px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        
+        .nav a:hover {
+            color: #e91e63;
+            border-color: #e91e63;
+            background: rgba(233, 30, 99, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .nav a.active {
+            color: #e91e63;
+            border-color: #e91e63;
+            background: rgba(233, 30, 99, 0.1);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: #f48fb1;
+            box-shadow: 0 6px 25px rgba(233, 30, 99, 0.1);
+        }
+        
+        .card h2 {
+            color: #e91e63;
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* 健康狀態燈號區塊 */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .status-card:hover {
+            border-color: #f48fb1;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.15);
+        }
+        
+        .status-card.green {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.08);
+        }
+        
+        .status-card.yellow {
+            border-color: #eab308;
+            background: rgba(234, 179, 8, 0.08);
+        }
+        
+        .status-card.red {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.08);
+        }
+        
+        .status-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .status-card.green .status-icon {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
+        .status-card.yellow .status-icon {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+        }
+        
+        .status-card.red .status-icon {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .status-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 3px;
+        }
+        
+        .status-name {
+            font-size: 1em;
+            font-weight: 600;
+            color: #4a4a4a;
+        }
+        
+        /* 雲端文件按鈕 */
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .btn-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-decoration: none;
+            color: #4a4a4a;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .btn-card:hover {
+            border-color: #f48fb1;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(233, 30, 99, 0.15);
+        }
+        
+        .btn-icon { 
+            font-size: 2em; 
+            margin-bottom: 8px; 
+        }
+        
+        .btn-title { 
+            font-size: 1.1em; 
+            font-weight: 600; 
+            margin-bottom: 5px;
+            color: #e91e63;
+        }
+        
+        .btn-desc { 
+            font-size: 0.85em; 
+            color: #888; 
+        }
+        
+        /* 表格樣式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.95em;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        th {
+            background: rgba(233, 30, 99, 0.08);
+            color: #e91e63;
+            font-weight: 600;
+        }
+        
+        td { 
+            color: #555; 
+        }
+        
+        tr:hover { 
+            background: rgba(233, 30, 99, 0.03); 
+        }
+        
+        .loading {
+            color: #888;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+        
+        .update-time {
+            text-align: center;
+            color: #888;
+            margin-top: 30px;
+            font-size: 0.85em;
+        }
+        
+        .details-panel {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .details-panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .details-title {
+            font-size: 1.1em;
+            color: #e91e63;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            color: #888;
+        }
+        
+        .detail-value {
+            color: #4a4a4a;
+            font-weight: 500;
+        }
+        
+        .detail-value.green { color: #22c55e; }
+        .detail-value.yellow { color: #eab308; }
+        .detail-value.red { color: #ef4444; }
+        
+        .stock-info {
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .stock-warehouse {
+            display: inline-block;
+            background: rgba(233, 30, 99, 0.1);
+            color: #e91e63;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin: 2px;
+            font-size: 0.8em;
+        }
+        .btn-complete {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-complete:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+        .btn-complete:disabled {
+            background: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .remark-input {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 6px 8px;
+            color: #4a4a4a;
+            font-size: 0.85em;
+            width: 100px;
+        }
+        .remark-input:focus {
+            outline: none;
+            border-color: #e91e63;
+        }
+        .btn-save-remark {
+            background: rgba(233, 30, 99, 0.1);
+            border: 1px solid rgba(233, 30, 99, 0.5);
+            color: #e91e63;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 4px;
+        }
+        .btn-save-remark:hover {
+            background: rgba(233, 30, 99, 0.2);
+        }
+        /* 待處理調撥需求表格字體調整 */
+        #needsTable table {
+            font-size: 0.9em;
+        }
+        #needsTable th {
+            font-size: 0.9em;
+        }
+        #needsTable td {
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .btn-grid {
+                grid-template-columns: 1fr;
+            }
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 會計專區</h1>
+        <p class="subtitle">Accounting Dashboard</p>
+
+        <!-- 導航連結 -->
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+            <a href="department.html">🏢 部門</a>
+            <a href="store.html">🏬 門市</a>
+            <a href="business.html">💼 業務</a>
+            <a href="personal.html">🧑‍💼 個人</a>
+            <a href="roster.html">📅 班表</a>
+            <a href="customer_search.html">🔍 客戶</a>
+            <a href="Accountants.html" class="active">🧮 會計專區</a>
+        </div>
+
+        <!-- 系統健康狀態燈號 -->
+        <div class="card">
+            <h2>🔧 系統健康狀態</h2>
+            <div id="loading" class="loading">載入中...</div>
+            
+            <div id="health-content" style="display: none;">
+                <div class="status-grid">
+                    <div class="status-card" id="import-card" onclick="toggleDetails('import')">
+                        <div class="status-icon">📥</div>
+                        <div class="status-label">Import</div>
+                        <div class="status-name">匯入任務</div>
+                    </div>
+                    
+                    <div class="status-card" id="data-card" onclick="toggleDetails('data')">
+                        <div class="status-icon">📊</div>
+                        <div class="status-label">Data</div>
+                        <div class="status-name">資料新鮮度</div>
+                    </div>
+                </div>
+                
+                <div id="details-container"></div>
+            </div>
+        </div>
+
+        <!-- 待處理調撥需求 -->
+        <div class="card">
+            <h2>🔄 待處理調撥需求</h2>
+            <div id="needsTable">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
+        <div class="update-time">
+            資料即時從資料庫讀取 | 最後更新：<span id="updateTime">--</span>
+        </div>
+    </div>
+
+    <script>
+        let healthData = null;
+        let currentOpenPanel = null;
+        
+        // 載入健康狀態資料
+        async function loadHealthData() {
+            try {
+                const response = await fetch('/api/v1/admin/health');
+                if (!response.ok) {
+                    throw new Error('API 回傳錯誤: ' + response.status);
+                }
+                
+                healthData = await response.json();
+                renderHealthData();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('health-content').style.display = 'block';
+            } catch (error) {
+                console.error('載入健康狀態失敗:', error);
+                document.getElementById('loading').textContent = '載入失敗: ' + error.message;
+            }
+        }
+        
+        function renderHealthData() {
+            // 更新匯入任務燈號
+            updateStatusCard('import-card', healthData.import_status.status);
+            // 更新資料新鮮度燈號
+            updateStatusCard('data-card', healthData.data_freshness.status);
+            
+            // 建立詳細資訊面板
+            createDetailsPanels();
+        }
+        
+        function updateStatusCard(cardId, status) {
+            const card = document.getElementById(cardId);
+            card.classList.remove('green', 'yellow', 'red');
+            card.classList.add(status);
+            
+            // 更新圖示
+            const icon = card.querySelector('.status-icon');
+            if (status === 'green') {
+                icon.textContent = '✓';
+            } else if (status === 'yellow') {
+                icon.textContent = '!';
+            } else {
+                icon.textContent = '✕';
+            }
+        }
+        
+        function createDetailsPanels() {
+            const container = document.getElementById('details-container');
+            
+            // Import 詳細資訊
+            const importItems = [
+                { label: '整體狀態', value: healthData.import_status.status === 'green' ? '成功' : (healthData.import_status.status === 'yellow' ? '等待中' : '失敗'), status: healthData.import_status.status },
+                { label: '預期資料日期', value: healthData.import_status.expected_data_date },
+                { label: '昨天銷貨筆數', value: healthData.import_status.sales_rows_yesterday },
+                { label: '昨天進貨筆數', value: healthData.import_status.purchase_rows_yesterday },
+                { label: '昨天客戶筆數', value: healthData.import_status.customer_rows_yesterday },
+                { label: '訊息', value: healthData.import_status.message }
+            ];
+            
+            const importPanel = createPanel('import', '匯入任務狀態', importItems);
+            
+            // Data 詳細資訊
+            const dataItems = [
+                { label: '預期資料日期', value: healthData.data_freshness.expected_data_date },
+                { label: '最新銷貨日期', value: healthData.data_freshness.latest_sales_date },
+                { label: '最新進貨日期', value: healthData.data_freshness.latest_purchase_date },
+                { label: '最新庫存日期', value: healthData.data_freshness.latest_inventory_date },
+                { label: '最新客戶日期', value: healthData.data_freshness.latest_customer_date },
+                { label: '訊息', value: healthData.data_freshness.message }
+            ];
+            
+            const dataPanel = createPanel('data', '資料新鮮度', dataItems);
+            
+            container.innerHTML = importPanel + dataPanel;
+        }
+        
+        function createPanel(id, title, items) {
+            const itemsHtml = items.map(item => {
+                const statusClass = item.status ? `class="detail-value ${item.status}"` : 'class="detail-value"';
+                return `
+                    <div class="detail-item">
+                        <span class="detail-label">${item.label}</span>
+                        <span ${statusClass}>${item.value}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            return `
+                <div class="details-panel" id="${id}-details">
+                    <div class="details-title">${title}</div>
+                    ${itemsHtml}
+                </div>
+            `;
+        }
+        
+        function toggleDetails(id) {
+            const panel = document.getElementById(id + '-details');
+            
+            // 如果點擊的是已開啟的面板，則關閉
+            if (currentOpenPanel === id) {
+                panel.classList.remove('active');
+                currentOpenPanel = null;
+                return;
+            }
+            
+            // 關閉所有面板
+            document.querySelectorAll('.details-panel').forEach(p => {
+                p.classList.remove('active');
+            });
+            
+            // 開啟點擊的面板
+            panel.classList.add('active');
+            currentOpenPanel = id;
+            
+            // 滾動到面板位置
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // 載入需求表（只顯示調撥且未處理的項目）
+        async function loadNeeds() {
+            try {
+                const response = await fetch('/api/needs/latest?type=' + encodeURIComponent('調撥'));
+                const data = await response.json();
+
+                if (!data.items || data.items.length === 0) {
+                    document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無調撥需求</div>';
+                    return;
+                }
+
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>項次</th>
+                                <th>日期</th>
+                                <th>產品編號</th>
+                                <th>產品名稱</th>
+                                <th>數量</th>
+                                <th>調撥來源</th>
+                                <th>需求部門</th>
+                                <th>填表人員</th>
+                                <th>庫存狀況</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items.map((item, idx) => `
+                                <tr data-id="${item.id}">
+                                    <td>${idx + 1}</td>
+                                    <td>${item.date || '-'}</td>
+                                    <td>${item.product_code || '-'}</td>
+                                    <td style="font-size: 0.95em;">
+                                        ${item.display_name || item.item_name}
+                                    </td>
+                                    <td>${item.quantity}</td>
+                                    <td>${item.transfer_from || '-'}</td>
+                                    <td>${item.department || '-'}</td>
+                                    <td>${item.requester || '-'}</td>
+                                    <td>
+                                        ${item.stock_warehouses && item.stock_warehouses.length > 0
+                                            ? item.stock_warehouses.map(sw => `<span class="stock-warehouse">${sw.warehouse}: ${sw.qty}</span>`).join('')
+                                            : '-'
+                                        }
+                                    </td>
+                                    <td>
+                                        <input type="text" class="remark-input" id="remark-${item.id}" value="${item.remark || ''}" placeholder="輸入備註...">
+                                        <button class="btn-save-remark" onclick="saveRemark(${item.id})">儲存</button>
+                                    </td>
+                                    <td>
+                                        <button class="btn-complete" onclick="completeNeed(${item.id}, this)">已完成</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('needsTable').innerHTML = html;
+            } catch (error) {
+                console.error('載入需求表失敗:', error);
+                document.getElementById('needsTable').innerHTML = '<div class="empty-state">需求資料載入失敗</div>';
+            }
+        }
+
+        // 儲存備註
+        async function saveRemark(id) {
+            const input = document.getElementById(`remark-${id}`);
+            const remark = input.value.trim();
+            const btn = event.target;
+            const originalText = btn.textContent;
+
+            btn.textContent = '儲存中...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/needs/remark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, remark: remark })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    btn.textContent = '✓ 已儲存';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }, 1500);
+                } else {
+                    alert('儲存失敗：' + (result.message || '未知錯誤'));
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('儲存備註失敗:', error);
+                alert('儲存失敗，請稍後再試');
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // 標記需求為已完成
+        async function completeNeed(id, btn) {
+            if (!confirm('確定要標記此需求為已完成嗎？')) {
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '處理中...';
+
+            try {
+                const response = await fetch('/api/needs/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 移除該行
+                    const row = btn.closest('tr');
+                    row.style.transition = 'all 0.3s ease';
+                    row.style.opacity = '0';
+                    setTimeout(() => {
+                        row.remove();
+                        // 重新整理編號
+                        const rows = document.querySelectorAll('#needsTable tbody tr');
+                        rows.forEach((r, idx) => {
+                            r.cells[0].textContent = idx + 1;
+                        });
+                        // 如果沒有資料了，顯示空狀態
+                        if (rows.length === 0) {
+                            document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
+                        }
+                    }, 300);
+                } else {
+                    alert('標記失敗：' + (result.message || '未知錯誤'));
+                    btn.disabled = false;
+                    btn.textContent = '已完成';
+                }
+            } catch (error) {
+                console.error('標記完成失敗:', error);
+                alert('標記失敗，請稍後再試');
+                btn.disabled = false;
+                btn.textContent = '已完成';
+            }
+        }
+        
+        // 更新時間
+        document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
+        
+        // 載入資料
+        loadHealthData();
+        loadNeeds();
+        
+        // 每 1 小時自動重新整理
+        setInterval(() => {
+            location.reload();
+        }, 3600000);
+    </script>
+</body>
+</html>
