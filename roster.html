@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班表 - 電腦舖營運看板</title>
+    <title>班表 - 電腦舖營運系統</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -42,6 +42,44 @@
             border-color: #00d4ff;
             background: rgba(0, 212, 255, 0.1);
         }
+
+        /* 功能入口按鈕（仿 business.html 樣式）*/
+        .section-title {
+            font-size: 1.1em;
+            color: #00d4ff;
+            margin: 30px 0 15px 0;
+            padding-left: 10px;
+            border-left: 3px solid #00d4ff;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .btn-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .btn-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00d4ff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.2);
+        }
+        .btn-icon { font-size: 2em; margin-bottom: 10px; }
+        .btn-title { font-size: 1em; font-weight: 600; margin-bottom: 5px; color: #fff; }
+        .btn-desc { font-size: 0.85em; color: #8892b0; }
+
         .card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -166,6 +204,16 @@
             <a href="personal.html">🧑‍💼 個人</a>
             <a href="roster.html" class="active">📅 班表</a>
             <a href="customer_search.html">🔍 客戶</a>
+        </div>
+
+        <!-- 排班功能入口 -->
+        <div class="section-title">📅 排班功能</div>
+        <div class="btn-grid">
+            <a href="roster_input.html" class="btn-card" target="_blank">
+                <div class="btn-icon">📅</div>
+                <div class="btn-title">班表排班</div>
+                <div class="btn-desc">每月24號開放排班</div>
+            </a>
         </div>
 
         <div class="card">
