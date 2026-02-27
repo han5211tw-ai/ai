@@ -16,7 +16,7 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 os.chdir(DIRECTORY)
 
 with socketserver.TCPServer(("", PORT), MyHTTPRequestHandler) as httpd:
-    print(f"🚀 營運看板已啟動！")
+    print(f"🚀 營運系統已啟動！")
     print(f"📊 請訪問: http://localhost:{PORT}")
     print(f"💻 或: http://127.0.0.1:{PORT}")
     print(f"🛑 按 Ctrl+C 停止服務")

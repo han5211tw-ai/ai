@@ -805,8 +805,10 @@ def get_latest_needs():
     for row in rows:
         product_code = row['product_code'] if row['product_code'] else ''
         
-        # 如果有產品編號，從庫存表查詢產品名稱
-        display_name = row['item_name']
+        # 產品名稱優先順序：1. needs.item_name 2. inventory.item_spec
+        display_name = row['item_name'] if row['item_name'] else ''
+        
+        # 如果 needs 沒有產品名稱，或名稱看起來像編號，從庫存表查詢
         if product_code:
             cursor.execute("""
                 SELECT item_spec FROM inventory 
@@ -815,10 +817,10 @@ def get_latest_needs():
             """, (product_code,))
             inv_row = cursor.fetchone()
             if inv_row and inv_row['item_spec']:
-                display_name = inv_row['item_spec']
-            # 如果 Excel 沒有填產品名稱，但庫存表有，就用庫存表的
-            elif (not display_name or display_name.strip() == '' or display_name == 'None') and inv_row and inv_row['item_spec']:
-                display_name = inv_row['item_spec']
+                # 如果 needs.item_name 是空的，或看起來像是編號（沒有中文字），就用庫存表的
+                has_chinese = display_name and any('\u4e00' <= char <= '\u9fff' for char in display_name)
+                if not display_name or not has_chinese:
+                    display_name = inv_row['item_spec']
         
         # 查詢最後一次進貨價格與廠商名稱
         last_price = None
@@ -1233,6 +1235,39 @@ def verify_password():
         return jsonify({'success': False, 'message': '密碼錯誤'})
 
 # API: 產品資訊查詢
+# API: 產品模糊搜尋
+@app.route('/api/products/search')
+def search_products():
+    keyword = request.args.get('keyword', '').strip()
+    
+    if not keyword or len(keyword) < 2:
+        return jsonify({'success': True, 'items': []})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 模糊搜尋產品編號或品名
+    cursor.execute("""
+        SELECT DISTINCT product_id, item_spec
+        FROM inventory
+        WHERE product_id LIKE ? OR item_spec LIKE ?
+        ORDER BY item_spec
+        LIMIT 20
+    """, (f'%{keyword}%', f'%{keyword}%'))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    items = []
+    for row in rows:
+        items.append({
+            'product_code': row['product_id'],
+            'item_name': row['item_spec']
+        })
+    
+    return jsonify({'success': True, 'items': items})
+
+
 @app.route('/api/product/info')
 def get_product_info():
     code = request.args.get('code', '').strip()
@@ -1302,40 +1337,123 @@ def lookup_customer():
             'customer_name': row['short_name'],
             'phone': row['mobile'] or row['phone1'] or ''
         })
-    else:
-        return jsonify({'found': False})
+
+
+# API: 客戶模糊搜尋
+@app.route('/api/customers/search')
+def search_customers():
+    keyword = request.args.get('keyword', '').strip()
+    
+    # 檢查 keyword 長度
+    if len(keyword) < 2:
+        return jsonify({'success': True, 'items': []})
+    
+    # 如果是純數字，至少 3 碼才查詢
+    if keyword.isdigit() and len(keyword) < 3:
+        return jsonify({'success': True, 'items': []})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 模糊搜尋姓名或手機
+    cursor.execute("""
+        SELECT customer_id, short_name, mobile, phone1, contact, company_address
+        FROM customers
+        WHERE short_name LIKE ? OR mobile LIKE ? OR phone1 LIKE ?
+        ORDER BY short_name
+        LIMIT 20
+    """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    items = []
+    for row in rows:
+        items.append({
+            'customer_id': row['customer_id'],
+            'short_name': row['short_name'],
+            'mobile': row['mobile'] or '',
+            'phone': row['phone1'] or '',
+            'contact': row['contact'] or '',
+            'address': row['company_address'] or ''
+        })
+    
+    return jsonify({'success': True, 'items': items})
 
 
 # API: 批次提交需求
 @app.route('/api/needs/batch', methods=['POST'])
 def create_needs_batch():
+    import re
+    
     data = request.get_json()
     items = data.get('items', [])
-    
+
     if not items:
         return jsonify({'success': False, 'message': '無資料'})
-    
+
+    # 後端驗證：檢查每筆資料
+    for idx, item in enumerate(items, 1):
+        product_code = item.get('product_code', '')
+        product_name = item.get('product_name', '')
+        is_new_product = item.get('is_new_product', False)
+        
+        # 驗證 product_name 不可為空
+        if not product_name or product_name.strip() == '':
+            return jsonify({'success': False, 'message': f'第{idx}筆：產品名稱不可為空'}), 400
+        
+        # 非新品時，驗證 product_code 格式
+        if not is_new_product and product_code:
+            if not re.match(r'^[A-Za-z0-9-]+$', product_code):
+                return jsonify({'success': False, 'message': f'第{idx}筆：產品編號只能輸入英文、數字與連字號'}), 400
+        
+        # 新品時，product_name 必填已在上面驗證
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     inserted = 0
-    
+
     for item in items:
         try:
             purpose = item.get('purpose', '備貨')
             customer_code = item.get('customer_code', '')
             request_type = item.get('request_type', '請購')
             transfer_from = item.get('transfer_from', '') if request_type == '調撥' else ''
+            product_name = item.get('product_name', '')  # 確保取得 product_name
+
+            # 取得 staging 相關欄位
+            is_new_product = 1 if item.get('is_new_product') else 0
+            is_new_customer = 1 if item.get('is_new_customer') else 0
+            product_staging_id = item.get('product_staging_id')
+            customer_staging_id = item.get('customer_staging_id')
+            product_status = item.get('product_status', 'approved')
+            customer_status = item.get('customer_status', 'approved')
+            customer_mobile = item.get('customer_mobile', '')
+
+            # 如果是新客戶，建立 staging_records
+            if is_new_customer and customer_staging_id and customer_staging_id.startswith('TEMP-'):
+                cursor.execute("""
+                    INSERT INTO staging_records 
+                    (type, raw_input, raw_mobile, temp_customer_id, source_type,
+                     requester, department, status, created_at)
+                    VALUES (?, ?, ?, ?, 'needs', ?, ?, 'pending', ?)
+                """, ('customer', item.get('customer_name', ''), customer_mobile, 
+                      customer_staging_id, item['requester'], item['department'], now))
 
             cursor.execute("""
                 INSERT INTO needs
-                (date, product_code, quantity, customer_code, department,
-                 requester, status, created_at, remark, purpose, request_type, transfer_from)
-                VALUES (?, ?, ?, ?, ?, ?, '待處理', ?, ?, ?, ?, ?)
+                (date, product_code, item_name, quantity, customer_code, department,
+                 requester, status, created_at, remark, purpose, request_type, transfer_from,
+                 is_new_product, is_new_customer, product_staging_id, customer_staging_id,
+                 product_status, customer_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, '待處理', ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?, ?)
             """, (
                 item['date'],
                 item['product_code'],
+                product_name,  # 確保寫入 product_name (對應 item_name 欄位)
                 item['quantity'],
                 customer_code if purpose == '客戶' else '',
                 item['department'],
@@ -1344,46 +1462,57 @@ def create_needs_batch():
                 item.get('remark', ''),
                 purpose,
                 request_type,
-                transfer_from
+                transfer_from,
+                is_new_product,
+                is_new_customer,
+                product_staging_id,
+                customer_staging_id,
+                product_status,
+                customer_status
             ))
             inserted += 1
         except Exception as e:
             print(f"匯入失敗: {e}")
-    
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True, 'count': inserted})
 
 # API: 取得最近提交（30分鐘內可取消）
 @app.route('/api/needs/recent')
 def get_recent_needs():
     requester = request.args.get('requester', '')
-    if not requester:
+    department = request.args.get('department', '')
+    current_user = request.args.get('current_user', '')
+    
+    if not department:
         return jsonify({'items': []})
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 獲取該填表人的待處理或30分鐘內的已取消需求
+    # 獲取同單位的待處理或30分鐘內的已取消需求
     cursor.execute("""
-        SELECT id, date, product_code, quantity, customer_code, remark, 
-               status, created_at, purpose, request_type, transfer_from,
+        SELECT id, date, product_code, quantity, customer_code, remark,
+               status, created_at, purpose, request_type, transfer_from, requester,
+               is_new_product, is_new_customer, product_status, customer_status,
                (strftime('%s', 'now', 'localtime') - strftime('%s', created_at)) / 60 as minutes_ago
         FROM needs
-        WHERE requester = ? 
-          AND (status = '待處理' OR (status = '已取消' AND 
+        WHERE department = ?
+          AND (status = '待處理' OR (status = '已取消' AND
                (strftime('%s', 'now', 'localtime') - strftime('%s', created_at)) < 1800))
         ORDER BY created_at DESC
-        LIMIT 10
-    """, (requester,))
+        LIMIT 20
+    """, (department,))
     
     rows = cursor.fetchall()
     
     items = []
     for row in rows:
         minutes_ago = row['minutes_ago'] if row['minutes_ago'] else 999
-        can_cancel = (row['status'] == '待處理' and minutes_ago < 30)
+        # 只能取消自己的，且狀態為待處理，且30分鐘內
+        can_cancel = (row['status'] == '待處理' and minutes_ago < 30 and row['requester'] == current_user)
         
         # 查詢產品名稱
         product_name = ''
@@ -1409,7 +1538,12 @@ def get_recent_needs():
             'purpose': row['purpose'],
             'request_type': row['request_type'],
             'transfer_from': row['transfer_from'],
-            'can_cancel': can_cancel
+            'requester': row['requester'],
+            'can_cancel': can_cancel,
+            'is_new_product': row['is_new_product'],
+            'is_new_customer': row['is_new_customer'],
+            'product_status': row['product_status'],
+            'customer_status': row['customer_status']
         })
     
     conn.close()
@@ -1420,6 +1554,7 @@ def get_recent_needs():
 def cancel_need():
     data = request.get_json()
     need_id = data.get('id')
+    current_user = data.get('current_user', '')
 
     if not need_id:
         return jsonify({'success': False, 'message': '缺少ID'})
@@ -1427,9 +1562,9 @@ def cancel_need():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 檢查是否在30分鐘內
+    # 檢查該筆資料
     cursor.execute("""
-        SELECT status,
+        SELECT status, requester,
                (strftime('%s', 'now', 'localtime') - strftime('%s', created_at)) / 60 as minutes_ago
         FROM needs WHERE id = ?
     """, (need_id,))
@@ -1438,6 +1573,11 @@ def cancel_need():
     if not row:
         conn.close()
         return jsonify({'success': False, 'message': '找不到該筆資料'})
+
+    # 檢查是否為本人
+    if row['requester'] != current_user:
+        conn.close()
+        return jsonify({'success': False, 'message': '只能取消自己的需求'})
 
     if row['status'] != '待處理':
         conn.close()
@@ -1731,8 +1871,1209 @@ def run_single_script():
         })
 
 
+# API: 外勤服務紀錄 - 獲取列表
+@app.route('/api/service-records')
+def get_service_records():
+    salesperson = request.args.get('salesperson', '')
+    quarter = request.args.get('quarter', '')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = """
+        SELECT id, date, customer_code, customer_name, service_item, 
+               service_type, customer_source, is_contract, salesperson, store, updated_at
+        FROM service_records 
+        WHERE 1=1
+    """
+    params = []
+    
+    if salesperson:
+        query += " AND salesperson = ?"
+        params.append(salesperson)
+    
+    if quarter:
+        if quarter == 'Q1':
+            query += " AND date >= '2026-01-01' AND date <= '2026-03-31'"
+        elif quarter == 'Q2':
+            query += " AND date >= '2026-04-01' AND date <= '2026-06-30'"
+        elif quarter == 'Q3':
+            query += " AND date >= '2026-07-01' AND date <= '2026-09-30'"
+        elif quarter == 'Q4':
+            query += " AND date >= '2026-10-01' AND date <= '2026-12-31'"
+    
+    query += " ORDER BY date DESC, id DESC"
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    
+    result = []
+    for row in rows:
+        result.append({
+            'id': row['id'],
+            'date': row['date'],
+            'customer_code': row['customer_code'],
+            'customer_name': row['customer_name'],
+            'service_item': row['service_item'],
+            'service_type': row['service_type'],
+            'customer_source': row['customer_source'],
+            'is_contract': bool(row['is_contract']),
+            'salesperson': row['salesperson'],
+            'store': row['store'],
+            'updated_at': row['updated_at']
+        })
+    
+    conn.close()
+    return jsonify({'success': True, 'items': result})
+
+
+# API: 外勤服務紀錄 - 新增
+@app.route('/api/service-records', methods=['POST'])
+def create_service_record():
+    data = request.get_json()
+    
+    records = data.get('records', [])
+    if not records:
+        return jsonify({'success': False, 'message': '沒有資料'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    inserted_count = 0
+    for record in records:
+        date = record.get('date')
+        customer_code = record.get('customer_code', '')
+        customer_name = record.get('customer_name', '')
+        service_item = record.get('service_item', '')
+        service_type = record.get('service_type', '')
+        customer_source = record.get('customer_source', '')
+        is_contract = 1 if record.get('is_contract') == '是' else 0
+        salesperson = record.get('salesperson', '')
+        store = record.get('store', '')
+        
+        if service_type == '門市支援' and store:
+            customer_name = store
+        
+        cursor.execute("""
+            INSERT INTO service_records 
+            (date, customer_code, customer_name, service_item, service_type, 
+             customer_source, is_contract, salesperson, store, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+        """, (date, customer_code, customer_name, service_item, service_type,
+              customer_source, is_contract, salesperson, store))
+        inserted_count += 1
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'count': inserted_count})
+
+
+# API: 外勤服務紀錄 - 刪除
+@app.route('/api/service-records/<int:record_id>', methods=['DELETE'])
+def delete_service_record(record_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM service_records WHERE id = ?", (record_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+
+# API: 建立客戶待建檔
+@app.route('/api/staging/customer', methods=['POST'])
+def create_customer_staging():
+    """建立客戶待建檔（使用 temp_customer_id 機制）"""
+    data = request.json
+    short_name = data.get('short_name', '').strip()
+    mobile = data.get('mobile', '').strip()
+    created_by = data.get('created_by', '').strip()
+    department = data.get('department', '').strip()
+    source_id = data.get('source_id')
+    source_type = data.get('source_type', 'needs')
+    
+    if not short_name:
+        return jsonify({'success': False, 'error': '客戶姓名不可為空'})
+    
+    if not mobile:
+        return jsonify({'success': False, 'error': '手機號碼不可為空'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 產生 temp_customer_id
+    today = datetime.now().strftime('%Y%m%d')
+    cursor.execute(
+        "SELECT COUNT(*) FROM staging_records WHERE temp_customer_id LIKE ?",
+        (f'TEMP-{today}%',)
+    )
+    count = cursor.fetchone()[0] + 1
+    temp_id = f'TEMP-{today}-{count:03d}'
+    
+    # 寫入 staging_records
+    cursor.execute("""
+        INSERT INTO staging_records 
+        (type, raw_input, raw_mobile, temp_customer_id, source_id, source_type, 
+         requester, department, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+    """, ('customer', short_name, mobile, temp_id, source_id, source_type, 
+          created_by, department, datetime.now().isoformat()))
+    
+    staging_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'staging_id': staging_id, 'temp_customer_id': temp_id})
+
+# API: 建立商品待建檔
+@app.route('/api/staging/product', methods=['POST'])
+def create_product_staging():
+    data = request.json
+    product_name = data.get('product_name', '').strip()
+    input_product_code = data.get('input_product_code', '').strip()
+    requested_by = data.get('requested_by', '').strip()
+    
+    if not product_name:
+        return jsonify({'success': False, 'error': '商品名稱不可為空'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 正規化商品編號
+    normalized_code = input_product_code.upper().replace(' ', '') if input_product_code else None
+    
+    cursor.execute("""
+        INSERT INTO product_staging (product_name, input_product_code, normalized_name, requested_by, status)
+        VALUES (?, ?, ?, ?, 'pending')
+    """, (product_name, input_product_code, normalized_code, requested_by))
+    
+    staging_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'staging_id': staging_id})
+
+# API: 獲取待建檔列表
+@app.route('/api/staging/list')
+def get_staging_list():
+    status = request.args.get('status', 'pending')
+    type_filter = request.args.get('type', 'all')  # 'customer', 'product', 'all'
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    result = {'customers': [], 'products': []}
+    
+    if type_filter in ('all', 'customer'):
+        cursor.execute("""
+            SELECT * FROM customer_staging 
+            WHERE status = ?
+            ORDER BY created_at DESC
+        """, (status,))
+        result['customers'] = [dict(row) for row in cursor.fetchall()]
+    
+    if type_filter in ('all', 'product'):
+        cursor.execute("""
+            SELECT * FROM product_staging 
+            WHERE status = ?
+            ORDER BY created_at DESC
+        """, (status,))
+        result['products'] = [dict(row) for row in cursor.fetchall()]
+    
+    conn.close()
+    return jsonify({'success': True, 'data': result})
+
+# API: 核准客戶待建檔
+@app.route('/api/staging/customer/<int:staging_id>/approve', methods=['POST'])
+def approve_customer_staging(staging_id):
+    data = request.json
+    erp_customer_id = data.get('erp_customer_id', '').strip()
+    note = data.get('note', '').strip()
+    
+    if not erp_customer_id:
+        return jsonify({'success': False, 'error': '請輸入 ERP 客戶編號'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 更新 staging 表
+    cursor.execute("""
+        UPDATE customer_staging 
+        SET status = 'approved', erp_customer_id = ?, note = ?
+        WHERE id = ?
+    """, (erp_customer_id, note, staging_id))
+    
+    # 更新對應的需求單
+    cursor.execute("""
+        UPDATE needs 
+        SET customer_status = 'approved', customer_code = ?
+        WHERE customer_staging_id = ?
+    """, (erp_customer_id, staging_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+# API: 核准商品待建檔
+@app.route('/api/staging/product/<int:staging_id>/approve', methods=['POST'])
+def approve_product_staging(staging_id):
+    data = request.json
+    erp_product_code = data.get('erp_product_code', '').strip()
+    note = data.get('note', '').strip()
+    
+    if not erp_product_code:
+        return jsonify({'success': False, 'error': '請輸入 ERP 商品編號'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 更新 staging 表
+    cursor.execute("""
+        UPDATE product_staging 
+        SET status = 'approved', erp_product_code = ?, note = ?
+        WHERE id = ?
+    """, (erp_product_code, note, staging_id))
+    
+    # 更新對應的需求單
+    cursor.execute("""
+        UPDATE needs 
+        SET product_status = 'approved', product_code = ?
+        WHERE product_staging_id = ?
+    """, (erp_product_code, staging_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+# API: 拒絕待建檔
+@app.route('/api/staging/<type>/<int:staging_id>/reject', methods=['POST'])
+def reject_staging(type, staging_id):
+    data = request.json
+    note = data.get('note', '').strip()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if type == 'customer':
+        cursor.execute("""
+            UPDATE customer_staging 
+            SET status = 'rejected', note = ?
+            WHERE id = ?
+        """, (note, staging_id))
+        
+        cursor.execute("""
+            UPDATE needs 
+            SET customer_status = 'rejected'
+            WHERE customer_staging_id = ?
+        """, (staging_id,))
+    else:
+        cursor.execute("""
+            UPDATE product_staging 
+            SET status = 'rejected', note = ?
+            WHERE id = ?
+        """, (note, staging_id))
+        
+        cursor.execute("""
+            UPDATE needs 
+            SET product_status = 'rejected'
+            WHERE product_staging_id = ?
+        """, (staging_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+
+# API: 獲取需要人工審核的客戶列表
+@app.route('/api/staging/customer/needs-review')
+def get_customer_needs_review():
+    """獲取狀態為 needs_review 的客戶待建檔列表"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT s.*, 
+               (SELECT GROUP_CONCAT(customer_id || ':' || short_name, ';')
+                FROM customer_master m 
+                WHERE m.mobile = s.mobile) as potential_matches
+        FROM customer_staging s
+        WHERE s.status = 'needs_review'
+        ORDER BY s.created_at ASC
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    items = []
+    for row in rows:
+        item = dict(row)
+        # 解析 potential_matches
+        if item.get('potential_matches'):
+            matches = []
+            for match_str in item['potential_matches'].split(';'):
+                if ':' in match_str:
+                    cid, name = match_str.split(':', 1)
+                    matches.append({'customer_id': cid, 'short_name': name})
+            item['potential_matches'] = matches
+        else:
+            item['potential_matches'] = []
+        items.append(item)
+    
+    return jsonify({'success': True, 'items': items})
+
+
+# API: 客戶人工匹配
+@app.route('/api/staging/customer/<int:staging_id>/manual-match', methods=['POST'])
+def manual_match_customer(staging_id):
+    """
+    人工匹配客戶待建檔
+    
+    請求參數:
+    - master_customer_id: 選擇的 master 客戶 ID
+    - operator: 操作人員
+    """
+    data = request.json
+    master_customer_id = data.get('master_customer_id', '').strip()
+    operator = data.get('operator', 'system').strip()
+    
+    if not master_customer_id:
+        return jsonify({'success': False, 'error': '請選擇客戶'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 檢查 staging 資料
+        cursor.execute("SELECT * FROM customer_staging WHERE id = ?", (staging_id,))
+        staging = cursor.fetchone()
+        
+        if not staging:
+            return jsonify({'success': False, 'error': 'Staging 資料不存在'})
+        
+        # 檢查 master 客戶
+        cursor.execute("SELECT customer_id, short_name, mobile FROM customer_master WHERE customer_id = ?",
+                      (master_customer_id,))
+        master = cursor.fetchone()
+        
+        if not master:
+            return jsonify({'success': False, 'error': 'Master 客戶不存在'})
+        
+        now = datetime.now().isoformat()
+        reason = f'人工審核匹配 by {operator}: 選擇客戶 {master["short_name"]}({master_customer_id})'
+        
+        # 更新 staging
+        cursor.execute("""
+            UPDATE customer_staging 
+            SET status = 'synced',
+                erp_customer_id = ?,
+                match_reason = ?,
+                matched_at = ?,
+                audit_log = json_array(
+                    IFNULL(json_extract(audit_log, '$'), json_array()),
+                    json_object('timestamp', ?, 'action', 'MANUAL_MATCH', 
+                               'details', json_object('operator', ?, 'selected_customer_id', ?, 
+                                                     'selected_customer_name', ?))
+                )
+            WHERE id = ?
+        """, (master_customer_id, reason, now, now, operator, master_customer_id, 
+              master['short_name'], staging_id))
+        
+        # 更新需求單
+        cursor.execute("""
+            UPDATE needs 
+            SET customer_code = ?, 
+                customer_status = 'synced'
+            WHERE customer_staging_id = ?
+        """, (master_customer_id, staging_id))
+        
+        affected_rows = cursor.rowcount
+        
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'staging_id': staging_id,
+            'customer_id': master_customer_id,
+            'customer_name': master['short_name'],
+            'updated_needs': affected_rows
+        })
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        conn.close()
+
+
+# API: 獲取 Master 客戶列表（供人工匹配選擇）
+@app.route('/api/customer-master/search')
+def search_customer_master():
+    """搜尋 Master 客戶（用於人工匹配時選擇）"""
+    keyword = request.args.get('keyword', '').strip()
+    
+    if not keyword or len(keyword) < 2:
+        return jsonify({'success': True, 'items': []})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 正規化手機號
+    mobile_normalized = keyword.replace('-', '').replace(' ', '')
+    if mobile_normalized.startswith('+886'):
+        mobile_normalized = '0' + mobile_normalized[4:]
+    
+    cursor.execute("""
+        SELECT customer_id, short_name, mobile, mobile_raw, phone
+        FROM customer_master
+        WHERE short_name LIKE ? 
+           OR mobile LIKE ? 
+           OR mobile_raw LIKE ?
+           OR customer_id LIKE ?
+        ORDER BY 
+            CASE WHEN mobile = ? THEN 0 ELSE 1 END,
+            short_name
+        LIMIT 20
+    """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%', f'%{keyword}%', mobile_normalized))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    items = [{
+        'customer_id': r['customer_id'],
+        'short_name': r['short_name'],
+        'mobile': r['mobile'],
+        'mobile_raw': r['mobile_raw'],
+        'phone': r['phone']
+    } for r in rows]
+    
+    return jsonify({'success': True, 'items': items})
+
+
+# API: 執行客戶自動匹配（呼叫 match_customer_staging.py）
+@app.route('/api/staging/customer/run-match', methods=['POST'])
+def run_customer_staging_match():
+    """執行客戶待建檔自動匹配任務"""
+    import subprocess
+    import sys
+
+    try:
+        # 執行匹配腳本
+        result = subprocess.run(
+            [sys.executable, '/Users/aiserver/srv/parser/match_customer_staging.py'],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5分鐘超時
+        )
+
+        # 解析輸出（腳本會輸出統計結果）
+        output = result.stdout
+
+        # 簡單解析統計數字
+        stats = {
+            'total_pending': 0,
+            'synced': 0,
+            'needs_review': 0,
+            'pending_remain': 0,
+            'errors': 0
+        }
+
+        for line in output.split('\n'):
+            if 'synced' in line and ':' in line:
+                try:
+                    stats['synced'] = int(line.split(':')[1].strip())
+                except:
+                    pass
+            elif 'needs_review' in line and ':' in line:
+                try:
+                    stats['needs_review'] = int(line.split(':')[1].strip())
+                except:
+                    pass
+
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'output': output
+        })
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'success': False, 'error': '匹配任務超時'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ==================== 商品待建檔 API ====================
+
+# API: 獲取需要人工審核的商品列表
+@app.route('/api/staging/product/needs-review')
+def get_product_needs_review():
+    """獲取狀態為 needs_review 的商品待建檔列表"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT *
+        FROM product_staging
+        WHERE status = 'needs_review'
+        ORDER BY created_at ASC
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({'success': True, 'items': [dict(row) for row in rows]})
+
+
+# API: 商品人工匹配
+@app.route('/api/staging/product/<int:staging_id>/manual-match', methods=['POST'])
+def manual_match_product(staging_id):
+    """
+    人工匹配商品待建檔
+    
+    請求參數:
+    - master_product_code: 選擇的 master 商品編號
+    - operator: 操作人員
+    """
+    data = request.json
+    master_product_code = data.get('master_product_code', '').strip()
+    operator = data.get('operator', 'system').strip()
+    
+    if not master_product_code:
+        return jsonify({'success': False, 'error': '請選擇商品'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 檢查 staging 資料
+        cursor.execute("SELECT * FROM product_staging WHERE id = ?", (staging_id,))
+        staging = cursor.fetchone()
+        
+        if not staging:
+            return jsonify({'success': False, 'error': 'Staging 資料不存在'})
+        
+        # 檢查 master 商品
+        cursor.execute("SELECT product_code, product_name FROM product_master WHERE product_code = ?",
+                      (master_product_code,))
+        master = cursor.fetchone()
+        
+        if not master:
+            return jsonify({'success': False, 'error': 'Master 商品不存在'})
+        
+        now = datetime.now().isoformat()
+        reason = f'人工審核匹配 by {operator}: 選擇商品 {master["product_name"]}({master_product_code})'
+        
+        # 更新 staging
+        cursor.execute("""
+            UPDATE product_staging 
+            SET status = 'synced',
+                erp_product_code = ?,
+                match_reason = ?,
+                matched_at = ?,
+                audit_log = json_array(
+                    IFNULL(json_extract(audit_log, '$'), json_array()),
+                    json_object('timestamp', ?, 'action', 'MANUAL_MATCH', 
+                               'details', json_object('operator', ?, 'selected_product_code', ?, 
+                                                     'selected_product_name', ?))
+                )
+            WHERE id = ?
+        """, (master_product_code, reason, now, now, operator, master_product_code,
+              master['product_name'], staging_id))
+        
+        # 更新需求單
+        cursor.execute("""
+            UPDATE needs 
+            SET product_code = ?, 
+                product_status = 'synced'
+            WHERE product_staging_id = ?
+        """, (master_product_code, staging_id))
+        
+        affected_rows = cursor.rowcount
+        
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'staging_id': staging_id,
+            'product_code': master_product_code,
+            'product_name': master['product_name'],
+            'updated_needs': affected_rows
+        })
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        conn.close()
+
+
+# API: 獲取 Master 商品列表（供人工匹配選擇）
+@app.route('/api/product-master/search')
+def search_product_master():
+    """搜尋 Master 商品（用於人工匹配時選擇）"""
+    keyword = request.args.get('keyword', '').strip()
+    
+    if not keyword or len(keyword) < 2:
+        return jsonify({'success': True, 'items': []})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT product_code, product_name, category
+        FROM product_master
+        WHERE product_code LIKE ? 
+           OR product_name LIKE ?
+        ORDER BY 
+            CASE WHEN product_code = ? THEN 0 ELSE 1 END,
+            product_name
+        LIMIT 20
+    """, (f'%{keyword}%', f'%{keyword}%', keyword.upper()))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    items = [{
+        'product_code': r['product_code'],
+        'product_name': r['product_name'],
+        'category': r['category']
+    } for r in rows]
+    
+    return jsonify({'success': True, 'items': items})
+
+
+# API: 執行商品自動匹配（呼叫 match_product_staging.py）
+@app.route('/api/staging/product/run-match', methods=['POST'])
+def run_product_staging_match():
+    """執行商品待建檔自動匹配任務"""
+    import subprocess
+    import sys
+
+    try:
+        # 執行匹配腳本
+        result = subprocess.run(
+            [sys.executable, '/Users/aiserver/srv/parser/match_product_staging.py'],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5分鐘超時
+        )
+
+        # 解析輸出（腳本會輸出統計結果）
+        output = result.stdout
+
+        # 簡單解析統計數字
+        stats = {
+            'total_pending': 0,
+            'synced': 0,
+            'needs_review': 0,
+            'pending_remain': 0,
+            'errors': 0
+        }
+
+        for line in output.split('\n'):
+            if 'synced' in line and ':' in line:
+                try:
+                    stats['synced'] = int(line.split(':')[1].strip())
+                except:
+                    pass
+            elif 'needs_review' in line and ':' in line:
+                try:
+                    stats['needs_review'] = int(line.split(':')[1].strip())
+                except:
+                    pass
+
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'output': output
+        })
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'success': False, 'error': '匹配任務超時'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ==================== 新待建檔系統 API (V2) ====================
+
+@app.route('/api/staging/records')
+def get_staging_records():
+    """獲取待建檔記錄列表"""
+    type_filter = request.args.get('type', 'all')
+    status_filter = request.args.get('status', 'pending')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 構建查詢條件
+    where_clauses = []
+    params = []
+    
+    if type_filter != 'all':
+        where_clauses.append('type = ?')
+        params.append(type_filter)
+    
+    if status_filter != 'all':
+        where_clauses.append('status = ?')
+        params.append(status_filter)
+    
+    where_sql = ' AND '.join(where_clauses) if where_clauses else '1=1'
+    
+    # 查詢記錄
+    cursor.execute(f"""
+        SELECT * FROM staging_records 
+        WHERE {where_sql}
+        ORDER BY 
+            CASE status WHEN 'pending' THEN 0 WHEN 'needs_review' THEN 1 ELSE 2 END,
+            created_at DESC
+    """, params)
+    
+    records = [dict(row) for row in cursor.fetchall()]
+    
+    # 統計
+    cursor.execute("""
+        SELECT 
+            SUM(CASE WHEN type = 'customer' AND status = 'pending' THEN 1 ELSE 0 END) as customer_pending,
+            SUM(CASE WHEN type = 'product' AND status = 'pending' THEN 1 ELSE 0 END) as product_pending,
+            SUM(CASE WHEN status = 'resolved' AND DATE(resolved_at) = DATE('now') THEN 1 ELSE 0 END) as today_resolved
+        FROM staging_records
+    """)
+    
+    stats = dict(cursor.fetchone())
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'records': records,
+        'stats': stats
+    })
+
+
+@app.route('/api/staging/resolve/<int:record_id>', methods=['POST'])
+def resolve_staging_record(record_id):
+    """人工解析待建檔記錄"""
+    data = request.json
+    resolved_code = data.get('resolved_code', '').strip()
+    resolved_name = data.get('resolved_name', '').strip()
+    
+    if not resolved_code:
+        return jsonify({'success': False, 'error': '請輸入正式編號'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 獲取記錄資訊
+        cursor.execute("SELECT * FROM staging_records WHERE id = ?", (record_id,))
+        record = cursor.fetchone()
+        
+        if not record:
+            return jsonify({'success': False, 'error': '記錄不存在'})
+        
+        # 更新記錄
+        now = datetime.now().isoformat()
+        cursor.execute("""
+            UPDATE staging_records 
+            SET status = 'resolved',
+                resolved_code = ?,
+                resolved_name = ?,
+                resolved_at = ?,
+                resolver = 'admin',
+                resolve_method = 'manual',
+                updated_at = ?
+            WHERE id = ?
+        """, (resolved_code, resolved_name, now, now, record_id))
+        
+        # 更新來源單據
+        if record['source_type'] == 'needs':
+            if record['type'] == 'customer':
+                cursor.execute("""
+                    UPDATE needs 
+                    SET customer_code = ?, customer_name = ?, customer_status = 'resolved'
+                    WHERE id = ?
+                """, (resolved_code, resolved_name or record['raw_input'], record['source_id']))
+            else:  # product
+                cursor.execute("""
+                    UPDATE needs 
+                    SET product_code = ?, product_status = 'resolved'
+                    WHERE id = ?
+                """, (resolved_code, record['source_id']))
+        
+        conn.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/api/staging/reconcile', methods=['POST'])
+def run_staging_reconcile():
+    """執行客戶自動對照"""
+    import subprocess
+    import sys
+    
+    try:
+        result = subprocess.run(
+            [sys.executable, '/Users/aiserver/srv/parser/reconcile_customers.py'],
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
+        
+        # 解析統計
+        stats = {'auto_resolved': 0, 'needs_review': 0, 'errors': 0}
+        for line in result.stdout.split('\n'):
+            if '自動回填:' in line:
+                try:
+                    stats['auto_resolved'] = int(line.split(':')[1].strip())
+                except:
+                    pass
+            elif '需人工審核:' in line:
+                try:
+                    stats['needs_review'] = int(line.split(':')[1].strip())
+                except:
+                    pass
+        
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'output': result.stdout
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ==================== 督導評分表 API ====================
+
+@app.route('/api/supervision/score', methods=['GET'])
+def get_supervision_score():
+    """查詢督導評分"""
+    store_name = request.args.get('store', '').strip()
+    date = request.args.get('date', '').strip()
+    
+    if not store_name or not date:
+        return jsonify({'success': False, 'error': '店別和日期必填'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT * FROM supervision_scores 
+        WHERE store_name = ? AND date = ?
+    """, (store_name, date))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return jsonify({'success': True, 'score': dict(row)})
+    else:
+        return jsonify({'success': True, 'score': None})
+
+
+@app.route('/api/supervision/score', methods=['POST'])
+def save_supervision_score():
+    """儲存/更新督導評分"""
+    data = request.json
+    
+    # 驗證必填欄位
+    store_name = data.get('store_name', '').strip()
+    date = data.get('date', '').strip()
+    
+    if not store_name or not date:
+        return jsonify({'success': False, 'message': '店別和日期必填'}), 400
+    
+    # 驗證日期格式
+    try:
+        datetime.strptime(date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'success': False, 'message': '日期格式錯誤，應為 YYYY-MM-DD'}), 400
+    
+    # 驗證分數只能是 0/1/2
+    score_fields = ['attendance', 'appearance', 'service_attitude', 'professional_knowledge',
+                   'sales_process', 'storefront_cleanliness', 'store_cleanliness', 'product_display',
+                   'cable_management', 'warehouse_organization', 'reply_speed', 'reply_attitude',
+                   'problem_grasp', 'information_complete', 'follow_up']
+    
+    for field in score_fields:
+        value = data.get(field, 0)
+        if value not in [0, 1, 2]:
+            return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 檢查是否已存在
+        cursor.execute("""
+            SELECT id FROM supervision_scores 
+            WHERE store_name = ? AND date = ?
+        """, (store_name, date))
+        
+        existing = cursor.fetchone()
+        now = datetime.now().isoformat()
+        
+        if existing:
+            # 更新
+            cursor.execute("""
+                UPDATE supervision_scores SET
+                    attendance = ?, appearance = ?, service_attitude = ?,
+                    professional_knowledge = ?, sales_process = ?,
+                    storefront_cleanliness = ?, store_cleanliness = ?,
+                    product_display = ?, cable_management = ?,
+                    warehouse_organization = ?, reply_speed = ?,
+                    reply_attitude = ?, problem_grasp = ?,
+                    information_complete = ?, follow_up = ?,
+                    total_score = ?, issues = ?, suggestions = ?,
+                    updated_at = ?
+                WHERE store_name = ? AND date = ?
+            """, (
+                data.get('attendance', 0), data.get('appearance', 0),
+                data.get('service_attitude', 0), data.get('professional_knowledge', 0),
+                data.get('sales_process', 0), data.get('storefront_cleanliness', 0),
+                data.get('store_cleanliness', 0), data.get('product_display', 0),
+                data.get('cable_management', 0), data.get('warehouse_organization', 0),
+                data.get('reply_speed', 0), data.get('reply_attitude', 0),
+                data.get('problem_grasp', 0), data.get('information_complete', 0),
+                data.get('follow_up', 0), data.get('total_score', 0),
+                data.get('issues', ''), data.get('suggestions', ''),
+                now, store_name, date
+            ))
+            message = '評分已更新'
+        else:
+            # 新增
+            cursor.execute("""
+                INSERT INTO supervision_scores (
+                    store_name, date, attendance, appearance, service_attitude,
+                    professional_knowledge, sales_process, storefront_cleanliness,
+                    store_cleanliness, product_display, cable_management,
+                    warehouse_organization, reply_speed, reply_attitude,
+                    problem_grasp, information_complete, follow_up,
+                    total_score, issues, suggestions, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                store_name, date,
+                data.get('attendance', 0), data.get('appearance', 0),
+                data.get('service_attitude', 0), data.get('professional_knowledge', 0),
+                data.get('sales_process', 0), data.get('storefront_cleanliness', 0),
+                data.get('store_cleanliness', 0), data.get('product_display', 0),
+                data.get('cable_management', 0), data.get('warehouse_organization', 0),
+                data.get('reply_speed', 0), data.get('reply_attitude', 0),
+                data.get('problem_grasp', 0), data.get('information_complete', 0),
+                data.get('follow_up', 0), data.get('total_score', 0),
+                data.get('issues', ''), data.get('suggestions', ''),
+                now, now
+            ))
+            message = '評分已儲存'
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': message})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+# ==================== 班表 API ====================
+
+@app.route('/api/roster', methods=['GET'])
+def get_roster():
+    """查詢班表"""
+    location = request.args.get('store', '').strip()
+    date = request.args.get('date', '').strip()
+    
+    if not location or not date:
+        return jsonify({'success': False, 'error': '店別和日期必填'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT * FROM staff_roster 
+        WHERE location = ? AND date = ?
+        ORDER BY staff_name
+    """, (location, date))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({'success': True, 'roster': [dict(row) for row in rows]})
+
+
+@app.route('/api/roster', methods=['POST'])
+def save_roster():
+    """儲存/更新班表"""
+    data = request.json
+    
+    # 驗證必填欄位
+    location = data.get('location', '').strip()
+    staff_name = data.get('staff_name', '').strip()
+    date = data.get('date', '').strip()
+    shift_code = data.get('shift_code', '').strip()
+    
+    if not location or not staff_name or not date or not shift_code:
+        return jsonify({'success': False, 'message': '店別、人員、日期、班別必填'}), 400
+    
+    # 驗證日期格式
+    try:
+        datetime.strptime(date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'success': False, 'message': '日期格式錯誤，應為 YYYY-MM-DD'}), 400
+    
+    # 驗證班別
+    if shift_code not in ['早', '晚', '值', '休', '全', '特']:
+        return jsonify({'success': False, 'message': '班別只能是 早/晚/值/休/全/特'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 檢查是否已存在（同日同人）
+        cursor.execute("""
+            SELECT rowid FROM staff_roster 
+            WHERE date = ? AND staff_name = ?
+        """, (date, staff_name))
+        
+        existing = cursor.fetchone()
+        now = datetime.now().isoformat()
+        
+        if existing:
+            # 更新
+            cursor.execute("""
+                UPDATE staff_roster SET
+                    location = ?, shift_code = ?, updated_at = ?
+                WHERE date = ? AND staff_name = ?
+            """, (location, shift_code, now, date, staff_name))
+            message = '班表已更新'
+        else:
+            # 新增
+            cursor.execute("""
+                INSERT INTO staff_roster (date, staff_name, location, shift_code, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (date, staff_name, location, shift_code, now))
+            message = '班表已儲存'
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': message})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/roster/range', methods=['GET'])
+def get_roster_range():
+    """查詢指定日期範圍的班表"""
+    store = request.args.get('store', '').strip()
+    start = request.args.get('start', '').strip()
+    end = request.args.get('end', '').strip()
+    staff = request.args.get('staff', '').strip()
+    
+    if not store or not start or not end:
+        return jsonify({'success': False, 'error': '店別、開始日期、結束日期必填'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if staff:
+        cursor.execute("""
+            SELECT * FROM staff_roster 
+            WHERE location = ? AND date >= ? AND date <= ? AND staff_name = ?
+            ORDER BY date
+        """, (store, start, end, staff))
+    else:
+        cursor.execute("""
+            SELECT * FROM staff_roster 
+            WHERE location = ? AND date >= ? AND date <= ?
+            ORDER BY date, staff_name
+        """, (store, start, end))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({'success': True, 'roster': [dict(row) for row in rows]})
+
+
+@app.route('/api/roster/batch', methods=['POST'])
+def save_roster_batch():
+    """批量儲存班表"""
+    data = request.json
+    records = data.get('records', [])
+    
+    if not records:
+        return jsonify({'success': False, 'message': '沒有班表資料'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.now().isoformat()
+    
+    try:
+        saved_count = 0
+        for record in records:
+            location = record.get('location', '').strip()
+            staff_name = record.get('staff_name', '').strip()
+            date = record.get('date', '').strip()
+            shift_code = record.get('shift_code', '').strip()
+            
+            if not all([location, staff_name, date, shift_code]):
+                continue
+            
+            # 驗證日期格式
+            try:
+                datetime.strptime(date, '%Y-%m-%d')
+            except ValueError:
+                continue
+            
+            # 驗證班別
+            if shift_code not in ['早', '晚', '值', '休', '全', '特']:
+                continue
+            
+            # 檢查是否已存在
+            cursor.execute("""
+                SELECT rowid FROM staff_roster 
+                WHERE date = ? AND staff_name = ?
+            """, (date, staff_name))
+            
+            existing = cursor.fetchone()
+            
+            if existing:
+                cursor.execute("""
+                    UPDATE staff_roster SET
+                        location = ?, shift_code = ?, updated_at = ?
+                    WHERE date = ? AND staff_name = ?
+                """, (location, shift_code, now, date, staff_name))
+            else:
+                cursor.execute("""
+                    INSERT INTO staff_roster (date, staff_name, location, shift_code, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (date, staff_name, location, shift_code, now))
+            
+            saved_count += 1
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': f'已儲存 {saved_count} 筆班表'})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
 if __name__ == '__main__':
-    print("🚀 營運看板 API 服務啟動中...")
+    print("🚀 營運系統 API 服務啟動中...")
     print("📊 請訪問: http://localhost:3000")
     print("🤖 每日 20:00 自動分析已啟動")
     print("-" * 50)

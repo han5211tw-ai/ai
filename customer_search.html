@@ -261,8 +261,11 @@
         loadCustomerCount();
         
         async function searchCustomer() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) return;
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword || keyword.length < 2) {
+                alert('請至少輸入 2 個字');
+                return;
+            }
 
             document.getElementById('loading').classList.add('show');
             document.getElementById('resultCard').classList.remove('show');
@@ -270,7 +273,7 @@
             document.getElementById('noResult').classList.remove('show');
 
             try {
-                const response = await fetch('/api/customer/search?q=' + encodeURIComponent(query));
+                const response = await fetch('/api/customer/search?q=' + encodeURIComponent(keyword));
                 const data = await response.json();
 
                 document.getElementById('loading').classList.remove('show');
