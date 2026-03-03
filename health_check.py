@@ -1,10 +1,12 @@
 #!/opt/homebrew/bin/python3
 """
-Health Check Module - 系統健康檢查
+Health Check Module v2.0 - 系統健康檢查（商業語境版）
 提供 /api/v1/admin/health endpoint
 
-設計原則：本系統為「每日批次營運分析系統」
-健康檢查判斷：「昨天資料是否成功完成匯入」
+設計原則：
+- 「有沒有資料」→「是否在應該有資料的日子缺少資料」
+- 工作日判定：進貨(週一~五)、銷貨(週一~六)、客戶(週一~五)
+- 三階段狀態：green(正常)、yellow(提醒-非工作日)、red(異常-工作日缺資料)
 """
 import sqlite3
 import os
@@ -16,6 +18,24 @@ from flask import jsonify
 HOME = os.path.expanduser("~")
 DB_PATH = os.path.join(HOME, "srv/db/company.db")
 
+# ==================== 工作日規則 ====================
+# 0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
+WORKDAY_RULES = {
+    'purchase': [0, 1, 2, 3, 4],      # 週一~五
+    'sales': [0, 1, 2, 3, 4, 5],      # 週一~六
+    'customer': [0, 1, 2, 3, 4]       # 週一~五
+}
+
+def is_workday(data_type, weekday):
+    """檢查指定資料類型在指定星期是否為工作日"""
+    return weekday in WORKDAY_RULES.get(data_type, [0, 1, 2, 3, 4])
+
+def get_weekday_name(weekday):
+    """取得星期中文名稱"""
+    names = ['週一', '週二', '週三', '週四', '週五', '週六', '週日']
+    return names[weekday]
+
+# ==================== 系統狀態 ====================
 def get_system_status():
     """獲取系統狀態"""
     try:
@@ -45,6 +65,7 @@ def get_system_status():
             "error": str(e)
         }
 
+# ==================== 資料庫狀態 ====================
 def get_database_status():
     """獲取資料庫狀態"""
     try:
@@ -85,13 +106,11 @@ def get_database_status():
             "error": str(e)
         }
 
-def get_data_freshness():
+# ==================== 資料新鮮度 v2 ====================
+def get_data_freshness_v2():
     """
-    獲取資料新鮮度
-    判斷邏輯：
-    - 如果目前時間 < 12:00 → status = yellow （等待今日匯入）
-    - 如果目前時間 >= 12:00 且 所有最新日期 = 昨天 → status = green
-    - 如果目前時間 >= 12:00 且 任一最新日期 < 昨天 → status = red
+    資料新鮮度檢查 v2
+    根據工作日判定是否應該檢查資料
     """
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -105,78 +124,125 @@ def get_data_freshness():
         cursor.execute("SELECT MAX(report_date) FROM inventory")
         latest_inventory = cursor.fetchone()[0]
         cursor.execute("SELECT MAX(updated_at) FROM customers")
-        latest_customer = cursor.fetchone()[0]
+        latest_customer_raw = cursor.fetchone()[0]
+        latest_customer = str(latest_customer_raw).split(' ')[0] if latest_customer_raw else None
         conn.close()
         
-        # 計算昨天日期
-        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-        today = datetime.now().strftime('%Y-%m-%d')
-        current_hour = datetime.now().hour
+        # 日期計算
+        now = datetime.now()
+        today = now.strftime('%Y-%m-%d')
+        yesterday = (now - timedelta(days=1)).strftime('%Y-%m-%d')
+        weekday = now.weekday()
+        weekday_name = get_weekday_name(weekday)
         
-        # 判斷邏輯
-        if current_hour < 12:
-            # 中午前，還在等待今日匯入
-            status = "yellow"
-            message = f"等待今日 ({today}) 匯入，預期資料日期: {yesterday}"
-        else:
-            # 中午後，檢查昨天資料是否已匯入
-            all_dates = [latest_sales, latest_purchase, latest_inventory]
-            # 排除 None 值
-            valid_dates = [d for d in all_dates if d]
-            
-            if not valid_dates:
-                status = "red"
-                message = f"無法獲取任何資料日期"
+        # 各資料類型檢查
+        checks = {
+            'sales': {
+                'is_workday': is_workday('sales', weekday),
+                'latest_date': latest_sales,
+                'expected_date': yesterday
+            },
+            'purchase': {
+                'is_workday': is_workday('purchase', weekday),
+                'latest_date': latest_purchase,
+                'expected_date': yesterday
+            },
+            'customer': {
+                'is_workday': is_workday('customer', weekday),
+                'latest_date': latest_customer,
+                'expected_date': yesterday
+            }
+        }
+        
+        # 決定狀態與訊息
+        results = {}
+        has_error = False
+        has_warning = False
+        
+        for data_type, check in checks.items():
+            if not check['is_workday']:
+                # 非工作日 - 黃色提醒
+                results[data_type] = {
+                    'status': 'non_workday',
+                    'message': f'{weekday_name}，{data_type}檢查已跳過（非工作日）'
+                }
+                has_warning = True
+            elif check['latest_date'] == check['expected_date']:
+                # 工作日且有資料 - 綠色正常
+                results[data_type] = {
+                    'status': 'ok',
+                    'message': f'{data_type}資料正常（{check["latest_date"]}）'
+                }
             else:
-                all_yesterday = all(d == yesterday for d in valid_dates)
-                any_before_yesterday = any(d < yesterday for d in valid_dates)
-                
-                if all_yesterday:
-                    status = "green"
-                    message = f"昨天 ({yesterday}) 資料已成功匯入"
-                elif any_before_yesterday:
-                    status = "red"
-                    message = f"昨天 ({yesterday}) 資料尚未完整匯入"
-                else:
-                    # 有資料 > 昨天（例如今天），這在中午前是正常的
-                    status = "yellow"
-                    message = f"部分資料日期異常，預期應為 {yesterday}"
+                # 工作日但缺少資料 - 紅色異常
+                results[data_type] = {
+                    'status': 'error',
+                    'message': f'工作日缺少{data_type}資料，預期應有 {check["expected_date"]} 資料'
+                }
+                has_error = True
+        
+        # 整體狀態
+        if has_error:
+            overall_status = 'red'
+        elif has_warning:
+            overall_status = 'yellow'
+        else:
+            overall_status = 'green'
         
         return {
-            "status": status,
-            "expected_data_date": yesterday,
-            "latest_sales_date": latest_sales or "none",
-            "latest_purchase_date": latest_purchase or "none",
-            "latest_inventory_date": latest_inventory or "none",
-            "latest_customer_date": latest_customer or "none",
-            "message": message
+            'status': overall_status,
+            'weekday': weekday,
+            'weekday_name': weekday_name,
+            'today': today,
+            'expected_date': yesterday,
+            'latest_sales_date': latest_sales or 'none',
+            'latest_purchase_date': latest_purchase or 'none',
+            'latest_inventory_date': latest_inventory or 'none',
+            'latest_customer_date': latest_customer or 'none',
+            'checks': results,
+            'message': generate_freshness_message(results, overall_status, weekday_name)
         }
     except Exception as e:
         return {
-            "status": "red",
-            "expected_data_date": "unknown",
-            "latest_sales_date": "unknown",
-            "latest_purchase_date": "unknown",
-            "latest_inventory_date": "unknown",
-            "latest_customer_date": "unknown",
-            "message": f"檢查失敗: {str(e)}"
+            'status': 'red',
+            'weekday': datetime.now().weekday(),
+            'weekday_name': get_weekday_name(datetime.now().weekday()),
+            'today': datetime.now().strftime('%Y-%m-%d'),
+            'expected_date': 'unknown',
+            'latest_sales_date': 'unknown',
+            'latest_purchase_date': 'unknown',
+            'latest_inventory_date': 'unknown',
+            'latest_customer_date': 'unknown',
+            'checks': {},
+            'message': f'檢查失敗: {str(e)}'
         }
 
-def get_import_status():
+def generate_freshness_message(results, overall_status, weekday_name):
+    """產生可讀的整體狀態訊息"""
+    if overall_status == 'green':
+        return f'{weekday_name}，所有資料更新正常'
+    elif overall_status == 'red':
+        errors = [k for k, v in results.items() if v['status'] == 'error']
+        return f'{weekday_name}，缺少以下資料：{', '.join(errors)}，請確認 ERP 匯出是否完成'
+    else:
+        non_workdays = [k for k, v in results.items() if v['status'] == 'non_workday']
+        return f'{weekday_name}，{', '.join(non_workdays)}檢查已跳過（非工作日）'
+
+# ==================== 匯入任務狀態 v2 ====================
+def get_import_status_v2():
     """
-    獲取匯入任務狀態（取代排程狀態）
-    判斷邏輯：
-    - 如果時間 < 12:00 → yellow
-    - 如果時間 >= 12:00 且 sales_rows > 0 且 purchase_rows > 0 → green
-    - 如果時間 >= 12:00 且 任一為 0 → red
+    匯入任務狀態檢查 v2
+    根據工作日判定是否應該檢查資料
     """
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
-        # 計算昨天日期
-        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-        current_hour = datetime.now().hour
+        # 日期計算
+        now = datetime.now()
+        yesterday = (now - timedelta(days=1)).strftime('%Y-%m-%d')
+        weekday = now.weekday()
+        weekday_name = get_weekday_name(weekday)
         
         # 查詢昨天資料筆數
         cursor.execute("SELECT COUNT(*) FROM sales_history WHERE date = ?", (yesterday,))
@@ -187,41 +253,124 @@ def get_import_status():
         customer_count = cursor.fetchone()[0]
         conn.close()
         
-        # 判斷邏輯
-        if current_hour < 12:
-            status = "yellow"
-            message = f"等待今日匯入昨天 ({yesterday}) 資料"
-        else:
-            if sales_count > 0 and purchase_count > 0:
-                status = "green"
-                message = f"昨天 ({yesterday}) 資料匯入成功"
+        # 各類型檢查
+        checks = {}
+        has_error = False
+        has_warning = False
+        
+        # 銷貨檢查
+        if is_workday('sales', weekday):
+            if sales_count > 0:
+                checks['sales'] = {
+                    'status': 'ok',
+                    'count': sales_count,
+                    'message': f'銷貨資料匯入成功（{sales_count}筆）'
+                }
             else:
-                status = "red"
-                missing = []
-                if sales_count == 0:
-                    missing.append("銷貨資料")
-                if purchase_count == 0:
-                    missing.append("進貨資料")
-                message = f"昨天 ({yesterday}) 缺少: {', '.join(missing)}"
+                checks['sales'] = {
+                    'status': 'error',
+                    'count': 0,
+                    'message': f'工作日缺少銷貨資料，請確認 ERP 匯出是否完成'
+                }
+                has_error = True
+        else:
+            checks['sales'] = {
+                'status': 'non_workday',
+                'count': sales_count,
+                'message': f'{weekday_name}，銷貨檢查已跳過（非工作日）'
+            }
+            has_warning = True
+        
+        # 進貨檢查
+        if is_workday('purchase', weekday):
+            if purchase_count > 0:
+                checks['purchase'] = {
+                    'status': 'ok',
+                    'count': purchase_count,
+                    'message': f'進貨資料匯入成功（{purchase_count}筆）'
+                }
+            else:
+                checks['purchase'] = {
+                    'status': 'error',
+                    'count': 0,
+                    'message': f'工作日缺少進貨資料，請確認 ERP 匯出是否完成'
+                }
+                has_error = True
+        else:
+            checks['purchase'] = {
+                'status': 'non_workday',
+                'count': purchase_count,
+                'message': f'{weekday_name}，進貨檢查已跳過（非工作日）'
+            }
+            has_warning = True
+        
+        # 客戶檢查
+        if is_workday('customer', weekday):
+            if customer_count > 0:
+                checks['customer'] = {
+                    'status': 'ok',
+                    'count': customer_count,
+                    'message': f'客戶資料匯入成功（{customer_count}筆）'
+                }
+            else:
+                checks['customer'] = {
+                    'status': 'error',
+                    'count': 0,
+                    'message': f'工作日缺少客戶資料，請確認 ERP 匯出是否完成'
+                }
+                has_error = True
+        else:
+            checks['customer'] = {
+                'status': 'non_workday',
+                'count': customer_count,
+                'message': f'{weekday_name}，客戶檢查已跳過（非工作日）'
+            }
+            has_warning = True
+        
+        # 整體狀態
+        if has_error:
+            overall_status = 'red'
+        elif has_warning:
+            overall_status = 'yellow'
+        else:
+            overall_status = 'green'
         
         return {
-            "status": status,
-            "expected_data_date": yesterday,
-            "sales_rows_yesterday": sales_count,
-            "purchase_rows_yesterday": purchase_count,
-            "customer_rows_yesterday": customer_count,
-            "message": message
+            'status': overall_status,
+            'weekday': weekday,
+            'weekday_name': weekday_name,
+            'expected_data_date': yesterday,
+            'sales_rows_yesterday': sales_count,
+            'purchase_rows_yesterday': purchase_count,
+            'customer_rows_yesterday': customer_count,
+            'checks': checks,
+            'message': generate_import_message(checks, overall_status, weekday_name)
         }
     except Exception as e:
         return {
-            "status": "red",
-            "expected_data_date": "unknown",
-            "sales_rows_yesterday": 0,
-            "purchase_rows_yesterday": 0,
-            "customer_rows_yesterday": 0,
-            "message": f"檢查失敗: {str(e)}"
+            'status': 'red',
+            'weekday': datetime.now().weekday(),
+            'weekday_name': get_weekday_name(datetime.now().weekday()),
+            'expected_data_date': 'unknown',
+            'sales_rows_yesterday': 0,
+            'purchase_rows_yesterday': 0,
+            'customer_rows_yesterday': 0,
+            'checks': {},
+            'message': f'檢查失敗: {str(e)}'
         }
 
+def generate_import_message(checks, overall_status, weekday_name):
+    """產生可讀的匯入狀態訊息"""
+    if overall_status == 'green':
+        return f'{weekday_name}，昨日資料匯入完成'
+    elif overall_status == 'red':
+        errors = [k for k, v in checks.items() if v['status'] == 'error']
+        return f'{weekday_name}，缺少以下資料：{', '.join(errors)}'
+    else:
+        skipped = [k for k, v in checks.items() if v['status'] == 'non_workday']
+        return f'{weekday_name}，{', '.join(skipped)}檢查已跳過（非工作日）'
+
+# ==================== API 狀態 ====================
 def get_api_status():
     """獲取 API 狀態"""
     return {
@@ -230,11 +379,12 @@ def get_api_status():
         "error_rate_percent_1h": 0.2
     }
 
-def calculate_overall_status(system, database, data_freshness, import_status, api):
-    """計算整體燈號"""
+# ==================== 整體狀態計算 ====================
+def calculate_overall_status_v2(system, database, data_freshness, import_status, api):
+    """計算整體燈號 v2"""
     statuses = [
-        system["status"], 
-        database["status"], 
+        system["status"],
+        database["status"],
         data_freshness["status"],
         import_status["status"],
         api["status"]
@@ -247,17 +397,19 @@ def calculate_overall_status(system, database, data_freshness, import_status, ap
     else:
         return "green"
 
+# ==================== 主入口 ====================
 def get_health_status():
-    """獲取完整健康狀態"""
+    """獲取完整健康狀態 v2"""
     system = get_system_status()
     database = get_database_status()
-    data_freshness = get_data_freshness()
-    import_status = get_import_status()
+    data_freshness = get_data_freshness_v2()
+    import_status = get_import_status_v2()
     api = get_api_status()
     
-    overall = calculate_overall_status(system, database, data_freshness, import_status, api)
+    overall = calculate_overall_status_v2(system, database, data_freshness, import_status, api)
     
     return {
+        "version": "2.0",
         "overall_status": overall,
         "system": system,
         "database": database,
@@ -266,3 +418,12 @@ def get_health_status():
         "api": api,
         "check_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
+
+# 向後相容 - 保留舊函數名稱
+def get_data_freshness():
+    """向後相容：使用 v2 邏輯"""
+    return get_data_freshness_v2()
+
+def get_import_status():
+    """向後相容：使用 v2 邏輯"""
+    return get_import_status_v2()

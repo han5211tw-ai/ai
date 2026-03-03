@@ -1,12 +1,4 @@
 <!DOCTYPE html>
-<!--
-  File: needs_input.html
-  Version: 20250303-1400
-  ChangeLog:
-    - 20250303: 新增歷史紀錄區塊，支援分頁、篩選、搜尋
-    - 20250303: 送單後即時顯示取消按鈕（本地渲染）
-    - 20250303: 更新 auth_ui.js 版本號支援自動過期
--->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -26,21 +18,22 @@
         .container{max-width:1400px;margin:0 auto}
         h1{text-align:center;font-size:2em;margin-bottom:20px;background:linear-gradient(90deg,#00d4ff,#7b2cbf);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
         .login-section,.form-section{display:none}
-        .login-section.active,.form-section.active{display:block}
-        .login-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:40px;max-width:400px;margin:0 auto;text-align:center}
+        .login-section.active{display:flex;justify-content:center;align-items:center;min-height:100vh}
+        .form-section.active{display:block}
+        .login-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:40px;max-width:400px;width:100%;text-align:center}
         .login-box h2{color:#00d4ff;margin-bottom:30px}
         .form-group{margin-bottom:15px;text-align:left}
         .form-group label{display:block;margin-bottom:6px;color:#8892b0;font-size:0.95em}
         .form-group input,.form-group select{width:100%;max-width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em}
         .form-group input:focus,.form-group select:focus{outline:none;border-color:#00d4ff}
         select option{background:#1a1a2e;color:#fff}
-        .btn{padding:10px 25px;border:none;border-radius:6px;background:linear-gradient(135deg,#00d4ff,#7b2cbf);color:#fff;font-size:1.05em;cursor:pointer;transition:transform 0.2s}
+        .btn{width:100%;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;font-size:1em;cursor:pointer;transition:transform 0.2s}
         .btn:hover{transform:translateY(-2px)}
         .btn:disabled{opacity:0.5;cursor:not-allowed}
         .error-msg{color:#f44336;margin-top:10px;font-size:0.95em}
-        .user-info{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 20px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:1.05em}
+        .user-info{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 15px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:0.95em;gap:10px}.user-info>div:first-child{flex:1}
         .user-info span{color:#00d4ff;font-weight:bold}
-        .btn-logout{padding:5px 12px;font-size:0.9em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:#f44336}
+        .btn-logout{padding:3px 8px;font-size:0.8em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:#f44336;border-radius:4px;cursor:pointer;white-space:nowrap;flex-shrink:0;width:auto;height:auto}
         .header-section{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-bottom:20px}
         .header-title{color:#00d4ff;font-size:1.1em;margin-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px}
         .form-row{display:flex;gap:15px;margin-bottom:12px;flex-wrap:wrap}
@@ -88,29 +81,13 @@
         .recent-item .status{display:inline-block;padding:4px 10px;border-radius:4px;font-size:0.85em;margin-right:10px}
         .status-pending{background:rgba(255,152,0,0.2);color:#ff9800}
         .status-cancelled{background:rgba(244,67,54,0.2);color:#f44336}
-        .status-completed{background:rgba(76,175,80,0.2);color:#4caf50}
         .btn-cancel{padding:6px 12px;font-size:0.85em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:#f44336;border-radius:4px;cursor:pointer}
         .btn-cancel:hover{background:rgba(244,67,54,0.3)}
-        .history-section{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:20px}
-        .history-section h3{color:#00d4ff;margin-bottom:15px;font-size:1.1em}
-        .history-filters{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center}
-        .history-filters select,.history-filters input{padding:8px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em}
-        .history-filters select option{background:#1a1a2e;color:#fff}
-        .history-filters button{padding:8px 16px;background:rgba(0,212,255,0.2);border:1px solid #00d4ff;color:#00d4ff;border-radius:6px;cursor:pointer;font-size:0.9em;transition:all 0.2s}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-        .history-filters button:hover{background:rgba(0,212,255,0.3)}
-        .history-pagination{display:flex;justify-content:center;gap:10px;margin-top:15px;align-items:center}
-        .history-pagination button{padding:6px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;cursor:pointer;font-size:0.85em;transition:all 0.2s}
-        .history-pagination button:hover:not(:disabled){background:rgba(255,255,255,0.2)}
-        .history-pagination button:disabled{opacity:0.3;cursor:not-allowed}
-        .history-pagination span{color:#8892b0;font-size:0.9em}
-        @media(max-width:768px){.form-row{flex-direction:column}.form-field{min-width:100%}.products-table{font-size:0.85em}.products-table th,.products-table td{padding:8px 5px}.recent-item{flex-direction:column;align-items:flex-start}.history-filters{flex-direction:column;align-items:stretch}.history-filters input{width:100%}}
+        @media(max-width:768px){.form-row{flex-direction:column}.form-field{min-width:100%}.products-table{font-size:0.85em}.products-table th,.products-table td{padding:8px 5px}.recent-item{flex-direction:column;align-items:flex-start}}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛒 請購調撥需求表</h1>
-        
         <!-- 表單區 -->
         <div class="form-section" id="formSection" style="display:none;">
             <!-- 使用者資訊 - 完全複製 V1 -->
@@ -127,9 +104,9 @@
                         </select>
                     </span>
                 </div>
-                <button class="btn btn-logout" onclick="logout()">重新登入</button>
+                <button class="btn btn-logout" onclick="logout()">登出</button>
             </div>
-            
+
             <!-- 單據頭 -->
             <div class="header-section">
                 <div class="header-title">📋 表單資訊</div>
@@ -189,7 +166,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- 產品明細 -->
             <div class="products-section">
                 <div class="header-title">📦 產品明細（可多列）<span style="color:#8892b0;font-size:0.8em">預設5行，點+新增</span></div>
@@ -208,38 +185,15 @@
                 </table>
                 <button type="button" class="btn-add" onclick="addProductRow()">+ 新增產品列</button>
             </div>
-            
+
             <div style="text-align:center;padding:20px">
                 <button id="submitBtn" class="btn" onclick="submitForm()" style="padding:14px 50px;font-size:1.1em">提交送出</button>
             </div>
-            
+
             <!-- 最近提交區塊（30分鐘內可取消） -->
             <div class="recent-section" id="recentSection" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:20px;">
-                <h3 style="color:#00d4ff;margin-bottom:15px;font-size:1.1em">📝 最近提交（30分鐘內可取消）</h3>
+                <h3 id="recentTitle" style="color:#00d4ff;margin-bottom:15px;font-size:1.1em">📝 最近提交（30分鐘內可取消）</h3>
                 <div id="recentList"></div>
-            </div>
-            
-            <!-- 歷史紀錄區塊 -->
-            <div class="history-section" id="historySection" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:20px;">
-                <h3 style="color:#00d4ff;margin-bottom:15px;font-size:1.1em">📜 歷史紀錄</h3>
-                <div class="history-filters" style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center;">
-                    <select id="historyStatusFilter" onchange="loadHistory()" style="padding:8px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em;">
-                        <option value="all">📋 全部</option>
-                        <option value="active">⏳ 未處理</option>
-                        <option value="done">✅ 已處理</option>
-                        <option value="cancelled">❌ 已取消</option>
-                    </select>
-                    <input type="text" id="historySearch" placeholder="搜尋品名/客戶/部門..." onkeyup="if(event.key==='Enter')loadHistory()" style="padding:8px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em;flex:1;min-width:150px;">
-                    <button onclick="loadHistory()" style="padding:8px 16px;background:rgba(0,212,255,0.2);border:1px solid #00d4ff;color:#00d4ff;border-radius:6px;cursor:pointer;font-size:0.9em;">🔍 搜尋</button>
-                </div>
-                <div id="historyList" style="min-height:100px;">
-                    <div style="text-align:center;color:#8892b0;padding:20px;">載入中...</div>
-                </div>
-                <div class="history-pagination" id="historyPagination" style="display:flex;justify-content:center;gap:10px;margin-top:15px;align-items:center;">
-                    <button onclick="changeHistoryPage(-1)" id="historyPrevBtn" style="padding:6px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;cursor:pointer;font-size:0.85em;">← 上一頁</button>
-                    <span id="historyPageInfo" style="color:#8892b0;font-size:0.9em;">第 1 頁</span>
-                    <button onclick="changeHistoryPage(1)" id="historyNextBtn" style="padding:6px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;cursor:pointer;font-size:0.85em;">下一頁 →</button>
-                </div>
             </div>
         </div>
     </div>
@@ -252,7 +206,19 @@
     let customerSearchTimer=null;
     let productSearchTimers={};
     let isSubmitting=false; // 防重複提交旗標
-    
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded',function(){
+        // 使用本地時間（台灣 UTC+8），避免 UTC 轉換導致日期錯誤
+        const now=new Date();
+        const year=now.getFullYear();
+        const month=String(now.getMonth()+1).padStart(2,'0');
+        const day=String(now.getDate()).padStart(2,'0');
+        const today=`${year}-${month}-${day}`;
+        document.getElementById('requestDate').value=today;
+        for(let i=0;i<5;i++)addProductRow();
+    });
+
     // 初始化 - 使用共用登入元件
     document.addEventListener('DOMContentLoaded',async function(){
         console.log('[NeedsInput] Initializing with shared auth...');
@@ -287,17 +253,23 @@
             for(let i=0;i<5;i++)addProductRow();
             initTransferSelect();
             loadRecentSubmissions();
-            loadHistory(); // 載入歷史紀錄
         }catch(e){
             console.error('[NeedsInput] Login failed:',e);
         }
     });
-    
+
     // 登出 - 使用共用元件
     function logout(){
         authLogout();
     }
-    
+
+    // 檢查是否為頁面重新載入（從其他頁面返回時自動登出）- 完全複製 V1
+    window.onpageshow=function(event){
+        if(event.persisted){
+            logout();
+        }
+    };
+
     // 初始化調撥選單
     function initTransferSelect(){
         const select=document.getElementById('transferFrom');
@@ -319,7 +291,7 @@
             });
         }
     }
-    
+
     // 用途變更
     function onPurposeChange(){
         const purpose=document.getElementById('purpose').value;
@@ -327,13 +299,13 @@
         if(purpose==='客戶'){customerSection.classList.add('active');}
         else{customerSection.classList.remove('active');clearCustomer();}
     }
-    
+
     // 類型變更
     function onRequestTypeChange(){
         const type=document.getElementById('requestType').value;
         document.getElementById('transferSection').style.display=type==='調撥'?'block':'none';
     }
-    
+
     // 客戶搜尋
     async function searchCustomer(){
         const searchInput=document.getElementById('customerSearch');
@@ -361,7 +333,7 @@
             }catch(error){console.error('搜尋失敗:',error);}
         },300);
     }
-    
+
     // 選擇客戶
     function selectCustomer(code,name,mobile){
         document.getElementById('customerCode').value=code;
@@ -373,7 +345,7 @@
         document.getElementById('displayCustomerName').textContent=name;
         document.getElementById('customerSelected').classList.add('active');
     }
-    
+
     // 清除客戶
     function clearCustomer(){
         document.getElementById('customerCode').value='';
@@ -383,7 +355,7 @@
         document.getElementById('customerSearch').style.display='block';
         document.getElementById('customerSelected').classList.remove('active');
     }
-    
+
     // 新客戶對話框
     function showNewCustomerDialog(){
         document.getElementById('customerAutocomplete').classList.remove('active');
@@ -393,7 +365,7 @@
         if(!mobileInput)return;
         // 正規化手機號碼
         const cleanMobile=normalizeMobile(mobileInput);
-        // 驗證格式
+        // 登入格式
         if(!validateMobileFormat(cleanMobile)){
             showToast('手機格式錯誤，需09開頭10碼（輸入：'+mobileInput+'，正規化：'+cleanMobile+'）','error');
             return;
@@ -408,7 +380,7 @@
         document.getElementById('customerSelected').classList.add('active');
         showToast('新客戶資料已暫存（手機：'+cleanMobile+'）','success');
     }
-    
+
     // 手機號碼正規化
     function normalizeMobile(input){
         if(!input)return'';
@@ -425,12 +397,12 @@
         }
         return cleaned;
     }
-    
-    // 驗證手機格式
+
+    // 登入手機格式
     function validateMobileFormat(mobile){
         return/^09\d{8}$/.test(mobile);
     }
-    
+
     // 產生臨時客戶ID
     function generateTempCustomerId(mobile){
         let hash=0;
@@ -440,7 +412,7 @@
         }
         return'TEMP-C-'+Math.abs(hash).toString(16).toUpperCase().padStart(8,'0');
     }
-    
+
     // 產生臨時產品ID
     function generateTempProductId(){
         const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -448,13 +420,13 @@
         for(let i=0;i<8;i++)uuid+=chars.charAt(Math.floor(Math.random()*chars.length));
         return'TEMP-P-'+uuid;
     }
-    
-    // 驗證產品編號
+
+    // 登入產品編號
     function validateProductCode(code){
         if(!code)return true;
         return/^[A-Za-z0-9\-]+$/.test(code);
     }
-    
+
     // 產品編號輸入處理
     function onProductCodeInput(rowId){
         const input=document.getElementById('prodCode'+rowId);
@@ -467,7 +439,7 @@
             errorDiv.classList.remove('show');
         }
     }
-    
+
     // 添加產品行
     function addProductRow(){
         productRowCount++;
@@ -488,13 +460,13 @@
             '<td><button type="button" class="btn-delete" onclick="deleteProductRow('+productRowCount+')">刪除</button></td>';
         tbody.appendChild(row);
     }
-    
+
     // 刪除產品行
     function deleteProductRow(rowId){
         const row=document.getElementById('productRow'+rowId);
         if(row)row.remove();
     }
-    
+
     // 產品搜尋
     async function searchProduct(rowId,byName){
         const inputId=byName?'prodName'+rowId:'prodCode'+rowId;
@@ -518,7 +490,7 @@
             }catch(error){console.error('產品搜尋失敗:',error);}
         },300);
     }
-    
+
     // 選擇產品
     function selectProduct(rowId,code,name){
         document.getElementById('prodCode'+rowId).value=code;
@@ -529,7 +501,7 @@
         // 查詢並顯示庫存
         queryProductStock(rowId,code);
     }
-    
+
     // 查詢產品庫存
     async function queryProductStock(rowId,productCode){
         const stockDiv=document.getElementById('prodStock'+rowId);
@@ -557,7 +529,7 @@
             stockDiv.style.display='none';
         }
     }
-    
+
     // 新品變更
     function onNewProductChange(rowId){
         const isNew=document.getElementById('prodNew'+rowId).checked;
@@ -576,7 +548,7 @@
             if(stockDiv)stockDiv.style.display='none';
         }
     }
-    
+
     // 表單提交
     async function submitForm(){
         // 防重複提交檢查
@@ -588,7 +560,7 @@
         const submitBtn=document.getElementById('submitBtn');
         submitBtn.disabled=true;
         submitBtn.textContent='送出中…';
-        
+
         try{
             const date=document.getElementById('requestDate').value;
             const requestType=document.getElementById('requestType').value;
@@ -602,7 +574,7 @@
                 // 正規化手機號碼
                 const rawMobile=document.getElementById('customerMobile').value;
                 customerMobile=normalizeMobile(rawMobile);
-                // 驗證手機格式
+                // 登入手機格式
                 if(customerMobile&&!validateMobileFormat(customerMobile)){
                     showToast('客戶手機格式錯誤（正規化後：'+customerMobile+'）','error');
                     return;
@@ -649,11 +621,11 @@
                 items.push({product_code:finalProductCode,product_name:name,quantity:qty,remark:remark,is_new_product:isNewProductFlag,product_staging_id:productStagingId});
             }
             if(items.length===0){showToast('請至少填寫一筆產品','error');return;}
-            
+
             // 新客戶與新品提示 - 同時顯示在畫面中央
             const hasNewCustomer=isNewCustomer;
             const newProductCount=items.filter(i=>i.is_new_product).length;
-            
+
             if(hasNewCustomer||hasNewProduct){
                 let promptMessage='';
                 if(hasNewCustomer){
@@ -666,7 +638,7 @@
                 // 等待 2 秒讓用戶看到提示
                 await new Promise(resolve=>setTimeout(resolve,2000));
             }
-            
+
             // 將 header 資料合併到每個 item（符合 /api/needs/batch 格式）
             const fullItems=items.map(item=>({
                 ...item,
@@ -697,10 +669,6 @@
                     successMsg+='\n新品待建檔: '+data.product_staging_count+' 筆';
                 }
                 showToast(successMsg,'success');
-                
-                // 立即將新提交的單子添加到最近提交列表
-                addToRecentList(fullItems);
-                
                 resetForm();
             }else{showToast(data.message||'提交失敗','error');}
         }catch(error){
@@ -712,7 +680,7 @@
             submitBtn.textContent='提交送出';
         }
     }
-    
+
     // 重置表單
     function resetForm(){
         document.getElementById('purpose').value='備貨';
@@ -724,58 +692,8 @@
         productRowCount=0;
         for(let i=0;i<5;i++)addProductRow();
         loadRecentSubmissions();
-        loadHistory(); // 刷新歷史紀錄
     }
-    
-    // 將新提交的單子添加到最近提交列表（即時顯示，無需等待API）
-    function addToRecentList(items){
-        if(!currentUser||!items||items.length===0)return;
-        
-        const recentList=document.getElementById('recentList');
-        const recentSection=document.getElementById('recentSection');
-        
-        // 顯示區塊
-        recentSection.style.display='block';
-        
-        // 構建新單子的HTML
-        const newItemsHtml=items.map(item=>{
-            const isNewProduct=item.is_new_product===1||item.is_new_product==='1';
-            const isNewCustomer=item.is_new_customer===1||item.is_new_customer==='1';
-            let productDisplay=item.product_code;
-            if(isNewProduct){
-                productDisplay='<span style="color:#f44336;font-weight:bold;">'+item.product_code+' (新品待建檔)</span>';
-            }
-            let customerDisplay=item.customer_code||'-';
-            if(isNewCustomer&&item.purpose==='客戶'){
-                customerDisplay='<span style="color:#f44336;font-weight:bold;">'+item.customer_code+' (新客戶待建檔)</span>';
-            }
-            return '<div class="recent-item" style="animation:fadeIn 0.5s;">'+
-                '<div class="info">'+
-                    '<strong>'+item.date+'</strong> | 填表人: '+item.requester+' | 產品: '+productDisplay+' | 數量: '+item.quantity+
-                    ' | 類型: '+(item.request_type||'請購')+(item.transfer_from?'(來源:'+item.transfer_from+')':'')+
-                    ' | 用途: '+(item.purpose==='客戶'?'客戶-'+customerDisplay:'備貨')+
-                    (item.remark?' | 備註: '+item.remark:'')+
-                '</div>'+
-                '<div>'+
-                    '<span class="status status-pending">待處理</span>'+
-                    '<button class="btn-cancel" onclick="cancelItem(0)">取消</button>'+
-                '</div>'+
-            '</div>';
-        }).join('');
-        
-        // 添加到列表最前面
-        if(recentList.innerHTML===''||recentList.innerHTML.includes('載入中')){
-            recentList.innerHTML=newItemsHtml;
-        }else{
-            recentList.innerHTML=newItemsHtml+recentList.innerHTML;
-        }
-        
-        // 同時在背景刷新真正的列表（取得正確的ID）
-        setTimeout(()=>{
-            loadRecentSubmissions();
-        },500);
-    }
-    
+
     // 載入最近提交的單據（30分鐘內可取消）
     async function loadRecentSubmissions(){
         if(!currentUser)return;
@@ -825,7 +743,7 @@
             console.error('載入最近提交失敗:',error);
         }
     }
-    
+
     // 取消項目
     async function cancelItem(id){
         if(!confirm('確定要取消這筆需求嗎？'))return;
@@ -839,7 +757,6 @@
             if(data.success){
                 showToast('已取消','success');
                 loadRecentSubmissions();
-                loadHistory(); // 刷新歷史紀錄
             }else{
                 showToast(data.message||'取消失敗','error');
             }
@@ -847,85 +764,7 @@
             showToast('取消失敗','error');
         }
     }
-    
-    // 歷史紀錄相關變數
-    let historyOffset=0;
-    const historyLimit=50;
-    let historyTotal=0;
-    
-    // 載入歷史紀錄
-    async function loadHistory(){
-        if(!currentUser)return;
-        
-        const status=document.getElementById('historyStatusFilter').value;
-        const search=document.getElementById('historySearch').value.trim();
-        const listContainer=document.getElementById('historyList');
-        
-        listContainer.innerHTML='<div style="text-align:center;color:#8892b0;padding:20px;">載入中...</div>';
-        
-        try{
-            let url='/api/needs/history?limit='+historyLimit+'&offset='+historyOffset+'&status='+status+'&current_user='+encodeURIComponent(currentUser.name);
-            if(search)url+='&q='+encodeURIComponent(search);
-            
-            const response=await fetch(url);
-            const data=await response.json();
-            
-            if(data.success&&data.items&&data.items.length>0){
-                historyTotal=data.total;
-                
-                const listHtml=data.items.map(item=>{
-                    let statusClass='status-pending';
-                    let statusText=item.status;
-                    if(item.status_type==='cancelled'){
-                        statusClass='status-cancelled';
-                        statusText='已取消';
-                    }else if(item.status_type==='done'){
-                        statusClass='status-completed';
-                        statusText='已完成';
-                    }
-                    
-                    return '<div class="recent-item">'+
-                        '<div class="info">'+
-                            '<strong>'+item.date+'</strong> | '+item.department+' | 填表人: '+item.requester+'<br>'+
-                            '產品: '+(item.product_code||'-')+' | 品名: '+(item.item_name||'-')+' | 數量: '+item.quantity+'<br>'+
-                            '客戶: '+(item.customer_code||'-')+(item.purpose==='客戶'?' (客戶)':'')+
-                            (item.cancelled_at?' <span style="color:#f44336;font-size:0.85em;">(取消於 '+item.cancelled_at.substring(0,10)+')</span>':'')+
-                        '</div>'+
-                        '<div>'+
-                            '<span class="status '+statusClass+'">'+statusText+'</span>'+
-                        '</div>'+
-                    '</div>';
-                }).join('');
-                
-                listContainer.innerHTML=listHtml;
-                
-                // 更新分頁資訊
-                const currentPage=Math.floor(historyOffset/historyLimit)+1;
-                const totalPages=Math.ceil(historyTotal/historyLimit);
-                document.getElementById('historyPageInfo').textContent='第 '+currentPage+' / '+totalPages+' 頁 (共 '+historyTotal+' 筆)';
-                document.getElementById('historyPrevBtn').disabled=historyOffset<=0;
-                document.getElementById('historyNextBtn').disabled=(historyOffset+historyLimit)>=historyTotal;
-            }else{
-                listContainer.innerHTML='<div style="text-align:center;color:#8892b0;padding:30px;">暫無資料</div>';
-                document.getElementById('historyPageInfo').textContent='第 1 頁';
-                document.getElementById('historyPrevBtn').disabled=true;
-                document.getElementById('historyNextBtn').disabled=true;
-            }
-        }catch(error){
-            console.error('載入歷史紀錄失敗:',error);
-            listContainer.innerHTML='<div style="text-align:center;color:#f44336;padding:20px;">載入失敗，請重試</div>';
-        }
-    }
-    
-    // 切換歷史紀錄頁碼
-    function changeHistoryPage(direction){
-        const newOffset=historyOffset+(direction*historyLimit);
-        if(newOffset>=0&&newOffset<historyTotal){
-            historyOffset=newOffset;
-            loadHistory();
-        }
-    }
-    
+
     // 顯示提示（延長時間並支援點擊關閉）
     function showToast(message,type,duration){
         const toast=document.getElementById('toast');
@@ -933,17 +772,17 @@
         toast.className='toast '+type+' show';
         // 預設時間：error/warning 5秒，success/info 8秒（含新品/新客戶資訊時較長）
         const displayDuration=duration||(type==='success'||type==='info'?8000:5000);
-        
+
         // 清除之前的計時器
         if(toast.hideTimer)clearTimeout(toast.hideTimer);
-        
+
         // 設定自動隱藏
         toast.hideTimer=setTimeout(()=>{toast.classList.remove('show');},displayDuration);
-        
+
         // 點擊即可關閉
         toast.onclick=function(){toast.classList.remove('show');};
     }
-    
+
     // 顯示置中提示（用於重要訊息如新品提示）
     function showToastCenter(message,type,duration){
         // 創建或取得置中 toast 元素
@@ -956,18 +795,18 @@
         }
         centerToast.textContent=message;
         centerToast.className='toast-center '+type+' show';
-        
+
         const displayDuration=duration||3000;
-        
+
         // 清除之前的計時器
         if(centerToast.hideTimer)clearTimeout(centerToast.hideTimer);
-        
+
         // 設定自動隱藏
         centerToast.hideTimer=setTimeout(()=>{centerToast.classList.remove('show');},displayDuration);
-        
+
         // 點擊即可關閉
         centerToast.onclick=function(){centerToast.classList.remove('show');};
     }
     </script>
-<script>window.PAGE_VERSION="3.01";window.PAGE_CHANGELOG=[{version:"3.01",text:"新增歷史紀錄區塊、送單後即時顯示取消按鈕、更新自動過期機制",date:"2026-03-03"},{version:"3.0",text:"v2 正式上線：UI 優化、統一登入元件、新增頁面標題",date:"2026-03-03"},{version:"2.2",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"2.1",text:"UI統一：登入頁面標題簡化、移除身分證標籤、按鈕樣式與顏色統一、背景色統一",date:"2026-03-01"},{version:"2.0",text:"大改版：單據頭+產品明細表架構、一單多產品、手機去重 staging、批次提交",date:"2026-03-01"},{version:"1.2",text:"staging_records 補強：手機唯一鍵去重、短 UUID、精準回寫、需求表多筆產品",date:"2026-02-28"},{version:"1.1",text:"莊圍迪代送門市下拉框調整為同一列",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
+<script>window.PAGE_VERSION="2.2";window.PAGE_CHANGELOG=[{version:"2.2",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"2.1",text:"UI統一：登入頁面標題簡化移除V2、移除身分證標籤、按鈕樣式與顏色統一、背景色統一",date:"2026-03-01"},{version:"2.0",text:"大改版：單據頭+產品明細表架構、一單多產品、手機去重 staging、批次提交",date:"2026-03-01"},{version:"1.2",text:"staging_records 補強：手機唯一鍵去重、短 UUID、精準回寫、需求表多筆產品",date:"2026-02-28"},{version:"1.1",text:"莊圍迪代送門市下拉框調整為同一列",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

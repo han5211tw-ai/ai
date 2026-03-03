@@ -140,11 +140,13 @@
             padding: 40px;
         }
     </style>
+    <!-- Version: v1.0 | Last Updated: 2026-02-28 -->
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
         <h1>🖥️ 電腦舖營運系統</h1>
-        <p class="subtitle">Tech Dashboard System v2.0</p>
+        <p class="subtitle">Operations System v.1.2</p>
 
         <div class="section-title">📊 分析與資訊</div>
         <div class="btn-grid">
@@ -180,7 +182,7 @@
             </a>
         </div>
 
-        <div class="section-title">☁️ 雲端文件連結</div>
+        <div class="section-title">📂 工作表單</div>
         <div class="btn-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 600px; margin-left: auto; margin-right: auto;">
             <a href="needs_input.html" class="btn-card" target="_blank">
                 <div class="btn-icon">📝</div>
@@ -293,7 +295,16 @@
                         plugins: {
                             legend: {
                                 display: true,
-                                labels: { color: '#ccd6f6' }
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    color: '#ccd6f6',
+                                    usePointStyle: true,
+                                    pointStyle: 'rect',
+                                    pointStyleWidth: 14,
+                                    padding: 20,
+                                    font: { size: 12 }
+                                }
                             }
                         },
                         scales: {
@@ -388,5 +399,13 @@
             location.reload();
         }, 3600000);
     </script>
+    <!-- 版本號與更新日誌組件 -->
+    <script>
+        window.PAGE_VERSION = '1.0';
+        window.PAGE_CHANGELOG = [
+            { version: '1.0', text: '初始版本發布', date: '2026-02-28' }
+        ];
+    </script>
+    <script src="version-component.js"></script>
 </body>
 </html>

@@ -37,10 +37,13 @@
             border-radius: 8px;
             transition: all 0.3s;
         }
-        .nav a:hover, .nav a.active {
+        .nav a:hover, .nav a.active, .nav span.active {
             color: #00d4ff;
             border-color: #00d4ff;
             background: rgba(0, 212, 255, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
         }
 
         /* 功能入口按鈕（仿 business.html 樣式）*/
@@ -152,16 +155,18 @@
             font-size: 0.85em;
             font-weight: 600;
         }
-        .shift-zao { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
-        .shift-wan { background: rgba(156, 39, 176, 0.2); color: #9c27b0; border: 1px solid rgba(156, 39, 176, 0.3); }
-        .shift-quan { background: rgba(0, 212, 255, 0.2); color: #00d4ff; border: 1px solid rgba(0, 212, 255, 0.3); }
-        .shift-zhi { background: rgba(76, 175, 80, 0.2); color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.3); }
+        .shift-zao { background: rgba(255, 152, 0, 0.2); color: #ff9800; border: 1px solid rgba(255, 152, 0, 0.3); }
+        .shift-wan { background: rgba(63, 81, 181, 0.2); color: #7986cb; border: 1px solid rgba(63, 81, 181, 0.3); }
+        .shift-quan { background: rgba(0, 150, 136, 0.2); color: #4db6ac; border: 1px solid rgba(0, 150, 136, 0.3); }
+        .shift-zhi { background: rgba(156, 39, 176, 0.2); color: #ba68c8; border: 1px solid rgba(156, 39, 176, 0.3); }
         .shift-off { background: rgba(136, 146, 176, 0.2); color: #8892b0; border: 1px solid rgba(136, 146, 176, 0.3); }
-        .shift-zao-bg { background: rgba(255, 193, 7, 0.1); color: #ffc107; font-weight: 600; }
-        .shift-wan-bg { background: rgba(156, 39, 176, 0.1); color: #9c27b0; font-weight: 600; }
-        .shift-quan-bg { background: rgba(0, 212, 255, 0.1); color: #00d4ff; font-weight: 600; }
-        .shift-zhi-bg { background: rgba(76, 175, 80, 0.1); color: #4caf50; font-weight: 600; }
+        .shift-zao-bg { background: rgba(255, 152, 0, 0.1); color: #ff9800; font-weight: 600; }
+        .shift-wan-bg { background: rgba(63, 81, 181, 0.1); color: #7986cb; font-weight: 600; }
+        .shift-quan-bg { background: rgba(0, 150, 136, 0.1); color: #4db6ac; font-weight: 600; }
+        .shift-zhi-bg { background: rgba(156, 39, 176, 0.1); color: #ba68c8; font-weight: 600; }
         .shift-off-bg { background: rgba(136, 146, 176, 0.1); color: #8892b0; }
+        .shift-te { background: rgba(244, 67, 54, 0.2); color: #f44336; border: 1px solid rgba(244, 67, 54, 0.3); }
+        .shift-te-bg { background: rgba(244, 67, 54, 0.1); color: #f44336; font-weight: 600; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -191,6 +196,7 @@
         }
         .back-link:hover { text-decoration: underline; }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -202,7 +208,6 @@
             <a href="store.html">🏬 門市</a>
             <a href="business.html">💼 業務</a>
             <a href="personal.html">🧑‍💼 個人</a>
-            <a href="roster.html" class="active">📅 班表</a>
             <a href="customer_search.html">🔍 客戶</a>
         </div>
 
@@ -229,7 +234,7 @@
                 <div class="loading">載入中...</div>
             </div>
             <p style="margin-top: 20px; color: #8892b0; font-size: 0.9em;">
-                📝 班次說明：<span style="color: #ffc107;">早</span> = 早班｜<span style="color: #9c27b0;">晚</span> = 晚班｜<span style="color: #00d4ff;">全</span> = 全班｜<span style="color: #4caf50;">值</span> = 值班｜<span style="color: #8892b0;">休</span> = 休假
+                📝 班次說明：<span style="color: #ff9800;">早</span> = 早班｜<span style="color: #7986cb;">晚</span> = 晚班｜<span style="color: #4db6ac;">全</span> = 全班｜<span style="color: #ba68c8;">值</span> = 值班｜<span style="color: #8892b0;">休</span> = 休假｜<span style="color: #f44336;">特</span> = 特休
             </p>
         </div>
 
@@ -243,7 +248,8 @@
             '晚': 'shift-wan-bg',
             '全': 'shift-quan-bg',
             '值': 'shift-zhi-bg',
-            '休': 'shift-off-bg'
+            '休': 'shift-off-bg',
+            '特': 'shift-te-bg'
         };
 
         const shiftBadgeMap = {
@@ -251,7 +257,8 @@
             '晚': 'shift-wan',
             '全': 'shift-quan',
             '值': 'shift-zhi',
-            '休': 'shift-off'
+            '休': 'shift-off',
+            '特': 'shift-te'
         };
 
         // 動態計算本週日期（週日為第一天）
@@ -368,5 +375,5 @@
 
         loadRosterData();
     </script>
-</body>
+<script>window.PAGE_VERSION="1.1";window.PAGE_CHANGELOG=[{version:"1.1",text:"導航列優化：移除當前頁面連結","date":"2026-03-01"},{"version":"1.0","text":"初始版本發布","date":"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

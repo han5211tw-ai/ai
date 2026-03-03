@@ -251,6 +251,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -268,7 +269,7 @@
 
         <!-- 功能入口 -->
         <div class="card">
-            <h2>📂 功能入口</h2>
+            <h2>📂 工作表單</h2>
             <div class="btn-group">
                 <a href="roster_input.html" class="btn-cloud" target="_blank">
                     📅 排班表單
@@ -658,18 +659,18 @@
             }
         }
 
-        // 動態計算本週日期
+        // 動態計算本週日期（週日開始）
         function getWeekDates() {
             const today = new Date();
-            const monday = new Date(today);
-            monday.setDate(today.getDate() - today.getDay() + 1);
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() - today.getDay()); // 本週日
             
             const weekDates = [];
-            const weekdays = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+            const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
             
             for (let i = 0; i < 7; i++) {
-                const date = new Date(monday);
-                date.setDate(monday.getDate() + i);
+                const date = new Date(sunday);
+                date.setDate(sunday.getDate() + i);
                 const month = date.getMonth() + 1;
                 const day = date.getDate();
                 const dateStr = `${date.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -783,5 +784,5 @@
             location.reload();
         }, 3600000);
     </script>
-</body>
+<script>window.PAGE_VERSION="1.0";window.PAGE_CHANGELOG=[{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

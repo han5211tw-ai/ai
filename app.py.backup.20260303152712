@@ -3730,36 +3730,38 @@ def get_staging_records():
         """, ())
         records.extend([dict(row) for row in cursor.fetchall()])
     
-    # 統計：分開計算 pending 和 resolved（與 records 查詢使用相同條件：依 staging.status）
+    # 統計：分開計算 pending 和 resolved（使用相同條件）
     cursor.execute("""
         SELECT 
-            -- Product pending (staging.status != 'resolved')
+            -- Product pending (TEMP 編號)
             (SELECT COUNT(DISTINCT sr.id)
              FROM needs n
              JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
              WHERE n.cancelled_at IS NULL
-               AND sr.status != 'resolved'
+               AND n.product_code LIKE 'TEMP-P-%'
             ) as product_pending,
-            -- Product resolved (staging.status = 'resolved')
+            -- Product resolved (正式編號)
             (SELECT COUNT(DISTINCT sr.id)
              FROM needs n
              JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
              WHERE n.cancelled_at IS NULL
-               AND sr.status = 'resolved'
+               AND n.product_code NOT LIKE 'TEMP-P-%'
+               AND n.product_staging_id IS NOT NULL
             ) as product_resolved,
-            -- Customer pending (staging.status != 'resolved')
+            -- Customer pending (TEMP 編號)
             (SELECT COUNT(DISTINCT sr.id)
              FROM needs n
              JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
              WHERE n.cancelled_at IS NULL
-               AND sr.status != 'resolved'
+               AND n.customer_code LIKE 'TEMP-C-%'
             ) as customer_pending,
-            -- Customer resolved (staging.status = 'resolved')
+            -- Customer resolved (正式編號)
             (SELECT COUNT(DISTINCT sr.id)
              FROM needs n
              JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
              WHERE n.cancelled_at IS NULL
-               AND sr.status = 'resolved'
+               AND n.customer_code NOT LIKE 'TEMP-C-%'
+               AND n.customer_staging_id IS NOT NULL
             ) as customer_resolved
     """)
     

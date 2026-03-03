@@ -1,9 +1,23 @@
 <!DOCTYPE html>
+<!--
+  File: supervision_score.html
+  Version: 20250303-1400
+  ChangeLog:
+    - 20250303: 修正 issues/suggestions 欄位對應（改為 problem_grasp/follow_up）
+    - 20250303: 更新 auth_ui.js 版本號支援自動過期
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>督導評分表 - 電腦舖營運系統</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>督導評分表 - 電腦舖</title>
+    <script>window.version='20250303-0100';window.PAGE_VERSION="1.3";window.PAGE_CHANGELOG=[{version:"1.3",text:"主管權限：門市主管可編修與儲存評分，儲存時記錄評分者身份",date:"2026-03-03"},{version:"1.2",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"1.1",text:"統一登入頁面樣式",date:"2026-03-02"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script>
+    <link rel="stylesheet" href="version-component.css">
+    <link rel="stylesheet" href="shared/auth_ui.css">
+    <script src="shared/auth_ui.js?v=20250303-1402"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -74,13 +88,16 @@
             font-size: 1em;
         }
         .btn {
-            padding: 12px 24px;
+            padding: 10px 25px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            font-size: 1.05em;
             cursor: pointer;
-            font-size: 1em;
-            transition: all 0.3s;
+            transition: transform 0.2s;
         }
+        .btn:hover { transform: translateY(-2px); }
         .btn-primary {
             background: linear-gradient(135deg, #00d4ff, #7b2cbf);
             color: #fff;
@@ -190,8 +207,14 @@
         .toast.error { background: rgba(244,67,54,0.95); }
         .toast.show { display: block; }
         /* 登入頁面 */
-        .login-section { display: none; }
-        .login-section.active { display: block; }
+        .login-section { 
+            display: none;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-section.active { display: flex; }
         
         .login-box {
             background: rgba(255, 255, 255, 0.05);
@@ -199,27 +222,34 @@
             border-radius: 16px;
             padding: 40px;
             max-width: 400px;
+            width: 100%;
             margin: 0 auto;
             text-align: center;
         }
-        .login-box h2 { color: #00d4ff; margin-bottom: 30px; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 6px; color: #8892b0; font-size: 0.95em; }
-        input {
-            width: 100%;
-            max-width: 100%;
+        .login-box h2 { 
+            color: #00d4ff; 
+            margin-bottom: 30px;
+            font-size: 1.3em;
         }
-        .form-group input {
+        .login-box input {
             width: 100%;
-            max-width: 100%;
-            padding: 10px 12px;
+            padding: 12px 15px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.05);
             color: #fff;
-            font-size: 0.95em;
+            font-size: 1em;
+            margin-bottom: 20px;
         }
-        .form-group input:focus { outline: none; border-color: #00d4ff; }
+        .login-box input:focus { 
+            outline: none; 
+            border-color: #00d4ff; 
+        }
+        .login-box .btn {
+            width: 100%;
+            padding: 12px 25px;
+            font-size: 1.05em;
+        }
         
         @media (max-width: 600px) {
             .form-row { grid-template-columns: 1fr; }
@@ -227,24 +257,10 @@
             .score-buttons { width: 100%; justify-content: flex-end; }
         }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
-        <h1>📋 督導評分表</h1>
-        
-        <!-- 登入頁面 -->
-        <div id="loginSection" class="login-section active">
-            <div class="login-box">
-                <h2>門市主管登入</h2>
-                <div class="form-group">
-                    <label>身分證後四碼</label>
-                    <input type="password" id="password" placeholder="請輸入4位數字" maxlength="4" onkeypress="if(event.key==='Enter') login()">
-                </div>
-                <button class="btn btn-primary" onclick="login()" style="width:100%; margin-top:5px;">登入</button>
-                <div id="loginError" style="color:#f44336; margin-top:10px; font-size:0.95em;"></div>
-            </div>
-        </div>
-
     <!-- 主頁面 -->
     <div id="mainSection" class="container" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -284,11 +300,11 @@
         
         <!-- 評分項目 -->
         <div class="score-section">
-            <h3>門市環境（10分）</h3>
+            <h3>一、門市人員督導（10分）</h3>
             <div class="score-item">
                 <div class="score-item-content">
                     <span class="score-item-label">1. 出勤狀況</span>
-                    <span class="score-item-desc">檢查重點：準時到班、無遲到早退、請假手續完備</span>
+                    <span class="score-item-desc">檢查重點：準時到班、無遲到早退</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="attendance" data-value="0" onclick="setScore('attendance', 0)">0</button>
@@ -299,7 +315,7 @@
             <div class="score-item">
                 <div class="score-item-content">
                     <span class="score-item-label">2. 服裝儀容</span>
-                    <span class="score-item-desc">檢查重點：制服整齊、名牌佩帶、儀容端正</span>
+                    <span class="score-item-desc">檢查重點：制服整齊、儀態精神</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="appearance" data-value="0" onclick="setScore('appearance', 0)">0</button>
@@ -309,45 +325,8 @@
             </div>
             <div class="score-item">
                 <div class="score-item-content">
-                    <span class="score-item-label">3. 店面整潔</span>
-                    <span class="score-item-desc">檢查重點：門面清潔、櫥窗明亮、走道暢通</span>
-                </div>
-                <div class="score-buttons">
-                    <button class="score-btn" data-item="storefront_cleanliness" data-value="0" onclick="setScore('storefront_cleanliness', 0)">0</button>
-                    <button class="score-btn" data-item="storefront_cleanliness" data-value="1" onclick="setScore('storefront_cleanliness', 1)">1</button>
-                    <button class="score-btn" data-item="storefront_cleanliness" data-value="2" onclick="setScore('storefront_cleanliness', 2)">2</button>
-                </div>
-            </div>
-            <div class="score-item">
-                <div class="score-item-content">
-                    <span class="score-item-label">4. 店內整潔</span>
-                    <span class="score-item-desc">檢查重點：地面清潔、桌面整齊、垃圾清倒</span>
-                </div>
-                <div class="score-buttons">
-                    <button class="score-btn" data-item="store_cleanliness" data-value="0" onclick="setScore('store_cleanliness', 0)">0</button>
-                    <button class="score-btn" data-item="store_cleanliness" data-value="1" onclick="setScore('store_cleanliness', 1)">1</button>
-                    <button class="score-btn" data-item="store_cleanliness" data-value="2" onclick="setScore('store_cleanliness', 2)">2</button>
-                </div>
-            </div>
-            <div class="score-item">
-                <div class="score-item-content">
-                    <span class="score-item-label">5. 產品陳列</span>
-                    <span class="score-item-desc">檢查重點：商品標價、陳列整齊、缺貨補充</span>
-                </div>
-                <div class="score-buttons">
-                    <button class="score-btn" data-item="product_display" data-value="0" onclick="setScore('product_display', 0)">0</button>
-                    <button class="score-btn" data-item="product_display" data-value="1" onclick="setScore('product_display', 1)">1</button>
-                    <button class="score-btn" data-item="product_display" data-value="2" onclick="setScore('product_display', 2)">2</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="score-section">
-            <h3>服務品質（10分）</h3>
-            <div class="score-item">
-                <div class="score-item-content">
-                    <span class="score-item-label">6. 服務態度</span>
-                    <span class="score-item-desc">檢查重點：主動招呼、微笑服務、耐心接待</span>
+                    <span class="score-item-label">3. 服務態度</span>
+                    <span class="score-item-desc">檢查重點：親切有禮、主動招呼</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="service_attitude" data-value="0" onclick="setScore('service_attitude', 0)">0</button>
@@ -357,8 +336,8 @@
             </div>
             <div class="score-item">
                 <div class="score-item-content">
-                    <span class="score-item-label">7. 專業知識</span>
-                    <span class="score-item-desc">檢查重點：產品熟悉、規格說明、問題解答</span>
+                    <span class="score-item-label">4. 專業知識</span>
+                    <span class="score-item-desc">檢查重點：熟悉產品規格與價格</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="professional_knowledge" data-value="0" onclick="setScore('professional_knowledge', 0)">0</button>
@@ -368,8 +347,8 @@
             </div>
             <div class="score-item">
                 <div class="score-item-content">
-                    <span class="score-item-label">8. 銷售流程</span>
-                    <span class="score-item-desc">檢查重點：需求詢問、產品推薦、結帳流程</span>
+                    <span class="score-item-label">5. 銷售流程</span>
+                    <span class="score-item-desc">檢查重點：依標準流程介紹與結帳</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="sales_process" data-value="0" onclick="setScore('sales_process', 0)">0</button>
@@ -377,10 +356,47 @@
                     <button class="score-btn" data-item="sales_process" data-value="2" onclick="setScore('sales_process', 2)">2</button>
                 </div>
             </div>
+        </div>
+        
+        <div class="score-section">
+            <h3>二、門市環境督導（10分）</h3>
             <div class="score-item">
                 <div class="score-item-content">
-                    <span class="score-item-label">9. 線材整理</span>
-                    <span class="score-item-desc">檢查重點：線材綁束、標示清楚、無雜亂堆放</span>
+                    <span class="score-item-label">6. 門面整潔</span>
+                    <span class="score-item-desc">檢查重點：門口乾淨、無雜物</span>
+                </div>
+                <div class="score-buttons">
+                    <button class="score-btn" data-item="storefront_cleanliness" data-value="0" onclick="setScore('storefront_cleanliness', 0)">0</button>
+                    <button class="score-btn" data-item="storefront_cleanliness" data-value="1" onclick="setScore('storefront_cleanliness', 1)">1</button>
+                    <button class="score-btn" data-item="storefront_cleanliness" data-value="2" onclick="setScore('storefront_cleanliness', 2)">2</button>
+                </div>
+            </div>
+            <div class="score-item">
+                <div class="score-item-content">
+                    <span class="score-item-label">7. 店內清潔</span>
+                    <span class="score-item-desc">檢查重點：地板、櫃檯、展示桌整齊</span>
+                </div>
+                <div class="score-buttons">
+                    <button class="score-btn" data-item="store_cleanliness" data-value="0" onclick="setScore('store_cleanliness', 0)">0</button>
+                    <button class="score-btn" data-item="store_cleanliness" data-value="1" onclick="setScore('store_cleanliness', 1)">1</button>
+                    <button class="score-btn" data-item="store_cleanliness" data-value="2" onclick="setScore('store_cleanliness', 2)">2</button>
+                </div>
+            </div>
+            <div class="score-item">
+                <div class="score-item-content">
+                    <span class="score-item-label">8. 產品陳列</span>
+                    <span class="score-item-desc">檢查重點：排列整齊、標價清楚</span>
+                </div>
+                <div class="score-buttons">
+                    <button class="score-btn" data-item="product_display" data-value="0" onclick="setScore('product_display', 0)">0</button>
+                    <button class="score-btn" data-item="product_display" data-value="1" onclick="setScore('product_display', 1)">1</button>
+                    <button class="score-btn" data-item="product_display" data-value="2" onclick="setScore('product_display', 2)">2</button>
+                </div>
+            </div>
+            <div class="score-item">
+                <div class="score-item-content">
+                    <span class="score-item-label">9. 線材管理</span>
+                    <span class="score-item-desc">檢查重點：無雜亂線材、收納良好</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="cable_management" data-value="0" onclick="setScore('cable_management', 0)">0</button>
@@ -390,8 +406,8 @@
             </div>
             <div class="score-item">
                 <div class="score-item-content">
-                    <span class="score-item-label">10. 倉庫整理</span>
-                    <span class="score-item-desc">檢查重點：貨品分類、標籤清楚、先進先出</span>
+                    <span class="score-item-label">10. 倉庫整齊</span>
+                    <span class="score-item-desc">檢查重點：物品分類、通道暢通</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="warehouse_organization" data-value="0" onclick="setScore('warehouse_organization', 0)">0</button>
@@ -402,11 +418,11 @@
         </div>
         
         <div class="score-section">
-            <h3>售後服務（10分）</h3>
+            <h3>三、LINE 回覆積極度督導（10分）</h3>
             <div class="score-item">
                 <div class="score-item-content">
                     <span class="score-item-label">11. 回覆速度</span>
-                    <span class="score-item-desc">檢查重點：即時回應、工單處理、訊息回覆</span>
+                    <span class="score-item-desc">檢查重點：10分鐘內回覆顧客訊息</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="reply_speed" data-value="0" onclick="setScore('reply_speed', 0)">0</button>
@@ -417,7 +433,7 @@
             <div class="score-item">
                 <div class="score-item-content">
                     <span class="score-item-label">12. 回覆態度</span>
-                    <span class="score-item-desc">檢查重點：語氣親切、積極協助、不推諉</span>
+                    <span class="score-item-desc">檢查重點：用語禮貌、不敷洐</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="reply_attitude" data-value="0" onclick="setScore('reply_attitude', 0)">0</button>
@@ -428,7 +444,7 @@
             <div class="score-item">
                 <div class="score-item-content">
                     <span class="score-item-label">13. 問題掌握</span>
-                    <span class="score-item-desc">檢查重點：問題理解、原因分析、處理方向</span>
+                    <span class="score-item-desc">檢查重點：能正確理解顧客需求</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="problem_grasp" data-value="0" onclick="setScore('problem_grasp', 0)">0</button>
@@ -438,8 +454,8 @@
             </div>
             <div class="score-item">
                 <div class="score-item-content">
-                    <span class="score-item-label">14. 資料完整</span>
-                    <span class="score-item-desc">檢查重點：維修單填寫、客戶資料、處理記錄</span>
+                    <span class="score-item-label">14. 資訊完整</span>
+                    <span class="score-item-desc">檢查重點：價格、規格</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="information_complete" data-value="0" onclick="setScore('information_complete', 0)">0</button>
@@ -450,7 +466,7 @@
             <div class="score-item">
                 <div class="score-item-content">
                     <span class="score-item-label">15. 後續追蹤</span>
-                    <span class="score-item-desc">檢查重點：進度回報、完工通知、客戶確認</span>
+                    <span class="score-item-desc">檢查重點：未成交客戶有追蹤回覆</span>
                 </div>
                 <div class="score-buttons">
                     <button class="score-btn" data-item="follow_up" data-value="0" onclick="setScore('follow_up', 0)">0</button>
@@ -490,51 +506,53 @@
         
         let currentUser = null;
         
-        // 登入（連接後端 API）
-        async function login() {
-            const password = document.getElementById('password').value.trim();
-            
-            if (!password || password.length !== 4 || !/^\d{4}$/.test(password)) {
-                document.getElementById('loginError').textContent = '請輸入4位數字密碼';
-                return;
-            }
+        // 檢查是否為主管或督導權限
+        function hasSupervisorPermission(user) {
+            if (!user || !user.title) return false;
+            const title = user.title.toLowerCase();
+            return title.includes('主管') || title.includes('督導') || title.includes('老闆') || title.includes('老闆') || title.includes('管理員');
+        }
+        
+        // 初始化 - 使用共用登入元件
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[Supervision] Initializing with shared auth...');
             
             try {
-                const response = await fetch('/api/auth/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                const data = await requireLogin({
+                    minRole: 'accountant',
+                    title: '📋 督導評分表',
+                    subtitle: '身分證後四碼驗證'
                 });
-                const data = await response.json();
                 
-                if (data.success) {
-                    currentUser = data;
-                    document.getElementById('loginSection').style.display = 'none';
-                    document.getElementById('mainSection').style.display = 'block';
-                    document.getElementById('loginError').textContent = '';
-                    document.getElementById('password').value = '';
-                    // 儲存登入狀態
-                    sessionStorage.setItem('supervision_logged_in', 'true');
-                    sessionStorage.setItem('supervision_user', JSON.stringify(data));
-                    // 顯示歡迎詞
-                    showToast(`歡迎 ${data.name} 主管`, 'success');
-                } else {
-                    document.getElementById('loginError').textContent = '密碼錯誤，請重新輸入';
+                console.log('[Supervision] Login success:', data);
+                currentUser = data;
+                
+                // 檢查權限
+                if (!hasSupervisorPermission(data)) {
+                    alert('⚠️ 權限不足：僅門市主管、督導或管理員可訪問此頁面');
+                    authLogout();
+                    return;
                 }
+                
+                document.getElementById('mainSection').style.display = 'block';
+                
+                // 儲存登入狀態
+                sessionStorage.setItem('supervision_logged_in', 'true');
+                sessionStorage.setItem('supervision_user', JSON.stringify(data));
+                
+                // 顯示歡迎詞
+                showToast(`歡迎 ${data.name} ${data.title || ''}`, 'success');
             } catch (e) {
-                document.getElementById('loginError').textContent = '驗證失敗，請稍後再試';
+                console.error('[Supervision] Login failed:', e);
             }
-        }
+        });
         
         // 登出
         function logout() {
             currentUser = null;
             sessionStorage.removeItem('supervision_logged_in');
             sessionStorage.removeItem('supervision_user');
-            document.getElementById('loginSection').style.display = 'block';
-            document.getElementById('mainSection').style.display = 'none';
-            document.getElementById('password').value = '';
-            clearForm();
+            authLogout();
         }
         
         // 檢查是否為頁面重新載入（從其他頁面返回時自動登出）
@@ -617,8 +635,9 @@
                             setScore(key, parseInt(s[key]) || 0);
                         }
                     });
-                    document.getElementById('issues').value = s.issues || '';
-                    document.getElementById('suggestions').value = s.suggestions || '';
+                    // 把 DB 的 problem_grasp/follow_up 顯示到問題描述/建議欄位
+                    document.getElementById('issues').value = s.problem_grasp || '';
+                    document.getElementById('suggestions').value = s.follow_up || '';
                     showToast('已載入現有評分', 'success');
                 } else {
                     clearScores();
@@ -659,6 +678,11 @@
                 return;
             }
             
+            if (!currentUser) {
+                showToast('請先登入', 'error');
+                return;
+            }
+            
             const total = Object.values(scores).reduce((a, b) => a + b, 0);
             
             const data = {
@@ -666,8 +690,11 @@
                 date: date,
                 ...scores,
                 total_score: total,
-                issues: document.getElementById('issues').value,
-                suggestions: document.getElementById('suggestions').value
+                // 把問題描述/建議對應到既有評分欄位（DB 沒有獨立 issues/suggestions 欄位）
+                problem_grasp: document.getElementById('issues').value || scores.problem_grasp || 0,
+                follow_up: document.getElementById('suggestions').value || scores.follow_up || 0,
+                evaluator: currentUser.name,
+                evaluator_title: currentUser.title || ''
             };
             
             try {
@@ -699,5 +726,5 @@
         // 初始化
         updateTotal();
     </script>
-</body>
+<script>window.PAGE_VERSION="1.4";window.PAGE_CHANGELOG=[{version:"1.4",text:"修正主管權限：auth_ui.js 判定主管為 accountant 角色，門市主管可正常登入",date:"2026-03-03"},{version:"1.3",text:"主管權限：門市主管可編修與儲存評分，儲存時記錄評分者身份",date:"2026-03-03"},{version:"1.2",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"1.1",text:"統一登入頁面樣式",date:"2026-03-02"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

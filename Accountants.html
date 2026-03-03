@@ -66,10 +66,13 @@
             transform: translateY(-2px);
         }
         
-        .nav a.active {
+        .nav a.active, .nav span.active {
             color: #e91e63;
             border-color: #e91e63;
             background: rgba(233, 30, 99, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
         }
         
         .card {
@@ -94,84 +97,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-        
-        /* 健康狀態燈號區塊 */
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .status-card {
-            background: rgba(255, 255, 255, 0.7);
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            padding: 20px 15px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .status-card:hover {
-            border-color: #f48fb1;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.15);
-        }
-        
-        .status-card.green {
-            border-color: #22c55e;
-            background: rgba(34, 197, 94, 0.08);
-        }
-        
-        .status-card.yellow {
-            border-color: #eab308;
-            background: rgba(234, 179, 8, 0.08);
-        }
-        
-        .status-card.red {
-            border-color: #ef4444;
-            background: rgba(239, 68, 68, 0.08);
-        }
-        
-        .status-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            margin: 0 auto 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        
-        .status-card.green .status-icon {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-        
-        .status-card.yellow .status-icon {
-            background: rgba(234, 179, 8, 0.2);
-            color: #eab308;
-        }
-        
-        .status-card.red .status-icon {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-        
-        .status-label {
-            font-size: 0.8em;
-            color: #888;
-            margin-bottom: 3px;
-        }
-        
-        .status-name {
-            font-size: 1em;
-            font-weight: 600;
-            color: #4a4a4a;
         }
         
         /* 雲端文件按鈕 */
@@ -399,6 +324,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -415,33 +341,6 @@
             <a href="roster.html">📅 班表</a>
             <a href="customer_search.html">🔍 客戶</a>
             <a href="staging_center_v2.html">📋 待建檔中心</a>
-            <a href="supervision_score.html">📊 督導評分</a>
-            <a href="roster_input.html">📝 班表管理</a>
-            <a href="Accountants.html" class="active">🧮 會計專區</a>
-        </div>
-
-        <!-- 系統健康狀態燈號 -->
-        <div class="card">
-            <h2>🔧 系統健康狀態</h2>
-            <div id="loading" class="loading">載入中...</div>
-            
-            <div id="health-content" style="display: none;">
-                <div class="status-grid">
-                    <div class="status-card" id="import-card" onclick="toggleDetails('import')">
-                        <div class="status-icon">📥</div>
-                        <div class="status-label">Import</div>
-                        <div class="status-name">匯入任務</div>
-                    </div>
-                    
-                    <div class="status-card" id="data-card" onclick="toggleDetails('data')">
-                        <div class="status-icon">📊</div>
-                        <div class="status-label">Data</div>
-                        <div class="status-name">資料新鮮度</div>
-                    </div>
-                </div>
-                
-                <div id="details-container"></div>
-            </div>
         </div>
 
         <!-- 待處理調撥需求 -->
@@ -458,126 +357,6 @@
     </div>
 
     <script>
-        let healthData = null;
-        let currentOpenPanel = null;
-        
-        // 載入健康狀態資料
-        async function loadHealthData() {
-            try {
-                const response = await fetch('/api/v1/admin/health');
-                if (!response.ok) {
-                    throw new Error('API 回傳錯誤: ' + response.status);
-                }
-                
-                healthData = await response.json();
-                renderHealthData();
-                
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('health-content').style.display = 'block';
-            } catch (error) {
-                console.error('載入健康狀態失敗:', error);
-                document.getElementById('loading').textContent = '載入失敗: ' + error.message;
-            }
-        }
-        
-        function renderHealthData() {
-            // 更新匯入任務燈號
-            updateStatusCard('import-card', healthData.import_status.status);
-            // 更新資料新鮮度燈號
-            updateStatusCard('data-card', healthData.data_freshness.status);
-            
-            // 建立詳細資訊面板
-            createDetailsPanels();
-        }
-        
-        function updateStatusCard(cardId, status) {
-            const card = document.getElementById(cardId);
-            card.classList.remove('green', 'yellow', 'red');
-            card.classList.add(status);
-            
-            // 更新圖示
-            const icon = card.querySelector('.status-icon');
-            if (status === 'green') {
-                icon.textContent = '✓';
-            } else if (status === 'yellow') {
-                icon.textContent = '!';
-            } else {
-                icon.textContent = '✕';
-            }
-        }
-        
-        function createDetailsPanels() {
-            const container = document.getElementById('details-container');
-            
-            // Import 詳細資訊
-            const importItems = [
-                { label: '整體狀態', value: healthData.import_status.status === 'green' ? '成功' : (healthData.import_status.status === 'yellow' ? '等待中' : '失敗'), status: healthData.import_status.status },
-                { label: '預期資料日期', value: healthData.import_status.expected_data_date },
-                { label: '昨天銷貨筆數', value: healthData.import_status.sales_rows_yesterday },
-                { label: '昨天進貨筆數', value: healthData.import_status.purchase_rows_yesterday },
-                { label: '昨天客戶筆數', value: healthData.import_status.customer_rows_yesterday },
-                { label: '訊息', value: healthData.import_status.message }
-            ];
-            
-            const importPanel = createPanel('import', '匯入任務狀態', importItems);
-            
-            // Data 詳細資訊
-            const dataItems = [
-                { label: '預期資料日期', value: healthData.data_freshness.expected_data_date },
-                { label: '最新銷貨日期', value: healthData.data_freshness.latest_sales_date },
-                { label: '最新進貨日期', value: healthData.data_freshness.latest_purchase_date },
-                { label: '最新庫存日期', value: healthData.data_freshness.latest_inventory_date },
-                { label: '最新客戶日期', value: healthData.data_freshness.latest_customer_date },
-                { label: '訊息', value: healthData.data_freshness.message }
-            ];
-            
-            const dataPanel = createPanel('data', '資料新鮮度', dataItems);
-            
-            container.innerHTML = importPanel + dataPanel;
-        }
-        
-        function createPanel(id, title, items) {
-            const itemsHtml = items.map(item => {
-                const statusClass = item.status ? `class="detail-value ${item.status}"` : 'class="detail-value"';
-                return `
-                    <div class="detail-item">
-                        <span class="detail-label">${item.label}</span>
-                        <span ${statusClass}>${item.value}</span>
-                    </div>
-                `;
-            }).join('');
-            
-            return `
-                <div class="details-panel" id="${id}-details">
-                    <div class="details-title">${title}</div>
-                    ${itemsHtml}
-                </div>
-            `;
-        }
-        
-        function toggleDetails(id) {
-            const panel = document.getElementById(id + '-details');
-            
-            // 如果點擊的是已開啟的面板，則關閉
-            if (currentOpenPanel === id) {
-                panel.classList.remove('active');
-                currentOpenPanel = null;
-                return;
-            }
-            
-            // 關閉所有面板
-            document.querySelectorAll('.details-panel').forEach(p => {
-                p.classList.remove('active');
-            });
-            
-            // 開啟點擊的面板
-            panel.classList.add('active');
-            currentOpenPanel = id;
-            
-            // 滾動到面板位置
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-        
         // 載入需求表（只顯示調撥且未處理的項目）
         async function loadNeeds() {
             try {
@@ -734,7 +513,6 @@
         document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
         
         // 載入資料
-        loadHealthData();
         loadNeeds();
         
         // 每 1 小時自動重新整理
@@ -742,5 +520,5 @@
             location.reload();
         }, 3600000);
     </script>
-</body>
+<script>window.PAGE_VERSION="1.3";window.PAGE_CHANGELOG=[{version:"1.3",text:"移除系統健康狀態卡片","date":"2026-03-02"},{version:"1.2",text:"導航列優化：移除當前頁面連結","date":"2026-03-01"},{version:"1.1",text:"staging_records 補強：手機唯一鍵去重、短 UUID、精準回寫",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

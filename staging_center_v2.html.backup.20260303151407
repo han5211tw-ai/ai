@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <!--
   File: staging_center_v2.html
-  Version: 20250303-1512
+  Version: 20250303-1509
   ChangeLog:
-    - 20250303-1512: 修正 updateStats：卡片統計不再隨視圖改變，始終顯示正確的待處理/已解析數量
     - 20250303-1509: 修正 renderTable 狀態判斷：改用 staging.status 而非 needs.code 前綴
     - 20250303-1400: 新增 view 篩選（pending/resolved/all）
     - 20250303-1400: 修正狀態顯示邏輯（依 staging.status）
@@ -317,15 +316,25 @@
         }
         
         function updateStats(stats) {
-            // 卡片始終顯示固定統計數據（不依賴當前視圖）
-            // 確保標籤與數值一致：
-            // - 客戶待處理：customer_pending
-            // - 商品待處理：product_pending
-            // - 今日已解析：customer_resolved + product_resolved
-            document.getElementById('customerPending').textContent = stats.customer_pending || 0;
-            document.getElementById('productPending').textContent = stats.product_pending || 0;
-            const totalResolved = (stats.customer_resolved || 0) + (stats.product_resolved || 0);
-            document.getElementById('todayResolved').textContent = totalResolved;
+            const view = document.getElementById('viewFilter').value;
+            
+            // 根據當前視圖顯示對應的統計
+            if (view === 'pending') {
+                document.getElementById('customerPending').textContent = stats.customer_pending || 0;
+                document.getElementById('productPending').textContent = stats.product_pending || 0;
+                document.getElementById('todayResolved').textContent = '-';
+            } else if (view === 'resolved') {
+                document.getElementById('customerPending').textContent = stats.customer_resolved || 0;
+                document.getElementById('productPending').textContent = stats.product_resolved || 0;
+                document.getElementById('todayResolved').textContent = (stats.customer_resolved || 0) + (stats.product_resolved || 0);
+            } else {
+                // all view - 顯示全部數量
+                const totalPending = (stats.customer_pending || 0) + (stats.product_pending || 0);
+                const totalResolved = (stats.customer_resolved || 0) + (stats.product_resolved || 0);
+                document.getElementById('customerPending').textContent = totalPending;
+                document.getElementById('productPending').textContent = totalResolved;
+                document.getElementById('todayResolved').textContent = totalResolved;
+            }
         }
         
         function openResolve(id) {
