@@ -1,9 +1,22 @@
 <!DOCTYPE html>
+<!--
+  File: roster_input.html
+  Version: 20250303-1400
+  ChangeLog:
+    - 20250303: 更新 auth_ui.js 版本號支援自動過期（晚上9點自動登出）
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班表排班 - 電腦舖營運系統</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>班表排班 - 電腦舖</title>
+    <script>window.version='20250303-0100';window.PAGE_VERSION="20250303-0100";window.PAGE_CHANGELOG=[{version:"20250303-0100",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"20250302-2200",text:"統一登入頁面樣式",date:"2026-03-02"}];</script>
+    <link rel="stylesheet" href="version-component.css">
+    <link rel="stylesheet" href="shared/auth_ui.css">
+    <script src="shared/auth_ui.js?v=20250303-1402"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -30,10 +43,34 @@
             border-radius: 16px;
             padding: 40px;
             max-width: 400px;
+            width: 100%;
             margin: 0 auto;
             text-align: center;
         }
-        .login-box h2 { color: #00d4ff; margin-bottom: 30px; }
+        .login-box h2 {
+            color: #00d4ff;
+            margin-bottom: 30px;
+            font-size: 1.3em;
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        .login-box input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .login-box .btn {
+            width: 100%;
+            padding: 12px 25px;
+            font-size: 1.05em;
+        }
         .form-group { margin-bottom: 15px; text-align: left; }
         .form-group label { display: block; margin-bottom: 6px; color: #8892b0; font-size: 0.95em; }
         .form-group input, .form-group select {
@@ -61,8 +98,14 @@
         .error-msg { color: #f44336; margin-top: 10px; font-size: 0.95em; }
 
         /* 登入區塊顯示控制 */
-        .login-section { display: none; }
-        .login-section.active { display: block; }
+        .login-section {
+            display: none;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-section.active { display: flex; }
         .roster-section { display: none; }
         .roster-section.active { display: block; }
 
@@ -148,9 +191,46 @@
         .shift-dot.morning { background: rgba(255,152,0,0.5); }
         .shift-dot.evening { background: rgba(63,81,181,0.5); }
         .shift-dot.night { background: rgba(156,39,176,0.5); }
-        .shift-dot.off { background: rgba(76,175,80,0.5); }
+        .shift-dot.off { background: rgba(136,146,176,0.5); }
         .shift-dot.full { background: rgba(0,150,136,0.5); }
-        .shift-dot.special { background: rgba(233,30,99,0.5); }
+        .shift-dot.special { background: rgba(244,67,54,0.5); }
+
+        /* 班別統計 */
+        .shift-stats {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 15px 0 20px 0;
+            text-align: center;
+        }
+        .shift-stats-title {
+            color: #8892b0;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .shift-stats-grid {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .shift-stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 50px;
+        }
+        .shift-stat-count {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .shift-stat-label {
+            font-size: 0.75em;
+            color: #8892b0;
+            margin-top: 2px;
+        }
 
         /* 個人班表區塊 */
         .staff-roster {
@@ -236,9 +316,9 @@
         .calendar-day .shift-早 { background: rgba(255,152,0,0.2); color: #ff9800; }
         .calendar-day .shift-晚 { background: rgba(63,81,181,0.2); color: #7986cb; }
         .calendar-day .shift-值 { background: rgba(156,39,176,0.2); color: #ba68c8; }
-        .calendar-day .shift-休 { background: rgba(76,175,80,0.2); color: #81c784; }
+        .calendar-day .shift-休 { background: rgba(136,146,176,0.2); color: #8892b0; }
         .calendar-day .shift-全 { background: rgba(0,150,136,0.2); color: #4db6ac; }
-        .calendar-day .shift-特 { background: rgba(233,30,99,0.2); color: #f06292; }
+        .calendar-day .shift-特 { background: rgba(244,67,54,0.2); color: #f44336; }
 
         /* 儲存按鈕 */
         .action-buttons {
@@ -277,28 +357,14 @@
             .calendar-day .shift-select { font-size: 0.75em; padding: 4px 1px; }
         }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
-        <h1>📅 排班功能</h1>
-
-        <!-- 登入區塊 -->
-        <div id="loginSection" class="login-section active">
-            <div class="login-box">
-                <h2>員工登入</h2>
-                <div class="form-group">
-                    <label>身分證後四碼</label>
-                    <input type="password" id="password" placeholder="請輸入4位數字" maxlength="4" onkeypress="if(event.key==='Enter') login()">
-                </div>
-                <button class="btn" onclick="login()">登入</button>
-                <div class="error-msg" id="loginError"></div>
-            </div>
-        </div>
-
         <!-- 排班區塊 -->
-        <div id="rosterSection" class="roster-section">
+        <div id="rosterSection" class="roster-section" style="display:none;">
             <div class="user-info">
-                <div>填表人：<span id="userName">-</span>｜單位：<span id="userStore">-</span></div>
+                <div>填表人：<span id="userName">-</span>｜單位：<span id="userStore">-</span> <span style="font-size:0.7rem;color:#8892b0;font-family:monospace;">v1.10</span></div>
                 <button class="btn btn-logout" onclick="logout()">重新登入</button>
             </div>
 
@@ -329,8 +395,39 @@
                 <div class="shift-legend-item"><div class="shift-dot evening"></div><span>晚班</span></div>
                 <div class="shift-legend-item"><div class="shift-dot night"></div><span>值班</span></div>
                 <div class="shift-legend-item"><div class="shift-dot off"></div><span>休假</span></div>
-                <div class="shift-legend-item"><div class="shift-dot full"></div><span>全天班</span></div>
+                <div class="shift-legend-item"><div class="shift-dot full"></div><span>全班</span></div>
                 <div class="shift-legend-item"><div class="shift-dot special"></div><span>特休</span></div>
+            </div>
+
+            <!-- 班別統計（僅顯示登入者自己的統計）-->
+            <div class="shift-stats" id="shiftStats" style="display:none;">
+                <div class="shift-stats-title">我的班別統計</div>
+                <div class="shift-stats-grid">
+                    <div class="shift-stat-item">
+                        <div class="shift-stat-count" id="count-早">0</div>
+                        <div class="shift-stat-label">早班</div>
+                    </div>
+                    <div class="shift-stat-item">
+                        <div class="shift-stat-count" id="count-晚">0</div>
+                        <div class="shift-stat-label">晚班</div>
+                    </div>
+                    <div class="shift-stat-item">
+                        <div class="shift-stat-count" id="count-值">0</div>
+                        <div class="shift-stat-label">值班</div>
+                    </div>
+                    <div class="shift-stat-item">
+                        <div class="shift-stat-count" id="count-休">0</div>
+                        <div class="shift-stat-label">休假</div>
+                    </div>
+                    <div class="shift-stat-item">
+                        <div class="shift-stat-count" id="count-全">0</div>
+                        <div class="shift-stat-label">全班</div>
+                    </div>
+                    <div class="shift-stat-item">
+                        <div class="shift-stat-count" id="count-特">0</div>
+                        <div class="shift-stat-label">特休</div>
+                    </div>
+                </div>
             </div>
 
             <!-- 個人班表容器 -->
@@ -374,63 +471,47 @@
             }
         };
 
-        // 登入
-        async function login() {
-            const password = document.getElementById('password').value.trim();
-            if (!password || password.length !== 4 || !/^\d{4}$/.test(password)) {
-                document.getElementById('loginError').textContent = '請輸入4位數字密碼';
-                return;
-            }
-
+        // 初始化 - 使用共用登入元件
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[Roster] Initializing with shared auth...');
+            
             try {
-                const response = await fetch('/api/auth/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                const data = await requireLogin({
+                    minRole: 'staff',
+                    title: '📅 排班功能',
+                    subtitle: '身分證後四碼驗證'
                 });
-                const data = await response.json();
+                
+                console.log('[Roster] Login success:', data);
+                currentUser = data;
+                isSupervisor = data.department.includes('主管') || data.name === '莊圍迪';
 
-                if (data.success) {
-                    currentUser = data;
-                    isSupervisor = data.department.includes('主管') || data.name === '莊圍迪';
+                document.getElementById('rosterSection').style.display = 'block';
+                sessionStorage.setItem('roster_user', JSON.stringify(data));
 
-                    document.getElementById('loginSection').classList.remove('active');
-                    document.getElementById('rosterSection').classList.add('active');
-                    document.getElementById('loginError').textContent = '';
-                    document.getElementById('password').value = '';
+                document.getElementById('userName').textContent = data.name;
+                document.getElementById('userStore').textContent = isSupervisor ? '主管' : (staffStore[data.name] + '門市');
 
-                    sessionStorage.setItem('roster_user', JSON.stringify(data));
-
-                    document.getElementById('userName').textContent = data.name;
-                    document.getElementById('userStore').textContent = isSupervisor ? '主管' : (staffStore[data.name] + '門市');
-
-                    if (isSupervisor) {
-                        document.getElementById('supervisorPanel').style.display = 'block';
-                        setMonthTitle();
-                        document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:#8892b0; padding:40px;">請先選擇門市</div>';
-                    } else {
-                        document.getElementById('supervisorPanel').style.display = 'none';
-                        currentStore = staffStore[data.name];
-                        staffList = storeStaff[currentStore];
-                        setMonthTitle();
-                        loadEmployeeRoster();
-                    }
+                if (isSupervisor) {
+                    document.getElementById('supervisorPanel').style.display = 'block';
+                    setMonthTitle();
+                    document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:#8892b0; padding:40px;">請先選擇門市</div>';
                 } else {
-                    document.getElementById('loginError').textContent = '密碼錯誤';
+                    document.getElementById('supervisorPanel').style.display = 'none';
+                    currentStore = staffStore[data.name];
+                    staffList = storeStaff[currentStore];
+                    setMonthTitle();
+                    loadEmployeeRoster();
                 }
             } catch (e) {
-                document.getElementById('loginError').textContent = '驗證失敗';
+                console.error('[Roster] Login failed:', e);
             }
-        }
+        });
 
         // 登出
         function logout() {
-            currentUser = null;
             sessionStorage.removeItem('roster_user');
-            document.getElementById('loginSection').classList.add('active');
-            document.getElementById('rosterSection').classList.remove('active');
-            document.getElementById('password').value = '';
-            rosterData = {};
+            authLogout();
         }
 
         // 檢查登入狀態
@@ -495,11 +576,11 @@
             if (currentDate < 24) {
                 statusDiv.innerHTML = `<span style="color:#f44336;">✗ 排班尚未開放，每月24號開放</span>`;
                 saveBtn.disabled = true;
-            } else if (currentDate === lastDayOfMonth && currentHour >= 12) {
-                statusDiv.innerHTML = `<span style="color:#f44336;">✗ 本月排班已截止（月底12:00截止）</span>`;
+            } else if (currentDate === lastDayOfMonth && currentHour >= 15) {
+                statusDiv.innerHTML = `<span style="color:#f44336;">✗ 本月排班已截止（月底15:00截止）</span>`;
                 saveBtn.disabled = true;
             } else {
-                statusDiv.innerHTML = `<span style="color:#4caf50;">✓ 排班開放中（24號開放，月底12:00截止）</span>`;
+                statusDiv.innerHTML = `<span style="color:#4caf50;">✓ 排班開放中（24號開放，月底15:00截止）</span>`;
                 saveBtn.disabled = false;
             }
         }
@@ -636,6 +717,9 @@
                     });
                 }
             });
+
+            // 更新登入者的班別統計
+            updateShiftStats();
         }
 
         // 更新班表資料
@@ -651,6 +735,36 @@
             if (select) {
                 select.className = 'shift-select' + (shift ? ` shift-${shift}` : '');
             }
+
+            // 如果是登入者自己，更新統計
+            if (staffName === currentUser.name) {
+                updateShiftStats();
+            }
+        }
+
+        // 更新班別統計
+        function updateShiftStats() {
+            if (!currentUser || !rosterData[currentUser.name]) return;
+
+            const myShifts = rosterData[currentUser.name];
+            const counts = { '早': 0, '晚': 0, '值': 0, '休': 0, '全': 0, '特': 0 };
+
+            Object.values(myShifts).forEach(shift => {
+                if (counts.hasOwnProperty(shift)) {
+                    counts[shift]++;
+                }
+            });
+
+            // 更新顯示
+            document.getElementById('count-早').textContent = counts['早'];
+            document.getElementById('count-晚').textContent = counts['晚'];
+            document.getElementById('count-值').textContent = counts['值'];
+            document.getElementById('count-休').textContent = counts['休'];
+            document.getElementById('count-全').textContent = counts['全'];
+            document.getElementById('count-特').textContent = counts['特'];
+
+            // 顯示統計區域
+            document.getElementById('shiftStats').style.display = 'block';
         }
 
         // 儲存班表
@@ -708,5 +822,5 @@
         // 初始化
         checkLogin();
     </script>
-</body>
+<script>window.PAGE_VERSION="20250303-0100";window.PAGE_CHANGELOG=[{version:"20250303-0100",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"20250302-2200",text:"統一登入頁面樣式",date:"2026-03-02"},{version:"1.1",text:"排班截止時間調整為月底15:00",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

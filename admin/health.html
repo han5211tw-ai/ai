@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>系統健康檢查 - 管理員專用</title>
+    <link rel="stylesheet" href="../version-component.css">
     <style>
         * {
             margin: 0;
@@ -180,6 +181,39 @@
         .detail-value.green { color: #22c55e; }
         .detail-value.yellow { color: #eab308; }
         .detail-value.red { color: #ef4444; }
+        .detail-value.non-workday { color: #eab308; font-style: italic; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .status-badge.ok {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        .status-badge.warning {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+        }
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .status-badge.non-workday {
+            background: rgba(136, 146, 176, 0.2);
+            color: #8892b0;
+        }
+        
+        .business-message {
+            font-size: 0.9em;
+            color: #8892b0;
+            margin-top: 4px;
+            font-style: italic;
+        }
         
         .loading {
             text-align: center;
@@ -346,7 +380,7 @@
         <a href="../boss.html" class="nav-link">← 返回老闆控制台</a>
         
         <h1>🔧 系統健康檢查</h1>
-        <p class="subtitle">管理員專用 | 即時監控系統狀態</p>
+        <p class="subtitle">管理員專用 | 商業語境健康檢查 | 工作日判定</p>
         
         <div id="loading" class="loading">載入中...</div>
         
@@ -476,36 +510,116 @@
                 { label: '運行時間', value: formatUptime(healthData.system.uptime_seconds) }
             ]);
             
-            // Database 詳細資訊
-            const dbPanel = createPanel('database', '資料庫狀態', [
+            // Database 詳細資訊（含資料庫監控）
+            const dbStats = healthData.db_stats || {};
+            const slowQueries = healthData.slow_queries || [];
+            
+            // 構建資料庫面板項目
+            const dbPanelItems = [
                 { label: '連線狀態', value: healthData.database.connection_ok ? '正常' : '失敗', status: healthData.database.connection_ok ? 'green' : 'red' },
                 { label: 'Journal Mode', value: healthData.database.journal_mode },
                 { label: '資料庫大小', value: healthData.database.db_size_mb + ' MB' },
-                { label: 'WAL 大小', value: healthData.database.wal_size_mb + ' MB', status: healthData.database.wal_size_mb > 200 ? 'yellow' : 'green' }
-            ]);
-            
-            // Import 詳細資訊
-            const importItems = [
-                { label: '整體狀態', value: healthData.import_status.status === 'green' ? '成功' : (healthData.import_status.status === 'yellow' ? '等待中' : '失敗'), status: healthData.import_status.status },
-                { label: '預期資料日期', value: healthData.import_status.expected_data_date },
-                { label: '昨天銷貨筆數', value: healthData.import_status.sales_rows_yesterday },
-                { label: '昨天進貨筆數', value: healthData.import_status.purchase_rows_yesterday },
-                { label: '昨天客戶筆數', value: healthData.import_status.customer_rows_yesterday },
-                { label: '訊息', value: healthData.import_status.message }
+                { label: 'WAL 大小', value: healthData.database.wal_size_mb + ' MB', status: healthData.database.wal_size_mb > 200 ? 'yellow' : 'green' },
+                { label: '📊 表成長監控', value: '' },
+                { label: '  needs', value: (dbStats.needs?.total || 0).toLocaleString() + ' 筆（今日 +' + (dbStats.needs?.today_added || 0) + '）' },
+                { label: '  staging_records', value: (dbStats.staging_records?.total || 0).toLocaleString() + ' 筆（今日 +' + (dbStats.staging_records?.today_added || 0) + '）' },
+                { label: '  audit_log', value: (dbStats.admin_audit_log?.total || 0).toLocaleString() + ' 筆（今日 +' + (dbStats.admin_audit_log?.today_added || 0) + '）' }
             ];
             
-            const importPanel = createPanel('import', '匯入任務狀態', importItems);
+            // 添加慢查詢資訊
+            if (slowQueries.length > 0) {
+                dbPanelItems.push({ label: '🕒 慢查詢（>200ms）', value: '' });
+                slowQueries.slice(0, 5).forEach(q => {
+                    const status = q.duration_ms > 500 ? 'red' : 'yellow';
+                    dbPanelItems.push({ 
+                        label: '  ' + q.endpoint, 
+                        value: q.duration_ms + 'ms',
+                        status: status
+                    });
+                });
+            } else {
+                dbPanelItems.push({ label: '🕒 慢查詢（>200ms）', value: '無', status: 'green' });
+            }
             
-            // Data 詳細資訊
-            const hoursSince = healthData.data_freshness.hours_since_last_update;
-            const dataPanel = createPanel('data', '資料新鮮度', [
+            const dbPanel = createPanel('database', '資料庫狀態與監控', dbPanelItems);
+            
+            // Import 詳細資訊 v2
+            const importChecks = healthData.import_status.checks || {};
+            const importItems = [
+                { label: '檢查日期', value: healthData.import_status.weekday_name + ' (' + healthData.import_status.expected_data_date + ')' },
+                { label: '整體狀態', value: getStatusText(healthData.import_status.status), status: healthData.import_status.status }
+            ];
+            
+            // 各類型詳細狀態
+            if (importChecks.sales) {
+                importItems.push({
+                    label: '銷貨資料',
+                    value: importChecks.sales.count + ' 筆',
+                    status: importChecks.sales.status === 'ok' ? 'green' : (importChecks.sales.status === 'error' ? 'red' : 'yellow'),
+                    message: importChecks.sales.message
+                });
+            }
+            if (importChecks.purchase) {
+                importItems.push({
+                    label: '進貨資料',
+                    value: importChecks.purchase.count + ' 筆',
+                    status: importChecks.purchase.status === 'ok' ? 'green' : (importChecks.purchase.status === 'error' ? 'red' : 'yellow'),
+                    message: importChecks.purchase.message
+                });
+            }
+            if (importChecks.customer) {
+                importItems.push({
+                    label: '客戶資料',
+                    value: importChecks.customer.count + ' 筆',
+                    status: importChecks.customer.status === 'ok' ? 'green' : (importChecks.customer.status === 'error' ? 'red' : 'yellow'),
+                    message: importChecks.customer.message
+                });
+            }
+            
+            importItems.push({ label: '綜合訊息', value: healthData.import_status.message });
+            
+            const importPanel = createPanelV2('import', '匯入任務狀態 (v2)', importItems);
+            
+            // Data 詳細資訊 v2
+            const freshnessChecks = healthData.data_freshness.checks || {};
+            const dataItems = [
+                { label: '檢查日期', value: healthData.data_freshness.weekday_name + ' (' + healthData.data_freshness.today + ')' },
                 { label: '預期資料日期', value: healthData.data_freshness.expected_data_date },
-                { label: '最新銷貨日期', value: healthData.data_freshness.latest_sales_date },
-                { label: '最新進貨日期', value: healthData.data_freshness.latest_purchase_date },
+                { label: '整體狀態', value: getStatusText(healthData.data_freshness.status), status: healthData.data_freshness.status }
+            ];
+            
+            // 各類型詳細狀態
+            if (freshnessChecks.sales) {
+                dataItems.push({
+                    label: '銷貨資料',
+                    value: healthData.data_freshness.latest_sales_date,
+                    status: freshnessChecks.sales.status === 'ok' ? 'green' : (freshnessChecks.sales.status === 'error' ? 'red' : 'yellow'),
+                    message: freshnessChecks.sales.message
+                });
+            }
+            if (freshnessChecks.purchase) {
+                dataItems.push({
+                    label: '進貨資料',
+                    value: healthData.data_freshness.latest_purchase_date,
+                    status: freshnessChecks.purchase.status === 'ok' ? 'green' : (freshnessChecks.purchase.status === 'error' ? 'red' : 'yellow'),
+                    message: freshnessChecks.purchase.message
+                });
+            }
+            if (freshnessChecks.customer) {
+                dataItems.push({
+                    label: '客戶資料',
+                    value: healthData.data_freshness.latest_customer_date,
+                    status: freshnessChecks.customer.status === 'ok' ? 'green' : (freshnessChecks.customer.status === 'error' ? 'red' : 'yellow'),
+                    message: freshnessChecks.customer.message
+                });
+            }
+            
+            dataItems.push(
                 { label: '最新庫存日期', value: healthData.data_freshness.latest_inventory_date },
-                { label: '最新客戶日期', value: healthData.data_freshness.latest_customer_date },
-                { label: '訊息', value: healthData.data_freshness.message }
-            ]);
+                { label: '綜合訊息', value: healthData.data_freshness.message }
+            );
+            
+            const dataPanel = createPanelV2('data', '資料新鮮度 (v2)', dataItems);
             
             // API 詳細資訊
             const apiPanel = createPanel('api', 'API 狀態', [
@@ -556,6 +670,68 @@
             return `
                 <div class="details-panel" id="${id}-details">
                     <div class="details-title">${title}</div>
+                    ${itemsHtml}
+                </div>
+            `;
+        }
+        
+        function getStatusText(status) {
+            const statusMap = {
+                'green': '✓ 正常',
+                'yellow': '! 提醒',
+                'red': '✕ 異常',
+                'ok': '✓ 正常',
+                'non_workday': '⊘ 非工作日',
+                'error': '✕ 異常'
+            };
+            return statusMap[status] || status;
+        }
+        
+        function getStatusBadge(status) {
+            const badgeClass = status === 'ok' ? 'ok' : 
+                              (status === 'error' ? 'error' : 
+                               (status === 'non_workday' ? 'non-workday' : 'warning'));
+            const badgeText = status === 'ok' ? '正常' : 
+                             (status === 'error' ? '異常' : 
+                              (status === 'non_workday' ? '非工作日' : '提醒'));
+            return `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
+        }
+        
+        function createPanelV2(id, title, items) {
+            const itemsHtml = items.map(item => {
+                let valueHtml = item.value;
+                
+                // 如果有狀態，添加狀態標籤
+                if (item.status) {
+                    const statusClass = item.status === 'ok' || item.status === 'green' ? 'green' : 
+                                       (item.status === 'error' || item.status === 'red' ? 'red' : 'yellow');
+                    const statusText = getStatusText(item.status);
+                    valueHtml = `<span class="detail-value ${statusClass}">${item.value}</span> ${getStatusBadge(item.status)}`;
+                } else {
+                    valueHtml = `<span class="detail-value">${item.value}</span>`;
+                }
+                
+                // 如果有商業語境訊息，添加註解
+                const messageHtml = item.message ? `<div class="business-message">💡 ${item.message}</div>` : '';
+                
+                return `
+                    <div class="detail-item">
+                        <div>
+                            <span class="detail-label">${item.label}</span>
+                            <div>${valueHtml}</div>
+                            ${messageHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 添加版本標記
+            const versionBadge = healthData.version ? 
+                `<span style="float: right; font-size: 0.7em; background: rgba(0,212,255,0.2); color: #00d4ff; padding: 2px 8px; border-radius: 4px;">v${healthData.version}</span>` : '';
+            
+            return `
+                <div class="details-panel" id="${id}-details">
+                    <div class="details-title">${title}${versionBadge}</div>
                     ${itemsHtml}
                 </div>
             `;
@@ -741,5 +917,5 @@
             }
         }
     </script>
-</body>
+<script>window.PAGE_VERSION="2.0";window.PAGE_CHANGELOG=[{version:"2.0",text:"健康檢查v2：商業語境健康檢查、工作日判定、三階段狀態（正常/提醒/異常）",date:"2026-03-01"},{version:"1.0",text:"初始版本：基礎健康檢查功能",date:"2026-02-28"}];</script><script src="../version-component.js"></script></body>
 </html>

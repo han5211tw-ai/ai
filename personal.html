@@ -38,10 +38,13 @@
             border-radius: 8px;
             transition: all 0.3s;
         }
-        .nav a:hover, .nav a.active {
+        .nav a:hover, .nav a.active, .nav span.active {
             color: #00d4ff;
             border-color: #00d4ff;
             background: rgba(0, 212, 255, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
         }
         .card {
             background: rgba(255, 255, 255, 0.03);
@@ -129,6 +132,7 @@
         }
         .back-link:hover { text-decoration: underline; }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -139,7 +143,6 @@
             <a href="department.html">🏢 部門</a>
             <a href="store.html">🏬 門市</a>
             <a href="business.html">💼 業務</a>
-            <a href="personal.html" class="active">🧑‍💼 個人</a>
             <a href="roster.html">📅 班表</a>
             <a href="customer_search.html">🔍 客戶</a>
         </div>
@@ -381,5 +384,5 @@
         }
         loadAnalysis();
     </script>
-</body>
+<script>window.PAGE_VERSION="1.1";window.PAGE_CHANGELOG=[{version:"1.1",text:"導航列優化：移除當前頁面連結","date":"2026-03-01"},{"version":"1.0","text":"初始版本發布","date":"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

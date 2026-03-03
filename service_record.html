@@ -1,9 +1,17 @@
 <!DOCTYPE html>
+<!--
+  File: service_record.html
+  Version: 20250303-1400
+  ChangeLog:
+    - 20250303: 更新 auth_ui.js 版本號支援自動過期（晚上9點自動登出）
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>外勤服務紀錄 - 電腦舖</title>
+    <link rel="stylesheet" href="shared/auth_ui.css">
+    <script src="shared/auth_ui.js?v=20250303-1402"></script>
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { overflow-x: hidden; }
@@ -24,15 +32,16 @@
             -webkit-text-fill-color: transparent;
         }
         .login-section, .form-section, .view-section { display: none; }
-        .login-section.active, .form-section.active, .view-section.active { display: block; }
-        
+        .login-section.active { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .form-section.active, .view-section.active { display: block; }
+
         .login-box {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             padding: 40px;
             max-width: 400px;
-            margin: 0 auto;
+            width: 100%;
             text-align: center;
         }
         .login-box h2 { color: #00d4ff; margin-bottom: 30px; }
@@ -42,13 +51,12 @@
         .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             max-width: 100%;
-            padding: 12px 14px;
+            padding: 10px 12px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
+            border-radius: 6px;
             background: rgba(255, 255, 255, 0.05);
             color: #fff;
-            font-size: 1em;
-            height: 44px;
+            font-size: 0.95em;
             box-sizing: border-box;
         }
         .form-group textarea { height: 100px; resize: vertical; }
@@ -67,10 +75,11 @@
         }
         select option { background: #1a1a2e; color: #fff; }
         .btn {
-            padding: 12px 25px;
+            width: 100%;
+            padding: 12px;
             border: none;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border-radius: 8px;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
             color: #fff;
             font-size: 1em;
             cursor: pointer;
@@ -254,26 +263,13 @@
             h1 { font-size: 1.5em; }
         }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
-        <h1>📝 外勤服務紀錄</h1>
-        
-        <!-- 登入區塊 -->
-        <div class="login-section active" id="loginSection">
-            <div class="login-box">
-                <h2>業務部登入</h2>
-                <div class="form-group">
-                    <label>身分證後四碼</label>
-                    <input type="password" id="passwordInput" maxlength="4" placeholder="請輸入4位數字">
-                </div>
-                <button class="btn" onclick="verifyPassword()">登入</button>
-                <div class="error-msg" id="loginError"></div>
-            </div>
-        </div>
         
         <!-- 表單區塊（僅可編輯人員顯示）-->
-        <div class="form-section" id="formSection">
+        <div class="form-section" id="formSection" style="display:none;">
             <div class="user-info">
                 <div>填表人：<span id="userName">-</span>｜單位：<span id="userDept">-</span></div>
                 <button class="btn btn-logout" onclick="logout()">重新登入</button>
@@ -680,6 +676,14 @@
                     <div class="quarter-tab" data-quarter="Q3" onclick="viewerSwitchQuarter('Q3')">第三季</div>
                     <div class="quarter-tab" data-quarter="Q4" onclick="viewerSwitchQuarter('Q4')">第四季</div>
                 </div>
+                <div style="margin: 15px 0; display: flex; align-items: center; gap: 10px;">
+                    <label style="color: #8892b0; font-size: 0.9em;">查看人員：</label>
+                    <select id="viewerSalespersonSelect" onchange="viewerSwitchSalesperson(this.value)" style="padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,212,255,0.3); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.95em; flex: 1;">
+                        <option value="">全部人員</option>
+                        <option value="鄭宇晉">鄭宇晉</option>
+                        <option value="梁仁佑">梁仁佑</option>
+                    </select>
+                </div>
                 <div class="record-list" id="viewerRecordList">
                     <div style="color: #8892b0; text-align: center; padding: 20px;">暫無紀錄</div>
                 </div>
@@ -700,6 +704,7 @@
         let currentUser = null;
         let currentQuarter = 'Q1';
         let viewerCurrentQuarter = 'Q1';
+        let viewerSelectedSalesperson = ''; // 萬書佑選擇的查看人員
         
         // 從資料庫獲取資料
         async function getRecordsFromAPI(salesperson, quarter) {
@@ -769,58 +774,35 @@
             }
         });
         
-        // 驗證密碼
-        function verifyPassword() {
-            const password = document.getElementById('passwordInput').value.trim();
-            const errorDiv = document.getElementById('loginError');
+        // 登出 - 使用共用元件
+        function logout() {
+            authLogout();
+        }
+        
+        // 初始化 - 使用共用登入元件
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[ServiceRecord] Initializing with shared auth...');
             
-            if (!password || password.length !== 4) {
-                errorDiv.textContent = '請輸入4位數字密碼';
-                return;
-            }
-            
-            const user = businessStaff[password];
-            if (!user) {
-                errorDiv.textContent = '密碼錯誤或非業務部人員';
-                return;
-            }
-            
-            currentUser = user;
-            
-            if (user.role === 'viewer') {
-                // 唯讀模式
-                document.getElementById('loginSection').classList.remove('active');
-                document.getElementById('viewSection').classList.add('active');
-                document.getElementById('viewerName').textContent = user.name;
-                document.getElementById('viewerDept').textContent = user.department;
-                loadViewerRecords();
-            } else {
-                // 編輯模式
-                document.getElementById('loginSection').classList.remove('active');
-                document.getElementById('formSection').classList.add('active');
+            try {
+                const user = await requireLogin({
+                    minRole: 'staff',
+                    title: '📋 外勤服務紀錄',
+                    subtitle: '身分證後四碼驗證'
+                });
+                
+                console.log('[ServiceRecord] Login success:', user);
+                currentUser = user;
+                
+                // 判斷角色（暫時都顯示編輯模式）
+                document.getElementById('formSection').style.display = 'block';
                 document.getElementById('userName').textContent = user.name;
                 document.getElementById('userDept').textContent = user.department;
                 loadMyRecords();
+                
+            } catch (e) {
+                console.error('[ServiceRecord] Login failed:', e);
             }
-        }
-        
-        // 檢查是否為頁面重新載入（從其他頁面返回時自動登出）
-        window.onpageshow = function(event) {
-            if (event.persisted) {
-                // 從快取載入（返回按鈕），執行登出
-                logout();
-            }
-        };
-
-        // 登出
-        function logout() {
-            currentUser = null;
-            document.getElementById('loginSection').classList.add('active');
-            document.getElementById('formSection').classList.remove('active');
-            document.getElementById('viewSection').classList.remove('active');
-            document.getElementById('passwordInput').value = '';
-            document.getElementById('loginError').textContent = '';
-        }
+        });
         
         // 處理服務分類變更
         function handleServiceTypeChange(rowNum) {
@@ -1200,6 +1182,9 @@
                     continue;
                 }
                 
+                // 獲取客戶手機（如果是新客戶）
+                const customerMobile = isNewCustomer ? document.getElementById('mobile' + i).value.trim() : '';
+                
                 const record = {
                     salesperson: currentUser.name,
                     date: date,
@@ -1210,7 +1195,8 @@
                     service_item: serviceDetail,
                     customer_source: customerSource,
                     is_contract: isContract,
-                    is_new_customer: isNewCustomer
+                    is_new_customer: isNewCustomer,
+                    customer_mobile: customerMobile
                 };
                 
                 recordsToSubmit.push(record);
@@ -1324,8 +1310,8 @@
                 tab.classList.toggle('active', tab.dataset.quarter === quarter);
             });
             
-            // 獲取所有業務部紀錄
-            const records = await getRecordsFromAPI('', quarter);
+            // 獲取紀錄（根據選擇的人員篩選）
+            const records = await getRecordsFromAPI(viewerSelectedSalesperson, quarter);
             const listDiv = document.getElementById('viewerRecordList');
             
             if (records.length === 0) {
@@ -1333,7 +1319,7 @@
                 return;
             }
             
-            // 按提交人分組
+            // 按提交人分組（如果查看全部）
             const grouped = {};
             records.forEach(r => {
                 if (!grouped[r.salesperson]) grouped[r.salesperson] = [];
@@ -1342,15 +1328,23 @@
             
             let html = '';
             for (const [name, personRecords] of Object.entries(grouped)) {
-                html += `<div style="margin-bottom: 15px; color: #00d4ff; font-weight: bold;">${name}</div>`;
+                // 如果選擇了特定人員，不顯示分組標題
+                if (!viewerSelectedSalesperson) {
+                    html += `<div style="margin-bottom: 15px; color: #00d4ff; font-weight: bold;">${name}</div>`;
+                }
                 html += personRecords.sort((a, b) => new Date(b.date) - new Date(a.date)).map(record => {
                     const isContractText = record.is_contract ? '是' : '否';
+                    // 檢查是否為待建檔新客戶
+                    const isPendingNewCustomer = record.is_new_customer && record.customer_status === 'pending';
+                    const pendingBadge = isPendingNewCustomer ? '<span style="color:#ff9800; font-size:0.85em;">[待建檔]</span>' : '';
+                    const customerDisplay = isPendingNewCustomer ? record.customer_name : (record.customer_code || '-');
+                    
                     return `
                         <div class="record-item">
                             <div class="info">
                                 <strong>${record.date}</strong><br>
                                 服務：${record.service_type}${record.store ? '（' + record.store + '）' : ''}<br>
-                                客戶：${record.customer_code || '-'}<br>
+                                客戶：${customerDisplay} ${pendingBadge}<br>
                                 內容：${record.service_item}<br>
                                 來源：${record.customer_source} | 合約：${isContractText}
                             </div>
@@ -1359,6 +1353,12 @@
                 }).join('');
             }
             listDiv.innerHTML = html;
+        }
+        
+        // 切換查看人員
+        async function viewerSwitchSalesperson(salesperson) {
+            viewerSelectedSalesperson = salesperson;
+            await viewerSwitchQuarter(viewerCurrentQuarter);
         }
         
         // 編輯紀錄（暫時功能）
@@ -1388,5 +1388,5 @@
             setTimeout(() => toast.style.display = 'none', 3000);
         }
     </script>
-</body>
+<script>window.PAGE_VERSION="1.4";window.PAGE_CHANGELOG=[{version:"1.4",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"1.3",text:"UI統一：登入頁面標題簡化、移除身分證標籤、按鈕樣式與顏色統一、背景色統一",date:"2026-03-01"},{version:"1.2",text:"新客戶自動進入待建檔中心",date:"2026-02-28"},{version:"1.1",text:"萬書佑唯讀模式新增人員篩選功能",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

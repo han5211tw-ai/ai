@@ -136,6 +136,28 @@
             transform: none;
             box-shadow: none;
         }
+        .btn-cancel {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-left: 5px;
+        }
+        .btn-cancel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+        .btn-cancel:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
         .remark-input {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -233,6 +255,7 @@
             padding: 40px;
         }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -250,9 +273,8 @@
             <a href="roster.html">📅 班表</a>
             <a href="customer_search.html">🔍 客戶</a>
             <a href="staging_center_v2.html">📋 待建檔</a>
-            <a href="supervision_score.html">📊 督導評分</a>
-            <a href="roster_input.html">📝 班表管理</a>
             <a href="admin/health.html" id="healthLink">🔧 系統健康</a>
+            <a href="admin.html" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 107, 0.2)); border-color: #ffd700; color: #ffd700;">⚙️ 後台管理</a>
         </div>
 
         <!-- 整體營收 -->
@@ -541,6 +563,7 @@
                                     </td>
                                     <td>
                                         <button class="btn-complete" onclick="completeNeed(${item.id}, this)">已完成</button>
+                                        <button class="btn-cancel" onclick="cancelNeed(${item.id}, this)" style="margin-left: 5px;">取消</button>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -648,6 +671,54 @@
             }
         }
 
+        // 取消需求（老闆專屬）
+        async function cancelNeed(id, btn) {
+            if (!confirm('確定要取消此需求嗎？\n\n注意：取消後將無法復原。')) {
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '處理中...';
+
+            try {
+                const response = await fetch('/api/needs/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, is_boss: true })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 移除該行
+                    const row = btn.closest('tr');
+                    row.style.transition = 'all 0.3s ease';
+                    row.style.opacity = '0';
+                    setTimeout(() => {
+                        row.remove();
+                        // 重新整理編號
+                        const rows = document.querySelectorAll('#needsTable tbody tr');
+                        rows.forEach((r, idx) => {
+                            r.cells[0].textContent = idx + 1;
+                        });
+                        // 如果沒有資料了，顯示空狀態
+                        if (rows.length === 0) {
+                            document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
+                        }
+                    }, 300);
+                } else {
+                    alert('取消失敗：' + (result.message || '未知錯誤'));
+                    btn.disabled = false;
+                    btn.textContent = '取消';
+                }
+            } catch (error) {
+                console.error('取消需求失敗:', error);
+                alert('取消失敗，請稍後再試');
+                btn.disabled = false;
+                btn.textContent = '取消';
+            }
+        }
+
         // 更新時間
         document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
 
@@ -683,5 +754,5 @@
             }
         }
     </script>
-</body>
+<script>window.PAGE_VERSION="1.0";window.PAGE_CHANGELOG=[{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

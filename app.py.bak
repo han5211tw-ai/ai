@@ -25,56 +25,6 @@ CORS(app)
 DB_PATH = '/Users/aiserver/srv/db/company.db'
 STATIC_DIR = '/Users/aiserver/.openclaw/workspace/dashboard-site'
 
-# 共用函數：取得資料庫連線
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# ============================================
-# Admin 驗證裝飾器（統一權限檢查，所有 Admin API 共用）
-# ============================================
-def require_admin(f):
-    """檢查是否為管理員 - 統一驗證入口"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        admin_user = request.args.get('admin') or request.headers.get('X-Admin-User')
-        
-        # DEBUG: 記錄收到的參數（僅記錄，不做轉碼）
-        print(f"[DEBUG] require_admin: admin_user={repr(admin_user)}")
-        
-        if not admin_user:
-            return jsonify({'success': False, 'message': '缺少管理員驗證'}), 401
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT name, title FROM staff_passwords WHERE name = ?", (admin_user,))
-        user = cursor.fetchone()
-        conn.close()
-        
-        print(f"[DEBUG] Database result: {dict(user) if user else None}")
-        
-        if not user or (user['name'] != '黃柏翰' and user['title'] != '老闆'):
-            return jsonify({'success': False, 'message': '無管理員權限'}), 403
-        
-        return f(*args, **kwargs)
-    return decorated_function
-
-# 匯入並註冊 Staff Admin Blueprint
-from admin_staff import admin_staff_bp
-app.register_blueprint(admin_staff_bp)
-
-# 為 Staff Blueprint 的所有路由統一添加 require_admin 裝飾器
-for endpoint, func in app.view_functions.items():
-    if endpoint.startswith('admin_staff.'):
-        app.view_functions[endpoint] = require_admin(func)
-STATIC_DIR = '/Users/aiserver/.openclaw/workspace/dashboard-site'
-
-# 客戶資料來源切換開關（master=查 customer_master, legacy=查 customers）
-# 預設為 legacy 直到 customer_master 補齊資料
-CUSTOMER_SOURCE = os.environ.get('CUSTOMER_SOURCE', 'legacy')
-print(f"[CONFIG] CUSTOMER_SOURCE = {CUSTOMER_SOURCE}")
-
 # 儲存分析結果
 analysis_results = {
     'department': '',
@@ -88,197 +38,6 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
-
-# ========== 客戶資料同步機制 ==========
-
-def get_customer_table_name():
-    """根據 CUSTOMER_SOURCE 返回要查詢的表名"""
-    return 'customer_master' if CUSTOMER_SOURCE == 'master' else 'customers'
-
-def sync_customers_to_master(actor='system'):
-    """
-    【初始化】將 customers 的資料同步到 customer_master（一次性）
-    這是為了將現有資料匯入到新的 master 表
-    只做 INSERT（跳過已存在），不做 UPDATE/DELETE
-    """
-    start_time = time.time()
-    
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # 檢查 customers 是否有資料
-        cursor.execute("SELECT COUNT(*) as count FROM customers")
-        customers_count = cursor.fetchone()['count']
-        
-        if customers_count == 0:
-            print("[INIT] customers 為空，無法初始化")
-            return {'success': False, 'error': 'customers 表為空'}
-        
-        # 執行 INSERT：將 customers 資料匯入 customer_master
-        cursor.execute("""
-            INSERT OR IGNORE INTO customer_master 
-            (customer_id, short_name, mobile, mobile_raw, phone, address, import_date)
-            SELECT 
-                customer_id,
-                short_name,
-                REPLACE(REPLACE(mobile, '-', ''), ' ', ''),
-                mobile,
-                phone1,
-                company_address,
-                DATE('now')
-            FROM customers
-            WHERE customer_id IS NOT NULL AND customer_id != ''
-        """)
-        
-        inserted = cursor.rowcount
-        conn.commit()
-        
-        duration_ms = int((time.time() - start_time) * 1000)
-        
-        # 記錄到 ops_events
-        log_event(
-            event_type='SYNC_INIT',
-            source='sync_customers_to_master',
-            actor=actor,
-            status='OK',
-            duration_ms=duration_ms,
-            summary=f'初始化完成：匯入 {inserted} 筆到 customer_master',
-            affected_rows=inserted,
-            details={
-                'source_count': customers_count,
-                'inserted': inserted,
-                'duration_ms': duration_ms
-            }
-        )
-        
-        conn.close()
-        
-        print(f"[INIT] 完成：從 customers 匯入 {inserted} 筆到 customer_master，耗時 {duration_ms}ms")
-        return {
-            'success': True,
-            'synced': inserted,
-            'source_count': customers_count,
-            'duration_ms': duration_ms
-        }
-        
-    except Exception as e:
-        duration_ms = int((time.time() - start_time) * 1000)
-        error_msg = str(e)
-        
-        log_event(
-            event_type='SYNC_INIT',
-            source='sync_customers_to_master',
-            actor=actor,
-            status='FAIL',
-            duration_ms=duration_ms,
-            summary='初始化失敗: ' + error_msg,
-            error_code='SYNC_ERROR',
-            error_stack=error_msg
-        )
-        
-        print(f"[INIT] 失敗: {error_msg}")
-        return {'success': False, 'error': error_msg}
-
-
-def sync_customers_from_master(actor='system'):
-    """
-    【未來同步】將 customer_master 的資料同步到 customers（單向同步）
-    只做 UPSERT，不做 DELETE（保險鎖）
-    """
-    start_time = time.time()
-    
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # 檢查 customer_master 是否有資料
-        cursor.execute("SELECT COUNT(*) as count FROM customer_master")
-        master_count = cursor.fetchone()['count']
-        
-        if master_count == 0:
-            print("[SYNC] customer_master 為空，跳過同步")
-            return {'success': True, 'synced': 0, 'skipped': True}
-        
-        # 執行 UPSERT：將 master 資料同步到 customers
-        cursor.execute("""
-            INSERT INTO customers (customer_id, short_name, mobile, phone1, company_address, contact, updated_at)
-            SELECT 
-                customer_id,
-                short_name,
-                mobile,
-                phone,
-                address,
-                '',
-                datetime('now', 'localtime')
-            FROM customer_master
-            WHERE customer_id NOT IN (SELECT customer_id FROM customers)
-        """)
-        
-        inserted = cursor.rowcount
-        
-        # 更新已存在的記錄
-        cursor.execute("""
-            UPDATE customers SET
-                short_name = (SELECT short_name FROM customer_master WHERE customer_master.customer_id = customers.customer_id),
-                mobile = (SELECT mobile FROM customer_master WHERE customer_master.customer_id = customers.customer_id),
-                phone1 = (SELECT phone FROM customer_master WHERE customer_master.customer_id = customers.customer_id),
-                company_address = (SELECT address FROM customer_master WHERE customer_master.customer_id = customers.customer_id),
-                updated_at = datetime('now', 'localtime')
-            WHERE customer_id IN (SELECT customer_id FROM customer_master)
-        """)
-        
-        updated = cursor.rowcount
-        conn.commit()
-        
-        duration_ms = int((time.time() - start_time) * 1000)
-        
-        # 記錄到 ops_events
-        log_event(
-            event_type='SYNC',
-            source='sync_customers_from_master',
-            actor=actor,
-            status='OK',
-            duration_ms=duration_ms,
-            summary=f'同步完成：新增 {inserted} 筆，更新 {updated} 筆',
-            affected_rows=inserted + updated,
-            details={
-                'master_count': master_count,
-                'inserted': inserted,
-                'updated': updated,
-                'duration_ms': duration_ms
-            }
-        )
-        
-        conn.close()
-        
-        print(f"[SYNC] 完成：新增 {inserted} 筆，更新 {updated} 筆，耗時 {duration_ms}ms")
-        return {
-            'success': True,
-            'synced': inserted + updated,
-            'inserted': inserted,
-            'updated': updated,
-            'duration_ms': duration_ms
-        }
-        
-    except Exception as e:
-        duration_ms = int((time.time() - start_time) * 1000)
-        error_msg = str(e)
-        
-        log_event(
-            event_type='SYNC',
-            source='sync_customers_from_master',
-            actor=actor,
-            status='FAIL',
-            duration_ms=duration_ms,
-            summary='同步失敗: ' + error_msg,
-            error_code='SYNC_ERROR',
-            error_stack=error_msg
-        )
-        
-        print(f"[SYNC] 失敗: {error_msg}")
-        return {'success': False, 'error': error_msg}
 
 
 # ========== 慢查詢監控 ==========
@@ -857,16 +616,16 @@ def get_store_reviews():
     conn.close()
     return jsonify([{'store': row['store_name'], 'reviews': row['review_count']} for row in rows])
 
-# API: 門市督導評分（最近30天）
+# API: 門市督導評分（本月）
 @app.route('/api/store/supervision')
 def get_store_supervision():
-    from datetime import datetime, timedelta
+    from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 獲取最近30天的日期範圍
+    # 獲取本月日期範圍
     today = datetime.now()
-    date_start = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+    month_start = f"{today.year}-{today.month:02d}-01"
     
     # 計算每個門市本月的平均督導評分
     # 15項 × 3分 = 45分滿分，計算百分比
@@ -889,9 +648,9 @@ def get_store_supervision():
             AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_info,
             AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_followup
         FROM supervision_scores 
-        WHERE date >= ?
+        WHERE date >= ? AND date < date(?, '+1 month')
         GROUP BY store_name
-    """, (date_start,))
+    """, (month_start, month_start))
     
     rows = cursor.fetchall()
     
@@ -901,9 +660,9 @@ def get_store_supervision():
             store_name,
             COUNT(DISTINCT date) as inspection_count
         FROM supervision_scores 
-        WHERE date >= ?
+        WHERE date >= ? AND date < date(?, '+1 month')
         GROUP BY store_name
-    """, (date_start,))
+    """, (month_start, month_start))
     count_rows = cursor.fetchall()
     count_map = {row['store_name']: row['inspection_count'] for row in count_rows}
     
@@ -949,7 +708,7 @@ def get_store_supervision_detail():
     cursor = conn.cursor()
     
     today = datetime.now()
-    date_start = f"{today.year}-{today.month:02d}-01"
+    month_start = f"{today.year}-{today.month:02d}-01"
     
     cursor.execute("""
         SELECT 
@@ -970,9 +729,9 @@ def get_store_supervision_detail():
             AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_info,
             AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_followup
         FROM supervision_scores 
-        WHERE date >= ?
+        WHERE date >= ? AND date < date(?, '+1 month')
         GROUP BY store_name
-    """, (date_start,))
+    """, (month_start, month_start))
     
     rows = cursor.fetchall()
     conn.close()
@@ -1515,12 +1274,25 @@ def get_customer_count():
     conn.close()
     return jsonify({'count': result['count']})
 
-# API: 管理員健康檢查 - 使用 observability 作為唯一監控來源
+# API: 管理員健康檢查
 @app.route('/api/v1/admin/health')
 def admin_health_check():
-    """統一健康檢查 API - Single Source of Truth"""
-    from observability import get_overall_health
-    result = get_overall_health()
+    # 健康檢查 v2.0 - 強制重新載入以確保使用最新版本
+    import importlib
+    import sys
+    
+    # 清除快取並重新載入
+    if 'health_check' in sys.modules:
+        del sys.modules['health_check']
+    import health_check
+    
+    result = health_check.get_health_status()
+    
+    # 驗證結果
+    if 'version' not in result:
+        print(f"[DEBUG] health_check 回傳缺少 version: {list(result.keys())}")
+        print(f"[DEBUG] data_freshness: {list(result.get('data_freshness', {}).keys())}")
+    
     return jsonify(result)
 
 # API: 查詢指定客戶詳細資料
@@ -1681,27 +1453,14 @@ def verify_password():
         record_failed_login(client_ip)
         return jsonify({'success': False, 'message': '密碼格式錯誤'})
     
-    # 查詢資料庫驗證密碼（同時檢查 staff.is_active=1）
+    # 查詢資料庫驗證密碼
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT sp.name, sp.department, sp.title, s.is_active 
-        FROM staff_passwords sp
-        JOIN staff s ON sp.name = s.name
-        WHERE sp.password = ?
-    ''', (password,))
+    cursor.execute("SELECT name, department, title FROM staff_passwords WHERE password = ?", (password,))
     row = cursor.fetchone()
     conn.close()
     
     if row:
-        # 檢查員工是否已停用
-        if not row['is_active']:
-            record_failed_login(client_ip)
-            return jsonify({
-                'success': False, 
-                'message': '⚠️ 此帳號已被停用，請聯繫管理員。'
-            }), 403
-        
         # 步驟 2：登入成功，重置失敗記錄
         reset_login_attempts(client_ip)
         
@@ -1873,10 +1632,6 @@ def lookup_customer():
 # API: 客戶模糊搜尋
 @app.route('/api/customers/search')
 def search_customers():
-    """
-    搜尋客戶
-    根據 CUSTOMER_SOURCE 環境變數決定查詢哪張表
-    """
     keyword = request.args.get('keyword', '').strip()
     
     # 檢查 keyword 長度
@@ -1887,63 +1642,33 @@ def search_customers():
     if keyword.isdigit() and len(keyword) < 3:
         return jsonify({'success': True, 'items': []})
     
-    # 決定查詢哪張表
-    source_table = get_customer_table_name()
-    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    try:
-        if source_table == 'customer_master':
-            # 查詢 customer_master
-            cursor.execute("""
-                SELECT 
-                    customer_id, 
-                    short_name, 
-                    mobile, 
-                    phone, 
-                    '' as contact,
-                    address as company_address
-                FROM customer_master
-                WHERE short_name LIKE ? OR mobile LIKE ? OR customer_id LIKE ?
-                ORDER BY short_name
-                LIMIT 20
-            """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
-        else:
-            # 查詢 customers（舊版相容）
-            cursor.execute("""
-                SELECT customer_id, short_name, mobile, phone1, contact, company_address
-                FROM customers
-                WHERE short_name LIKE ? OR mobile LIKE ? OR phone1 LIKE ?
-                ORDER BY short_name
-                LIMIT 20
-            """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
-        
-        rows = cursor.fetchall()
-        
-        items = []
-        for row in rows:
-            items.append({
-                'customer_id': row['customer_id'],
-                'short_name': row['short_name'],
-                'mobile': row['mobile'] or '',
-                'phone': row['phone1'] if 'phone1' in row.keys() else (row['phone'] or ''),
-                'contact': row['contact'] or '',
-                'address': row['company_address'] or ''
-            })
-        
-        return jsonify({
-            'success': True, 
-            'items': items,
-            'source': CUSTOMER_SOURCE,
-            'table': source_table
+    # 模糊搜尋姓名或手機
+    cursor.execute("""
+        SELECT customer_id, short_name, mobile, phone1, contact, company_address
+        FROM customers
+        WHERE short_name LIKE ? OR mobile LIKE ? OR phone1 LIKE ?
+        ORDER BY short_name
+        LIMIT 20
+    """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    items = []
+    for row in rows:
+        items.append({
+            'customer_id': row['customer_id'],
+            'short_name': row['short_name'],
+            'mobile': row['mobile'] or '',
+            'phone': row['phone1'] or '',
+            'contact': row['contact'] or '',
+            'address': row['company_address'] or ''
         })
-        
-    except Exception as e:
-        print(f"[ERROR] search_customers failed: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        conn.close()
+    
+    return jsonify({'success': True, 'items': items})
 
 
 # 用於追蹤最近提交的記錄（防止重複提交）
@@ -2315,10 +2040,6 @@ def create_needs_batch():
         )
         # Transaction 成功，執行 COMMIT
         conn.commit()
-        conn.close()
-        return jsonify(response_data)
-
-
 # API: 取得最近提交（30分鐘內可取消）
 @app.route('/api/needs/recent')
 def get_recent_needs():
@@ -2400,7 +2121,6 @@ def cancel_need():
     data = request.get_json()
     need_id = data.get('id')
     current_user = data.get('current_user', '')
-    is_boss = data.get('is_boss', False)
 
     if not need_id:
         return jsonify({'success': False, 'message': '缺少ID'})
@@ -2420,20 +2140,15 @@ def cancel_need():
         if not row:
             return jsonify({'success': False, 'message': '找不到該筆資料'})
 
-        # 老闆可以取消任何待處理的需求，無時間限制
-        if is_boss:
-            if row['status'] != '待處理':
-                return jsonify({'success': False, 'message': '該筆資料無法取消'})
-        else:
-            # 一般員工：檢查是否為本人、時間限制等
-            if row['requester'] != current_user:
-                return jsonify({'success': False, 'message': '只能取消自己的需求'})
+        # 檢查是否為本人
+        if row['requester'] != current_user:
+            return jsonify({'success': False, 'message': '只能取消自己的需求'})
 
-            if row['status'] != '待處理':
-                return jsonify({'success': False, 'message': '該筆資料無法取消'})
+        if row['status'] != '待處理':
+            return jsonify({'success': False, 'message': '該筆資料無法取消'})
 
-            if row['minutes_ago'] >= 30:
-                return jsonify({'success': False, 'message': '超過30分鐘，無法取消'})
+        if row['minutes_ago'] >= 30:
+            return jsonify({'success': False, 'message': '超過30分鐘，無法取消'})
 
         # 軟刪除：標記為已取消
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -2448,172 +2163,6 @@ def cancel_need():
     except Exception as e:
         print(f"cancel_need 錯誤: {e}")
         return jsonify({'success': False, 'message': '系統錯誤'}), 500
-    finally:
-        conn.close()
-
-
-# API: 取得需求歷史紀錄（支援分頁、篩選、搜尋）
-@app.route('/api/needs/history')
-def get_needs_history():
-    """
-    取得需求歷史紀錄
-    Query params:
-        - limit: 每頁筆數 (預設 50, 上限 500)
-        - offset: 起始位置 (預設 0)
-        - q: 搜尋關鍵字 (可選，搜尋 item_name/customer_code/requester/department)
-        - status: 狀態篩選 (all/active/done/cancelled；預設 all)
-        - date_from: 起始日期 (可選，格式 YYYY-MM-DD)
-        - date_to: 結束日期 (可選，格式 YYYY-MM-DD)
-        - include_cancelled: 是否包含已取消 (1/0，沒有 status 時預設 1)
-        - scope: all (僅限管理員使用)
-    """
-    # 分頁參數
-    limit = min(int(request.args.get('limit', 50)), 500)
-    offset = int(request.args.get('offset', 0))
-    
-    # 篩選參數
-    status_filter = request.args.get('status', 'all')
-    search_query = request.args.get('q', '').strip()
-    date_from = request.args.get('date_from', '')
-    date_to = request.args.get('date_to', '')
-    include_cancelled = request.args.get('include_cancelled', '1') == '1'
-    
-    # 取得當前使用者（從登入 session）
-    current_user = request.args.get('current_user', '') or request.headers.get('X-Current-User', '')
-    scope = request.args.get('scope', '')
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        # 檢查使用者權限
-        can_view_all = False
-        if current_user:
-            cursor.execute("SELECT title FROM staff_passwords WHERE name = ?", (current_user,))
-            user_info = cursor.fetchone()
-            if user_info:
-                title = user_info['title']
-                # 檢查是否為管理員角色（包含老闆、主管、admin 等關鍵字）
-                if any(keyword in title for keyword in ['老闆', '主管', 'Admin', 'admin']):
-                    can_view_all = True
-        
-        # 建立 WHERE 條件
-        where_clauses = []
-        params = []
-        
-        # 權限控制：一般員工只能看到自己的，管理員可選擇查看全部
-        if not can_view_all or scope != 'all':
-            # 一般員工或非管理員請求 scope=all，都限制為自己的資料
-            if current_user:
-                where_clauses.append("requester = ?")
-                params.append(current_user)
-        
-        # 狀態篩選
-        if status_filter == 'cancelled':
-            where_clauses.append("cancelled_at IS NOT NULL")
-        elif status_filter == 'active':
-            where_clauses.append("cancelled_at IS NULL AND status != '已完成'")
-        elif status_filter == 'done':
-            where_clauses.append("cancelled_at IS NULL AND status = '已完成'")
-        else:  # all
-            if not include_cancelled:
-                where_clauses.append("cancelled_at IS NULL")
-        
-        # 日期範圍
-        if date_from:
-            where_clauses.append("date >= ?")
-            params.append(date_from)
-        if date_to:
-            where_clauses.append("date <= ?")
-            params.append(date_to)
-        
-        # 搜尋關鍵字
-        if search_query:
-            where_clauses.append("""
-                (item_name LIKE ? OR 
-                 customer_code LIKE ? OR 
-                 requester LIKE ? OR 
-                 department LIKE ? OR
-                 product_code LIKE ?)
-            """)
-            search_pattern = f'%{search_query}%'
-            params.extend([search_pattern] * 5)
-        
-        # 組合 WHERE
-        where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
-        
-        # DEBUG: 記錄 SQL 和參數
-        import sys
-        print(f"[DEBUG] needs/history: user={current_user}, can_view_all={can_view_all}, scope={scope}", flush=True)
-        print(f"[DEBUG] SQL: SELECT COUNT(*) as total FROM needs {where_sql}", flush=True)
-        print(f"[DEBUG] params: {params}", flush=True)
-        
-        # 查詢總筆數
-        count_sql = f"SELECT COUNT(*) as total FROM needs {where_sql}"
-        cursor.execute(count_sql, params)
-        total = cursor.fetchone()['total']
-        
-        # 查詢資料
-        query_sql = f"""
-            SELECT 
-                id, date, item_name, product_code, quantity, 
-                customer_code, department, requester, remark,
-                status, cancelled_at, completed_at, created_at,
-                purpose, request_type, is_new_customer, is_new_product
-            FROM needs
-            {where_sql}
-            ORDER BY id DESC
-            LIMIT ? OFFSET ?
-        """
-        cursor.execute(query_sql, params + [limit, offset])
-        rows = cursor.fetchall()
-        
-        # 處理資料
-        items = []
-        for row in rows:
-            # 判斷狀態類型
-            if row['cancelled_at']:
-                display_status = '已取消'
-                status_type = 'cancelled'
-            elif row['status'] == '已完成':
-                display_status = '已完成'
-                status_type = 'done'
-            else:
-                display_status = row['status'] or '待處理'
-                status_type = 'active'
-            
-            items.append({
-                'id': row['id'],
-                'date': row['date'],
-                'item_name': row['item_name'] or '',
-                'product_code': row['product_code'] or '',
-                'quantity': row['quantity'] or 0,
-                'customer_code': row['customer_code'] or '',
-                'department': row['department'] or '',
-                'requester': row['requester'] or '',
-                'remark': row['remark'] or '',
-                'status': display_status,
-                'status_type': status_type,
-                'cancelled_at': row['cancelled_at'],
-                'completed_at': row['completed_at'],
-                'created_at': row['created_at'],
-                'purpose': row['purpose'] or '備貨',
-                'request_type': row['request_type'] or '請購',
-                'is_new_customer': row['is_new_customer'],
-                'is_new_product': row['is_new_product']
-            })
-        
-        return jsonify({
-            'success': True,
-            'total': total,
-            'items': items,
-            'limit': limit,
-            'offset': offset
-        })
-        
-    except Exception as e:
-        print(f"get_needs_history 錯誤: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         conn.close()
 
@@ -3667,100 +3216,45 @@ def run_product_staging_match():
 
 @app.route('/api/staging/records')
 def get_staging_records():
-    """
-    獲取待建檔記錄列表
-    參數:
-        type: customer|product|all (預設 all)
-        view: pending|resolved|all (預設 pending)
-            - pending: 只顯示未取消 + TEMP 編號（仍需建檔）
-            - resolved: 只顯示未取消 + 已轉正式編號（已建檔）
-            - all: 顯示全部（不分狀態）
-    """
+    """獲取待建檔記錄列表"""
     type_filter = request.args.get('type', 'all')
-    view = request.args.get('view', 'pending')
+    status_filter = request.args.get('status', 'pending')
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    records = []
+    # 構建查詢條件
+    where_clauses = []
+    params = []
     
-    # 根據 view 決定 WHERE 條件
-    # 注意：同時檢查 staging_records.status 以處理資料不一致情況
-    if view == 'pending':
-        # 待處理：TEMP 編號 + 未取消 + staging 未解析
-        product_where = "n.cancelled_at IS NULL AND n.product_code LIKE 'TEMP-P-%' AND sr.status != 'resolved'"
-        customer_where = "n.cancelled_at IS NULL AND n.customer_code LIKE 'TEMP-C-%' AND sr.status != 'resolved'"
-    elif view == 'resolved':
-        # 已解析：staging 已解析 + 未取消
-        product_where = "n.cancelled_at IS NULL AND sr.status = 'resolved'"
-        customer_where = "n.cancelled_at IS NULL AND sr.status = 'resolved'"
-    else:  # all
-        product_where = "n.cancelled_at IS NULL"
-        customer_where = "n.cancelled_at IS NULL"
+    if type_filter != 'all':
+        where_clauses.append('type = ?')
+        params.append(type_filter)
     
-    # 查詢商品
-    if type_filter == 'product' or type_filter == 'all':
-        cursor.execute(f"""
-            SELECT DISTINCT
-                sr.*,
-                n.id as needs_id,
-                n.status as needs_status,
-                n.product_code,
-                n.customer_code
-            FROM needs n
-            JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
-            WHERE {product_where}
-            ORDER BY sr.created_at DESC
-        """, ())
-        records.extend([dict(row) for row in cursor.fetchall()])
+    if status_filter != 'all':
+        where_clauses.append('status = ?')
+        params.append(status_filter)
     
-    # 查詢客戶
-    if type_filter == 'customer' or type_filter == 'all':
-        cursor.execute(f"""
-            SELECT DISTINCT
-                sr.*,
-                n.id as needs_id,
-                n.status as needs_status,
-                n.product_code,
-                n.customer_code
-            FROM needs n
-            JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
-            WHERE {customer_where}
-            ORDER BY sr.created_at DESC
-        """, ())
-        records.extend([dict(row) for row in cursor.fetchall()])
+    where_sql = ' AND '.join(where_clauses) if where_clauses else '1=1'
     
-    # 統計：分開計算 pending 和 resolved（與 records 查詢使用相同條件：依 staging.status）
+    # 查詢記錄
+    cursor.execute(f"""
+        SELECT * FROM staging_records 
+        WHERE {where_sql}
+        ORDER BY 
+            CASE status WHEN 'pending' THEN 0 WHEN 'needs_review' THEN 1 ELSE 2 END,
+            created_at DESC
+    """, params)
+    
+    records = [dict(row) for row in cursor.fetchall()]
+    
+    # 統計
     cursor.execute("""
         SELECT 
-            -- Product pending (staging.status != 'resolved')
-            (SELECT COUNT(DISTINCT sr.id)
-             FROM needs n
-             JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
-             WHERE n.cancelled_at IS NULL
-               AND sr.status != 'resolved'
-            ) as product_pending,
-            -- Product resolved (staging.status = 'resolved')
-            (SELECT COUNT(DISTINCT sr.id)
-             FROM needs n
-             JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
-             WHERE n.cancelled_at IS NULL
-               AND sr.status = 'resolved'
-            ) as product_resolved,
-            -- Customer pending (staging.status != 'resolved')
-            (SELECT COUNT(DISTINCT sr.id)
-             FROM needs n
-             JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
-             WHERE n.cancelled_at IS NULL
-               AND sr.status != 'resolved'
-            ) as customer_pending,
-            -- Customer resolved (staging.status = 'resolved')
-            (SELECT COUNT(DISTINCT sr.id)
-             FROM needs n
-             JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
-             WHERE n.cancelled_at IS NULL
-               AND sr.status = 'resolved'
-            ) as customer_resolved
+            SUM(CASE WHEN type = 'customer' AND status = 'pending' THEN 1 ELSE 0 END) as customer_pending,
+            SUM(CASE WHEN type = 'product' AND status = 'pending' THEN 1 ELSE 0 END) as product_pending,
+            SUM(CASE WHEN status = 'resolved' AND DATE(resolved_at) = DATE('now') THEN 1 ELSE 0 END) as today_resolved
+        FROM staging_records
     """)
     
     stats = dict(cursor.fetchone())
@@ -3769,9 +3263,7 @@ def get_staging_records():
     return jsonify({
         'success': True,
         'records': records,
-        'stats': stats,
-        'view': view,
-        'type': type_filter
+        'stats': stats
     })
 
 
@@ -3813,12 +3305,11 @@ def resolve_staging_record(record_id):
         # 更新來源單據
         if record['source_type'] == 'needs':
             if record['type'] == 'customer':
-                # needs 表沒有 customer_name 欄位，只更新 customer_code
                 cursor.execute("""
                     UPDATE needs 
-                    SET customer_code = ?, customer_status = 'resolved'
+                    SET customer_code = ?, customer_name = ?, customer_status = 'resolved'
                     WHERE id = ?
-                """, (resolved_code, record['source_id']))
+                """, (resolved_code, resolved_name or record['raw_input'], record['source_id']))
             else:  # product
                 cursor.execute("""
                     UPDATE needs 
@@ -3924,18 +3415,11 @@ def save_supervision_score():
     score_fields = ['attendance', 'appearance', 'service_attitude', 'professional_knowledge',
                    'sales_process', 'storefront_cleanliness', 'store_cleanliness', 'product_display',
                    'cable_management', 'warehouse_organization', 'reply_speed', 'reply_attitude',
-                   'information_complete']
+                   'problem_grasp', 'information_complete', 'follow_up']
     
     for field in score_fields:
         value = data.get(field, 0)
         if value not in [0, 1, 2]:
-            return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
-    
-    # problem_grasp 和 follow_up 也接受文字內容（用於存放問題描述和後續追蹤）
-    for field in ['problem_grasp', 'follow_up']:
-        value = data.get(field, 0)
-        # 如果是數字，檢查範圍；如果是字串，允許通過
-        if isinstance(value, (int, float)) and value not in [0, 1, 2]:
             return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
     
     conn = get_db_connection()
@@ -3962,7 +3446,8 @@ def save_supervision_score():
                     warehouse_organization = ?, reply_speed = ?,
                     reply_attitude = ?, problem_grasp = ?,
                     information_complete = ?, follow_up = ?,
-                    total_score = ?, evaluator = ?, evaluator_title = ?, updated_at = ?
+                    total_score = ?, issues = ?, suggestions = ?,
+                    updated_at = ?
                 WHERE store_name = ? AND date = ?
             """, (
                 data.get('attendance', 0), data.get('appearance', 0),
@@ -3973,7 +3458,7 @@ def save_supervision_score():
                 data.get('reply_speed', 0), data.get('reply_attitude', 0),
                 data.get('problem_grasp', 0), data.get('information_complete', 0),
                 data.get('follow_up', 0), data.get('total_score', 0),
-                data.get('evaluator', ''), data.get('evaluator_title', ''),
+                data.get('issues', ''), data.get('suggestions', ''),
                 now, store_name, date
             ))
             message = '評分已更新'
@@ -3986,9 +3471,8 @@ def save_supervision_score():
                     store_cleanliness, product_display, cable_management,
                     warehouse_organization, reply_speed, reply_attitude,
                     problem_grasp, information_complete, follow_up,
-                    total_score, evaluator, evaluator_title,
-                    updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    total_score, issues, suggestions, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 store_name, date,
                 data.get('attendance', 0), data.get('appearance', 0),
@@ -3999,8 +3483,8 @@ def save_supervision_score():
                 data.get('reply_speed', 0), data.get('reply_attitude', 0),
                 data.get('problem_grasp', 0), data.get('information_complete', 0),
                 data.get('follow_up', 0), data.get('total_score', 0),
-                data.get('evaluator', ''), data.get('evaluator_title', ''),
-                now
+                data.get('issues', ''), data.get('suggestions', ''),
+                now, now
             ))
             message = '評分已儲存'
         
@@ -4202,10 +3686,38 @@ def save_roster_batch():
         conn.close()
 
 
+if __name__ == '__main__':
+    print("🚀 營運系統 API 服務啟動中...")
+    print("📊 請訪問: http://localhost:3000")
+    print("🤖 每日 20:00 自動分析已啟動")
+    print("-" * 50)
+    app.run(host='0.0.0.0', port=3002, debug=False)
 # ============================================
 # Admin 資料管理中心 API（獨立路由，高安全性）
-# 使用統一的 require_admin 裝飾器（已定義在檔案前面）
 # ============================================
+
+# Admin 驗證裝飾器
+def require_admin(f):
+    """檢查是否為管理員"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 從 query string 或 header 獲取 admin 資訊
+        admin_user = request.args.get('admin') or request.headers.get('X-Admin-User')
+        
+        if not admin_user:
+            return jsonify({'success': False, 'message': '缺少管理員驗證'}), 401
+        
+        # 檢查是否為授權管理員（黃柏翰）
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name, title FROM staff_passwords WHERE name = ?", (admin_user,))
+        user = cursor.fetchone()
+        conn.close()
+        
+        if not user or (user['name'] != '黃柏翰' and user['title'] != '老闆'):
+            return jsonify({'success': False, 'message': '無管理員權限'}), 403
+        
+        return f(*args, **kwargs)
     return decorated_function
 
 # Admin 稽核摘要 API
@@ -4232,47 +3744,25 @@ def admin_audit_summary():
         """)
         checks['A1'] = cursor.fetchone()['cnt']
         
-        # A2: 待建檔異常 - needs 已有正式碼但 staging 仍 pending/needs_review
-        # 條件：staging pending/needs_review + needs 未取消 + 不是 TEMP 編號
+        # A2: Staging pending 但 needs 已有正式碼
         cursor.execute("""
-            SELECT COUNT(*) as cnt FROM (
-                -- Customer A2
-                SELECT s.id
-                FROM staging_records s
-                JOIN needs n ON n.customer_staging_id = s.temp_customer_id
-                WHERE s.type = 'customer'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.customer_code NOT LIKE 'TEMP-C-%'
-                UNION ALL
-                -- Product A2
-                SELECT s.id
-                FROM staging_records s
-                JOIN needs n ON n.product_staging_id = s.temp_product_id
-                WHERE s.type = 'product'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.product_code NOT LIKE 'TEMP-P-%'
-            )
+            SELECT COUNT(*) as cnt
+            FROM staging_records s
+            JOIN needs n ON (s.temp_customer_id = n.customer_staging_id 
+                          OR s.temp_product_id = n.product_staging_id)
+            WHERE s.status = 'pending'
+              AND (n.customer_code NOT LIKE 'TEMP-C-%' OR n.product_code NOT LIKE 'TEMP-P-%')
         """)
         checks['A2'] = cursor.fetchone()['cnt']
         
         # A3: Needs 指到不存在的正式主檔
-        # 排除臨時客戶 (TEMP-C-%) 和臨時產品 (TEMP-P-%, NEW-%)
-        # 注意：needs.customer_code 可能存 customer_id 或 short_name
         cursor.execute("""
             SELECT COUNT(*) as cnt
             FROM needs n
-            LEFT JOIN customers c1 ON n.customer_code = c1.customer_id
-            LEFT JOIN customers c2 ON n.customer_code = c2.short_name
+            LEFT JOIN customers c ON n.customer_code = c.customer_id
             LEFT JOIN products p ON n.product_code = p.product_code
-            WHERE (n.customer_code != '' 
-                   AND n.customer_code NOT LIKE 'TEMP-C-%' 
-                   AND c1.customer_id IS NULL
-                   AND c2.short_name IS NULL)
-               OR (n.product_code NOT LIKE 'TEMP-P-%' 
-                   AND n.product_code NOT LIKE 'NEW-%'
-                   AND p.product_code IS NULL)
+            WHERE (n.customer_code != '' AND n.customer_code NOT LIKE 'TEMP-C-%' AND c.customer_id IS NULL)
+               OR (n.product_code NOT LIKE 'TEMP-P-%' AND p.product_code IS NULL)
         """)
         checks['A3'] = cursor.fetchone()['cnt']
         
@@ -4350,7 +3840,7 @@ def admin_audit_detail():
             items = [dict(row) for row in cursor.fetchall()]
             
         elif code == 'A2':
-            # A2: 待建檔異常 - needs 已有正式碼但 staging 仍 pending/needs_review
+            # Staging pending 但 needs 已有正式碼
             cursor.execute("""
                 SELECT 
                     s.id as staging_id,
@@ -4363,37 +3853,17 @@ def admin_audit_detail():
                     n.requester,
                     n.department
                 FROM staging_records s
-                JOIN needs n ON n.customer_staging_id = s.temp_customer_id
-                WHERE s.type = 'customer'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.customer_code NOT LIKE 'TEMP-C-%'
-                UNION ALL
-                SELECT 
-                    s.id as staging_id,
-                    s.type,
-                    s.status as staging_status,
-                    n.id as need_id,
-                    n.customer_code,
-                    n.product_code,
-                    n.item_name,
-                    n.requester,
-                    n.department
-                FROM staging_records s
-                JOIN needs n ON n.product_staging_id = s.temp_product_id
-                WHERE s.type = 'product'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.product_code NOT LIKE 'TEMP-P-%'
-                ORDER BY need_id DESC
+                JOIN needs n ON (s.temp_customer_id = n.customer_staging_id 
+                              OR s.temp_product_id = n.product_staging_id)
+                WHERE s.status = 'pending'
+                  AND (n.customer_code NOT LIKE 'TEMP-C-%' OR n.product_code NOT LIKE 'TEMP-P-%')
+                ORDER BY n.created_at DESC
                 LIMIT 100
             """)
             items = [dict(row) for row in cursor.fetchall()]
             
         elif code == 'A3':
             # Needs 指到不存在的正式主檔
-            # 排除臨時客戶 (TEMP-C-%) 和臨時產品 (TEMP-P-%, NEW-%)
-            # 注意：needs.customer_code 可能存 customer_id 或 short_name
             cursor.execute("""
                 SELECT 
                     n.id,
@@ -4404,16 +3874,10 @@ def admin_audit_detail():
                     n.department,
                     n.created_at
                 FROM needs n
-                LEFT JOIN customers c1 ON n.customer_code = c1.customer_id
-                LEFT JOIN customers c2 ON n.customer_code = c2.short_name
+                LEFT JOIN customers c ON n.customer_code = c.customer_id
                 LEFT JOIN products p ON n.product_code = p.product_code
-                WHERE (n.customer_code != '' 
-                       AND n.customer_code NOT LIKE 'TEMP-C-%' 
-                       AND c1.customer_id IS NULL
-                       AND c2.short_name IS NULL)
-                   OR (n.product_code NOT LIKE 'TEMP-P-%' 
-                       AND n.product_code NOT LIKE 'NEW-%'
-                       AND p.product_code IS NULL)
+                WHERE (n.customer_code != '' AND n.customer_code NOT LIKE 'TEMP-C-%' AND c.customer_id IS NULL)
+                   OR (n.product_code NOT LIKE 'TEMP-P-%' AND p.product_code IS NULL)
                 ORDER BY n.created_at DESC
                 LIMIT 100
             """)
@@ -4482,8 +3946,7 @@ def admin_table_query():
     
     # 白名單驗證（只允許特定表）
     allowed_tables = ['needs', 'staging_records', 'customers', 'products', 
-                      'inventory', 'purchase_history', 'sales_history',
-                      'admin_audit_log', 'admin_tombstone', 'ops_events']
+                      'inventory', 'purchase_history', 'sales_history']
     if table_name not in allowed_tables:
         return jsonify({'success': False, 'message': '不允許訪問該表'}), 403
     
@@ -4506,99 +3969,17 @@ def admin_table_query():
             elif table_name == 'products':
                 where_clause += " AND (product_name LIKE ? OR product_code LIKE ?)"
                 params.extend([f'%{keyword}%'] * 2)
-            elif table_name == 'admin_audit_log':
-                where_clause += " AND (admin_user LIKE ? OR action LIKE ?)"
-                params.extend([f'%{keyword}%'] * 2)
-            elif table_name == 'ops_events':
-                where_clause += " AND (event_type LIKE ? OR source LIKE ? OR actor LIKE ?)"
-                params.extend([f'%{keyword}%'] * 3)
-        
-        # staging_records 特殊處理：以 needs 為準（未取消 + TEMP 編號）
-        if table_name == 'staging_records':
-            # 獲取資料：商品 + 客戶，以 needs 驅動，不看 staging.status
-            cursor.execute("""
-                -- 商品：以 needs 為準
-                SELECT DISTINCT sr.*, n.id as needs_id, n.status as needs_status
-                FROM needs n
-                JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
-                WHERE n.cancelled_at IS NULL
-                  AND n.product_code LIKE 'TEMP-P-%'
-                
-                UNION ALL
-                
-                -- 客戶：以 needs 為準
-                SELECT DISTINCT sr.*, n.id as needs_id, n.status as needs_status
-                FROM needs n
-                JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
-                WHERE n.cancelled_at IS NULL
-                  AND n.customer_code LIKE 'TEMP-C-%'
-                
-                ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
-            """, (limit, offset))
-            
-            items = [dict(row) for row in cursor.fetchall()]
-            
-            # 獲取總筆數
-            cursor.execute("""
-                SELECT COUNT(*) as total FROM (
-                    SELECT DISTINCT sr.id
-                    FROM needs n
-                    JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
-                    WHERE n.cancelled_at IS NULL
-                      AND n.product_code LIKE 'TEMP-P-%'
-                    UNION ALL
-                    SELECT DISTINCT sr.id
-                    FROM needs n
-                    JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
-                    WHERE n.cancelled_at IS NULL
-                      AND n.customer_code LIKE 'TEMP-C-%'
-                )
-            """)
-            total = cursor.fetchone()['total']
-            
-            return jsonify({
-                'success': True,
-                'table': table_name,
-                'items': items,
-                'total': total,
-                'limit': limit,
-                'offset': offset
-            })
         
         # 獲取總筆數
         cursor.execute(f"SELECT COUNT(*) as total FROM {table_name} WHERE {where_clause}", params)
         total = cursor.fetchone()['total']
-        
-        # 決定排序欄位
-        sort_field = request.args.get('sort', 'created_at')
-        sort_order = request.args.get('order', 'desc').upper()
-        
-        # 不同表的預設排序欄位映射
-        sort_field_map = {
-            'inventory': 'report_date',
-            'ops_events': 'ts',
-            'admin_audit_log': 'created_at',
-            'purchase_history': 'date',
-            'sales_history': 'date',
-            'customers': 'updated_at'  # customers 表使用 updated_at
-        }
-        
-        # 驗證排序欄位是否存在，不存在則使用 id
-        actual_sort_field = sort_field_map.get(table_name, sort_field)
-        if actual_sort_field == 'created_at' and table_name in ['purchase_history', 'sales_history']:
-            actual_sort_field = 'date'
-        
-        # 驗證排序方向
-        if sort_order not in ['ASC', 'DESC']:
-            sort_order = 'DESC'
         
         # 獲取資料
         query_params = params + [limit, offset]
         cursor.execute(f"""
             SELECT * FROM {table_name}
             WHERE {where_clause}
-            ORDER BY {actual_sort_field} {sort_order}
+            ORDER BY created_at DESC
             LIMIT ? OFFSET ?
         """, query_params)
         
@@ -4628,9 +4009,8 @@ def admin_row_get():
     table_name = request.args.get('table', '')
     row_id = request.args.get('id')
     
-    allowed_tables = ['needs', 'staging_records', 'customers', 'products',
-                      'inventory', 'purchase_history', 'sales_history',
-                      'admin_audit_log', 'admin_tombstone', 'ops_events']
+    allowed_tables = ['needs', 'staging_records', 'customers', 'products', 
+                      'inventory', 'purchase_history', 'sales_history']
     if table_name not in allowed_tables:
         return jsonify({'success': False, 'message': '不允許訪問該表'}), 403
     
@@ -4638,28 +4018,17 @@ def admin_row_get():
     cursor = conn.cursor()
     
     try:
-        # 檢查表是否有 id 欄位
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        columns = cursor.fetchall()
-        has_id = any(col['name'] == 'id' for col in columns)
-        
-        if has_id:
-            cursor.execute(f"SELECT * FROM {table_name} WHERE id = ?", (row_id,))
-        else:
-            # 對於沒有 id 的表，使用索引查詢
-            # 獲取所有欄位，用 LIMIT 和 OFFSET 模擬單筆查詢
-            cursor.execute(f"SELECT * FROM {table_name} LIMIT 1 OFFSET ?", (int(row_id),))
-        
+        cursor.execute(f"SELECT * FROM {table_name} WHERE id = ?", (row_id,))
         row = cursor.fetchone()
         
         if not row:
             return jsonify({'success': False, 'message': '資料不存在'}), 404
         
-        return jsonify({'success': True, 'item': dict(row)})
+        return jsonify({'success': True, 'data': dict(row)})
         
     except Exception as e:
         print(f"admin_row_get 錯誤: {e}")
-        return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
     finally:
         conn.close()
 
@@ -4990,64 +4359,6 @@ def admin_db_slow_queries():
         print(f"[DB Monitor] 慢查詢查詢錯誤: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-
-# ============================================
-# 客戶資料同步 API
-# ============================================
-
-@app.route('/api/admin/customers/sync', methods=['POST'])
-@require_admin
-def admin_customers_sync():
-    """
-    手動觸發 customers 同步
-    mode=init: customers → customer_master（初始化，一次性）
-    mode=sync: customer_master → customers（未來定期同步）
-    """
-    try:
-        admin_user = request.args.get('admin') or request.headers.get('X-Admin-User')
-        mode = request.args.get('mode', 'sync')  # 預設為 sync
-        
-        if mode == 'init':
-            # 初始化：從 customers 匯入到 customer_master
-            result = sync_customers_to_master(actor=admin_user)
-            action = '初始化'
-        else:
-            # 同步：從 customer_master 同步到 customers
-            result = sync_customers_from_master(actor=admin_user)
-            action = '同步'
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'message': f'{action}完成：{result.get("synced", 0)} 筆',
-                'mode': mode,
-                'details': result
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': result.get('error', f'{action}失敗'),
-                'mode': mode
-            }), 500
-            
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
-
-
-@app.route('/api/admin/customers/source')
-@require_admin
-def admin_customers_source():
-    """取得目前的客戶資料來源設定"""
-    return jsonify({
-        'success': True,
-        'source': CUSTOMER_SOURCE,
-        'table': get_customer_table_name()
-    })
-
-
 # 啟動時記錄系統啟動事件（使用 app_context 取代 before_first_request）
 def record_startup():
     with app.app_context():
@@ -5063,37 +4374,3 @@ def record_startup():
             update_freshness_cache()
         except:
             pass
-
-
-if __name__ == '__main__':
-    print("🚀 營運系統 API 服務啟動中...")
-    print("📊 請訪問: http://localhost:3000")
-    print("🤖 每日 20:00 自動分析已啟動")
-    print("-" * 50)
-    
-    # 固定使用 Port 3000，禁止自動切換
-    FIXED_PORT = 3000
-    
-    # 檢查端口是否已被佔用
-    import socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        sock.bind(('0.0.0.0', FIXED_PORT))
-        sock.close()
-    except socket.error as e:
-        print(f"❌ 錯誤：Port {FIXED_PORT} 已被佔用")
-        print(f"   詳情: {e}")
-        print(f"   請先停止佔用該端口的程序，再重新啟動服務")
-        print(f"   禁止自動切換到其他端口")
-        import sys
-        sys.exit(1)
-    
-    # 啟動 Flask（端口被佔用時會拋出異常並退出）
-    try:
-        app.run(host='0.0.0.0', port=FIXED_PORT, debug=False)
-    except Exception as e:
-        print(f"❌ Flask 啟動失敗: {e}")
-        import sys
-        sys.exit(1)
-
-# ============================================

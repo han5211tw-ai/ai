@@ -38,10 +38,13 @@
             border-radius: 8px;
             transition: all 0.3s;
         }
-        .nav a:hover, .nav a.active {
+        .nav a:hover, .nav a.active, .nav span.active {
             color: #00d4ff;
             border-color: #00d4ff;
             background: rgba(0, 212, 255, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
         }
         .card {
             background: rgba(255, 255, 255, 0.03);
@@ -174,6 +177,7 @@
             margin-top: 5px;
         }
     </style>
+    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -183,17 +187,16 @@
             <a href="index.html">🏠 首頁</a>
             <a href="department.html">🏢 部門</a>
             <a href="store.html">🏬 門市</a>
-            <a href="business.html" class="active">💼 業務</a>
             <a href="personal.html">🧑‍💼 個人</a>
             <a href="roster.html">📅 班表</a>
             <a href="customer_search.html">🔍 客戶</a>
         </div>
 
-        <div class="section-title">☁️ 雲端文件連結</div>
+        <div class="section-title">📂 工作表單</div>
         <div class="btn-grid">
             <a href="service_record.html" class="btn-card" target="_blank">
                 <div class="btn-icon">📝</div>
-                <div class="btn-title">服務紀錄填寫</div>
+                <div class="btn-title">服務記錄</div>
                 <div class="btn-desc">外勤服務紀錄提交</div>
             </a>
         </div>
@@ -441,14 +444,26 @@
                 document.getElementById('serviceSummary').innerHTML = summaryHtml;
                 
                 // 服務分類圓餅圖
-                const typeColors = ['#00d4ff', '#4caf50', '#ffc107', '#ff9800', '#9c27b0', '#f44336'];
+                // 定義服務類型對應的顏色（確保施工為灰色）
+                const typeColorMap = {
+                    '門市支援': '#ff9800',
+                    '其他': '#9c27b0',
+                    '現場維修': '#00d4ff',
+                    '設備問題': '#f44336',
+                    '交機': '#4caf50',
+                    '網通設定': '#ffc107',
+                    '施工': '#9e9e9e'
+                };
+                const typeTotal = data.service_types.reduce((sum, t) => sum + t.count, 0);
+                const typeBackgroundColors = data.service_types.map(t => typeColorMap[t.type] || '#607d8b');
+                
                 new Chart(document.getElementById('serviceTypeChart'), {
                     type: 'pie',
                     data: {
                         labels: data.service_types.map(t => t.type),
                         datasets: [{
                             data: data.service_types.map(t => t.count),
-                            backgroundColor: typeColors.slice(0, data.service_types.length),
+                            backgroundColor: typeBackgroundColors,
                             borderWidth: 0
                         }]
                     },
@@ -458,7 +473,35 @@
                         plugins: {
                             legend: {
                                 position: 'right',
-                                labels: { color: '#ccd6f6' }
+                                labels: { 
+                                    color: '#ffffff',
+                                    font: {
+                                        size: 12
+                                    },
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percentage = ((value / typeTotal) * 100).toFixed(1);
+                                            return {
+                                                text: `${label}: ${value} (${percentage}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i,
+                                                fontColor: '#ffffff'
+                                            };
+                                        });
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const percentage = ((value / typeTotal) * 100).toFixed(1);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
                             }
                         }
                     }
@@ -466,6 +509,7 @@
                 
                 // 客戶來源圓餅圖
                 const sourceColors = ['#00d4ff', '#4caf50', '#ffc107', '#ff9800', '#9c27b0'];
+                const sourceTotal = data.customer_sources.reduce((sum, s) => sum + s.count, 0);
                 new Chart(document.getElementById('customerSourceChart'), {
                     type: 'doughnut',
                     data: {
@@ -482,7 +526,35 @@
                         plugins: {
                             legend: {
                                 position: 'right',
-                                labels: { color: '#ccd6f6' }
+                                labels: { 
+                                    color: '#ffffff',
+                                    font: {
+                                        size: 12
+                                    },
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percentage = ((value / sourceTotal) * 100).toFixed(1);
+                                            return {
+                                                text: `${label}: ${value} (${percentage}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i,
+                                                fontColor: '#ffffff'
+                                            };
+                                        });
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const percentage = ((value / sourceTotal) * 100).toFixed(1);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
                             }
                         }
                     }
@@ -528,6 +600,8 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
+                                position: 'top',
+                                align: 'end',
                                 labels: { color: '#ccd6f6' }
                             }
                         },
@@ -554,5 +628,5 @@
         loadBusinessData();
         loadServiceStats();
     </script>
-</body>
+<script>window.PAGE_VERSION="1.2";window.PAGE_CHANGELOG=[{version:"1.2",text:"導航列優化：移除當前頁面連結","date":"2026-03-01"},{version:"1.1",text:"統計圖表顯示數量與百分比，趨勢圖圖例移至上方靠右",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

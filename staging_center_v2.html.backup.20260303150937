@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <!--
   File: staging_center_v2.html
-  Version: 20250303-1512
+  Version: 20250303-1400
   ChangeLog:
-    - 20250303-1512: 修正 updateStats：卡片統計不再隨視圖改變，始終顯示正確的待處理/已解析數量
-    - 20250303-1509: 修正 renderTable 狀態判斷：改用 staging.status 而非 needs.code 前綴
-    - 20250303-1400: 新增 view 篩選（pending/resolved/all）
-    - 20250303-1400: 修正狀態顯示邏輯（依 staging.status）
-    - 20250303-1400: 更新 auth_ui.js 版本號支援自動過期
+    - 20250303: 新增 view 篩選（pending/resolved/all）
+    - 20250303: 修正狀態顯示邏輯（依 staging.status）
+    - 20250303: 更新 auth_ui.js 版本號支援自動過期
 -->
 <html lang="zh-TW">
 <head>
@@ -284,16 +282,17 @@
             tbody.innerHTML = records.map(r => {
                 const typeIcon = r.type === 'customer' ? '👤' : '📦';
                 
-                // 根據 staging_records.status 判斷狀態（與後端篩選一致）
-                const isResolved = r.status === 'resolved';
+                // 根據 needs 的編號判斷狀態（而非 staging.status）
+                const isCustomerTemp = r.customer_code && r.customer_code.startsWith('TEMP-C-');
+                const isProductTemp = r.product_code && r.product_code.startsWith('TEMP-P-');
+                const isTemp = isCustomerTemp || isProductTemp;
                 
-                const statusClass = isResolved ? 'status-resolved' : 'status-pending';
-                const statusText = isResolved ? '已解析' : '待處理';
+                const statusClass = isTemp ? 'status-pending' : 'status-resolved';
+                const statusText = isTemp ? '待處理' : '已解析';
                 
-                // 顯示解析結果：優先顯示 resolved_code，若無則顯示 customer_code/product_code
-                const displayCode = r.resolved_code || r.customer_code || r.product_code || '-';
-                const resolvedDisplay = isResolved ? 
-                    `<div style="color:#4caf50;">${displayCode}</div>` : 
+                // 顯示解析結果（正式編號）
+                const resolvedDisplay = !isTemp ? 
+                    `<div style="color:#4caf50;">${r.customer_code || r.product_code || '-'}</div>` : 
                     '-';
                 
                 return `<tr>
@@ -309,7 +308,7 @@
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                     <td>${resolvedDisplay}</td>
                     <td>
-                        ${!isResolved ? `<button class="btn btn-resolve" onclick="openResolve(${r.id})">解析</button>` : ''}
+                        ${isTemp ? `<button class="btn btn-resolve" onclick="openResolve(${r.id})">解析</button>` : ''}
                         <button class="btn btn-view" onclick="viewDetail(${r.id})">查看</button>
                     </td>
                 </tr>`;
@@ -317,15 +316,25 @@
         }
         
         function updateStats(stats) {
-            // 卡片始終顯示固定統計數據（不依賴當前視圖）
-            // 確保標籤與數值一致：
-            // - 客戶待處理：customer_pending
-            // - 商品待處理：product_pending
-            // - 今日已解析：customer_resolved + product_resolved
-            document.getElementById('customerPending').textContent = stats.customer_pending || 0;
-            document.getElementById('productPending').textContent = stats.product_pending || 0;
-            const totalResolved = (stats.customer_resolved || 0) + (stats.product_resolved || 0);
-            document.getElementById('todayResolved').textContent = totalResolved;
+            const view = document.getElementById('viewFilter').value;
+            
+            // 根據當前視圖顯示對應的統計
+            if (view === 'pending') {
+                document.getElementById('customerPending').textContent = stats.customer_pending || 0;
+                document.getElementById('productPending').textContent = stats.product_pending || 0;
+                document.getElementById('todayResolved').textContent = '-';
+            } else if (view === 'resolved') {
+                document.getElementById('customerPending').textContent = stats.customer_resolved || 0;
+                document.getElementById('productPending').textContent = stats.product_resolved || 0;
+                document.getElementById('todayResolved').textContent = (stats.customer_resolved || 0) + (stats.product_resolved || 0);
+            } else {
+                // all view - 顯示全部數量
+                const totalPending = (stats.customer_pending || 0) + (stats.product_pending || 0);
+                const totalResolved = (stats.customer_resolved || 0) + (stats.product_resolved || 0);
+                document.getElementById('customerPending').textContent = totalPending;
+                document.getElementById('productPending').textContent = totalResolved;
+                document.getElementById('todayResolved').textContent = totalResolved;
+            }
         }
         
         function openResolve(id) {
@@ -416,5 +425,5 @@
         
         loadData();
     </script>
-<script>window.PAGE_VERSION="2.01";window.PAGE_CHANGELOG=[{version:"2.01",text:"修正 renderTable 狀態判斷邏輯：改用 staging.status 而非 needs.code 前綴",date:"2026-03-03"},{version:"2.00",text:"新增右上角版本號按鈕",date:"2026-03-03"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
+<script>window.PAGE_VERSION="1.0";window.PAGE_CHANGELOG=[{version:"1.0",text:"u521du59cbu7248u672cu767cu5e03",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>
