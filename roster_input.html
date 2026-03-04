@@ -13,10 +13,11 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>班表排班 - 電腦舖</title>
-    <script>window.version='20250303-0100';window.PAGE_VERSION="20250303-0100";window.PAGE_CHANGELOG=[{version:"20250303-0100",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"20250302-2200",text:"統一登入頁面樣式",date:"2026-03-02"}];</script>
-    <link rel="stylesheet" href="version-component.css">
+    <script>window.version='20250303-0100';window.PAGE_VERSION="1.2.20250304";window.PAGE_CHANGELOG=[{version:"20250303-0100",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"20250302-2200",text:"統一登入頁面樣式",date:"2026-03-02"}];</script>
     <link rel="stylesheet" href="shared/auth_ui.css">
     <script src="shared/auth_ui.js?v=20250303-1402"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -357,7 +358,6 @@
             .calendar-day .shift-select { font-size: 0.75em; padding: 4px 1px; }
         }
     </style>
-    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -822,5 +822,4 @@
         // 初始化
         checkLogin();
     </script>
-<script>window.PAGE_VERSION="20250303-0100";window.PAGE_CHANGELOG=[{version:"20250303-0100",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"20250302-2200",text:"統一登入頁面樣式",date:"2026-03-02"},{version:"1.1",text:"排班截止時間調整為月底15:00",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

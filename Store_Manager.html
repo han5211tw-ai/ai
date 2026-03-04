@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>門市主管控制台 - 電腦舖營運系統</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -13,27 +15,27 @@
             min-height: 100vh;
             color: #fff;
         }
-        .container { max-width: 1400px; margin: 0 auto; padding: 40px 20px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px 40px; }
         h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
             background: linear-gradient(90deg, #00d4ff, #7b2cbf);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .subtitle {
-            text-align: center;
+            text-align: left;
             color: #8892b0;
-            margin-bottom: 40px;
-            font-size: 1.1em;
+            margin-bottom: 20px;
+            font-size: 0.9em;
         }
         .nav {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 40px;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
         .nav a {
@@ -251,7 +253,6 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -260,26 +261,23 @@
 
         <div class="nav">
             <a href="index.html">🏠 首頁</a>
-            <a href="department.html">🏢 部門</a>
             <a href="store.html">🏬 門市</a>
             <a href="personal.html">🧑‍💼 個人</a>
-            <a href="roster.html">📅 班表</a>
-            <a href="customer_search.html">🔍 客戶</a>
         </div>
 
         <!-- 功能入口 -->
         <div class="card">
-            <h2>📂 工作表單</h2>
+            <h2>📂 功能表單</h2>
             <div class="btn-group">
-                <a href="roster_input.html" class="btn-cloud" target="_blank">
-                    📅 排班表單
+                <a href="supervision_score.html" class="btn-cloud" target="_blank">
+                    📋 督導評分
                 </a>
-                <a href="https://1drv.ms/x/c/6480de932f72b94e/IQB2L8YaY8WfRLBsndJ17v5jAXP3fH84_NR6I_YHy1xEK8A?e=dnWqxT" 
+                <a href="https://1drv.ms/x/c/6480de932f72b94e/IQB2L8YaY8WfRLBsndJ17v5jAXP3fH84_NR6I_YHy1xEK8A?e=dnWqxT"
                    target="_blank" class="btn-cloud">
                     ⭐ 五星評論
                 </a>
-                <a href="supervision_score.html" class="btn-cloud" target="_blank">
-                    📋 督導評分
+                <a href="roster_input.html" class="btn-cloud" target="_blank">
+                    📅 排班班表
                 </a>
             </div>
         </div>
@@ -359,17 +357,6 @@
             </div>
         </div>
 
-        <!-- AI 詳細分析 -->
-        <div class="card">
-            <h2>🤖 AI 營運分析報告（<span id="currentStoreAnalysis">豐原</span>）</h2>
-            <div id="aiAnalysis">
-                <div class="loading">載入中...</div>
-            </div>
-            <div class="update-time">
-                分析時間：<span id="analysisTime">--</span>
-            </div>
-        </div>
-
         <div class="update-time">
             資料即時從資料庫讀取 | 最後更新：<span id="updateTime">--</span>
         </div>
@@ -418,9 +405,11 @@
         // 載入門市營運資料
         async function loadStoreData() {
             try {
-                const response = await fetch('/api/performance/store');
-                const data = await response.json();
-                const storeData = data.find(s => s.name.includes(currentStore));
+                const now = new Date();
+                const response = await fetch(`/api/performance/store?year=${now.getFullYear()}&month=${now.getMonth() + 1}&period_type=quarterly`);
+                const result = await response.json();
+                const data = result.data || [];
+                const storeData = data.find(s => (s.store_name || s.name || '').includes(currentStore));
                 
                 if (storeData) {
                     const ach = storeData.achievement_rate * 100;
@@ -746,27 +735,6 @@
             }
         }
 
-        // 載入 AI 分析
-        async function loadAiAnalysis() {
-            try {
-                const response = await fetch('/api/analysis/store');
-                const data = await response.json();
-                
-                document.getElementById('analysisTime').textContent = data.last_update || '--';
-                
-                const html = `
-                    <div class="highlight-box">
-                        <div class="highlight-title">🏬 ${currentStore}門市分析</div>
-                        <div class="highlight-content">${data.content || '暫無分析資料'}</div>
-                    </div>
-                `;
-                document.getElementById('aiAnalysis').innerHTML = html;
-            } catch (error) {
-                console.error('載入AI分析失敗:', error);
-                document.getElementById('aiAnalysis').innerHTML = '<div class="empty-state">AI分析載入失敗</div>';
-            }
-        }
-
         // 更新時間
         document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
 
@@ -777,12 +745,10 @@
         loadSupervisionScores();
         loadStoreRoster();
         loadStaffRanking();
-        loadAiAnalysis();
 
         // 每 1 小時自動重新整理
         setInterval(() => {
             location.reload();
         }, 3600000);
     </script>
-<script>window.PAGE_VERSION="1.0";window.PAGE_CHANGELOG=[{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

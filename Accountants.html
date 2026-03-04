@@ -21,13 +21,13 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 20px 40px;
         }
         
         h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
             background: linear-gradient(90deg, #e91e63, #9c27b0);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -35,17 +35,17 @@
         }
         
         .subtitle {
-            text-align: center;
+            text-align: left;
             color: #888;
-            margin-bottom: 30px;
-            font-size: 1.1em;
+            margin-bottom: 20px;
+            font-size: 0.9em;
         }
         
         .nav {
             display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 40px;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
         
@@ -324,7 +324,6 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -338,8 +337,6 @@
             <a href="store.html">🏬 門市</a>
             <a href="business.html">💼 業務</a>
             <a href="personal.html">🧑‍💼 個人</a>
-            <a href="roster.html">📅 班表</a>
-            <a href="customer_search.html">🔍 客戶</a>
             <a href="staging_center_v2.html">📋 待建檔中心</a>
         </div>
 
@@ -520,5 +517,4 @@
             location.reload();
         }, 3600000);
     </script>
-<script>window.PAGE_VERSION="1.3";window.PAGE_CHANGELOG=[{version:"1.3",text:"移除系統健康狀態卡片","date":"2026-03-02"},{version:"1.2",text:"導航列優化：移除當前頁面連結","date":"2026-03-01"},{version:"1.1",text:"staging_records 補強：手機唯一鍵去重、短 UUID、精準回寫",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

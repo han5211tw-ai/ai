@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <!--
   File: system_map_v3.html
-  Version: 20250304-0137
+  Version: 20250304-2108
   ChangeLog:
+    - 20250304-2108: 移除 parser-performance 節點（績效腳本已停用）
+    - 20250304-1845: 更新系統組件，同步最新 API 與頁面結構
     - 20250304-0137: 調整節點位置，解決重疊問題，增加元件間距
     - 20250304-0100: V3 全新設計，曲線連線、更流暢的動畫、漸層色彩
     - 保留 V2 所有功能：互動節點、資料流播放、分層篩選
@@ -149,23 +151,6 @@
             font-size: 0.75rem;
             color: rgba(255,255,255,0.5);
             font-family: 'JetBrains Mono', monospace;
-        }
-        
-        .version-badge {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--neon-cyan);
-            background: rgba(0, 245, 255, 0.1);
-            border: 1px solid rgba(0, 245, 255, 0.3);
-            padding: 6px 14px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .version-badge:hover {
-            background: rgba(0, 245, 255, 0.2);
-            box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
         }
         
         /* Legend Panel */
@@ -523,7 +508,6 @@
                 <div class="header-subtitle">Flow Edition • Curved Connections</div>
             </div>
         </div>
-        <button class="version-badge" onclick="showVersionInfo()">v3.00</button>
     </header>
     
     <div class="legend-panel">
@@ -632,8 +616,7 @@ const ARCH_DATA = {
         { id: 'parser-inventory', type: 'parser', label: 'inventory_parser.py', subtitle: '10:30 Daily', x: 1250, y: 680, icon: '\uf1b3', tables: ['inventory','products'] },
         { id: 'parser-purchase', type: 'parser', label: 'purchase_parser.py', subtitle: '10:35 Daily', x: 1250, y: 790, icon: '\uf07a', tables: ['purchase_history'] },
         { id: 'parser-sales', type: 'parser', label: 'sales_parser_v19.py', subtitle: '10:40 Daily', x: 1250, y: 900, icon: '\uf201', tables: ['sales_history','products'] },
-        { id: 'parser-customer', type: 'parser', label: 'customer_parser.py', subtitle: '10:45 Daily', x: 1250, y: 1010, icon: '\uf234', tables: ['customers'] },
-        { id: 'parser-performance', type: 'parser', label: 'performance_parser.py', subtitle: '11:00 Daily', x: 1250, y: 1120, icon: '\uf080', tables: ['performance_metrics'] }
+        { id: 'parser-customer', type: 'parser', label: 'customer_parser.py', subtitle: '10:45 Daily', x: 1250, y: 1010, icon: '\uf234', tables: ['customers'] }
     ],
     links: [
         { from: 'page-needs', to: 'api-auth', type: 'read', label: '登入驗證', flow: 'temp-p' },
@@ -1001,10 +984,6 @@ function zoomIn() { svg.transition().call(zoom.scaleBy, 1.3); }
 function zoomOut() { svg.transition().call(zoom.scaleBy, 0.7); }
 function resetView() {
     svg.transition().call(zoom.transform, d3.zoomIdentity.translate(30, 30).scale(0.65));
-}
-
-function showVersionInfo() {
-    alert('System Architecture V3 - Flow Edition\n\nFeatures:\n• Curved Bezier connections\n• Neon glow effects\n• Smooth particle animations\n• All V2 features preserved');
 }
 </script>
 </body>

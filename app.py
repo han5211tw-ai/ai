@@ -745,24 +745,120 @@ def get_daily_sales_by_store():
 # API: 部門業績
 @app.route('/api/performance/department')
 def get_dept_performance():
+    from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # 取得查詢參數（支援 year, month, period_type）
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    period_type = request.args.get('period_type', 'quarterly')
+    
+    # 如果沒有指定年月，預設為本季
+    if year is None:
+        year = datetime.now().year
+    if month is None:
+        month = datetime.now().month
+    
+    # 計算日期範圍
+    if period_type == 'monthly':
+        start_date = f"{year}-{month:02d}-01"
+        end_date = f"{year}-{month:02d}-31"
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        start_date = f"{year}-{start_month:02d}-01"
+        end_date = f"{year}-{end_month:02d}-31"
+    else:  # yearly
+        start_date = f"{year}-01-01"
+        end_date = f"{year}-12-31"
+    
+    # 從 sales_history 即時計算部門業績
+    # 門市部：林榮祺、林峙文、劉育仕、林煜捷、張永承、張家碩
+    # 業務部：鄭宇晉、梁仁佑
     cursor.execute("""
-        SELECT subject_name, target_amount, revenue_amount, profit_amount, 
-               achievement_rate, margin_rate
-        FROM performance_metrics 
-        WHERE category = '部門'
-    """)
-    rows = cursor.fetchall()
+        SELECT 
+            CASE WHEN salesperson IN ('林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩') 
+                 THEN '門市部' 
+                 WHEN salesperson IN ('鄭宇晉', '梁仁佑') 
+                 THEN '業務部' 
+            END as dept_name,
+            SUM(amount) as revenue,
+            SUM(profit) as profit,
+            COUNT(*) as order_count
+        FROM sales_history 
+        WHERE date >= ? AND date <= ?
+          AND salesperson IN ('林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩',
+                              '鄭宇晉', '梁仁佑')
+        GROUP BY dept_name
+    """, (start_date, end_date))
+    
+    sales_rows = cursor.fetchall()
+    
+    # 從 performance_metrics 讀取目標
+    if period_type == 'monthly':
+        cursor.execute("""
+            SELECT subject_name, target_amount
+            FROM performance_metrics 
+            WHERE category = '部門'
+              AND year = ?
+              AND month = ?
+              AND period_type = 'monthly'
+        """, (year, month))
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '部門'
+              AND year = ?
+              AND month >= ? AND month <= ?
+              AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year, start_month, end_month))
+    else:  # yearly
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '部門'
+              AND year = ?
+              AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year,))
+    
+    target_rows = cursor.fetchall()
+    target_map = {row['subject_name']: row['target_amount'] for row in target_rows}
+    
     conn.close()
-    return jsonify([{
-        'name': row['subject_name'],
-        'target': row['target_amount'],
-        'revenue': row['revenue_amount'],
-        'profit': row['profit_amount'],
-        'achievement_rate': row['achievement_rate'],
-        'margin_rate': row['margin_rate']
-    } for row in rows])
+    
+    # 構建結果
+    result = []
+    for row in sales_rows:
+        dept_name = row['dept_name']
+        if not dept_name:
+            continue
+            
+        revenue = row['revenue'] or 0
+        profit = row['profit'] or 0
+        target = target_map.get(dept_name, 0)
+        
+        result.append({
+            'name': dept_name,
+            'target': target,
+            'revenue': revenue,
+            'profit': profit,
+            'order_count': row['order_count'],
+            'achievement_rate': revenue / target if target > 0 else 0,
+            'margin_rate': profit / revenue if revenue > 0 else 0,
+            'year': year,
+            'month': month,
+            'period_type': period_type
+        })
+    
+    return jsonify(result)
 
 # API: 門市業績
 @app.route('/api/performance/store')
@@ -771,63 +867,124 @@ def get_store_performance():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 人員編制定義
-    # 門市部：主管(莊圍迪) + 三個門市
-    # 業務部：主管(萬書佑) + 兩位業務員
+    # 取得查詢參數（支援 year, month, period_type）
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    period_type = request.args.get('period_type', 'quarterly')
+    
+    # 如果沒有指定年月，預設為本季
+    if year is None:
+        year = datetime.now().year
+    if month is None:
+        month = datetime.now().month
+    
+    # 計算日期範圍
+    if period_type == 'monthly':
+        start_date = f"{year}-{month:02d}-01"
+        end_date = f"{year}-{month:02d}-31"
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        start_date = f"{year}-{start_month:02d}-01"
+        end_date = f"{year}-{end_month:02d}-31"
+    else:  # yearly
+        start_date = f"{year}-01-01"
+        end_date = f"{year}-12-31"
+    
+    # 門市人員編制
     store_staff = {
         '豐原': ['林榮祺', '林峙文'],
         '潭子': ['劉育仕', '林煜捷'],
         '大雅': ['張永承', '張家碩']
     }
-    business_staff = ['鄭宇晉', '梁仁佑']  # 業務部業務員
-    department_managers = ['莊圍迪', '萬書佑']  # 部門主管（不列入門市）
     
-    # 動態計算到今天日期
-    today = datetime.now().strftime('%Y-%m-%d')
-    
-    # 從 sales_history 即時計算門市業績（只計算門市人員，不含主管）
+    # 從 sales_history 即時計算門市業績
     cursor.execute("""
         SELECT 
             salesperson,
-            SUM(amount) as total_sales,
-            SUM(profit) as total_profit
+            SUM(amount) as revenue,
+            SUM(profit) as profit,
+            COUNT(*) as order_count
         FROM sales_history 
-        WHERE date >= '2026-01-01' AND date <= ?
-          AND salesperson NOT IN ('Unknown', '黃柏翰', '')
+        WHERE date >= ? AND date <= ?
+          AND salesperson IN ('林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩')
         GROUP BY salesperson
-    """, (today,))
-    rows = cursor.fetchall()
+    """, (start_date, end_date))
     
-    # 按門市彙總（只包含門市人員）
+    sales_rows = cursor.fetchall()
+    
+    # 按門市彙總
     store_stats = {}
-    for row in rows:
+    for row in sales_rows:
         name = row['salesperson']
-        # 檢查此人屬於哪個門市
         for store_name, staff_list in store_staff.items():
             if name in staff_list:
                 if store_name not in store_stats:
-                    store_stats[store_name] = {'sales': 0, 'profit': 0}
-                store_stats[store_name]['sales'] += row['total_sales']
-                store_stats[store_name]['profit'] += row['total_profit'] or 0
+                    store_stats[store_name] = {'revenue': 0, 'profit': 0, 'orders': 0, 'staff': []}
+                store_stats[store_name]['revenue'] += row['revenue'] or 0
+                store_stats[store_name]['profit'] += row['profit'] or 0
+                store_stats[store_name]['orders'] += row['order_count']
+                store_stats[store_name]['staff'].append(name)
                 break
     
-    # 獲取門市目標
-    cursor.execute("""
-        SELECT subject_name, target_amount
-        FROM performance_metrics 
-        WHERE category = '門市'
-    """)
+    # 從 performance_metrics 讀取目標
+    if period_type == 'monthly':
+        cursor.execute("""
+            SELECT subject_name, target_amount
+            FROM performance_metrics 
+            WHERE category = '門市'
+              AND year = ?
+              AND month = ?
+              AND period_type = 'monthly'
+        """, (year, month))
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '門市'
+              AND year = ?
+              AND month >= ? AND month <= ?
+              AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year, start_month, end_month))
+    else:  # yearly
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '門市'
+              AND year = ?
+              AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year,))
+    
     target_rows = cursor.fetchall()
-    target_map = {}
-    for row in target_rows:
-        # 去除"門市"後綴，只保留名稱
-        name = row['subject_name'].replace('門市', '')
-        target_map[name] = row['target_amount']
+    target_map = {row['subject_name'].replace('門市', ''): row['target_amount'] for row in target_rows}
     
     conn.close()
     
     # 構建結果
     result = []
+    for store_name, stats in store_stats.items():
+        revenue = stats['revenue']
+        profit = stats['profit']
+        target = target_map.get(store_name, 0)
+        
+        result.append({
+            'store_name': store_name,
+            'target': target,
+            'revenue': revenue,
+            'profit': profit,
+            'order_count': stats['orders'],
+            'achievement_rate': revenue / target if target > 0 else 0,
+            'margin_rate': profit / revenue if revenue > 0 else 0,
+            'salespeople': stats['staff']
+        })
+    
+    return jsonify({'success': True, 'data': result, 'year': year, 'month': month, 'period_type': period_type})
     for store_name in ['豐原', '潭子', '大雅']:
         stats = store_stats.get(store_name, {'sales': 0, 'profit': 0})
         sales = stats['sales']
@@ -860,13 +1017,13 @@ def get_store_reviews():
 # API: 門市督導評分（最近30天）
 @app.route('/api/store/supervision')
 def get_store_supervision():
-    from datetime import datetime, timedelta
+    from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 獲取最近30天的日期範圍
+    # 獲取當月日期範圍
     today = datetime.now()
-    date_start = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+    date_start = f"{today.year}-{today.month:02d}-01"
     
     # 計算每個門市本月的平均督導評分
     # 15項 × 3分 = 45分滿分，計算百分比
@@ -1009,40 +1166,90 @@ def get_personal_performance():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 動態計算到今天日期
-    today = datetime.now().strftime('%Y-%m-%d')
+    # 取得查詢參數（支援 year, month, period_type）
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    period_type = request.args.get('period_type', 'quarterly')
     
-    # 獲取所有人員銷售額和即時毛利率（從 sales_history 計算）
+    # 如果沒有指定年月，預設為本季
+    if year is None:
+        year = datetime.now().year
+    if month is None:
+        month = datetime.now().month
+    
+    # 計算日期範圍
+    if period_type == 'monthly':
+        start_date = f"{year}-{month:02d}-01"
+        end_date = f"{year}-{month:02d}-31"
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        start_date = f"{year}-{start_month:02d}-01"
+        end_date = f"{year}-{end_month:02d}-31"
+    else:  # yearly
+        start_date = f"{year}-01-01"
+        end_date = f"{year}-12-31"
+    
+    # 過濾掉不需要顯示的人員（主管不列入個人排名）
+    excluded_names = ['莊圍迪', '萬書佑', 'Unknown']
+    
+    # 從 sales_history 即時計算個人業績
     cursor.execute("""
         SELECT 
-            salesperson, 
-            SUM(amount) as total_sales, 
-            COUNT(*) as order_count,
-            SUM(profit) as total_profit
+            salesperson,
+            SUM(amount) as revenue,
+            SUM(profit) as profit,
+            COUNT(*) as order_count
         FROM sales_history 
-        WHERE date >= '2026-01-01' AND date <= ?
-          AND salesperson NOT IN ('Unknown', '黃柏翰', '')
+        WHERE date >= ? AND date <= ?
+          AND salesperson NOT IN ('莊圍迪', '萬書佑', 'Unknown', '黃柏翰', '')
           AND product_code IS NOT NULL 
           AND product_code != ''
           AND product_code LIKE '%-%'
         GROUP BY salesperson
-        ORDER BY total_sales DESC
-    """, (today,))
+        ORDER BY revenue DESC
+    """, (start_date, end_date))
+    
     sales_rows = cursor.fetchall()
     
-    # 獲取個人目標（從 performance_metrics）
-    cursor.execute("""
-        SELECT subject_name, target_amount
-        FROM performance_metrics 
-        WHERE category = '個人'
-    """)
-    perf_rows = cursor.fetchall()
-    target_map = {row['subject_name']: row['target_amount'] for row in perf_rows}
+    # 從 performance_metrics 讀取目標
+    if period_type == 'monthly':
+        cursor.execute("""
+            SELECT subject_name, target_amount
+            FROM performance_metrics 
+            WHERE category = '個人'
+              AND year = ?
+              AND month = ?
+              AND period_type = 'monthly'
+        """, (year, month))
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '個人'
+              AND year = ?
+              AND month >= ? AND month <= ?
+              AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year, start_month, end_month))
+    else:  # yearly
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '個人'
+              AND year = ?
+              AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year,))
+    
+    target_rows = cursor.fetchall()
+    target_map = {row['subject_name']: row['target_amount'] for row in target_rows}
     
     conn.close()
-    
-    # 過濾掉不需要顯示的人員（主管不列入個人排名）
-    excluded_names = ['莊圍迪', '萬書佑', 'Unknown']
     
     result = []
     rank = 1
@@ -1051,27 +1258,24 @@ def get_personal_performance():
         if name in excluded_names:
             continue
         
-        total_sales = row['total_sales']
-        order_count = row['order_count']
-        total_profit = row['total_profit'] or 0
-        avg_price = total_sales // order_count if order_count > 0 else 0
-        
-        # 即時計算毛利率
-        margin = total_profit / total_sales if total_sales > 0 else 0
-        
-        # 獲取目標
+        revenue = row['revenue'] or 0
+        profit = row['profit'] or 0
+        orders = row['order_count'] or 0
         target = target_map.get(name, 0)
-        achievement = total_sales / target if target > 0 else 0
+        avg = revenue // orders if orders > 0 else 0
         
         result.append({
             'rank': rank,
             'name': name,
-            'total': total_sales,
-            'orders': order_count,
-            'avg': avg_price,
+            'total': revenue,
+            'orders': orders,
+            'avg': avg,
             'target': target,
-            'achievement_rate': achievement,
-            'margin_rate': margin
+            'achievement_rate': revenue / target if target > 0 else 0,
+            'margin_rate': profit / revenue if revenue > 0 else 0,
+            'year': year,
+            'month': month,
+            'period_type': period_type
         })
         rank += 1
     
@@ -1084,11 +1288,33 @@ def get_business_performance():
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # 取得查詢參數（支援 year, month, period_type）
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    period_type = request.args.get('period_type', 'quarterly')
+    
+    # 如果沒有指定年月，預設為本季
+    if year is None:
+        year = datetime.now().year
+    if month is None:
+        month = datetime.now().month
+    
+    # 計算日期範圍
+    if period_type == 'monthly':
+        start_date = f"{year}-{month:02d}-01"
+        end_date = f"{year}-{month:02d}-31"
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        start_date = f"{year}-{start_month:02d}-01"
+        end_date = f"{year}-{end_month:02d}-31"
+    else:  # yearly
+        start_date = f"{year}-01-01"
+        end_date = f"{year}-12-31"
+    
     # 業務部人員列表
     business_staff = ['鄭宇晉', '梁仁佑']
-    
-    # 動態計算到今天日期
-    today = datetime.now().strftime('%Y-%m-%d')
     
     # 獲取業務員即時績效（從 sales_history 計算）
     placeholders = ','.join(['?' for _ in business_staff])
@@ -1098,19 +1324,41 @@ def get_business_performance():
             SUM(amount) as total_sales,
             SUM(profit) as total_profit
         FROM sales_history 
-        WHERE date >= '2026-01-01' AND date <= ?
+        WHERE date >= ? AND date <= ?
           AND salesperson IN ({placeholders})
         GROUP BY salesperson
-    """, [today] + business_staff)
+    """, [start_date, end_date] + business_staff)
     
     sales_rows = cursor.fetchall()
     
-    # 獲取業務員目標
-    cursor.execute("""
-        SELECT subject_name, target_amount
-        FROM performance_metrics 
-        WHERE category = '個人' AND subject_name IN ('鄭宇晉', '梁仁佑')
-    """)
+    # 獲取業務員目標（根據 period_type）
+    if period_type == 'monthly':
+        cursor.execute("""
+            SELECT subject_name, target_amount
+            FROM performance_metrics 
+            WHERE category = '個人' AND subject_name IN ('鄭宇晉', '梁仁佑')
+              AND year = ? AND month = ? AND period_type = 'monthly'
+        """, (year, month))
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '個人' AND subject_name IN ('鄭宇晉', '梁仁佑')
+              AND year = ? AND month >= ? AND month <= ? AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year, start_month, end_month))
+    else:  # yearly
+        cursor.execute("""
+            SELECT subject_name, SUM(target_amount) as target_amount
+            FROM performance_metrics 
+            WHERE category = '個人' AND subject_name IN ('鄭宇晉', '梁仁佑')
+              AND year = ? AND period_type = 'monthly'
+            GROUP BY subject_name
+        """, (year,))
+    
     target_rows = cursor.fetchall()
     target_map = {row['subject_name']: row['target_amount'] for row in target_rows}
     
@@ -1119,7 +1367,7 @@ def get_business_performance():
     result = []
     for row in sales_rows:
         name = row['salesperson']
-        sales = row['total_sales']
+        sales = row['total_sales'] or 0
         profit = row['total_profit'] or 0
         target = target_map.get(name, 0)
         margin = profit / sales if sales > 0 else 0
@@ -1130,7 +1378,10 @@ def get_business_performance():
             'target': target,
             'revenue': sales,
             'achievement_rate': achievement,
-            'margin_rate': margin
+            'margin_rate': margin,
+            'year': year,
+            'month': month,
+            'period_type': period_type
         })
     
     return jsonify(result)
@@ -1368,34 +1619,64 @@ def get_summary():
 # API: 服務記錄統計（本季）
 @app.route('/api/service-records/summary')
 def get_service_records_summary():
+    from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 獲取本季日期範圍
+    # 取得查詢參數
+    year = request.args.get('year', datetime.now().year, type=int)
+    month = request.args.get('month', datetime.now().month, type=int)
+    
+    # 計算當月日期範圍
+    start_date = f"{year}-{month:02d}-01"
+    end_date = f"{year}-{month:02d}-31"
+    
+    # 獲取各業務員服務筆數
     cursor.execute("""
-        SELECT date, salesperson, COUNT(*) as count
+        SELECT salesperson, COUNT(*) as total_count,
+               SUM(CASE WHEN is_contract = 1 THEN 1 ELSE 0 END) as contract_count
         FROM service_records
-        WHERE date >= '2026-01-01' AND date <= '2026-03-31'
-        GROUP BY date, salesperson
-    """)
-    rows = cursor.fetchall()
+        WHERE date >= ? AND date <= ?
+        GROUP BY salesperson
+    """, (start_date, end_date))
+    
+    salesperson_rows = cursor.fetchall()
+    
+    # 獲取服務分類統計
+    cursor.execute("""
+        SELECT service_type, COUNT(*) as count
+        FROM service_records
+        WHERE date >= ? AND date <= ?
+        GROUP BY service_type
+        ORDER BY count DESC
+    """, (start_date, end_date))
+    
+    service_type_rows = cursor.fetchall()
+    
     conn.close()
     
-    # 統計各業務員筆數
-    zhen_count = 0
-    liang_count = 0
+    # 構建回傳格式
+    salesperson_summary = []
+    for row in salesperson_rows:
+        salesperson_summary.append({
+            'salesperson': row['salesperson'],
+            'total_count': row['total_count'],
+            'contract_count': row['contract_count']
+        })
     
-    for row in rows:
-        salesperson = row['salesperson'] if row['salesperson'] else ''
-        if '鄭宇晉' in salesperson:
-            zhen_count += row['count']
-        elif '梁仁佑' in salesperson:
-            liang_count += row['count']
+    service_types = []
+    for row in service_type_rows:
+        service_types.append({
+            'type': row['service_type'],
+            'count': row['count']
+        })
     
     return jsonify({
-        'zhen_count': zhen_count,
-        'liang_count': liang_count,
-        'total_count': zhen_count + liang_count
+        'success': True,
+        'year': year,
+        'month': month,
+        'salesperson_summary': salesperson_summary,
+        'service_types': service_types
     })
 
 # 產品名稱映射表（用於沒有在 inventory 表中的服務類產品與組合品）
@@ -1874,53 +2155,82 @@ def lookup_customer():
 @app.route('/api/customers/search')
 def search_customers():
     """
-    搜尋客戶
-    根據 CUSTOMER_SOURCE 環境變數決定查詢哪張表
+    搜尋客戶 - 加強版
+    支援：名稱模糊匹配、手機、電話、統編、客戶編號
     """
     keyword = request.args.get('keyword', '').strip()
-    
+
     # 檢查 keyword 長度
     if len(keyword) < 2:
         return jsonify({'success': True, 'items': []})
-    
+
     # 如果是純數字，至少 3 碼才查詢
     if keyword.isdigit() and len(keyword) < 3:
         return jsonify({'success': True, 'items': []})
-    
+
     # 決定查詢哪張表
     source_table = get_customer_table_name()
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
+        # 建立搜尋模式：支援部分匹配
+        exact_pattern = f'%{keyword}%'
+        # 移除空白後的模糊匹配（如「黃柏翰」匹配「黃柏翰有限公司」）
+        fuzzy_pattern = f'%{keyword.replace(" ", "").replace("　", "")}%'
+
         if source_table == 'customer_master':
-            # 查詢 customer_master
+            # 查詢 customer_master（加強版）
             cursor.execute("""
-                SELECT 
-                    customer_id, 
-                    short_name, 
-                    mobile, 
-                    phone, 
+                SELECT
+                    customer_id,
+                    short_name,
+                    mobile,
+                    phone,
                     '' as contact,
-                    address as company_address
+                    address as company_address,
+                    tax_id
                 FROM customer_master
-                WHERE short_name LIKE ? OR mobile LIKE ? OR customer_id LIKE ?
-                ORDER BY short_name
+                WHERE short_name LIKE ?
+                   OR short_name LIKE ?
+                   OR mobile LIKE ?
+                   OR phone LIKE ?
+                   OR customer_id LIKE ?
+                   OR tax_id LIKE ?
+                ORDER BY
+                    CASE WHEN short_name = ? THEN 0
+                         WHEN short_name LIKE ? THEN 1
+                         ELSE 2
+                    END,
+                    short_name
                 LIMIT 20
-            """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
+            """, (exact_pattern, fuzzy_pattern, exact_pattern, exact_pattern,
+                  exact_pattern, exact_pattern, keyword, exact_pattern))
         else:
-            # 查詢 customers（舊版相容）
+            # 查詢 customers（舊版加強）
             cursor.execute("""
-                SELECT customer_id, short_name, mobile, phone1, contact, company_address
+                SELECT customer_id, short_name, mobile, phone1, contact,
+                       company_address, tax_id
                 FROM customers
-                WHERE short_name LIKE ? OR mobile LIKE ? OR phone1 LIKE ?
-                ORDER BY short_name
+                WHERE short_name LIKE ?
+                   OR short_name LIKE ?
+                   OR mobile LIKE ?
+                   OR phone1 LIKE ?
+                   OR customer_id LIKE ?
+                   OR tax_id LIKE ?
+                ORDER BY
+                    CASE WHEN short_name = ? THEN 0
+                         WHEN short_name LIKE ? THEN 1
+                         ELSE 2
+                    END,
+                    short_name
                 LIMIT 20
-            """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
-        
+            """, (exact_pattern, fuzzy_pattern, exact_pattern, exact_pattern,
+                  exact_pattern, exact_pattern, keyword, exact_pattern))
+
         rows = cursor.fetchall()
-        
+
         items = []
         for row in rows:
             items.append({
@@ -1929,16 +2239,17 @@ def search_customers():
                 'mobile': row['mobile'] or '',
                 'phone': row['phone1'] if 'phone1' in row.keys() else (row['phone'] or ''),
                 'contact': row['contact'] or '',
-                'address': row['company_address'] or ''
+                'address': row['company_address'] or '',
+                'tax_id': row['tax_id'] or ''
             })
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'items': items,
             'source': CUSTOMER_SOURCE,
             'table': source_table
         })
-        
+
     except Exception as e:
         print(f"[ERROR] search_customers failed: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -5048,6 +5359,116 @@ def admin_customers_source():
     })
 
 
+# ============================================
+
+# ============================================
+# API: 取得目標資料（供目標輸入頁面使用）
+@app.route("/api/targets")
+def get_targets():
+    from datetime import datetime
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    year = request.args.get("year", datetime.now().year, type=int)
+    month = request.args.get("month", datetime.now().month, type=int)
+    
+    # 查詢部門目標
+    cursor.execute("""
+        SELECT subject_name, target_amount
+        FROM performance_metrics
+        WHERE category = "部門" AND year = ? AND month = ? AND period_type = "monthly"
+    """, (year, month))
+    dept_rows = cursor.fetchall()
+    
+    # 查詢門市目標
+    cursor.execute("""
+        SELECT subject_name, target_amount
+        FROM performance_metrics
+        WHERE category = "門市" AND year = ? AND month = ? AND period_type = "monthly"
+    """, (year, month))
+    store_rows = cursor.fetchall()
+    
+    # 查詢個人目標
+    cursor.execute("""
+        SELECT subject_name, target_amount
+        FROM performance_metrics
+        WHERE category = "個人" AND year = ? AND month = ? AND period_type = "monthly"
+    """, (year, month))
+    personal_rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return jsonify({
+        "success": True,
+        "year": year,
+        "month": month,
+        "departments": [{"name": r["subject_name"], "target_amount": r["target_amount"]} for r in dept_rows],
+        "stores": [{"name": r["subject_name"], "target_amount": r["target_amount"]} for r in store_rows],
+        "personal": [{"name": r["subject_name"], "target_amount": r["target_amount"]} for r in personal_rows]
+    })
+
+# API: 儲存目標資料
+@app.route("/api/targets/save", methods=["POST"])
+def save_targets():
+    from datetime import datetime
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        data = request.get_json()
+        year = data.get("year")
+        month = data.get("month")
+        targets = data.get("targets", [])
+        
+        saved_count = 0
+        
+        for target in targets:
+            category = target.get("category")
+            name = target.get("name")
+            amount = target.get("target")
+            
+            # 檢查是否已存在
+            cursor.execute("""
+                SELECT 1 FROM performance_metrics
+                WHERE category = ? AND subject_name = ? AND year = ? AND month = ? AND period_type = 'monthly'
+            """, (category, name, year, month))
+            
+            existing = cursor.fetchone()
+            
+            if existing:
+                # 更新現有記錄
+                cursor.execute("""
+                    UPDATE performance_metrics
+                    SET target_amount = ?, updated_at = datetime('now', 'localtime')
+                    WHERE category = ? AND subject_name = ? AND year = ? AND month = ? AND period_type = 'monthly'
+                """, (amount, category, name, year, month))
+            else:
+                # 插入新記錄
+                cursor.execute("""
+                    INSERT INTO performance_metrics
+                    (category, subject_name, target_amount, revenue_amount, profit_amount, 
+                     achievement_rate, margin_rate, year, month, period_type, updated_at)
+                    VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, 'monthly', datetime('now', 'localtime'))
+                """, (category, name, amount, year, month))
+            
+            saved_count += 1
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "saved_count": saved_count,
+            "message": f"成功儲存 {saved_count} 筆目標"
+        })
+        
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+
 # 啟動時記錄系統啟動事件（使用 app_context 取代 before_first_request）
 def record_startup():
     with app.app_context():
@@ -5096,4 +5517,297 @@ if __name__ == '__main__':
         import sys
         sys.exit(1)
 
+
 # ============================================
+# API: 員工管理
+# ============================================
+
+@app.route("/api/staff")
+def get_staff_list():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT staff_id as id, staff_code, name, department, store, role,
+               phone, mobile, birth_date, hire_date, is_active, id_number
+        FROM staff
+        ORDER BY department, store, name
+    """)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return jsonify({
+        "success": True,
+        "data": [{
+            "id": r["id"],
+            "staff_code": r["staff_code"],
+            "name": r["name"],
+            "department": r["department"],
+            "store": r["store"],
+            "role": r["role"],
+            "phone": r["phone"],
+            "mobile": r["mobile"],
+            "birth_date": r["birth_date"],
+            "hire_date": r["hire_date"],
+            "is_active": bool(r["is_active"]),
+            "id_number": r["id_number"]
+        } for r in rows]
+    })
+
+@app.route("/api/staff", methods=["POST"])
+def create_staff():
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO staff (staff_id, staff_code, name, department, store, role, mobile,
+                               birth_date, hire_date, is_active, id_number, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime("now", "localtime"), datetime("now", "localtime"))
+        """, (
+            data.get("staff_code"),
+            data.get("staff_code"),
+            data.get("name"),
+            data.get("department"),
+            data.get("store"),
+            data.get("role"),
+            data.get("mobile"),
+            data.get("birth_date"),
+            data.get("hire_date"),
+            1 if data.get("is_active") else 0,
+            data.get("id_number")
+        ))
+
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "員工新增成功"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/staff/<staff_id>", methods=["PUT"])
+def update_staff(staff_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE staff
+            SET staff_code = ?, name = ?, department = ?, store = ?, role = ?, mobile = ?,
+                birth_date = ?, hire_date = ?, is_active = ?, id_number = ?, updated_at = datetime("now", "localtime")
+            WHERE staff_id = ?
+        """, (
+            data.get("staff_code"),
+            data.get("name"),
+            data.get("department"),
+            data.get("store"),
+            data.get("role"),
+            data.get("mobile"),
+            data.get("birth_date"),
+            data.get("hire_date"),
+            1 if data.get("is_active") else 0,
+            data.get("id_number"),
+            staff_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "員工更新成功"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/staff/<staff_id>", methods=["DELETE"])
+def delete_staff(staff_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("DELETE FROM staff WHERE staff_id = ?", (staff_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "員工刪除成功"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/staff/<staff_id>/password", methods=["PUT"])
+def update_staff_password(staff_id):
+    """更新員工密碼"""
+    data = request.get_json()
+    new_password = data.get("password")
+
+    if not new_password or len(new_password) < 4:
+        return jsonify({"success": False, "error": "密碼長度至少需要4個字符"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE staff
+            SET password = ?, updated_at = datetime("now", "localtime")
+            WHERE staff_id = ?
+        """, (new_password, staff_id))
+
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "密碼更新成功"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
+# API: 系統公告
+# ============================================
+
+@app.route("/api/system/announcements")
+def get_system_announcements():
+    """取得系統公告列表"""
+    from datetime import datetime
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    cursor.execute("""
+        SELECT id, title, content, level, is_pinned, created_at
+        FROM system_announcements
+        WHERE is_active = 1
+          AND (expires_at IS NULL OR expires_at > ?)
+        ORDER BY is_pinned DESC, created_at DESC
+    """, (now,))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({
+        "success": True,
+        "items": [{
+            "id": r["id"],
+            "title": r["title"],
+            "content": r["content"],
+            "level": r["level"],
+            "is_pinned": bool(r["is_pinned"]),
+            "created_at": r["created_at"]
+        } for r in rows]
+    })
+
+@app.route("/api/system/announcements", methods=["POST"])
+def create_system_announcement():
+    """新增系統公告（管理員）"""
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO system_announcements 
+            (title, content, level, is_pinned, expires_at, created_by, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime("now", "localtime"))
+        """, (
+            data.get("title"),
+            data.get("content"),
+            data.get("level", "info"),
+            1 if data.get("is_pinned") else 0,
+            data.get("expires_at"),
+            data.get("created_by", "admin")
+        ))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "公告新增成功"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/system/announcements/<int:announcement_id>", methods=["PUT"])
+def update_system_announcement(announcement_id):
+    """更新系統公告"""
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE system_announcements
+            SET title = ?, content = ?, level = ?, is_pinned = ?, 
+                is_active = ?, expires_at = ?
+            WHERE id = ?
+        """, (
+            data.get("title"),
+            data.get("content"),
+            data.get("level"),
+            1 if data.get("is_pinned") else 0,
+            1 if data.get("is_active", True) else 0,
+            data.get("expires_at"),
+            announcement_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "公告更新成功"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/system/announcements/<int:announcement_id>", methods=["DELETE"])
+def delete_system_announcement(announcement_id):
+    """刪除系統公告（軟刪除：設為 is_active=0）"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE system_announcements
+            SET is_active = 0
+            WHERE id = ?
+        """, (announcement_id,))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "公告已關閉"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/system/announcements/all")
+def get_all_system_announcements():
+    """取得所有系統公告（管理員用，包含已停用）"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT id, title, content, level, is_active, is_pinned, created_at, expires_at
+        FROM system_announcements
+        ORDER BY is_pinned DESC, created_at DESC
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({
+        "success": True,
+        "items": [{
+            "id": r["id"],
+            "title": r["title"],
+            "content": r["content"],
+            "level": r["level"],
+            "is_active": bool(r["is_active"]),
+            "is_pinned": bool(r["is_pinned"]),
+            "created_at": r["created_at"],
+            "expires_at": r["expires_at"]
+        } for r in rows]
+    })

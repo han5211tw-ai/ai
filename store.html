@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>門市業績分析 - 電腦舖營運系統</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -13,11 +15,11 @@
             min-height: 100vh;
             color: #fff;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px 40px; }
         h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 30px;
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
             background: linear-gradient(90deg, #00d4ff, #7b2cbf);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -25,9 +27,9 @@
         }
         .nav {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 40px;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
         .nav a {
@@ -50,8 +52,8 @@
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
         .card h2 {
             color: #00d4ff;
@@ -136,7 +138,6 @@
         }
         .back-link:hover { text-decoration: underline; }
     </style>
-    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -144,11 +145,7 @@
         
         <div class="nav">
             <a href="index.html">🏠 首頁</a>
-            <a href="department.html">🏢 部門</a>
-            <a href="business.html">💼 業務</a>
             <a href="personal.html">🧑‍💼 個人</a>
-            <a href="roster.html">📅 班表</a>
-            <a href="customer_search.html">🔍 客戶</a>
         </div>
 
         <div class="stats-grid" id="reviewStats">
@@ -177,16 +174,6 @@
                     <canvas id="marginChart"></canvas>
                 </div>
             </div>
-        </div>
-
-        <div class="card">
-            <h2>🤖 AI 分析</h2>
-            <div id="analysis" style="white-space: pre-line; line-height: 1.8; color: #ccd6f6;">
-                <div class="loading">載入分析中...</div>
-            </div>
-            <p style="margin-top: 15px; color: #8892b0; font-size: 0.85em;">
-                最後更新：<span id="analysisTime">--</span>
-            </p>
         </div>
 
         <a href="index.html" class="back-link">← 返回首頁</a>
@@ -229,6 +216,17 @@
                 `).join('');
                 document.getElementById('reviewStats').innerHTML = reviewHtml;
                 
+                // 處理 API 回傳格式（支援陣列或物件）
+                const rawData = Array.isArray(perfData) ? perfData : (perfData.data || []);
+                
+                // 定義門市排序
+                const storeOrder = ['豐原', '潭子', '大雅'];
+                
+                // 按指定順序排序
+                const storeData = storeOrder.map(name => {
+                    return rawData.find(s => (s.store_name || s.name || '').includes(name));
+                }).filter(s => s); // 過濾掉 undefined
+                
                 // 填充表格
                 const tableHtml = `
                     <table>
@@ -243,14 +241,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${perfData.map(row => {
+                            ${storeData.map(row => {
                                 const ach = row.achievement_rate * 100;
                                 let achClass = 'ach-danger';
                                 if (ach >= 80) achClass = 'ach-excellent';
                                 else if (ach >= 60) achClass = 'ach-good';
                                 else if (ach >= 40) achClass = 'ach-warning';
                                 
-                                const supervisionScore = supervisionMap[row.name.replace('門市', '')] || 0;
+                                const storeName = row.store_name || row.name || '';
+                                const supervisionScore = supervisionMap[storeName] || 0;
                                 let supClass = 'ach-danger';
                                 if (supervisionScore >= 90) supClass = 'ach-excellent';
                                 else if (supervisionScore >= 70) supClass = 'ach-good';
@@ -258,7 +257,7 @@
                                 
                                 return `
                                 <tr>
-                                    <td class="highlight">${row.name}</td>
+                                    <td class="highlight">${storeName}</td>
                                     <td class="number">${formatMoney(row.target)}</td>
                                     <td class="number">${formatMoney(row.revenue)}</td>
                                     <td class="number ${achClass}">${ach.toFixed(2)}%</td>
@@ -276,14 +275,15 @@
                 new Chart(ctx1, {
                     type: 'bar',
                     data: {
-                        labels: perfData.map(d => d.name),
+                        labels: storeData.map(d => d.store_name || d.name),
                         datasets: [{
                             label: '達成率 (%)',
-                            data: perfData.map(d => d.achievement_rate * 100),
-                            backgroundColor: perfData.map(d => {
-                                if (d.name.includes('豐原')) return '#ff9800';
-                                if (d.name.includes('潭子')) return '#9c27b0';
-                                if (d.name.includes('大雅')) return '#4caf50';
+                            data: storeData.map(d => d.achievement_rate * 100),
+                            backgroundColor: storeData.map(d => {
+                                const name = d.store_name || d.name || '';
+                                if (name.includes('豐原')) return '#ff9800';
+                                if (name.includes('潭子')) return '#9c27b0';
+                                if (name.includes('大雅')) return '#4caf50';
                                 return '#00d4ff';
                             }),
                             borderRadius: 8,
@@ -314,14 +314,15 @@
                 new Chart(ctx2, {
                     type: 'bar',
                     data: {
-                        labels: perfData.map(d => d.name),
+                        labels: storeData.map(d => d.store_name || d.name),
                         datasets: [{
                             label: '毛利率 (%)',
-                            data: perfData.map(d => d.margin_rate * 100),
-                            backgroundColor: perfData.map(d => {
-                                if (d.name.includes('豐原')) return '#ff9800';
-                                if (d.name.includes('潭子')) return '#9c27b0';
-                                if (d.name.includes('大雅')) return '#4caf50';
+                            data: storeData.map(d => d.margin_rate * 100),
+                            backgroundColor: storeData.map(d => {
+                                const name = d.store_name || d.name || '';
+                                if (name.includes('豐原')) return '#ff9800';
+                                if (name.includes('潭子')) return '#9c27b0';
+                                if (name.includes('大雅')) return '#4caf50';
                                 return '#00d4ff';
                             }),
                             borderRadius: 8,
@@ -346,12 +347,6 @@
                     }
                 });
 
-                // 載入 AI 分析
-                const analysisResponse = await fetch('/api/analysis/store');
-                const analysisData = await analysisResponse.json();
-                document.getElementById('analysis').textContent = analysisData.content;
-                document.getElementById('analysisTime').textContent = analysisData.last_update;
-
             } catch (error) {
                 console.error('載入門市資料失敗:', error);
                 document.getElementById('storeTable').innerHTML = '<div class="loading">載入失敗</div>';
@@ -360,5 +355,4 @@
 
         loadStoreData();
     </script>
-<script>window.PAGE_VERSION="1.1";window.PAGE_CHANGELOG=[{version:"1.1",text:"導航列優化：移除當前頁面連結","date":"2026-03-01"},{"version":"1.0","text":"初始版本發布","date":"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

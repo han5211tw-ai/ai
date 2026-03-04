@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>老闆專屬控制台 - 電腦舖營運系統</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -13,27 +15,27 @@
             min-height: 100vh;
             color: #fff;
         }
-        .container { max-width: 100%; margin: 0 auto; padding: 40px 60px; }
+        .container { max-width: 100%; margin: 0 auto; padding: 20px 40px; }
         h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
             background: linear-gradient(90deg, #ffd700, #ff6b6b);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .subtitle {
-            text-align: center;
+            text-align: left;
             color: #8892b0;
-            margin-bottom: 40px;
-            font-size: 1.1em;
+            margin-bottom: 20px;
+            font-size: 0.9em;
         }
         .nav {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 40px;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
         .nav a {
@@ -53,8 +55,8 @@
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
         .card h2 {
             color: #00d4ff;
@@ -255,7 +257,6 @@
             padding: 40px;
         }
     </style>
-    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
@@ -264,17 +265,15 @@
 
         <div class="nav">
             <a href="index.html">🏠 首頁</a>
+            <a href="monthly_report.html">📊 月報</a>
             <a href="Store_Manager.html">🏬 主管</a>
             <a href="Accountants.html">🧮 會計</a>
             <a href="department.html">🏢 部門</a>
             <a href="store.html">🏬 門市</a>
             <a href="business.html">💼 業務</a>
             <a href="personal.html">🧑‍💼 個人</a>
-            <a href="roster.html">📅 班表</a>
-            <a href="customer_search.html">🔍 客戶</a>
             <a href="staging_center_v2.html">📋 待建檔</a>
-            <a href="admin/health.html" id="healthLink">🔧 系統健康</a>
-            <a href="admin.html" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 107, 0.2)); border-color: #ffd700; color: #ffd700;">⚙️ 後台管理</a>
+            <a href="admin.html" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 107, 0.2)); border-color: #ffd700; color: #ffd700;">⚙️ 系統管理中心</a>
         </div>
 
         <!-- 整體營收 -->
@@ -324,17 +323,6 @@
                 <div id="storeTable">
                     <div class="loading">載入中...</div>
                 </div>
-            </div>
-        </div>
-
-        <!-- 整體營業分析 -->
-        <div class="card">
-            <h2>📊 整體營業分析（每日 20:00 自動生成）</h2>
-            <div id="analysisContent">
-                <div class="loading">載入中...</div>
-            </div>
-            <div class="update-time">
-                分析時間：<span id="analysisTime">--</span>
             </div>
         </div>
 
@@ -435,7 +423,16 @@
         async function loadStorePerformance() {
             try {
                 const response = await fetch('/api/performance/store');
-                const data = await response.json();
+                const result = await response.json();
+                
+                // 處理 API 回傳格式（支援陣列或物件）
+                const data = Array.isArray(result) ? result : (result.data || []);
+                
+                // 定義門市排序：豐原、潭子、大雅
+                const storeOrder = ['豐原', '潭子', '大雅'];
+                const sortedData = storeOrder.map(name => {
+                    return data.find(s => (s.store_name || s.name || '').includes(name));
+                }).filter(s => s);
                 
                 const html = `
                     <table>
@@ -449,9 +446,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${data.map(row => `
+                            ${sortedData.map(row => `
                                 <tr>
-                                    <td>${row.name}</td>
+                                    <td>${row.store_name || row.name}</td>
                                     <td>${formatMoney(row.target)}</td>
                                     <td>${formatMoney(row.revenue)}</td>
                                     <td>${(row.achievement_rate * 100).toFixed(1)}%</td>
@@ -465,45 +462,6 @@
             } catch (error) {
                 console.error('載入門市業績失敗:', error);
                 document.getElementById('storeTable').innerHTML = '<div class="empty-state">載入失敗</div>';
-            }
-        }
-
-        // 載入營業分析
-        async function loadAnalysis() {
-            try {
-                // 同時載入三個分析
-                const [deptRes, storeRes, personalRes] = await Promise.all([
-                    fetch('/api/analysis/department'),
-                    fetch('/api/analysis/store'),
-                    fetch('/api/analysis/personal')
-                ]);
-                
-                const deptData = await deptRes.json();
-                const storeData = await storeRes.json();
-                const personalData = await personalRes.json();
-                
-                // 使用最新的更新時間
-                const lastUpdate = deptData.last_update || storeData.last_update || personalData.last_update;
-                document.getElementById('analysisTime').textContent = lastUpdate || '未生成';
-                
-                const html = `
-                    <div class="highlight-box">
-                        <div class="highlight-title">🏢 部門分析</div>
-                        <div class="highlight-content">${deptData.content || '暫無分析資料'}</div>
-                    </div>
-                    <div class="highlight-box">
-                        <div class="highlight-title">🏬 門市分析</div>
-                        <div class="highlight-content">${storeData.content || '暫無分析資料'}</div>
-                    </div>
-                    <div class="highlight-box">
-                        <div class="highlight-title">🧑‍💼 個人業績分析</div>
-                        <div class="highlight-content">${personalData.content || '暫無分析資料'}</div>
-                    </div>
-                `;
-                document.getElementById('analysisContent').innerHTML = html;
-            } catch (error) {
-                console.error('載入分析失敗:', error);
-                document.getElementById('analysisContent').innerHTML = '<div class="empty-state">分析資料載入失敗</div>';
             }
         }
 
@@ -727,7 +685,6 @@
         loadOrderCount();
         loadDeptPerformance();
         loadStorePerformance();
-        loadAnalysis();
         loadNeeds();
         loadHealthStatus();
 
@@ -754,5 +711,4 @@
             }
         }
     </script>
-<script>window.PAGE_VERSION="1.0";window.PAGE_CHANGELOG=[{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

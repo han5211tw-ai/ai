@@ -12,6 +12,8 @@
     <title>外勤服務紀錄 - 電腦舖</title>
     <link rel="stylesheet" href="shared/auth_ui.css">
     <script src="shared/auth_ui.js?v=20250303-1402"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { overflow-x: hidden; }
@@ -20,16 +22,22 @@
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
             min-height: 100vh;
             color: #fff;
-            padding: 20px;
+            padding: 20px 40px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
         h1 {
-            text-align: center;
-            font-size: 2em;
-            margin-bottom: 20px;
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
             background: linear-gradient(90deg, #00d4ff, #7b2cbf);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: left;
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
         }
         .login-section, .form-section, .view-section { display: none; }
         .login-section.active { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -260,19 +268,19 @@
         @media (max-width: 768px) {
             .form-row { grid-template-columns: 1fr; }
             body { padding: 10px; }
-            h1 { font-size: 1.5em; }
         }
     </style>
-    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
+        <h1>📋 外勤服務紀錄</h1>
+        <p class="subtitle">外勤服務紀錄提交</p>
         
         <!-- 表單區塊（僅可編輯人員顯示）-->
         <div class="form-section" id="formSection" style="display:none;">
             <div class="user-info">
                 <div>填表人：<span id="userName">-</span>｜單位：<span id="userDept">-</span></div>
-                <button class="btn btn-logout" onclick="logout()">重新登入</button>
+                <button class="btn btn-logout" onclick="logout()" style="padding:5px 15px;font-size:0.85em;">重新登入</button>
             </div>
             
             <div class="card">
@@ -1388,5 +1396,4 @@
             setTimeout(() => toast.style.display = 'none', 3000);
         }
     </script>
-<script>window.PAGE_VERSION="1.4";window.PAGE_CHANGELOG=[{version:"1.4",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"1.3",text:"UI統一：登入頁面標題簡化、移除身分證標籤、按鈕樣式與顏色統一、背景色統一",date:"2026-03-01"},{version:"1.2",text:"新客戶自動進入待建檔中心",date:"2026-02-28"},{version:"1.1",text:"萬書佑唯讀模式新增人員篩選功能",date:"2026-02-28"},{version:"1.0",text:"初始版本發布",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>
