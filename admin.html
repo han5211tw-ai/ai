@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <!--
   File: admin.html
-  Version: 20250303-1400
+  Version: 20250304-1845
   ChangeLog:
+    - 20250304-1845: 新增「業績目標管理」連結，移除 AI 分析功能
     - 20250304: 系統架構圖連結改為 V3 版本 (system_map_v3.html)
     - 20250303: 左側欄新增「系統架構圖」捷徑連結
     - 20250303: 更新 auth_ui.js 版本號支援自動過期
@@ -12,9 +13,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>資料管理中心 | 電腦舖</title>
-    <link rel="stylesheet" href="version-component.css">
     <link rel="stylesheet" href="shared/auth_ui.css">
     <script src="shared/auth_ui.js?v=20250303-1402"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -451,7 +453,7 @@
     <div id="dashboard" class="dashboard" style="display:none;">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>📊 資料管理中心 <span style="font-size:0.7rem;color:#64748b;font-family:monospace;">v1.20</span></h2>
+                <h2>⚙️ 系統管理中心 <span style="font-size:0.7rem;color:#64748b;font-family:monospace;">v1.20</span></h2>
                 <div class="user-info">
                     <span id="adminName">-</span> | <a href="#" onclick="logout()" style="color:#94a3b8;">登出</a>
                 </div>
@@ -503,13 +505,25 @@
             
             <div class="nav-section">
                 <div class="nav-title">系統</div>
-                <a class="nav-item" onclick="showPage('staff')">
+                <a class="nav-item" onclick="window.open('/admin/announcement_management.html', '_blank')">
+                    <span class="icon">📢</span>系統公告
+                    <span class="table-name">announcements</span>
+                </a>
+                <a class="nav-item" onclick="window.open('/target_input.html', '_blank')">
+                    <span class="icon">🎯</span>業績目標
+                    <span class="table-name">target_input.html</span>
+                </a>
+                <a class="nav-item" onclick="window.open('/staff_management.html', '_blank')">
                     <span class="icon">👤</span>員工管理
                     <span class="table-name">staff</span>
                 </a>
                 <a class="nav-item" onclick="showPage('audit_log')">
                     <span class="icon">📋</span>操作日誌
                     <span class="table-name">admin_audit_log</span>
+                </a>
+                <a class="nav-item" href="/admin/health.html" target="_blank">
+                    <span class="icon">🔧</span>系統健康
+                    <span class="table-name">admin/health.html</span>
                 </a>
                 <a class="nav-item" href="/system_map_v3.html" onclick="window.location.href='/system_map_v3.html?v=' + Date.now(); return false;">
                     <span class="icon">🗺️</span>系統架構圖 V3
@@ -661,7 +675,13 @@
             sidebar.addEventListener('click', (e) => {
                 const item = e.target.closest('.nav-item');
                 if (!item) return;
-                
+
+                // 檢查是否有 href 屬性（外部連結），如果有則不阻止預設行為
+                const href = item.getAttribute('href');
+                if (href && !href.startsWith('#')) {
+                    return; // 讓瀏覽器處理外部連結
+                }
+
                 e.preventDefault();
                 const page = item.dataset.page;
                 if (!page) {
@@ -675,7 +695,7 @@
                     }
                     return;
                 }
-                
+
                 openPage(page, item);
             });
             
@@ -2235,5 +2255,4 @@
             loadAuditSummary();
         }
     </script>
-<script>window.PAGE_VERSION="1.1";window.PAGE_CHANGELOG=[{version:"1.1",text:"改用共用登入元件 auth_ui.js，統一登入流程與介面",date:"2026-03-03"},{version:"1.0",text:"Admin Center UI統一：登入頁面標題與按鈕樣式統一、背景色與其他頁面一致、加入版本號組件",date:"2026-03-01"},{version:"0.9",text:"sales_history去重機制升級：改為source_file+source_row為主鍵、移除舊idx_sales_unique索引、防重複匯入機制",date:"2026-03-01"},{version:"0.8",text:"新增sales_history_deleted_backup備份表、清理測試資料",date:"2026-03-01"},{version:"0.7",text:"Flask port固定為3000、Admin API路由修正",date:"2026-03-01"},{version:"0.6",text:"新增id/source_file/source_row/import_key欄位、建立migration腳本",date:"2026-03-01"},{version:"0.5",text:"初始版本：稽核儀表、資料管理、交易紀錄查看功能",date:"2026-02-28"}];</script><script src="version-component.js"></script></body>
 </html>

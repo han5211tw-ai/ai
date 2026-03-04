@@ -5,29 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>電腦舖營運系統</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
             min-height: 100vh;
             color: #fff;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px 40px; }
         h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
             background: linear-gradient(90deg, #00d4ff, #7b2cbf);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .subtitle {
-            text-align: center;
+            text-align: left;
             color: #8892b0;
-            margin-bottom: 50px;
-            font-size: 1.1em;
+            margin-bottom: 20px;
+            font-size: 0.9em;
         }
         .section-title {
             color: #00d4ff;
@@ -43,13 +44,27 @@
             gap: 12px;
             margin-bottom: 50px;
         }
+        .btn-grid.four-items {
+            grid-template-columns: repeat(4, 1fr);
+        }
         @media (max-width: 1100px) {
             .btn-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
+            .btn-grid.four-items {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        @media (max-width: 900px) {
+            .btn-grid.four-items {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
         @media (max-width: 600px) {
             .btn-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .btn-grid.four-items {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
@@ -75,6 +90,70 @@
         .btn-icon { font-size: 2em; margin-bottom: 10px; }
         .btn-title { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; color: #fff; }
         .btn-desc { font-size: 0.9em; color: #8892b0; }
+        
+        /* 公告欄樣式 */
+        .announcement-board {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .announcement-item {
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            border-left: 4px solid;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .announcement-item:last-child {
+            margin-bottom: 0;
+        }
+        .announcement-item.info {
+            border-left-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+        .announcement-item.warning {
+            border-left-color: #ffc107;
+            background: rgba(255, 193, 7, 0.05);
+        }
+        .announcement-item.urgent {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.05);
+        }
+        .announcement-item.pinned {
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        .announcement-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .announcement-content {
+            color: #ccd6f6;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        .announcement-meta {
+            color: #8892b0;
+            font-size: 0.8em;
+            margin-top: 8px;
+        }
+        .level-icon {
+            font-size: 0.9em;
+        }
+        .pinned-badge {
+            background: linear-gradient(90deg, #ffd700, #ff6b35);
+            color: #000;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        
         .chart-section {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -141,59 +220,64 @@
         }
     </style>
     <!-- Version: v1.0 | Last Updated: 2026-02-28 -->
-    <link rel="stylesheet" href="version-component.css">
 </head>
 <body>
     <div class="container">
         <h1>🖥️ 電腦舖營運系統</h1>
-        <p class="subtitle">Operations System v.1.2</p>
+        <p class="subtitle">Operations System v1.3</p>
 
-        <div class="section-title">📊 分析與資訊</div>
-        <div class="btn-grid">
-            <a href="department.html" class="btn-card">
-                <div class="btn-icon">🏢</div>
-                <div class="btn-title">部門</div>
-                <div class="btn-desc">達成率、毛利率、業績表</div>
+        <!-- 系統公告欄 -->
+        <div class="section-title">📢 系統公告</div>
+        <div id="announcementBoard" class="announcement-board">
+            <div class="loading">載入公告中...</div>
+        </div>
+
+        <div class="section-title">📂 功能表單</div>
+        <div class="btn-grid four-items">
+            <a href="needs_input.html" class="btn-card" target="_blank">
+                <div class="btn-icon">📝</div>
+                <div class="btn-title">請購調撥需求</div>
             </a>
-            <a href="store.html" class="btn-card">
-                <div class="btn-icon">🏬</div>
-                <div class="btn-title">門市</div>
-                <div class="btn-desc">達成率、毛利率、評論數</div>
-            </a>
-            <a href="business.html" class="btn-card">
-                <div class="btn-icon">💼</div>
-                <div class="btn-title">業務</div>
-                <div class="btn-desc">達成率、毛利率、出勤數</div>
-            </a>
-            <a href="personal.html" class="btn-card">
-                <div class="btn-icon">🧑‍💼</div>
-                <div class="btn-title">個人</div>
-                <div class="btn-desc">達成率、業績表、毛利率</div>
+            <a href="customer_search.html" class="btn-card">
+                <div class="btn-icon">🔍</div>
+                <div class="btn-title">客戶查詢</div>
             </a>
             <a href="roster.html" class="btn-card">
                 <div class="btn-icon">📅</div>
                 <div class="btn-title">班表</div>
-                <div class="btn-desc">人員排班與出勤管理</div>
-            </a>
-            <a href="customer_search.html" class="btn-card">
-                <div class="btn-icon">🔍</div>
-                <div class="btn-title">客戶</div>
-                <div class="btn-desc">查詢客戶資料與消費紀錄</div>
-            </a>
-        </div>
-
-        <div class="section-title">📂 工作表單</div>
-        <div class="btn-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 600px; margin-left: auto; margin-right: auto;">
-            <a href="needs_input.html" class="btn-card" target="_blank">
-                <div class="btn-icon">📝</div>
-                <div class="btn-title">需求表</div>
-                <div class="btn-desc">請購與調撥需求提交</div>
             </a>
             <a href="https://1drv.ms/x/c/6480de932f72b94e/IQCdDxO_Nke0SYeYjet7Z1ZhAevA1hWTrfGgCJ8EQc6SMT8?e=8uxM9p" class="btn-card" target="_blank">
                 <div class="btn-icon">✅</div>
                 <div class="btn-title">LINE 回覆紀錄</div>
-                <div class="btn-desc">客服對話與回覆統計</div>
             </a>
+        </div>
+
+        <div class="section-title">📊 資訊分析</div>
+        <div class="btn-grid four-items">
+            <a href="department.html" class="btn-card">
+                <div class="btn-icon">🏢</div>
+                <div class="btn-title">部門</div>
+            </a>
+            <a href="store.html" class="btn-card">
+                <div class="btn-icon">🏬</div>
+                <div class="btn-title">門市</div>
+            </a>
+            <a href="business.html" class="btn-card">
+                <div class="btn-icon">💼</div>
+                <div class="btn-title">業務</div>
+            </a>
+            <a href="personal.html" class="btn-card">
+                <div class="btn-icon">🧑‍💼</div>
+                <div class="btn-title">個人</div>
+            </a>
+        </div>
+
+        <!-- 採購需求表 -->
+        <div class="chart-section" style="margin-top: 40px;">
+            <div class="section-title">🛒 待處理需求清單</div>
+            <div id="needsTable">
+                <div style="color: #8892b0; text-align: center; padding: 40px;">載入中...</div>
+            </div>
         </div>
 
         <div class="stats-row">
@@ -221,14 +305,6 @@
             <div class="section-title">📈 本季每日銷售金額趨勢（2026 Q1）</div>
             <div class="chart-container">
                 <canvas id="salesChart"></canvas>
-            </div>
-        </div>
-
-        <!-- 採購需求表 -->
-        <div class="chart-section" style="margin-top: 40px;">
-            <div class="section-title">🛒 待處理需求清單</div>
-            <div id="needsTable">
-                <div style="color: #8892b0; text-align: center; padding: 40px;">載入中...</div>
             </div>
         </div>
 
@@ -389,10 +465,52 @@
             }
         }
 
+        // 載入系統公告
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch('/api/system/announcements');
+                const data = await res.json();
+
+                const board = document.getElementById('announcementBoard');
+
+                if (!data.success) {
+                    board.innerHTML = '<div style="color: #8892b0; text-align: center;">載入失敗</div>';
+                    return;
+                }
+
+                if (!data.items || data.items.length === 0) {
+                    board.innerHTML = '<div style="color: #8892b0; text-align: center;">暫無公告</div>';
+                    return;
+                }
+                
+                const levelIcons = {
+                    'info': '🔵',
+                    'warning': '🟡',
+                    'urgent': '🔴'
+                };
+                
+                board.innerHTML = data.items.map(item => `
+                    <div class="announcement-item ${item.level} ${item.is_pinned ? 'pinned' : ''}">
+                        <div class="announcement-title">
+                            <span class="level-icon">${levelIcons[item.level] || '🔵'}</span>
+                            ${item.title}
+                            ${item.is_pinned ? '<span class="pinned-badge">置頂</span>' : ''}
+                        </div>
+                        <div class="announcement-content">${item.content}</div>
+                        <div class="announcement-meta">${new Date(item.created_at).toLocaleString('zh-TW')}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('載入公告失敗:', e);
+                document.getElementById('announcementBoard').innerHTML = '<div style="color: #8892b0; text-align: center;">載入失敗</div>';
+            }
+        }
+
         // 載入資料
         loadSummary();
         loadChart();
         loadNeeds();
+        loadAnnouncements();
 
         // 每 1 小時自動重新整理（3600000 毫秒）
         setInterval(() => {
@@ -406,6 +524,5 @@
             { version: '1.0', text: '初始版本發布', date: '2026-02-28' }
         ];
     </script>
-    <script src="version-component.js"></script>
 </body>
 </html>

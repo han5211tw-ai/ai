@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統公告管理 - 電腦舖營運系統</title>
+    <link rel="stylesheet" href="../shared/global-background.css">
+    <script src="../shared/global-background.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px 40px; }
+        h1 {
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            text-align: left;
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover {
+            color: #00d4ff;
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background: #4caf50;
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #45a049;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        .btn-warning {
+            background: #ff9800;
+            color: #fff;
+        }
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        td { color: #ccd6f6; }
+        tr:hover { background: rgba(255, 255, 255, 0.03); }
+        .input-field, .textarea-field, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1em;
+        }
+        .input-field:focus, .textarea-field:focus, select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .textarea-field {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .level-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        .level-info { background: rgba(0, 212, 255, 0.2); color: #00d4ff; }
+        .level-warning { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .level-urgent { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .status-active { color: #4caf50; }
+        .status-inactive { color: #f44336; }
+        .pinned-icon { color: #ffd700; margin-left: 5px; }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: #8892b0;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        .message {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.success {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            display: block;
+        }
+        .message.error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid #f44336;
+            color: #f44336;
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📢 系統公告管理</h1>
+        <div class="subtitle">管理系統公告、通知與提醒</div>
+        
+        <div class="nav">
+            <a href="/">🏠 首頁</a>
+            <a href="/admin.html">⚙️ 資料管理中心</a>
+        </div>
+
+        <div id="messageBox" class="message"></div>
+
+        <!-- 新增公告 -->
+        <div class="card">
+            <h2>➕ 新增公告</h2>
+            <div class="form-group">
+                <label>標題</label>
+                <input type="text" id="newTitle" class="input-field" placeholder="輸入公告標題">
+            </div>
+            <div class="form-group">
+                <label>內容</label>
+                <textarea id="newContent" class="textarea-field" placeholder="輸入公告內容"></textarea>
+            </div>
+            <div class="form-group">
+                <label>等級</label>
+                <select id="newLevel">
+                    <option value="info">🔵 一般資訊 (info)</option>
+                    <option value="warning">🟡 警告提醒 (warning)</option>
+                    <option value="urgent">🔴 重要緊急 (urgent)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>到期時間（選填）</label>
+                <input type="datetime-local" id="newExpires" class="input-field">
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="newPinned">
+                    <label for="newPinned">置頂公告</label>
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="createAnnouncement()">發布公告</button>
+        </div>
+
+        <!-- 公告列表 -->
+        <div class="card">
+            <h2>📋 公告列表</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>等級</th>
+                        <th>標題</th>
+                        <th>置頂</th>
+                        <th>建立時間</th>
+                        <th>到期時間</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="announcementTable">
+                    <tr><td colspan="6" class="loading">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 編輯公告彈窗 -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal">
+            <h3>編輯公告</h3>
+            <input type="hidden" id="editId">
+            <div class="form-group">
+                <label>標題</label>
+                <input type="text" id="editTitle" class="input-field">
+            </div>
+            <div class="form-group">
+                <label>內容</label>
+                <textarea id="editContent" class="textarea-field"></textarea>
+            </div>
+            <div class="form-group">
+                <label>等級</label>
+                <select id="editLevel">
+                    <option value="info">🔵 一般資訊</option>
+                    <option value="warning">🟡 警告提醒</option>
+                    <option value="urgent">🔴 重要緊急</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>到期時間</label>
+                <input type="datetime-local" id="editExpires" class="input-field">
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="editPinned">
+                    <label for="editPinned">置頂公告</label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal()">取消</button>
+                <button class="btn btn-success" onclick="saveEdit()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 顯示訊息
+        function showMessage(text, type) {
+            const box = document.getElementById('messageBox');
+            box.textContent = text;
+            box.className = 'message ' + type;
+            setTimeout(() => { box.className = 'message'; }, 5000);
+        }
+
+        // 載入啟用的公告（不包含已停用）
+        async function loadAllAnnouncements() {
+            try {
+                const res = await fetch('/api/system/announcements/all');
+                const data = await res.json();
+
+                if (data.success) {
+                    // 只顯示啟用的公告
+                    const activeItems = (data.items || []).filter(item => item.is_active);
+                    renderTable(activeItems);
+                } else {
+                    showMessage('載入失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('載入公告失敗:', e);
+                showMessage('載入失敗', 'error');
+            }
+        }
+
+        // 渲染表格
+        function renderTable(items) {
+            const tbody = document.getElementById('announcementTable');
+            
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8892b0;">暫無公告</td></tr>';
+                return;
+            }
+            
+            const levelLabels = {
+                'info': '<span class="level-badge level-info">一般</span>',
+                'warning': '<span class="level-badge level-warning">警告</span>',
+                'urgent': '<span class="level-badge level-urgent">緊急</span>'
+            };
+            
+            tbody.innerHTML = items.map(item => `
+                <tr>
+                    <td>${levelLabels[item.level] || item.level}</td>
+                    <td>${item.title}</td>
+                    <td>${item.is_pinned ? '⭐' : ''}</td>
+                    <td>${new Date(item.created_at).toLocaleString('zh-TW')}</td>
+                    <td>${item.expires_at ? new Date(item.expires_at).toLocaleString('zh-TW') : '無'}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editAnnouncement(${item.id})" style="padding:5px 10px;font-size:0.85em;">編輯</button>
+                        <button class="btn btn-danger" onclick="deleteAnnouncement(${item.id})" style="padding:5px 10px;font-size:0.85em;margin-left:5px;">刪除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 新增公告
+        async function createAnnouncement() {
+            const title = document.getElementById('newTitle').value.trim();
+            const content = document.getElementById('newContent').value.trim();
+            const level = document.getElementById('newLevel').value;
+            const expires = document.getElementById('newExpires').value;
+            const pinned = document.getElementById('newPinned').checked;
+            
+            if (!title || !content) {
+                showMessage('請填寫標題和內容', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/system/announcements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title, content, level,
+                        expires_at: expires || null,
+                        is_pinned: pinned
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showMessage('公告發布成功', 'success');
+                    document.getElementById('newTitle').value = '';
+                    document.getElementById('newContent').value = '';
+                    document.getElementById('newExpires').value = '';
+                    document.getElementById('newPinned').checked = false;
+                    loadAllAnnouncements();
+                } else {
+                    showMessage('發布失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('發布失敗:', e);
+                showMessage('發布失敗', 'error');
+            }
+        }
+
+        // 編輯公告
+        async function editAnnouncement(id) {
+            // 從表格中找到該筆資料
+            const row = document.querySelector(`button[onclick="editAnnouncement(${id})"]`).closest('tr');
+            const cells = row.querySelectorAll('td');
+
+            document.getElementById('editId').value = id;
+            document.getElementById('editTitle').value = cells[1].textContent;
+            // 內容需要另外載入
+            document.getElementById('editLevel').value = cells[0].textContent.includes('一般') ? 'info' :
+                                                          cells[0].textContent.includes('警告') ? 'warning' : 'urgent';
+            document.getElementById('editPinned').checked = cells[2].textContent === '⭐';
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        // 儲存編輯
+        async function saveEdit() {
+            const id = document.getElementById('editId').value;
+            const title = document.getElementById('editTitle').value.trim();
+            const content = document.getElementById('editContent').value.trim();
+            const level = document.getElementById('editLevel').value;
+            const expires = document.getElementById('editExpires').value;
+            const pinned = document.getElementById('editPinned').checked;
+
+            try {
+                const res = await fetch(`/api/system/announcements/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title, content, level,
+                        is_active: true,
+                        expires_at: expires || null,
+                        is_pinned: pinned
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showMessage('更新成功', 'success');
+                    closeModal();
+                    loadAllAnnouncements();
+                } else {
+                    showMessage('更新失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('更新失敗:', e);
+                showMessage('更新失敗', 'error');
+            }
+        }
+
+        // 刪除公告（軟刪除）
+        async function deleteAnnouncement(id) {
+            if (!confirm('確定要刪除這則公告嗎？')) return;
+            
+            try {
+                const res = await fetch(`/api/system/announcements/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showMessage('刪除成功', 'success');
+                    loadAllAnnouncements();
+                } else {
+                    showMessage('刪除失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('刪除失敗:', e);
+                showMessage('刪除失敗', 'error');
+            }
+        }
+
+        // 頁面載入
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllAnnouncements();
+        });
+    </script>
+</body>
+</html>
