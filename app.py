@@ -10,6 +10,24 @@ import os
 import json
 import uuid
 import time
+import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# 載入環境變數（手動讀取 .env 檔案）
+def load_env():
+    """手動載入 .env 檔案"""
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value
+
+load_env()
 
 # 匯入觀測系統
 from observability import (
@@ -39,24 +57,49 @@ def require_admin(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         admin_user = request.args.get('admin') or request.headers.get('X-Admin-User')
-        
+
         # DEBUG: 記錄收到的參數（僅記錄，不做轉碼）
         print(f"[DEBUG] require_admin: admin_user={repr(admin_user)}")
-        
+
         if not admin_user:
             return jsonify({'success': False, 'message': '缺少管理員驗證'}), 401
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT name, title FROM staff_passwords WHERE name = ?", (admin_user,))
         user = cursor.fetchone()
         conn.close()
-        
+
         print(f"[DEBUG] Database result: {dict(user) if user else None}")
-        
+
         if not user or (user['name'] != '黃柏翰' and user['title'] != '老闆'):
             return jsonify({'success': False, 'message': '無管理員權限'}), 403
-        
+
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ============================================
+# 老闆權限驗證裝飾器
+# ============================================
+def require_boss(f):
+    """檢查是否為老闆 - 從請求中驗證使用者身份"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        data = request.get_json() or {}
+        requester = data.get('requester') or request.headers.get('X-Requester')
+
+        if not requester:
+            return jsonify({'success': False, 'message': '缺少使用者驗證'}), 401
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name, title FROM staff_passwords WHERE name = ?", (requester,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if not user or user['title'] != '老闆':
+            return jsonify({'success': False, 'message': '無老闆權限'}), 403
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -600,6 +643,69 @@ def generate_analysis():
 # 初始化排程器
 scheduler = BackgroundScheduler()
 scheduler.add_job(generate_analysis, 'cron', hour=20, minute=0)
+
+# 添加系統健康監控任務（每5分鐘檢查一次）
+def health_monitor():
+    """系統健康監控 - 檢查關鍵功能"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 檢查最近10分鐘的通知失敗
+        cursor.execute("""
+            SELECT COUNT(*) as failed_count 
+            FROM notification_logs 
+            WHERE status = 'failed' 
+            AND created_at >= datetime('now', '-10 minutes')
+        """)
+        failed_count = cursor.fetchone()['failed_count']
+        
+        # 檢查資料庫連線（簡單查詢）
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        
+        conn.close()
+        
+        # 如果有通知失敗，發送告警
+        if failed_count > 0:
+            alert_msg = f"""⚠️ <b>系統告警</b>
+
+最近 10 分鐘有 {failed_count} 筆通知發送失敗
+請檢查 Telegram Bot 狀態
+
+時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+            send_telegram_notification(alert_msg, TELEGRAM_CHAT_ID, notification_type='系統告警')
+            # 同時發送 Email 告警
+            send_email_alert(
+                "Telegram 通知異常",
+                f"<p>最近 10 分鐘有 <strong>{failed_count}</strong> 筆 Telegram 通知發送失敗</p>"
+                f"<p>請檢查 Telegram Bot 狀態或網路連線</p>"
+            )
+            print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，已發送告警")
+        else:
+            print(f"[HEALTH MONITOR] 系統健康檢查通過 - {datetime.now().strftime('%H:%M:%S')}")
+            
+    except Exception as e:
+        print(f"[HEALTH MONITOR] 健康檢查失敗: {e}")
+        # 資料庫連線失敗也發送告警
+        try:
+            alert_msg = f"""🚨 <b>系統嚴重告警</b>
+
+資料庫連線異常！
+錯誤：{str(e)[:100]}
+
+時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+            send_telegram_notification(alert_msg, TELEGRAM_CHAT_ID, notification_type='系統嚴重告警')
+        except:
+            pass
+        # 同時發送 Email 告警
+        send_email_alert(
+            "資料庫連線異常",
+            f"<p>系統健康檢查時發現資料庫連線異常</p>"
+            f"<p>錯誤訊息：<code>{str(e)[:200]}</code></p>"
+        )
+
+scheduler.add_job(health_monitor, 'interval', minutes=5)
 scheduler.start()
 
 # 啟動時立即執行一次分析
@@ -609,9 +715,32 @@ generate_analysis()
 def index():
     return send_from_directory(STATIC_DIR, 'index.html')
 
-@app.route('/<path:path>')
-def static_files(path):
-    return send_from_directory(STATIC_DIR, path)
+
+
+# API: 健康檢查
+@app.route('/api/health')
+def health_check():
+    """系統健康檢查端點"""
+    try:
+        # 檢查資料庫連線
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        conn.close()
+        
+        return jsonify({
+            'status': 'healthy',
+            'database': 'healthy',
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'database': 'error',
+            'error': str(e),
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }), 500
 
 # API: 分析結果
 @app.route('/api/analysis/<type>')
@@ -622,6 +751,55 @@ def get_analysis(type):
             'last_update': analysis_results['last_update']
         })
     return jsonify({'error': 'Invalid type'}), 400
+
+# API: 通知系統狀態
+@app.route('/api/notification-status')
+def get_notification_status():
+    """檢查通知系統狀態"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 檢查最近 1 小時的通知記錄
+        cursor.execute("""
+            SELECT status, COUNT(*) as count 
+            FROM notification_logs 
+            WHERE created_at >= datetime('now', '-1 hour')
+            GROUP BY status
+        """)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        success_count = 0
+        failed_count = 0
+        for row in rows:
+            if row['status'] == 'success':
+                success_count = row['count']
+            elif row['status'] == 'failed':
+                failed_count = row['count']
+        
+        # 判斷狀態
+        if failed_count == 0 and success_count > 0:
+            telegram_status = 'healthy'
+        elif failed_count > 0 and success_count > 0:
+            telegram_status = 'warning'
+        elif failed_count > 0:
+            telegram_status = 'error'
+        else:
+            telegram_status = 'healthy'  # 沒有記錄也視為正常
+        
+        return jsonify({
+            'telegram': telegram_status,
+            'recent_success': success_count,
+            'recent_failed': failed_count,
+            'checked_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    except Exception as e:
+        return jsonify({
+            'telegram': 'error',
+            'error': str(e),
+            'checked_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
 
 # API: 本季每日銷售（堆叠：門市部+業務部）
 @app.route('/api/sales/daily')
@@ -1451,40 +1629,43 @@ def get_latest_needs():
         # 獲取所有尚未處理的需求，依照日期排序（最新的在前）
         # 處理多種未處理標記：'False', '0.0', '', NULL
         if filter_type == '調撥':
-            # 只顯示調撥（排除已取消和已完成）
+            # 顯示調撥（包含待處理、已調撥，排除已取消和已完成）
             cursor.execute("""
                 SELECT id, date, item_name, quantity, customer_code, department,
                        requester, vendor_delivery, vendor_name, main_wh_stock,
                        processed, status, product_code, remark, purpose, request_type, transfer_from
                 FROM needs
-                WHERE (processed = 'False' OR processed = '0.0' OR processed = '' OR processed IS NULL)
-                  AND request_type = '調撥'
-                  AND (status IS NULL OR status = '' OR status = '待處理')
+                WHERE request_type = '調撥'
+                  AND (status IS NULL OR status = '' OR status IN ('待處理', '已調撥'))
+                  AND cancelled_at IS NULL
+                  AND completed_at IS NULL
                 ORDER BY date DESC, id DESC
                 LIMIT 50
             """)
         elif filter_type == '請購':
-            # 只顯示請購（包含 NULL 和空值，排除已取消和已完成）
+            # 顯示請購（包含待處理、已採購，排除已取消和已完成）
             cursor.execute("""
                 SELECT id, date, item_name, quantity, customer_code, department,
                        requester, vendor_delivery, vendor_name, main_wh_stock,
                        processed, status, product_code, remark, purpose, request_type, transfer_from
                 FROM needs
-                WHERE (processed = 'False' OR processed = '0.0' OR processed = '' OR processed IS NULL)
-                  AND (request_type = '請購' OR request_type IS NULL OR request_type = '')
-                  AND (status IS NULL OR status = '' OR status = '待處理')
+                WHERE (request_type = '請購' OR request_type IS NULL OR request_type = '')
+                  AND (status IS NULL OR status = '' OR status IN ('待處理', '已採購'))
+                  AND cancelled_at IS NULL
+                  AND completed_at IS NULL
                 ORDER BY date DESC, id DESC
                 LIMIT 50
             """)
         else:
-            # 預設：顯示全部（請購 + 調撥，排除已取消和已完成）
+            # 預設：顯示全部（請購 + 調撥，包含待處理、已採購、已調撥，排除已取消和已完成）
             cursor.execute("""
                 SELECT id, date, item_name, quantity, customer_code, department,
                        requester, vendor_delivery, vendor_name, main_wh_stock,
                        processed, status, product_code, remark, purpose, request_type, transfer_from
                 FROM needs
-                WHERE (processed = 'False' OR processed = '0.0' OR processed = '' OR processed IS NULL)
-                  AND (status IS NULL OR status = '' OR status = '待處理')
+                WHERE (status IS NULL OR status = '' OR status IN ('待處理', '已採購', '已調撥'))
+                  AND cancelled_at IS NULL
+                  AND completed_at IS NULL
                 ORDER BY date DESC, id DESC
                 LIMIT 50
             """)
@@ -2003,6 +2184,101 @@ def verify_password():
             }), 403
         else:
             return jsonify({'success': False, 'message': '密碼錯誤'})
+
+# API: 老闆密碼驗證
+@app.route('/api/boss/verify', methods=['POST'])
+def verify_boss_password():
+    data = request.get_json()
+    password = data.get('password', '')
+    
+    if not password:
+        return jsonify({'success': False, 'message': '請輸入密碼'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT password FROM boss_password WHERE id = 1')
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row and row['password'] == password:
+        return jsonify({'success': True, 'role': 'boss'})
+    else:
+        return jsonify({'success': False, 'message': '密碼錯誤'})
+
+# API: 會計驗證（使用 staff_passwords）
+@app.route('/api/accountant/verify', methods=['POST'])
+def verify_accountant():
+    data = request.get_json()
+    name = data.get('name', '')
+    password = data.get('password', '')
+    
+    if not name or not password:
+        return jsonify({'success': False, 'message': '請輸入帳號密碼'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 驗證帳號密碼
+    cursor.execute('''
+        SELECT sp.name, sp.department, sp.title, s.is_active
+        FROM staff_passwords sp
+        JOIN staff s ON sp.name = s.name
+        WHERE sp.name = ? AND sp.password = ?
+    ''', (name, password))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return jsonify({'success': False, 'message': '帳號或密碼錯誤'})
+    
+    if not row['is_active']:
+        return jsonify({'success': False, 'message': '帳號已停用'})
+    
+    # 檢查是否為會計職位
+    if '會計' not in row['title']:
+        return jsonify({'success': False, 'message': '無會計權限'})
+    
+    return jsonify({
+        'success': True,
+        'role': 'accountant',
+        'name': row['name'],
+        'department': row['department'],
+        'title': row['title']
+    })
+
+# API: 修改老闆密碼
+@app.route('/api/boss/password', methods=['PUT'])
+def update_boss_password():
+    data = request.get_json()
+    old_password = data.get('old_password', '')
+    new_password = data.get('new_password', '')
+    
+    if not old_password or not new_password:
+        return jsonify({'success': False, 'message': '請輸入完整資訊'})
+    
+    if len(new_password) < 4:
+        return jsonify({'success': False, 'message': '新密碼長度至少 4 碼'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 驗證舊密碼
+    cursor.execute('SELECT password FROM boss_password WHERE id = 1')
+    row = cursor.fetchone()
+    
+    if not row or row['password'] != old_password:
+        conn.close()
+        return jsonify({'success': False, 'message': '舊密碼錯誤'})
+    
+    # 更新密碼
+    cursor.execute(
+        'UPDATE boss_password SET password = ?, updated_at = datetime("now", "localtime") WHERE id = 1',
+        (new_password,)
+    )
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
 
 # API: 產品資訊查詢
 # API: 產品模糊搜尋
@@ -2627,6 +2903,51 @@ def create_needs_batch():
         # Transaction 成功，執行 COMMIT
         conn.commit()
         conn.close()
+        
+        # 發送 Telegram 通知
+        try:
+            item_count = len(items)
+            total_quantity = sum(int(item.get('quantity', 1)) for item in items)
+            first_item = items[0] if items else {}
+            product_name = first_item.get('product_name', '未知產品')
+            request_type = first_item.get('request_type', '請購')
+            transfer_from = first_item.get('transfer_from', '')
+            
+            # 依類型決定通知格式和發送對象
+            if request_type == '調撥':
+                telegram_msg = f"""🔄 <b>新調撥需求通知</b>
+
+📅 日期：{now[:10]}
+👤 填表人：{requester}
+📍 部門：{department}
+📦 產品：{product_name}
+🔢 數量：{total_quantity} 個
+📤 調撥來源：{transfer_from or '未指定'}
+
+請至系統查看詳情"""
+                # 調撥發送到會計個人
+                send_telegram_notification(telegram_msg, TELEGRAM_ACCOUNTANT_CHAT_ID, 
+                                           notification_type='調撥需求', 
+                                           related_record_id=response_data.get('need_id'),
+                                           related_record_type='needs')
+            else:
+                telegram_msg = f"""🛒 <b>新採購需求通知</b>
+
+📅 日期：{now[:10]}
+👤 填表人：{requester}
+📍 部門：{department}
+📦 產品：{product_name}
+🔢 數量：{total_quantity} 個
+
+請至系統查看詳情"""
+                # 請購發送到老闆個人
+                send_telegram_notification(telegram_msg, TELEGRAM_CHAT_ID,
+                                           notification_type='請購需求',
+                                           related_record_id=response_data.get('need_id'),
+                                           related_record_type='needs')
+        except Exception as e:
+            print(f"Telegram 通知發送失敗: {e}")
+        
         return jsonify(response_data)
 
 
@@ -2712,6 +3033,8 @@ def cancel_need():
     need_id = data.get('id')
     current_user = data.get('current_user', '')
     is_boss = data.get('is_boss', False)
+    is_accountant = data.get('is_accountant', False)
+    requester = data.get('requester', '')
 
     if not need_id:
         return jsonify({'success': False, 'message': '缺少ID'})
@@ -2720,9 +3043,24 @@ def cancel_need():
     cursor = conn.cursor()
 
     try:
+        # 驗證權限（如果宣稱是老闆或會計，必須驗證身份）
+        if is_boss or is_accountant:
+            if not requester:
+                return jsonify({'success': False, 'message': '缺少使用者驗證'}), 401
+
+            cursor.execute("SELECT name, title FROM staff_passwords WHERE name = ?", (requester,))
+            user = cursor.fetchone()
+            if not user:
+                return jsonify({'success': False, 'message': '無效的使用者'}), 403
+
+            if is_boss and user['title'] != '老闆':
+                return jsonify({'success': False, 'message': '無老闆權限'}), 403
+            if is_accountant and '會計' not in user['title']:
+                return jsonify({'success': False, 'message': '無會計權限'}), 403
+
         # 檢查該筆資料
         cursor.execute("""
-            SELECT status, requester,
+            SELECT status, requester, request_type,
                    (strftime('%s', 'now', 'localtime') - strftime('%s', created_at)) / 60 as minutes_ago
             FROM needs WHERE id = ?
         """, (need_id,))
@@ -2733,6 +3071,12 @@ def cancel_need():
 
         # 老闆可以取消任何待處理的需求，無時間限制
         if is_boss:
+            if row['status'] != '待處理':
+                return jsonify({'success': False, 'message': '該筆資料無法取消'})
+        # 會計可以取消任何調撥需求（不限於自己的）
+        elif is_accountant:
+            if row['request_type'] != '調撥':
+                return jsonify({'success': False, 'message': '會計只能取消調撥需求'})
             if row['status'] != '待處理':
                 return jsonify({'success': False, 'message': '該筆資料無法取消'})
         else:
@@ -2791,6 +3135,7 @@ def get_needs_history():
     
     # 取得當前使用者（從登入 session）
     current_user = request.args.get('current_user', '') or request.headers.get('X-Current-User', '')
+    department = request.args.get('department', '')
     scope = request.args.get('scope', '')
     
     conn = get_db_connection()
@@ -2812,9 +3157,12 @@ def get_needs_history():
         where_clauses = []
         params = []
         
-        # 權限控制：一般員工只能看到自己的，管理員可選擇查看全部
-        if not can_view_all or scope != 'all':
-            # 一般員工或非管理員請求 scope=all，都限制為自己的資料
+        # 如果有指定部門，按部門篩選（顯示同部門所有人）
+        if department:
+            where_clauses.append("department = ?")
+            params.append(department)
+        elif not can_view_all or scope != 'all':
+            # 一般員工或非管理員請求 scope=all，限制為自己的資料
             if current_user:
                 where_clauses.append("requester = ?")
                 params.append(current_user)
@@ -2929,7 +3277,155 @@ def get_needs_history():
         conn.close()
 
 
-# API: 標記需求為已完成（供老闆/會計使用）
+# API: 標記需求為已採購（供老闆使用）
+@app.route('/api/needs/purchase', methods=['POST'])
+def purchase_need():
+    data = request.get_json()
+    need_id = data.get('id')
+    requester = data.get('requester')
+
+    if not need_id:
+        return jsonify({'success': False, 'message': '缺少ID'})
+
+    # 權限檢查：必須是老闆
+    if not requester:
+        return jsonify({'success': False, 'message': '缺少使用者驗證'}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 驗證是否為老闆
+        cursor.execute("SELECT name, title FROM staff_passwords WHERE name = ?", (requester,))
+        user = cursor.fetchone()
+        if not user or user['title'] != '老闆':
+            return jsonify({'success': False, 'message': '無老闆權限'}), 403
+
+        # 檢查資料是否存在且狀態為待處理
+        cursor.execute("""
+            SELECT status, request_type FROM needs WHERE id = ?
+        """, (need_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'success': False, 'message': '找不到該筆資料'})
+
+        if row['status'] != '待處理':
+            return jsonify({'success': False, 'message': '該筆資料無法標記已採購'})
+
+        # 標記為已採購
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute("""
+            UPDATE needs
+            SET status = '已採購', processed_at = ?, processed_by = ?
+            WHERE id = ?
+        """, (now, requester, need_id))
+
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"purchase_need 錯誤: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# API: 標記需求為已調撥（供會計/老闆使用）
+@app.route('/api/needs/transfer', methods=['POST'])
+def transfer_need():
+    data = request.get_json()
+    need_id = data.get('id')
+    requester = data.get('requester')
+
+    if not need_id:
+        return jsonify({'success': False, 'message': '缺少ID'})
+
+    # 權限檢查：必須是會計或老闆
+    if not requester:
+        return jsonify({'success': False, 'message': '缺少使用者驗證'}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 驗證是否為會計或老闆
+        cursor.execute("SELECT name, title FROM staff_passwords WHERE name = ?", (requester,))
+        user = cursor.fetchone()
+        if not user or (user['title'] != '老闆' and '會計' not in user['title']):
+            return jsonify({'success': False, 'message': '無權限執行調撥'}), 403
+
+        # 檢查資料是否存在且狀態為待處理
+        cursor.execute("""
+            SELECT status, request_type FROM needs WHERE id = ?
+        """, (need_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'success': False, 'message': '找不到該筆資料'})
+
+        if row['status'] != '待處理':
+            return jsonify({'success': False, 'message': '該筆資料無法標記已調撥'})
+
+        # 標記為已調撥
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute("""
+            UPDATE needs
+            SET status = '已調撥', processed_at = ?, processed_by = ?
+            WHERE id = ?
+        """, (now, requester, need_id))
+
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"transfer_need 錯誤: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# API: 標記需求為已到貨（供員工使用，從已採購/已調撥→已完成）
+@app.route('/api/needs/arrive', methods=['POST'])
+def arrive_need():
+    data = request.get_json()
+    need_id = data.get('id')
+
+    if not need_id:
+        return jsonify({'success': False, 'message': '缺少ID'})
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 檢查資料是否存在且狀態為已採購或已調撥
+        cursor.execute("""
+            SELECT status FROM needs WHERE id = ?
+        """, (need_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'success': False, 'message': '找不到該筆資料'})
+
+        if row['status'] not in ['已採購', '已調撥']:
+            return jsonify({'success': False, 'message': '該筆資料尚未採購或調撥'})
+
+        # 標記為已完成（已到貨即完成）
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute("""
+            UPDATE needs
+            SET status = '已完成', arrived_at = ?, completed_at = ?
+            WHERE id = ?
+        """, (now, now, need_id))
+
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"arrive_need 錯誤: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# API: 標記需求為已完成（供老闆/會計直接完成）
 @app.route('/api/needs/complete', methods=['POST'])
 def complete_need():
     data = request.get_json()
@@ -2942,7 +3438,7 @@ def complete_need():
     cursor = conn.cursor()
 
     try:
-        # 檢查資料是否存在且狀態為待處理
+        # 檢查資料是否存在
         cursor.execute("""
             SELECT status FROM needs WHERE id = ?
         """, (need_id,))
@@ -2951,8 +3447,8 @@ def complete_need():
         if not row:
             return jsonify({'success': False, 'message': '找不到該筆資料'})
 
-        if row['status'] != '待處理':
-            return jsonify({'success': False, 'message': '該筆資料無法標記完成'})
+        if row['status'] in ['已完成', '已取消']:
+            return jsonify({'success': False, 'message': '該筆資料已結案'})
 
         # 標記為已完成
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -5491,12 +5987,13 @@ if __name__ == '__main__':
     print("📊 請訪問: http://localhost:3000")
     print("🤖 每日 20:00 自動分析已啟動")
     print("-" * 50)
-    
+
     # 固定使用 Port 3000，禁止自動切換
     FIXED_PORT = 3000
-    
+
     # 檢查端口是否已被佔用
     import socket
+    from werkzeug.serving import run_simple
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.bind(('0.0.0.0', FIXED_PORT))
@@ -5508,10 +6005,10 @@ if __name__ == '__main__':
         print(f"   禁止自動切換到其他端口")
         import sys
         sys.exit(1)
-    
-    # 啟動 Flask（端口被佔用時會拋出異常並退出）
+
+    # 啟動 Flask（使用 werkzeug run_simple 確保路由正確載入）
     try:
-        app.run(host='0.0.0.0', port=FIXED_PORT, debug=False)
+        run_simple('0.0.0.0', FIXED_PORT, app, use_reloader=False, use_debugger=False, threaded=True)
     except Exception as e:
         print(f"❌ Flask 啟動失敗: {e}")
         import sys
@@ -5675,14 +6172,14 @@ def get_system_announcements():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     cursor.execute("""
         SELECT id, title, content, level, is_pinned, created_at
         FROM system_announcements
         WHERE is_active = 1
-          AND (expires_at IS NULL OR expires_at > ?)
+          AND (expires_at IS NULL OR datetime(expires_at) > datetime(?))
         ORDER BY is_pinned DESC, created_at DESC
     """, (now,))
     
@@ -5811,3 +6308,129 @@ def get_all_system_announcements():
             "expires_at": r["expires_at"]
         } for r in rows]
     })
+
+# ============================================
+# Telegram Bot 設定
+# ============================================
+TELEGRAM_BOT_TOKEN = "8623161623:AAGWlwGjp0Vf3bzpiVgLltQFbcGFY4kpFxo"
+TELEGRAM_CHAT_ID = "8545239755"  # 老闆個人（請購通知）
+TELEGRAM_ACCOUNTANT_CHAT_ID = "8203016237"  # 會計個人（調撥通知）
+
+def send_telegram_notification(message, chat_id=None, notification_type='general', 
+                                related_record_id=None, related_record_type=None):
+    """發送 Telegram 通知並記錄到資料庫"""
+    chat_id = chat_id or TELEGRAM_CHAT_ID
+    recipient_name = '老闆' if chat_id == TELEGRAM_CHAT_ID else ('會計' if chat_id == TELEGRAM_ACCOUNTANT_CHAT_ID else '未知')
+    message_preview = message[:50] + '...' if len(message) > 50 else message
+    
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": message,
+            "parse_mode": "HTML"
+        }
+        response = requests.post(url, json=payload, timeout=5)
+        result = response.json()
+        
+        # 記錄到資料庫
+        status = 'success' if result.get('ok') else 'failed'
+        error_msg = result.get('description') if not result.get('ok') else None
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO notification_logs 
+            (notification_type, recipient_chat_id, recipient_name, message_preview, 
+             status, error_message, related_record_id, related_record_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (notification_type, str(chat_id), recipient_name, message_preview,
+              status, error_msg, related_record_id, related_record_type))
+        conn.commit()
+        conn.close()
+        
+        return result
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Telegram 通知發送失敗: {error_msg}")
+        
+        # 記錄失敗到資料庫
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO notification_logs 
+                (notification_type, recipient_chat_id, recipient_name, message_preview, 
+                 status, error_message, related_record_id, related_record_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (notification_type, str(chat_id), recipient_name, message_preview,
+                  'failed', error_msg, related_record_id, related_record_type))
+            conn.commit()
+            conn.close()
+        except:
+            pass
+        
+        return None
+
+# ============================================
+# Email 通知功能
+# ============================================
+def send_email_alert(subject, body):
+    """發送 Email 告警"""
+    try:
+        email_host = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+        email_port = int(os.getenv('EMAIL_PORT', 587))
+        email_user = os.getenv('EMAIL_USER')
+        email_password = os.getenv('EMAIL_PASSWORD')
+        email_to = os.getenv('EMAIL_TO', email_user)
+        
+        if not email_user or not email_password:
+            print("[EMAIL] 未設定 Email 帳號密碼，跳過發送")
+            return False
+        
+        msg = MIMEMultipart()
+        msg['From'] = email_user
+        msg['To'] = email_to
+        msg['Subject'] = f"[電腦舖系統告警] {subject}"
+        
+        body_html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2 style="color: #d32f2f;">⚠️ 系統告警通知</h2>
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 5px;">
+                {body}
+            </div>
+            <p style="color: #666; font-size: 0.9em;">
+                時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br>
+                系統：電腦舖營運系統
+            </p>
+        </body>
+        </html>
+        """
+        
+        msg.attach(MIMEText(body_html, 'html'))
+        
+        server = smtplib.SMTP(email_host, email_port)
+        server.starttls()
+        server.login(email_user, email_password)
+        server.send_message(msg)
+        server.quit()
+        
+        print(f"[EMAIL] 告警郵件已發送: {subject}")
+        return True
+    except Exception as e:
+        print(f"[EMAIL] 發送失敗: {e}")
+        return False
+
+
+# ============================================
+# 靜態檔案路由（必須放在所有 API 路由之後）
+# 注意：這個路由會捕獲所有未被前面路由匹配的請求
+# ============================================
+@app.route('/<path:path>')
+def static_files(path):
+    """提供靜態檔案服務"""
+    # 檢查是否為 API 路徑（不應該發生，因為 API 路由優先）
+    if path.startswith('api/'):
+        return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
+    return send_from_directory(STATIC_DIR, path)

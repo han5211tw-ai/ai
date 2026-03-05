@@ -7,6 +7,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="shared/global-background.css">
     <script src="shared/global-background.js"></script>
+    <link rel="stylesheet" href="shared/auth_ui.css">
+    <script src="shared/auth_ui.js"></script>
+    <script>
+        // 頁面載入時自動檢查登入
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.requireLogin) {
+                window.requireLogin({
+                    minRole: 'staff',
+                    title: '🔐 請輸入密碼',
+                    subtitle: '身分證後四碼驗證'
+                }).then(function(user) {
+                    console.log('[Index] Login success:', user);
+                    // 登入成功後顯示使用者名稱並載入資料
+                    displayUserName();
+                    loadSummary();
+                    loadChart();
+                    loadNeeds();
+                    loadAnnouncements();
+                }).catch(function(err) {
+                    console.error('[Index] Login failed:', err);
+                });
+            }
+        });
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -14,7 +38,7 @@
             min-height: 100vh;
             color: #fff;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px 40px; }
+        .container { max-width: 95%; margin: 0 auto; padding: 20px 40px; }
         h1 {
             text-align: left;
             font-size: 1.2em;
@@ -196,6 +220,20 @@
             margin-top: 40px;
             font-size: 0.9em;
         }
+        .status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        .status-pending {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+        .status-arrived {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196f3;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -223,8 +261,14 @@
 </head>
 <body>
     <div class="container">
-        <h1>🖥️ 電腦舖營運系統</h1>
-        <p class="subtitle">Operations System v1.3</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h1>🖥️ 電腦舖營運系統</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span id="userDisplay" style="color: #00d4ff; font-size: 0.95em;"></span>
+                <button onclick="window.authLogout && window.authLogout()" style="padding: 6px 12px; background: rgba(244,67,54,0.2); border: 1px solid rgba(244,67,54,0.5); color: #f44336; border-radius: 4px; cursor: pointer; font-size: 0.85em;">登出</button>
+            </div>
+        </div>
+        <p class="subtitle">Operations System v1.4</p>
 
         <!-- 系統公告欄 -->
         <div class="section-title">📢 系統公告</div>
@@ -413,7 +457,21 @@
         // 更新時間
         document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
 
-        // 載入需求表（只顯示請購）
+        // 取得當前使用者資訊
+        function getCurrentUser() {
+            const data = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+            return data ? JSON.parse(data) : null;
+        }
+
+        // 顯示登入人姓名
+        function displayUserName() {
+            const user = getCurrentUser();
+            if (user && user.name) {
+                document.getElementById('userDisplay').textContent = '👤 ' + user.name;
+            }
+        }
+
+        // 載入需求清單（顯示待處理、已採購、已調撥，排除已完成/已取消）
         async function loadNeeds() {
             try {
                 const response = await fetch('/api/needs/latest');
@@ -424,37 +482,61 @@
                     return;
                 }
 
+                // 過濾出待處理、已採購、已調撥（排除已完成/已取消）
+                const activeItems = data.items.filter(item => {
+                    const status = item.status || '';
+                    return status === '' || status === '待處理' || status === '已採購' || status === '已調撥';
+                });
+
+                if (activeItems.length === 0) {
+                    document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
+                    return;
+                }
+
+                // 取得當前使用者部門
+                const currentUser = getCurrentUser();
+                const userDept = currentUser ? currentUser.department : '';
+
                 const html = `
                     <table>
                         <thead>
                             <tr>
-                                <th>項次</th>
-                                <th>日期</th>
-                                <th>產品編號</th>
-                                <th>產品名稱</th>
-                                <th>數量</th>
-                                <th>需求類型</th>
-                                <th>需求用途</th>
-                                <th>需求部門</th>
-                                <th>填表人員</th>
-                                <th>備註</th>
+                                <th style="text-align:center">項次</th>
+                                <th style="text-align:center">日期</th>
+                                <th style="text-align:left">產品編號</th>
+                                <th style="text-align:left">產品名稱</th>
+                                <th style="text-align:center">數量</th>
+                                <th style="text-align:center">需求類型</th>
+                                <th style="text-align:center">需求用途</th>
+                                <th style="text-align:center">需求單位</th>
+                                <th style="text-align:center">填表人員</th>
+                                <th style="text-align:center">狀態</th>
+                                <th style="text-align:left">備註</th>
+                                <th style="text-align:center">操作</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${data.items.map((item, idx) => `
+                            ${activeItems.map((item, idx) => {
+                                const status = item.status || '待處理';
+                                const statusClass = status === '待處理' ? 'status-pending' : 'status-arrived';
+                                // 只有同部門且狀態為已採購/已調撥時才能按已到貨
+                                const canArrive = (status === '已採購' || status === '已調撥') && item.department === userDept;
+                                return `
                                 <tr>
-                                    <td>${idx + 1}</td>
-                                    <td>${item.date || '-'}</td>
-                                    <td>${item.product_code || '-'}</td>
-                                    <td>${item.display_name || item.item_name}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>${item.request_type || '請購'}${item.transfer_from ? '<br><small style="color:#ffc107;">來源:' + item.transfer_from + '</small>' : ''}</td>
-                                    <td>${item.purpose === '客戶' ? '客戶:' + (item.customer_code || '-') : '備貨'}</td>
-                                    <td>${item.department || '-'}</td>
-                                    <td>${item.requester || '-'}</td>
+                                    <td style="text-align:center">${idx + 1}</td>
+                                    <td style="text-align:center">${item.date || '-'}</td>
+                                    <td style="font-size:0.85em;word-break:break-all;${item.product_code && item.product_code.startsWith('TEMP') ? 'color:#f44336;font-weight:bold;' : ''}">${item.product_code || '-'}</td>
+                                    <td style="text-align:left;word-break:break-word">${item.display_name || item.item_name}</td>
+                                    <td style="text-align:center">${item.quantity}</td>
+                                    <td style="text-align:center">${item.request_type || '請購'}${item.transfer_from ? '<br><small style="color:#ffc107;">來源:' + item.transfer_from + '</small>' : ''}</td>
+                                    <td style="text-align:center">${item.purpose === '客戶' ? '客戶: ' + (item.customer_code ? (item.customer_code.startsWith('TEMP') ? '<span style="color:#f44336;font-weight:bold;">' + item.customer_code + '</span>' : item.customer_code) : '-') : '備貨'}</td>
+                                    <td style="text-align:center">${item.department || '-'}</td>
+                                    <td style="text-align:center">${item.requester || '-'}</td>
+                                    <td style="text-align:center"><span class="status ${statusClass}">${status}</span></td>
                                     <td style="${item.remark && (item.remark.includes('缺货') || item.remark.includes('缺貨')) ? 'color: #ff4444; font-weight: bold;' : ''}">${item.remark || ''}</td>
+                                    <td style="text-align:center">${canArrive ? `<button onclick="markArrived(${item.id})" style="background:rgba(76,175,80,0.2);color:#4caf50;border:1px solid rgba(76,175,80,0.5);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.85em;white-space:nowrap;">已到貨</button>` : '-'}</td>
                                 </tr>
-                            `).join('')}
+                            `}).join('')}
                         </tbody>
                     </table>
                 `;
@@ -462,6 +544,29 @@
             } catch (error) {
                 console.error('載入需求表失敗:', error);
                 document.getElementById('needsTable').innerHTML = '<div class="empty-state">需求資料載入失敗</div>';
+            }
+        }
+
+        // 標記已到貨
+        async function markArrived(id) {
+            if (!confirm('⚠️ 請確認以下事項：\n\n1. 商品數量是否正確\n2. 商品品項是否無誤\n3. 商品外觀是否完好\n\n確認收貨後將無法復原，是否繼續？')) return;
+            try {
+                const currentUser = getCurrentUser();
+                const response = await fetch('/api/needs/arrive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, requester: currentUser ? currentUser.name : '' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('已標記為已到貨');
+                    loadNeeds();
+                } else {
+                    alert(data.message || '標記失敗');
+                }
+            } catch (error) {
+                console.error('標記失敗:', error);
+                alert('標記失敗，請稍後再試');
             }
         }
 
@@ -506,11 +611,49 @@
             }
         }
 
-        // 載入資料
-        loadSummary();
-        loadChart();
-        loadNeeds();
-        loadAnnouncements();
+        // 檢查系統狀態
+        async function checkSystemStatus() {
+            try {
+                // 檢查 Flask (本身運行就代表 Flask 正常)
+                document.getElementById('flaskStatusDot').className = 'status-dot status-online';
+                document.getElementById('flaskStatusText').textContent = 'Flask 運行中';
+                
+                // 檢查資料庫
+                const dbRes = await fetch('/api/health');
+                const dbData = await dbRes.json();
+                if (dbData.database === 'healthy') {
+                    document.getElementById('dbStatusDot').className = 'status-dot status-online';
+                    document.getElementById('dbStatusText').textContent = '資料庫 連線正常';
+                } else {
+                    document.getElementById('dbStatusDot').className = 'status-dot status-warning';
+                    document.getElementById('dbStatusText').textContent = '資料庫 異常';
+                }
+                
+                // 檢查 Telegram (通過最近通知記錄)
+                const notifRes = await fetch('/api/notification-status');
+                const notifData = await notifRes.json();
+                if (notifData.telegram === 'healthy') {
+                    document.getElementById('telegramStatusDot').className = 'status-dot status-online';
+                    document.getElementById('telegramStatusText').textContent = 'Telegram 通知正常';
+                } else if (notifData.telegram === 'warning') {
+                    document.getElementById('telegramStatusDot').className = 'status-dot status-warning';
+                    document.getElementById('telegramStatusText').textContent = 'Telegram 有異常';
+                } else {
+                    document.getElementById('telegramStatusDot').className = 'status-dot status-offline';
+                    document.getElementById('telegramStatusText').textContent = 'Telegram 異常';
+                }
+            } catch (error) {
+                console.error('系統狀態檢查失敗:', error);
+                document.getElementById('dbStatusDot').className = 'status-dot status-offline';
+                document.getElementById('dbStatusText').textContent = '資料庫 離線';
+                document.getElementById('telegramStatusDot').className = 'status-dot status-offline';
+                document.getElementById('telegramStatusText').textContent = 'Telegram 離線';
+            }
+        }
+
+        // 載入資料（由登入成功後呼叫）
+        // displayUserName, loadSummary, loadChart, loadNeeds, loadAnnouncements
+        // 這些函數現在在登入成功後的 Promise 中呼叫
 
         // 每 1 小時自動重新整理（3600000 毫秒）
         setInterval(() => {
