@@ -15,6 +15,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>請購調撥需求表 - 電腦舖</title>
+
     <script>window.version='20250301-0200';</script>
     <link rel="stylesheet" href="shared/auth_ui.css">
     <script src="shared/auth_ui.js?v=20250303-1402"></script>
@@ -90,6 +91,7 @@
         .recent-item .status{display:inline-block;padding:4px 10px;border-radius:4px;font-size:0.85em;margin-right:10px}
         .status-pending{background:rgba(255,152,0,0.2);color:#ff9800}
         .status-cancelled{background:rgba(244,67,54,0.2);color:#f44336}
+        .status-arrived{background:rgba(33,150,243,0.2);color:#2196f3}
         .status-completed{background:rgba(76,175,80,0.2);color:#4caf50}
         .btn-cancel{padding:6px 12px;font-size:0.85em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:#f44336;border-radius:4px;cursor:pointer}
         .btn-cancel:hover{background:rgba(244,67,54,0.3)}
@@ -872,47 +874,96 @@
         },500);
     }
     
-    // 載入最近提交的單據（30分鐘內可取消）
+    // 載入最近提交的單據（30分鐘內可取消）- 顯示同部門所有人
     async function loadRecentSubmissions(){
         if(!currentUser)return;
         const submitDepartment=(currentUser.name==='莊圍迪'?document.getElementById('supervisorStoreSelect').value:currentUser.department);
         try{
+            // 改為抓取同部門所有紀錄，不限制 current_user
             const response=await fetch('/api/needs/recent?department='+encodeURIComponent(submitDepartment)+'&current_user='+encodeURIComponent(currentUser.name)+'&_='+Date.now());
             const data=await response.json();
             if(data.items&&data.items.length>0){
                 document.getElementById('recentSection').style.display='block';
-                const listHtml=data.items.map(item=>{
-                    const isNewProduct=item.is_new_product===1||item.is_new_product==='1';
-                    const isNewCustomer=item.is_new_customer===1||item.is_new_customer==='1';
-                    let productDisplay=item.product_code;
-                    if(isNewProduct){
-                        if(item.product_status==='pending'){
-                            productDisplay='<span style="color:#f44336;font-weight:bold;">'+item.product_code+' (新品待建檔)</span>';
-                        }else if(item.product_status==='approved'){
-                            productDisplay=item.product_code+' <span style="color:#4caf50;">✓ 已建檔</span>';
+                
+                // 分類：自己的 vs 別人的
+                const myItems=data.items.filter(item=>item.requester===currentUser.name);
+                const othersItems=data.items.filter(item=>item.requester!==currentUser.name);
+                
+                let listHtml='';
+                
+                // 自己的紀錄（可取消）
+                if(myItems.length>0){
+                    listHtml+='<div style="color:#00d4ff;font-size:0.9em;margin-bottom:10px;border-bottom:1px solid rgba(0,212,255,0.3);padding-bottom:5px;">我的提交（可取消）</div>';
+                    listHtml+=myItems.map(item=>{
+                        const isNewProduct=item.is_new_product===1||item.is_new_product==='1';
+                        const isNewCustomer=item.is_new_customer===1||item.is_new_customer==='1';
+                        let productDisplay=item.product_code;
+                        if(isNewProduct){
+                            if(item.product_status==='pending'){
+                                productDisplay='<span style="color:#f44336;font-weight:bold;">'+item.product_code+' (新品待建檔)</span>';
+                            }else if(item.product_status==='approved'){
+                                productDisplay=item.product_code+' <span style="color:#4caf50;">✓ 已建檔</span>';
+                            }
                         }
-                    }
-                    let customerDisplay=item.customer_code||'-';
-                    if(isNewCustomer&&item.purpose==='客戶'){
-                        if(item.customer_status==='pending'){
-                            customerDisplay='<span style="color:#f44336;font-weight:bold;">'+item.customer_code+' (新客戶待建檔)</span>';
-                        }else if(item.customer_status==='approved'){
-                            customerDisplay=item.customer_code+' <span style="color:#4caf50;">✓ 已建檔</span>';
+                        let customerDisplay=item.customer_code||'-';
+                        if(isNewCustomer&&item.purpose==='客戶'){
+                            if(item.customer_status==='pending'){
+                                customerDisplay='<span style="color:#f44336;font-weight:bold;">'+item.customer_code+' (新客戶待建檔)</span>';
+                            }else if(item.customer_status==='approved'){
+                                customerDisplay=item.customer_code+' <span style="color:#4caf50;">✓ 已建檔</span>';
+                            }
                         }
-                    }
-                    return '<div class="recent-item">'+
-                        '<div class="info">'+
-                            '<strong>'+item.date+'</strong> | 填表人: '+item.requester+' | 產品: '+productDisplay+' | 數量: '+item.quantity+
-                            ' | 類型: '+(item.request_type||'請購')+(item.transfer_from?'(來源:'+item.transfer_from+')':'')+
-                            ' | 用途: '+(item.purpose==='客戶'?'客戶-'+customerDisplay:'備貨')+
-                            (item.remark?' | 備註: '+item.remark:'')+
-                        '</div>'+
-                        '<div>'+
-                            '<span class="status '+(item.status==='待處理'?'status-pending':'status-cancelled')+'">'+item.status+'</span>'+
-                            (item.can_cancel?'<button class="btn-cancel" onclick="cancelItem('+item.id+')">取消</button>':'')+
-                        '</div>'+
-                    '</div>';
-                }).join('');
+                        return '<div class="recent-item">'+
+                            '<div class="info">'+
+                                '<strong>'+item.date+'</strong> | 填表人: '+item.requester+' | 產品: '+productDisplay+' | 數量: '+item.quantity+
+                                ' | 類型: '+(item.request_type||'請購')+(item.transfer_from?'(來源:'+item.transfer_from+')':'')+
+                                ' | 用途: '+(item.purpose==='客戶'?'客戶-'+customerDisplay:'備貨')+
+                                (item.remark?' | 備註: '+item.remark:'')+
+                            '</div>'+
+                            '<div>'+
+                                '<span class="status '+getStatusClass(item.status)+'">'+item.status+'</span>'+
+                                (item.can_cancel?'<button class="btn-cancel" onclick="cancelItem('+item.id+')">取消</button>':'')+
+                            '</div>'+
+                        '</div>';
+                    }).join('');
+                }
+                
+                // 別人的紀錄（同部門可操作）
+                if(othersItems.length>0){
+                    listHtml+='<div style="color:#8892b0;font-size:0.9em;margin:15px 0 10px 0;border-bottom:1px solid rgba(136,146,176,0.3);padding-bottom:5px;">同部門其他人</div>';
+                    listHtml+=othersItems.map(item=>{
+                        const isNewProduct=item.is_new_product===1||item.is_new_product==='1';
+                        const isNewCustomer=item.is_new_customer===1||item.is_new_customer==='1';
+                        let productDisplay=item.product_code;
+                        if(isNewProduct){
+                            if(item.product_status==='pending'){
+                                productDisplay='<span style="color:#f44336;font-weight:bold;">'+item.product_code+' (新品待建檔)</span>';
+                            }else if(item.product_status==='approved'){
+                                productDisplay=item.product_code+' <span style="color:#4caf50;">✓ 已建檔</span>';
+                            }
+                        }
+                        let customerDisplay=item.customer_code||'-';
+                        if(isNewCustomer&&item.purpose==='客戶'){
+                            if(item.customer_status==='pending'){
+                                customerDisplay='<span style="color:#f44336;font-weight:bold;">'+item.customer_code+' (新客戶待建檔)</span>';
+                            }else if(item.customer_status==='approved'){
+                                customerDisplay=item.customer_code+' <span style="color:#4caf50;">✓ 已建檔</span>';
+                            }
+                        }
+                        return '<div class="recent-item" style="opacity:0.8;">'+
+                            '<div class="info">'+
+                                '<strong>'+item.date+'</strong> | 填表人: '+item.requester+' | 產品: '+productDisplay+' | 數量: '+item.quantity+
+                                ' | 類型: '+(item.request_type||'請購')+(item.transfer_from?'(來源:'+item.transfer_from+')':'')+
+                                ' | 用途: '+(item.purpose==='客戶'?'客戶-'+customerDisplay:'備貨')+
+                                (item.remark?' | 備註: '+item.remark:'')+
+                            '</div>'+
+                            '<div>'+
+                                '<span class="status '+getStatusClass(item.status)+'">'+item.status+'</span>'+
+                            '</div>'+
+                        '</div>';
+                    }).join('');
+                }
+
                 document.getElementById('recentList').innerHTML=listHtml;
             }else{
                 document.getElementById('recentSection').style.display='none';
@@ -943,13 +994,36 @@
             showToast('取消失敗','error');
         }
     }
-    
+
+    // 標記已到貨（同部門員工可操作）
+    async function arriveItem(id){
+        if(!confirm('確定要標記這筆需求為已到貨嗎？'))return;
+
+        try{
+            const response=await fetch('/api/needs/arrive',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({id:id})
+            });
+            const data=await response.json();
+            if(data.success){
+                showToast('已標記為已到貨','success');
+                loadRecentSubmissions();
+                loadHistory();
+            }else{
+                showToast(data.message||'標記失敗','error');
+            }
+        }catch(error){
+            showToast('標記失敗','error');
+        }
+    }
+
     // 歷史紀錄相關變數
     let historyOffset=0;
     const historyLimit=50;
     let historyTotal=0;
     
-    // 載入歷史紀錄
+    // 載入歷史紀錄 - 顯示同部門所有人
     async function loadHistory(){
         if(!currentUser)return;
         
@@ -960,7 +1034,9 @@
         listContainer.innerHTML='<div style="text-align:center;color:#8892b0;padding:20px;">載入中...</div>';
         
         try{
-            let url='/api/needs/history?limit='+historyLimit+'&offset='+historyOffset+'&status='+status+'&current_user='+encodeURIComponent(currentUser.name);
+            // 改為抓取同部門所有紀錄
+            const department=currentUser.department;
+            let url='/api/needs/history?limit='+historyLimit+'&offset='+historyOffset+'&status='+status+'&department='+encodeURIComponent(department);
             if(search)url+='&q='+encodeURIComponent(search);
             
             const response=await fetch(url);
@@ -969,29 +1045,75 @@
             if(data.success&&data.items&&data.items.length>0){
                 historyTotal=data.total;
                 
-                const listHtml=data.items.map(item=>{
-                    let statusClass='status-pending';
-                    let statusText=item.status;
-                    if(item.status_type==='cancelled'){
-                        statusClass='status-cancelled';
-                        statusText='已取消';
-                    }else if(item.status_type==='done'){
-                        statusClass='status-completed';
-                        statusText='已完成';
-                    }
-                    
-                    return '<div class="recent-item">'+
-                        '<div class="info">'+
-                            '<strong>'+item.date+'</strong> | '+item.department+' | 填表人: '+item.requester+'<br>'+
-                            '產品: '+(item.product_code||'-')+' | 品名: '+(item.item_name||'-')+' | 數量: '+item.quantity+'<br>'+
-                            '客戶: '+(item.customer_code||'-')+(item.purpose==='客戶'?' (客戶)':'')+
-                            (item.cancelled_at?' <span style="color:#f44336;font-size:0.85em;">(取消於 '+item.cancelled_at.substring(0,10)+')</span>':'')+
-                        '</div>'+
-                        '<div>'+
-                            '<span class="status '+statusClass+'">'+statusText+'</span>'+
-                        '</div>'+
-                    '</div>';
-                }).join('');
+                // 分類：自己的 vs 別人的
+                const myItems=data.items.filter(item=>item.requester===currentUser.name);
+                const othersItems=data.items.filter(item=>item.requester!==currentUser.name);
+                
+                let listHtml='';
+                
+                // 自己的紀錄
+                if(myItems.length>0){
+                    listHtml+='<div style="color:#00d4ff;font-size:0.9em;margin-bottom:10px;border-bottom:1px solid rgba(0,212,255,0.3);padding-bottom:5px;">我的紀錄</div>';
+                    listHtml+=myItems.map(item=>{
+                        let statusClass='status-pending';
+                        let statusText=item.status;
+
+                        if(item.status_type==='cancelled'){
+                            statusClass='status-cancelled';
+                            statusText='已取消';
+                        }else if(item.status==='已採購' || item.status==='已調撥'){
+                            statusClass='status-arrived';
+                            statusText=item.status;
+                        }else if(item.status==='已到貨' || item.status_type==='done'){
+                            statusClass='status-completed';
+                            statusText='已完成';
+                        }
+
+                        return '<div class="recent-item">'+
+                            '<div class="info">'+
+                                '<strong>'+item.date+'</strong> | '+item.department+' | 填表人: '+item.requester+'<br>'+
+                                '產品: '+(item.product_code||'-')+' | 品名: '+(item.item_name||'-')+' | 數量: '+item.quantity+'<br>'+
+                                '客戶: '+(item.customer_code||'-')+(item.purpose==='客戶'?' (客戶)':'')+
+                                (item.cancelled_at?' <span style="color:#f44336;font-size:0.85em;">(取消於 '+item.cancelled_at.substring(0,10)+')</span>':'')+
+                            '</div>'+
+                            '<div>'+
+                                '<span class="status '+statusClass+'">'+statusText+'</span>'+
+                            '</div>'+
+                        '</div>';
+                    }).join('');
+                }
+                
+                // 別人的紀錄（同部門可操作）
+                if(othersItems.length>0){
+                    listHtml+='<div style="color:#8892b0;font-size:0.9em;margin:15px 0 10px 0;border-bottom:1px solid rgba(136,146,176,0.3);padding-bottom:5px;">同部門其他人</div>';
+                    listHtml+=othersItems.map(item=>{
+                        let statusClass='status-pending';
+                        let statusText=item.status;
+
+                        if(item.status_type==='cancelled'){
+                            statusClass='status-cancelled';
+                            statusText='已取消';
+                        }else if(item.status==='已採購' || item.status==='已調撥'){
+                            statusClass='status-arrived';
+                            statusText=item.status;
+                        }else if(item.status==='已到貨' || item.status_type==='done'){
+                            statusClass='status-completed';
+                            statusText='已完成';
+                        }
+
+                        return '<div class="recent-item" style="opacity:0.8;">'+
+                            '<div class="info">'+
+                                '<strong>'+item.date+'</strong> | '+item.department+' | 填表人: '+item.requester+'<br>'+
+                                '產品: '+(item.product_code||'-')+' | 品名: '+(item.item_name||'-')+' | 數量: '+item.quantity+'<br>'+
+                                '客戶: '+(item.customer_code||'-')+(item.purpose==='客戶'?' (客戶)':'')+
+                                (item.cancelled_at?' <span style="color:#f44336;font-size:0.85em;">(取消於 '+item.cancelled_at.substring(0,10)+')</span>':'')+
+                            '</div>'+
+                            '<div>'+
+                                '<span class="status '+statusClass+'">'+statusText+'</span>'+
+                            '</div>'+
+                        '</div>';
+                    }).join('');
+                }
                 
                 listContainer.innerHTML=listHtml;
                 
@@ -1019,6 +1141,19 @@
         if(newOffset>=0&&newOffset<historyTotal){
             historyOffset=newOffset;
             loadHistory();
+        }
+    }
+    
+    // 取得狀態樣式類別
+    function getStatusClass(status){
+        switch(status){
+            case '待處理': return 'status-pending';
+            case '已採購': return 'status-arrived';
+            case '已調撥': return 'status-arrived';
+            case '已到貨': return 'status-arrived';
+            case '已完成': return 'status-completed';
+            case '已取消': return 'status-cancelled';
+            default: return 'status-pending';
         }
     }
     
@@ -1064,5 +1199,119 @@
         // 點擊即可關閉
         centerToast.onclick=function(){centerToast.classList.remove('show');};
     }
+    
+    // ============================================
+    // 自動輪詢新需求通知（方案4）
+    // ============================================
+    let lastNeedCount = 0;
+    let pollingInterval = null;
+    
+    // 播放提示音
+    function playNotificationSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+            
+            // 第二聲
+            setTimeout(() => {
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.value = 1000;
+                osc2.type = 'sine';
+                gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                osc2.start(audioContext.currentTime);
+                osc2.stop(audioContext.currentTime + 0.5);
+            }, 200);
+        } catch (e) {
+            console.log('無法播放提示音:', e);
+        }
+    }
+    
+    // 檢查新需求
+    async function checkNewNeeds() {
+        try {
+            const response = await fetch('/api/needs/latest?limit=1');
+            const data = await response.json();
+            
+            if (data.items && data.items.length > 0) {
+                const currentCount = data.items.length;
+                
+                // 首次載入時記錄數量
+                if (lastNeedCount === 0) {
+                    lastNeedCount = currentCount;
+                    return;
+                }
+                
+                // 如果有新需求
+                if (currentCount > lastNeedCount) {
+                    const latestNeed = data.items[0];
+                    showCenterToast(`🛒 新需求單！\n${latestNeed.requester} 提交了 ${latestNeed.product_name || '新需求'}`, 5000);
+                    playNotificationSound();
+                    lastNeedCount = currentCount;
+                    
+                    // 重新載入歷史紀錄
+                    if (typeof loadHistory === 'function') {
+                        loadHistory();
+                    }
+                } else {
+                    lastNeedCount = currentCount;
+                }
+            }
+        } catch (e) {
+            console.log('輪詢新需求失敗:', e);
+        }
+    }
+    
+    // 啟動自動輪詢
+    function startPolling() {
+        if (pollingInterval) return;
+        
+        // 初始檢查
+        checkNewNeeds();
+        
+        // 每30秒輪詢一次
+        pollingInterval = setInterval(checkNewNeeds, 30000);
+        console.log('自動輪詢已啟動（每30秒）');
+    }
+    
+    // 停止自動輪詢
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            console.log('自動輪詢已停止');
+        }
+    }
+    
+    // 頁面可見時啟動，不可見時停止（節省資源）
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopPolling();
+        } else {
+            startPolling();
+        }
+    });
+    
+    // 頁面載入完成後啟動輪詢
+    document.addEventListener('DOMContentLoaded', () => {
+        // 延遲啟動，等待其他初始化完成
+        setTimeout(startPolling, 2000);
+    });
     </script>
 </html>

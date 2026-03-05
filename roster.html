@@ -14,11 +14,11 @@
             min-height: 100vh;
             color: #fff;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .container { max-width: 95%; margin: 0 auto; padding: 20px 40px; }
         h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 30px;
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
             background: linear-gradient(90deg, #00d4ff, #7b2cbf);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -26,9 +26,9 @@
         }
         .nav {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 40px;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
         .nav a {
@@ -205,11 +205,6 @@
         
         <div class="nav">
             <a href="index.html">🏠 首頁</a>
-            <a href="department.html">🏢 部門</a>
-            <a href="store.html">🏬 門市</a>
-            <a href="business.html">💼 業務</a>
-            <a href="personal.html">🧑‍💼 個人</a>
-            <a href="customer_search.html">🔍 客戶</a>
         </div>
 
         <!-- 排班功能入口 -->
@@ -338,6 +333,9 @@
                 });
                 document.getElementById('todayRoster').innerHTML = todayHtml;
                 
+                // 儲存週班表資料到全局變數
+                weeklyRosterData = weeklyData;
+
                 // 依門市排序當周班表
                 const weeklyArray = Object.entries(weeklyData);
                 weeklyArray.sort((a, b) => {
@@ -355,7 +353,7 @@
                 weeklyHtml += '</tr></thead><tbody>';
                 
                 weeklyArray.forEach(([name, data]) => {
-                    weeklyHtml += '<tr><td>' + name + '</td><td>' + data.location + '</td>';
+                    weeklyHtml += '<tr><td style="cursor:pointer;color:#fff;" onclick="showMonthlyRoster(\'' + name + '\')" title="點擊查看整月班表">' + name + '</td><td>' + data.location + '</td>';
                     weekDates.forEach(d => {
                         const shift = data.shifts[d.date] || '';
                         const shiftClass = shift ? (shiftClassMap[shift] || 'shift-off-bg') : '';
@@ -375,5 +373,156 @@
         }
 
         loadRosterData();
+
+        // 全局變數儲存週班表資料
+        let weeklyRosterData = {};
+
+        // 顯示整月班表彈窗
+        async function showMonthlyRoster(staffName) {
+            const now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1;
+
+            // 從週班表資料中取得門市
+            let staffStore = '';
+            if (weeklyRosterData[staffName]) {
+                staffStore = weeklyRosterData[staffName].location;
+            }
+
+            if (!staffStore) {
+                alert('無法找到該員工資料');
+                return;
+            }
+
+            // 建立彈窗
+            const modal = document.createElement('div');
+            modal.id = 'monthlyRosterModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px;';
+
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:30px;max-width:600px;width:100%;max-height:135vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:15px;">
+                        <h2 style="color:#00d4ff;font-size:1.3em;">${staffName} - ${year}年${month}月班表</h2>
+                        <button onclick="closeMonthlyRoster()" style="background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:#f44336;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:0.9em;">✕ 關閉</button>
+                    </div>
+                    <div id="monthlyRosterContent" style="text-align:center;color:#8892b0;padding:40px;">載入中...</div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // 載入班表資料
+            try {
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
+                const endDate = `${year}-${String(month).padStart(2,'0')}-${daysInMonth}`;
+
+                const response = await fetch(`/api/roster/range?store=${encodeURIComponent(staffStore)}&start=${startDate}&end=${endDate}`);
+                const data = await response.json();
+
+                let staffRoster = {};
+                if (data.success && data.roster) {
+                    data.roster.forEach(record => {
+                        if (record.staff_name === staffName) {
+                            staffRoster[record.date] = record.shift_code;
+                        }
+                    });
+                }
+
+                // 生成月曆 HTML
+                const firstDay = new Date(year, month - 1, 1).getDay();
+                let calendarHtml = `
+                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px;">
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">日</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">一</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">二</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">三</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">四</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">五</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">六</div>
+                `;
+
+                // 空白格子
+                for (let i = 0; i < firstDay; i++) {
+                    calendarHtml += '<div style="aspect-ratio:1;"></div>';
+                }
+
+                // 日期格子
+                let workDays = 0;
+                let restDays = 0;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                    const shift = staffRoster[dateStr] || '';
+
+                    let shiftColor = '#8892b0';
+                    let shiftBg = 'rgba(255,255,255,0.05)';
+
+                    if (shift === '早班' || shift === '早') {
+                        shiftColor = '#ff9800';
+                        shiftBg = 'rgba(255,152,0,0.2)';
+                        workDays++;
+                    } else if (shift === '中班' || shift === '中') {
+                        shiftColor = '#4caf50';
+                        shiftBg = 'rgba(76,175,80,0.2)';
+                        workDays++;
+                    } else if (shift === '晚班' || shift === '晚') {
+                        shiftColor = '#9c27b0';
+                        shiftBg = 'rgba(156,39,176,0.2)';
+                        workDays++;
+                    } else if (shift === '全班' || shift === '全') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'rgba(0,212,255,0.2)';
+                        workDays++;
+                    } else if (shift === '值班' || shift === '值') {
+                        shiftColor = '#e91e63';
+                        shiftBg = 'rgba(233,30,99,0.2)';
+                        workDays++;
+                    } else if (shift === '休假' || shift === '休' || shift === '特休' || shift === '特') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'rgba(0,212,255,0.1)';
+                        restDays++;
+                    }
+
+                    calendarHtml += `
+                        <div style="aspect-ratio:1;background:${shiftBg};border:1px solid rgba(255,255,255,0.1);border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:5px;">
+                            <div style="font-size:0.8em;color:#8892b0;margin-bottom:2px;">${day}</div>
+                            <div style="font-size:0.9em;color:${shiftColor};font-weight:bold;">${shift || '-'}</div>
+                        </div>
+                    `;
+                }
+
+                calendarHtml += '</div>';
+
+                // 統計資訊
+                calendarHtml += `
+                    <div style="display:flex;justify-content:space-around;padding:15px;background:rgba(255,255,255,0.05);border-radius:8px;margin-top:15px;">
+                        <div style="text-align:center;">
+                            <div style="color:#4caf50;font-size:1.2em;font-weight:bold;">${workDays}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">上班天數</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="color:#00d4ff;font-size:1.2em;font-weight:bold;">${restDays}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">休假天數</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="color:#fff;font-size:1.2em;font-weight:bold;">${daysInMonth}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">總天數</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('monthlyRosterContent').innerHTML = calendarHtml;
+            } catch (e) {
+                console.error('載入班表失敗:', e);
+                document.getElementById('monthlyRosterContent').innerHTML = '<div style="color:#f44336;">載入失敗，請重試</div>';
+            }
+        }
+
+        // 關閉整月班表彈窗
+        function closeMonthlyRoster() {
+            const modal = document.getElementById('monthlyRosterModal');
+            if (modal) modal.remove();
+        }
     </script>
 </html>

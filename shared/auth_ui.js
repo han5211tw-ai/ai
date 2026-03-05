@@ -30,7 +30,8 @@
         'service_record.html': 'staff',
         'roster_input.html': 'staff',
         'supervision_score.html': 'accountant',
-        'admin.html': 'boss'
+        'admin.html': 'boss',
+        'boss.html': 'boss'
     };
 
     // 建立登入 Modal HTML（只使用 CSS 類，不寫死顏色）
