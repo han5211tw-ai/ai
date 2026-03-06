@@ -146,24 +146,24 @@ def sync_customers_to_master(actor='system'):
     只做 INSERT（跳過已存在），不做 UPDATE/DELETE
     """
     start_time = time.time()
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # 檢查 customers 是否有資料
         cursor.execute("SELECT COUNT(*) as count FROM customers")
         customers_count = cursor.fetchone()['count']
-        
+
         if customers_count == 0:
             print("[INIT] customers 為空，無法初始化")
             return {'success': False, 'error': 'customers 表為空'}
-        
+
         # 執行 INSERT：將 customers 資料匯入 customer_master
         cursor.execute("""
-            INSERT OR IGNORE INTO customer_master 
+            INSERT OR IGNORE INTO customer_master
             (customer_id, short_name, mobile, mobile_raw, phone, address, import_date)
-            SELECT 
+            SELECT
                 customer_id,
                 short_name,
                 REPLACE(REPLACE(mobile, '-', ''), ' ', ''),
@@ -174,12 +174,12 @@ def sync_customers_to_master(actor='system'):
             FROM customers
             WHERE customer_id IS NOT NULL AND customer_id != ''
         """)
-        
+
         inserted = cursor.rowcount
         conn.commit()
-        
+
         duration_ms = int((time.time() - start_time) * 1000)
-        
+
         # 記錄到 ops_events
         log_event(
             event_type='SYNC_INIT',
@@ -195,9 +195,9 @@ def sync_customers_to_master(actor='system'):
                 'duration_ms': duration_ms
             }
         )
-        
+
         conn.close()
-        
+
         print(f"[INIT] 完成：從 customers 匯入 {inserted} 筆到 customer_master，耗時 {duration_ms}ms")
         return {
             'success': True,
@@ -205,11 +205,11 @@ def sync_customers_to_master(actor='system'):
             'source_count': customers_count,
             'duration_ms': duration_ms
         }
-        
+
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
         error_msg = str(e)
-        
+
         log_event(
             event_type='SYNC_INIT',
             source='sync_customers_to_master',
@@ -220,7 +220,7 @@ def sync_customers_to_master(actor='system'):
             error_code='SYNC_ERROR',
             error_stack=error_msg
         )
-        
+
         print(f"[INIT] 失敗: {error_msg}")
         return {'success': False, 'error': error_msg}
 
@@ -231,23 +231,23 @@ def sync_customers_from_master(actor='system'):
     只做 UPSERT，不做 DELETE（保險鎖）
     """
     start_time = time.time()
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # 檢查 customer_master 是否有資料
         cursor.execute("SELECT COUNT(*) as count FROM customer_master")
         master_count = cursor.fetchone()['count']
-        
+
         if master_count == 0:
             print("[SYNC] customer_master 為空，跳過同步")
             return {'success': True, 'synced': 0, 'skipped': True}
-        
+
         # 執行 UPSERT：將 master 資料同步到 customers
         cursor.execute("""
             INSERT INTO customers (customer_id, short_name, mobile, phone1, company_address, contact, updated_at)
-            SELECT 
+            SELECT
                 customer_id,
                 short_name,
                 mobile,
@@ -258,9 +258,9 @@ def sync_customers_from_master(actor='system'):
             FROM customer_master
             WHERE customer_id NOT IN (SELECT customer_id FROM customers)
         """)
-        
+
         inserted = cursor.rowcount
-        
+
         # 更新已存在的記錄
         cursor.execute("""
             UPDATE customers SET
@@ -271,12 +271,12 @@ def sync_customers_from_master(actor='system'):
                 updated_at = datetime('now', 'localtime')
             WHERE customer_id IN (SELECT customer_id FROM customer_master)
         """)
-        
+
         updated = cursor.rowcount
         conn.commit()
-        
+
         duration_ms = int((time.time() - start_time) * 1000)
-        
+
         # 記錄到 ops_events
         log_event(
             event_type='SYNC',
@@ -293,9 +293,9 @@ def sync_customers_from_master(actor='system'):
                 'duration_ms': duration_ms
             }
         )
-        
+
         conn.close()
-        
+
         print(f"[SYNC] 完成：新增 {inserted} 筆，更新 {updated} 筆，耗時 {duration_ms}ms")
         return {
             'success': True,
@@ -304,11 +304,11 @@ def sync_customers_from_master(actor='system'):
             'updated': updated,
             'duration_ms': duration_ms
         }
-        
+
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
         error_msg = str(e)
-        
+
         log_event(
             event_type='SYNC',
             source='sync_customers_from_master',
@@ -319,7 +319,7 @@ def sync_customers_from_master(actor='system'):
             error_code='SYNC_ERROR',
             error_stack=error_msg
         )
-        
+
         print(f"[SYNC] 失敗: {error_msg}")
         return {'success': False, 'error': error_msg}
 
@@ -330,11 +330,11 @@ def log_slow_query(endpoint, duration_ms, details=None):
     """記錄慢查詢（>200ms）到 admin_audit_log"""
     if duration_ms < 200:  # 只記錄超過 200ms 的查詢
         return
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # 確保 admin_audit_log 表存在
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS admin_audit_log (
@@ -348,12 +348,12 @@ def log_slow_query(endpoint, duration_ms, details=None):
                 created_at DATETIME DEFAULT (datetime('now', 'localtime'))
             )
         """)
-        
+
         cursor.execute("""
             INSERT INTO admin_audit_log (admin_user, action, action_type, fix_code, affected_ids)
             VALUES (?, ?, 'slow_query', ?, ?)
         """, ('system', endpoint, str(duration_ms), json.dumps(details) if details else None))
-        
+
         conn.commit()
         conn.close()
     except Exception as e:
@@ -367,7 +367,7 @@ def init_login_attempts_table():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS login_attempts (
                 ip_address TEXT PRIMARY KEY,
@@ -376,11 +376,11 @@ def init_login_attempts_table():
                 last_attempt DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_locked_until ON login_attempts(locked_until)
         """)
-        
+
         conn.commit()
         conn.close()
         print("✅ login_attempts 資料表已初始化")
@@ -404,74 +404,74 @@ def get_client_ip():
 def check_ip_locked(ip):
     """
     檢查該 IP 是否被鎖定
-    
+
     Returns:
         tuple: (is_locked: bool, message: str)
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
-        SELECT failed_count, locked_until 
-        FROM login_attempts 
+        SELECT failed_count, locked_until
+        FROM login_attempts
         WHERE ip_address = ?
     """, (ip,))
     row = cursor.fetchone()
     conn.close()
-    
+
     if not row:
         return False, None
-    
+
     # 檢查是否仍在鎖定期間
     if row['locked_until']:
         locked_until = datetime.fromisoformat(row['locked_until'])
         now = datetime.now()
-        
+
         if now < locked_until:
             # 計算剩餘鎖定時間
             remaining = locked_until - now
             minutes = int(remaining.total_seconds() / 60)
             seconds = int(remaining.total_seconds() % 60)
-            
+
             return True, f"⚠️ 登入失敗次數過多，此 IP 已被安全鎖定，請於 {minutes} 分 {seconds} 秒後再試。"
         else:
             # 鎖定已過期，自動解鎖（歸零）
             reset_login_attempts(ip)
             return False, None
-    
+
     return False, None
 
 
 def record_failed_login(ip):
     """
     記錄登入失敗，更新失敗次數
-    
+
     Args:
         ip: 客戶端 IP 位址
-    
+
     Returns:
         bool: 是否觸發鎖定
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     now = datetime.now().isoformat()
-    
+
     # 查詢現有記錄
     cursor.execute("""
         SELECT failed_count FROM login_attempts WHERE ip_address = ?
     """, (ip,))
     row = cursor.fetchone()
-    
+
     if row:
         # 更新現有記錄
         new_count = row['failed_count'] + 1
-        
+
         if new_count >= 5:
             # 達到鎖定門檻，設定鎖定時間為 15 分鐘後
             locked_until = (datetime.now() + timedelta(minutes=15)).isoformat()
             cursor.execute("""
-                UPDATE login_attempts 
+                UPDATE login_attempts
                 SET failed_count = ?, locked_until = ?, last_attempt = ?
                 WHERE ip_address = ?
             """, (new_count, locked_until, now, ip))
@@ -481,7 +481,7 @@ def record_failed_login(ip):
         else:
             # 僅更新失敗次數
             cursor.execute("""
-                UPDATE login_attempts 
+                UPDATE login_attempts
                 SET failed_count = ?, last_attempt = ?
                 WHERE ip_address = ?
             """, (new_count, now, ip))
@@ -491,7 +491,7 @@ def record_failed_login(ip):
             INSERT INTO login_attempts (ip_address, failed_count, locked_until, last_attempt)
             VALUES (?, 1, NULL, ?)
         """, (ip, now))
-    
+
     conn.commit()
     conn.close()
     return False  # 未鎖定
@@ -501,11 +501,11 @@ def reset_login_attempts(ip):
     """登入成功時重置該 IP 的嘗試記錄"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
         DELETE FROM login_attempts WHERE ip_address = ?
     """, (ip,))
-    
+
     conn.commit()
     conn.close()
 
@@ -517,25 +517,25 @@ init_login_attempts_table()
 def generate_analysis():
     """每天 20:00 執行的分析函數"""
     global analysis_results
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # ===== 部門分析 =====
         cursor.execute("""
             SELECT subject_name, target_amount, revenue_amount, achievement_rate, margin_rate
             FROM performance_metrics WHERE category = '部門'
         """)
         dept_rows = cursor.fetchall()
-        
+
         dept_analysis = []
         for row in dept_rows:
             name = row['subject_name']
             achievement = row['achievement_rate'] * 100
             margin = row['margin_rate'] * 100
             gap = row['target_amount'] - row['revenue_amount']
-            
+
             if achievement >= 80:
                 status = "表現優秀"
             elif achievement >= 60:
@@ -544,44 +544,44 @@ def generate_analysis():
                 status = "需要加油"
             else:
                 status = "警訊：進度嚴重落後"
-            
+
             dept_analysis.append(f"• {name}：達成率 {achievement:.1f}%，毛利率 {margin:.1f}%，{status}。距離目標尚差 NT${gap:,.0f}。")
-        
+
         # ===== 門市分析 =====
         cursor.execute("""
             SELECT subject_name, target_amount, revenue_amount, achievement_rate, margin_rate
             FROM performance_metrics WHERE category = '門市'
         """)
         store_rows = cursor.fetchall()
-        
+
         store_analysis = []
         best_store = max(store_rows, key=lambda x: x['achievement_rate'])
         worst_store = min(store_rows, key=lambda x: x['achievement_rate'])
-        
+
         for row in store_rows:
             name = row['subject_name']
             achievement = row['achievement_rate'] * 100
             margin = row['margin_rate'] * 100
-            
+
             if row['subject_name'] == best_store['subject_name']:
                 comment = "🏆 本季表現最佳"
             elif row['subject_name'] == worst_store['subject_name']:
                 comment = "⚠️ 需加強業績推動"
             else:
                 comment = "穩定發展中"
-            
+
             store_analysis.append(f"• {name}：達成率 {achievement:.1f}%，毛利率 {margin:.1f}%。{comment}")
-        
+
         # ===== 個人分析 =====
         cursor.execute("""
             SELECT salesperson, SUM(amount) as total_sales, COUNT(*) as order_count
-            FROM sales_history 
-            WHERE date >= '2026-01-01' 
+            FROM sales_history
+            WHERE date >= '2026-01-01'
               AND salesperson NOT IN ('Unknown', '莊圍迪', '萬書佑', '黃柏翰')
             GROUP BY salesperson ORDER BY total_sales DESC
         """)
         personal_rows = cursor.fetchall()
-        
+
         personal_analysis = []
         if len(personal_rows) >= 3:
             top3 = personal_rows[:3]
@@ -589,25 +589,25 @@ def generate_analysis():
             for i, row in enumerate(top3, 1):
                 avg = row['total_sales'] // row['order_count'] if row['order_count'] > 0 else 0
                 personal_analysis.append(f"  {i}. {row['salesperson']}：NT${row['total_sales']:,.0f}（{row['order_count']}筆，均價 NT${avg:,.0f}）")
-            
+
             # 找出單價最高的
             highest_avg = max(personal_rows, key=lambda x: x['total_sales']//x['order_count'] if x['order_count'] > 0 else 0)
             personal_analysis.append(f"\n💡 單價之王：{highest_avg['salesperson']}（平均 NT${highest_avg['total_sales']//highest_avg['order_count']:,.0f}/筆）")
-        
+
         # 業務分析（不在門市班表中的業務員）
         cursor.execute("""
-            SELECT DISTINCT staff_name FROM staff_roster 
+            SELECT DISTINCT staff_name FROM staff_roster
             WHERE location IN ('豐原', '潭子', '大雅')
         """)
         store_staff = [row['staff_name'] for row in cursor.fetchall()]
-        
+
         cursor.execute("""
             SELECT subject_name, target_amount, revenue_amount, profit_amount, achievement_rate, margin_rate
             FROM performance_metrics
             WHERE category = '個人' AND subject_name NOT IN ({placeholders})
         """.format(placeholders=','.join(['?' for _ in store_staff])), store_staff)
         business_rows = cursor.fetchall()
-        
+
         business_analysis = ["💼 業務部總覽\n"]
         for row in business_rows:
             name = row['subject_name']
@@ -615,7 +615,7 @@ def generate_analysis():
             revenue = row['revenue_amount']
             achievement = row['achievement_rate'] * 100
             margin = row['margin_rate'] * 100
-            
+
             if achievement >= 80:
                 comment = "表現優秀！"
             elif achievement >= 60:
@@ -624,19 +624,19 @@ def generate_analysis():
                 comment = "接近目標，需要衝刺。"
             else:
                 comment = "落後較多，需檢討改進。"
-            
+
             business_analysis.append(f"• {name}：達成率 {achievement:.1f}%，毛利率 {margin:.1f}%。{comment}")
-        
+
         # 更新結果
         analysis_results['department'] = "\n".join(dept_analysis)
         analysis_results['store'] = "\n".join(store_analysis)
         analysis_results['business'] = "\n".join(business_analysis)
         analysis_results['personal'] = "\n".join(personal_analysis)
         analysis_results['last_update'] = datetime.now().strftime('%Y-%m-%d %H:%M')
-        
+
         conn.close()
         print(f"✅ 分析完成：{analysis_results['last_update']}")
-        
+
     except Exception as e:
         print(f"❌ 分析失敗：{e}")
 
@@ -650,22 +650,22 @@ def health_monitor():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # 檢查最近10分鐘的通知失敗
         cursor.execute("""
-            SELECT COUNT(*) as failed_count 
-            FROM notification_logs 
-            WHERE status = 'failed' 
+            SELECT COUNT(*) as failed_count
+            FROM notification_logs
+            WHERE status = 'failed'
             AND created_at >= datetime('now', '-10 minutes')
         """)
         failed_count = cursor.fetchone()['failed_count']
-        
+
         # 檢查資料庫連線（簡單查詢）
         cursor.execute("SELECT 1")
         cursor.fetchone()
-        
+
         conn.close()
-        
+
         # 如果有通知失敗，發送告警
         if failed_count > 0:
             alert_msg = f"""⚠️ <b>系統告警</b>
@@ -684,7 +684,7 @@ def health_monitor():
             print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，已發送告警")
         else:
             print(f"[HEALTH MONITOR] 系統健康檢查通過 - {datetime.now().strftime('%H:%M:%S')}")
-            
+
     except Exception as e:
         print(f"[HEALTH MONITOR] 健康檢查失敗: {e}")
         # 資料庫連線失敗也發送告警
@@ -728,7 +728,7 @@ def health_check():
         cursor.execute("SELECT 1")
         cursor.fetchone()
         conn.close()
-        
+
         return jsonify({
             'status': 'healthy',
             'database': 'healthy',
@@ -759,17 +759,17 @@ def get_notification_status():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # 檢查最近 1 小時的通知記錄
         cursor.execute("""
-            SELECT status, COUNT(*) as count 
-            FROM notification_logs 
+            SELECT status, COUNT(*) as count
+            FROM notification_logs
             WHERE created_at >= datetime('now', '-1 hour')
             GROUP BY status
         """)
         rows = cursor.fetchall()
         conn.close()
-        
+
         success_count = 0
         failed_count = 0
         for row in rows:
@@ -777,7 +777,7 @@ def get_notification_status():
                 success_count = row['count']
             elif row['status'] == 'failed':
                 failed_count = row['count']
-        
+
         # 判斷狀態
         if failed_count == 0 and success_count > 0:
             telegram_status = 'healthy'
@@ -787,7 +787,7 @@ def get_notification_status():
             telegram_status = 'error'
         else:
             telegram_status = 'healthy'  # 沒有記錄也視為正常
-        
+
         return jsonify({
             'telegram': telegram_status,
             'recent_success': success_count,
@@ -806,20 +806,20 @@ def get_notification_status():
 def get_daily_sales():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 人員編制：門市部人員（豐原、潭子、大雅）
     store_staff = ['林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩']
-    
+
     # 獲取總銷售
     cursor.execute("""
         SELECT date, SUM(amount) as daily_total, COUNT(*) as daily_count
-        FROM sales_history 
-        WHERE date >= '2026-01-01' AND date <= '2026-03-31' 
-        GROUP BY date 
+        FROM sales_history
+        WHERE date >= '2026-01-01' AND date <= '2026-03-31'
+        GROUP BY date
         ORDER BY date
     """)
     total_rows = {row['date']: {'amount': row['daily_total'], 'count': row['daily_count']} for row in cursor.fetchall()}
-    
+
     # 獲取門市部銷售（只計算門市人員，不含主管）
     placeholders = ','.join(['?' for _ in store_staff])
     cursor.execute(f"""
@@ -831,9 +831,9 @@ def get_daily_sales():
         ORDER BY date
     """, store_staff)
     store_rows = {row['date']: row['daily_total'] for row in cursor.fetchall()}
-    
+
     conn.close()
-    
+
     # 合併數據：門市部 + 業務部（總計-門市部）
     result = []
     for date, total in total_rows.items():
@@ -846,7 +846,7 @@ def get_daily_sales():
             'total': total['amount'],
             'count': total['count']
         })
-    
+
     return jsonify(result)
 
 # API: 本季每日銷售（只含門市部）
@@ -854,17 +854,17 @@ def get_daily_sales():
 def get_daily_sales_store():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 獲取所有門市人員名單（曾在班表中出現的人員）
     cursor.execute("""
-        SELECT DISTINCT staff_name FROM staff_roster 
+        SELECT DISTINCT staff_name FROM staff_roster
         WHERE location IN ('豐原', '潭子', '大雅')
     """)
     store_staff = [row['staff_name'] for row in cursor.fetchall()]
-    
+
     # 使用 LIKE 匹配（因為 sales_history 是全名，staff_roster 是名字）
     conditions = ' OR '.join([f"salesperson LIKE '%' || ? || '%'" for _ in store_staff])
-    
+
     cursor.execute(f"""
         SELECT date, SUM(amount) as daily_total, COUNT(*) as daily_count
         FROM sales_history
@@ -873,7 +873,7 @@ def get_daily_sales_store():
         GROUP BY date
         ORDER BY date
     """, store_staff)
-    
+
     rows = cursor.fetchall()
     conn.close()
     return jsonify([{'date': row['date'], 'amount': row['daily_total'], 'count': row['daily_count']} for row in rows])
@@ -883,10 +883,10 @@ def get_daily_sales_store():
 def get_daily_sales_by_store():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 獲取各門市的人員名單
     cursor.execute("""
-        SELECT DISTINCT location, staff_name FROM staff_roster 
+        SELECT DISTINCT location, staff_name FROM staff_roster
         WHERE location IN ('豐原', '潭子', '大雅')
     """)
     staff_by_store = {}
@@ -894,15 +894,15 @@ def get_daily_sales_by_store():
         if row['location'] not in staff_by_store:
             staff_by_store[row['location']] = []
         staff_by_store[row['location']].append(row['staff_name'])
-    
+
     # 獲取所有日期
     cursor.execute("""
-        SELECT DISTINCT date FROM sales_history 
+        SELECT DISTINCT date FROM sales_history
         WHERE date >= '2026-01-01' AND date <= '2026-03-31'
         ORDER BY date
     """)
     dates = [row['date'] for row in cursor.fetchall()]
-    
+
     result = []
     for date in dates:
         day_data = {'date': date, 'stores': {}}
@@ -916,7 +916,7 @@ def get_daily_sales_by_store():
             row = cursor.fetchone()
             day_data['stores'][store] = row['total'] or 0
         result.append(day_data)
-    
+
     conn.close()
     return jsonify(result)
 
@@ -926,18 +926,18 @@ def get_dept_performance():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 取得查詢參數（支援 year, month, period_type）
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     period_type = request.args.get('period_type', 'quarterly')
-    
+
     # 如果沒有指定年月，預設為本季
     if year is None:
         year = datetime.now().year
     if month is None:
         month = datetime.now().month
-    
+
     # 計算日期範圍
     if period_type == 'monthly':
         start_date = f"{year}-{month:02d}-01"
@@ -951,34 +951,34 @@ def get_dept_performance():
     else:  # yearly
         start_date = f"{year}-01-01"
         end_date = f"{year}-12-31"
-    
+
     # 從 sales_history 即時計算部門業績
     # 門市部：林榮祺、林峙文、劉育仕、林煜捷、張永承、張家碩
     # 業務部：鄭宇晉、梁仁佑
     cursor.execute("""
-        SELECT 
-            CASE WHEN salesperson IN ('林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩') 
-                 THEN '門市部' 
-                 WHEN salesperson IN ('鄭宇晉', '梁仁佑') 
-                 THEN '業務部' 
+        SELECT
+            CASE WHEN salesperson IN ('林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩')
+                 THEN '門市部'
+                 WHEN salesperson IN ('鄭宇晉', '梁仁佑')
+                 THEN '業務部'
             END as dept_name,
             SUM(amount) as revenue,
             SUM(profit) as profit,
             COUNT(*) as order_count
-        FROM sales_history 
+        FROM sales_history
         WHERE date >= ? AND date <= ?
           AND salesperson IN ('林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩',
                               '鄭宇晉', '梁仁佑')
         GROUP BY dept_name
     """, (start_date, end_date))
-    
+
     sales_rows = cursor.fetchall()
-    
+
     # 從 performance_metrics 讀取目標
     if period_type == 'monthly':
         cursor.execute("""
             SELECT subject_name, target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '部門'
               AND year = ?
               AND month = ?
@@ -990,7 +990,7 @@ def get_dept_performance():
         end_month = quarter * 3
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '部門'
               AND year = ?
               AND month >= ? AND month <= ?
@@ -1000,29 +1000,29 @@ def get_dept_performance():
     else:  # yearly
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '部門'
               AND year = ?
               AND period_type = 'monthly'
             GROUP BY subject_name
         """, (year,))
-    
+
     target_rows = cursor.fetchall()
     target_map = {row['subject_name']: row['target_amount'] for row in target_rows}
-    
+
     conn.close()
-    
+
     # 構建結果
     result = []
     for row in sales_rows:
         dept_name = row['dept_name']
         if not dept_name:
             continue
-            
+
         revenue = row['revenue'] or 0
         profit = row['profit'] or 0
         target = target_map.get(dept_name, 0)
-        
+
         result.append({
             'name': dept_name,
             'target': target,
@@ -1035,7 +1035,7 @@ def get_dept_performance():
             'month': month,
             'period_type': period_type
         })
-    
+
     return jsonify(result)
 
 # API: 門市業績
@@ -1044,18 +1044,18 @@ def get_store_performance():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 取得查詢參數（支援 year, month, period_type）
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     period_type = request.args.get('period_type', 'quarterly')
-    
+
     # 如果沒有指定年月，預設為本季
     if year is None:
         year = datetime.now().year
     if month is None:
         month = datetime.now().month
-    
+
     # 計算日期範圍
     if period_type == 'monthly':
         start_date = f"{year}-{month:02d}-01"
@@ -1069,29 +1069,29 @@ def get_store_performance():
     else:  # yearly
         start_date = f"{year}-01-01"
         end_date = f"{year}-12-31"
-    
+
     # 門市人員編制
     store_staff = {
         '豐原': ['林榮祺', '林峙文'],
         '潭子': ['劉育仕', '林煜捷'],
         '大雅': ['張永承', '張家碩']
     }
-    
+
     # 從 sales_history 即時計算門市業績
     cursor.execute("""
-        SELECT 
+        SELECT
             salesperson,
             SUM(amount) as revenue,
             SUM(profit) as profit,
             COUNT(*) as order_count
-        FROM sales_history 
+        FROM sales_history
         WHERE date >= ? AND date <= ?
           AND salesperson IN ('林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩')
         GROUP BY salesperson
     """, (start_date, end_date))
-    
+
     sales_rows = cursor.fetchall()
-    
+
     # 按門市彙總
     store_stats = {}
     for row in sales_rows:
@@ -1105,12 +1105,12 @@ def get_store_performance():
                 store_stats[store_name]['orders'] += row['order_count']
                 store_stats[store_name]['staff'].append(name)
                 break
-    
+
     # 從 performance_metrics 讀取目標
     if period_type == 'monthly':
         cursor.execute("""
             SELECT subject_name, target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '門市'
               AND year = ?
               AND month = ?
@@ -1122,7 +1122,7 @@ def get_store_performance():
         end_month = quarter * 3
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '門市'
               AND year = ?
               AND month >= ? AND month <= ?
@@ -1132,25 +1132,25 @@ def get_store_performance():
     else:  # yearly
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '門市'
               AND year = ?
               AND period_type = 'monthly'
             GROUP BY subject_name
         """, (year,))
-    
+
     target_rows = cursor.fetchall()
     target_map = {row['subject_name'].replace('門市', ''): row['target_amount'] for row in target_rows}
-    
+
     conn.close()
-    
+
     # 構建結果
     result = []
     for store_name, stats in store_stats.items():
         revenue = stats['revenue']
         profit = stats['profit']
         target = target_map.get(store_name, 0)
-        
+
         result.append({
             'store_name': store_name,
             'target': target,
@@ -1161,7 +1161,7 @@ def get_store_performance():
             'margin_rate': profit / revenue if revenue > 0 else 0,
             'salespeople': stats['staff']
         })
-    
+
     return jsonify({'success': True, 'data': result, 'year': year, 'month': month, 'period_type': period_type})
     for store_name in ['豐原', '潭子', '大雅']:
         stats = store_stats.get(store_name, {'sales': 0, 'profit': 0})
@@ -1170,7 +1170,7 @@ def get_store_performance():
         target = target_map.get(store_name, 0)
         margin = profit / sales if sales > 0 else 0
         achievement = sales / target if target > 0 else 0
-        
+
         result.append({
             'name': store_name,
             'target': target,
@@ -1179,7 +1179,7 @@ def get_store_performance():
             'achievement_rate': achievement,
             'margin_rate': margin
         })
-    
+
     return jsonify(result)
 
 # API: 門市五星好評
@@ -1198,15 +1198,15 @@ def get_store_supervision():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 獲取當月日期範圍
     today = datetime.now()
     date_start = f"{today.year}-{today.month:02d}-01"
-    
+
     # 計算每個門市本月的平均督導評分
     # 15項 × 3分 = 45分滿分，計算百分比
     cursor.execute("""
-        SELECT 
+        SELECT
             store_name,
             AVG(CAST(COALESCE(attendance, '0') AS FLOAT)) as avg_attendance,
             AVG(CAST(COALESCE(appearance, '0') AS FLOAT)) as avg_appearance,
@@ -1223,27 +1223,27 @@ def get_store_supervision():
             AVG(CAST(COALESCE(problem_grasp, '0') AS FLOAT)) as avg_problem,
             AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_info,
             AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_followup
-        FROM supervision_scores 
+        FROM supervision_scores
         WHERE date >= ?
         GROUP BY store_name
     """, (date_start,))
-    
+
     rows = cursor.fetchall()
-    
+
     # 獲取每個門市本月的督導次數
     cursor.execute("""
-        SELECT 
+        SELECT
             store_name,
             COUNT(DISTINCT date) as inspection_count
-        FROM supervision_scores 
+        FROM supervision_scores
         WHERE date >= ?
         GROUP BY store_name
     """, (date_start,))
     count_rows = cursor.fetchall()
     count_map = {row['store_name']: row['inspection_count'] for row in count_rows}
-    
+
     conn.close()
-    
+
     result = []
     for row in rows:
         # 計算總分（15項的平均值相加）
@@ -1267,13 +1267,13 @@ def get_store_supervision():
         # 30分滿分（15項×2分），計算百分比
         score_percentage = (total_avg / 30) * 100 if total_avg > 0 else 0
         store_name = row['store_name']
-        
+
         result.append({
             'store': store_name,
             'score': round(score_percentage, 1),
             'inspection_count': count_map.get(store_name, 0)
         })
-    
+
     return jsonify(result)
 
 # API: 門市督導評分明細（本月詳細項目）
@@ -1282,12 +1282,12 @@ def get_store_supervision_detail():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     today = datetime.now()
     date_start = f"{today.year}-{today.month:02d}-01"
-    
+
     cursor.execute("""
-        SELECT 
+        SELECT
             store_name,
             AVG(CAST(COALESCE(attendance, '0') AS FLOAT)) as avg_attendance,
             AVG(CAST(COALESCE(appearance, '0') AS FLOAT)) as avg_appearance,
@@ -1304,14 +1304,14 @@ def get_store_supervision_detail():
             AVG(CAST(COALESCE(problem_grasp, '0') AS FLOAT)) as avg_problem,
             AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_info,
             AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_followup
-        FROM supervision_scores 
+        FROM supervision_scores
         WHERE date >= ?
         GROUP BY store_name
     """, (date_start,))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     result = []
     for row in rows:
         result.append({
@@ -1334,7 +1334,7 @@ def get_store_supervision_detail():
                 {'name': '後續追蹤', 'score': round(row['avg_followup'] or 0, 1)}
             ]
         })
-    
+
     return jsonify(result)
 
 # API: 個人業績
@@ -1343,18 +1343,18 @@ def get_personal_performance():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 取得查詢參數（支援 year, month, period_type）
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     period_type = request.args.get('period_type', 'quarterly')
-    
+
     # 如果沒有指定年月，預設為本季
     if year is None:
         year = datetime.now().year
     if month is None:
         month = datetime.now().month
-    
+
     # 計算日期範圍
     if period_type == 'monthly':
         start_date = f"{year}-{month:02d}-01"
@@ -1368,34 +1368,34 @@ def get_personal_performance():
     else:  # yearly
         start_date = f"{year}-01-01"
         end_date = f"{year}-12-31"
-    
+
     # 過濾掉不需要顯示的人員（主管不列入個人排名）
     excluded_names = ['莊圍迪', '萬書佑', 'Unknown']
-    
+
     # 從 sales_history 即時計算個人業績
     cursor.execute("""
-        SELECT 
+        SELECT
             salesperson,
             SUM(amount) as revenue,
             SUM(profit) as profit,
             COUNT(*) as order_count
-        FROM sales_history 
+        FROM sales_history
         WHERE date >= ? AND date <= ?
           AND salesperson NOT IN ('莊圍迪', '萬書佑', 'Unknown', '黃柏翰', '')
-          AND product_code IS NOT NULL 
+          AND product_code IS NOT NULL
           AND product_code != ''
           AND product_code LIKE '%-%'
         GROUP BY salesperson
         ORDER BY revenue DESC
     """, (start_date, end_date))
-    
+
     sales_rows = cursor.fetchall()
-    
+
     # 從 performance_metrics 讀取目標
     if period_type == 'monthly':
         cursor.execute("""
             SELECT subject_name, target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '個人'
               AND year = ?
               AND month = ?
@@ -1407,7 +1407,7 @@ def get_personal_performance():
         end_month = quarter * 3
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '個人'
               AND year = ?
               AND month >= ? AND month <= ?
@@ -1417,31 +1417,31 @@ def get_personal_performance():
     else:  # yearly
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '個人'
               AND year = ?
               AND period_type = 'monthly'
             GROUP BY subject_name
         """, (year,))
-    
+
     target_rows = cursor.fetchall()
     target_map = {row['subject_name']: row['target_amount'] for row in target_rows}
-    
+
     conn.close()
-    
+
     result = []
     rank = 1
     for row in sales_rows:
         name = row['salesperson']
         if name in excluded_names:
             continue
-        
+
         revenue = row['revenue'] or 0
         profit = row['profit'] or 0
         orders = row['order_count'] or 0
         target = target_map.get(name, 0)
         avg = revenue // orders if orders > 0 else 0
-        
+
         result.append({
             'rank': rank,
             'name': name,
@@ -1456,7 +1456,7 @@ def get_personal_performance():
             'period_type': period_type
         })
         rank += 1
-    
+
     return jsonify(result)
 
 # API: 業務員績效（業務部：鄭宇晉、梁仁佑）
@@ -1465,18 +1465,18 @@ def get_business_performance():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 取得查詢參數（支援 year, month, period_type）
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     period_type = request.args.get('period_type', 'quarterly')
-    
+
     # 如果沒有指定年月，預設為本季
     if year is None:
         year = datetime.now().year
     if month is None:
         month = datetime.now().month
-    
+
     # 計算日期範圍
     if period_type == 'monthly':
         start_date = f"{year}-{month:02d}-01"
@@ -1490,30 +1490,30 @@ def get_business_performance():
     else:  # yearly
         start_date = f"{year}-01-01"
         end_date = f"{year}-12-31"
-    
+
     # 業務部人員列表
     business_staff = ['鄭宇晉', '梁仁佑']
-    
+
     # 獲取業務員即時績效（從 sales_history 計算）
     placeholders = ','.join(['?' for _ in business_staff])
     cursor.execute(f"""
-        SELECT 
+        SELECT
             salesperson,
             SUM(amount) as total_sales,
             SUM(profit) as total_profit
-        FROM sales_history 
+        FROM sales_history
         WHERE date >= ? AND date <= ?
           AND salesperson IN ({placeholders})
         GROUP BY salesperson
     """, [start_date, end_date] + business_staff)
-    
+
     sales_rows = cursor.fetchall()
-    
+
     # 獲取業務員目標（根據 period_type）
     if period_type == 'monthly':
         cursor.execute("""
             SELECT subject_name, target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '個人' AND subject_name IN ('鄭宇晉', '梁仁佑')
               AND year = ? AND month = ? AND period_type = 'monthly'
         """, (year, month))
@@ -1523,7 +1523,7 @@ def get_business_performance():
         end_month = quarter * 3
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '個人' AND subject_name IN ('鄭宇晉', '梁仁佑')
               AND year = ? AND month >= ? AND month <= ? AND period_type = 'monthly'
             GROUP BY subject_name
@@ -1531,17 +1531,17 @@ def get_business_performance():
     else:  # yearly
         cursor.execute("""
             SELECT subject_name, SUM(target_amount) as target_amount
-            FROM performance_metrics 
+            FROM performance_metrics
             WHERE category = '個人' AND subject_name IN ('鄭宇晉', '梁仁佑')
               AND year = ? AND period_type = 'monthly'
             GROUP BY subject_name
         """, (year,))
-    
+
     target_rows = cursor.fetchall()
     target_map = {row['subject_name']: row['target_amount'] for row in target_rows}
-    
+
     conn.close()
-    
+
     result = []
     for row in sales_rows:
         name = row['salesperson']
@@ -1550,7 +1550,7 @@ def get_business_performance():
         target = target_map.get(name, 0)
         margin = profit / sales if sales > 0 else 0
         achievement = sales / target if target > 0 else 0
-        
+
         result.append({
             'name': name,
             'target': target,
@@ -1561,29 +1561,29 @@ def get_business_performance():
             'month': month,
             'period_type': period_type
         })
-    
+
     return jsonify(result)
 
 # API: 當周班表 (週日開始)
 @app.route('/api/roster/weekly')
 def get_weekly_roster():
     from datetime import datetime, timedelta
-    
+
     today = datetime.now()
     sunday = today - timedelta(days=(today.weekday() + 1) % 7)  # 本週日
     saturday = sunday + timedelta(days=6)  # 本週六
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT date, staff_name, location, shift_code 
-        FROM staff_roster 
+        SELECT date, staff_name, location, shift_code
+        FROM staff_roster
         WHERE date >= ? AND date <= ?
         ORDER BY date, location, staff_name
     """, (sunday.strftime('%Y-%m-%d'), saturday.strftime('%Y-%m-%d')))
     rows = cursor.fetchall()
     conn.close()
-    
+
     staff_weekly = {}
     for row in rows:
         name = row['staff_name']
@@ -1591,7 +1591,7 @@ def get_weekly_roster():
         if name not in staff_weekly:
             staff_weekly[name] = {'location': row['location'], 'shifts': {}}
         staff_weekly[name]['shifts'][date] = row['shift_code']
-    
+
     return jsonify(staff_weekly)
 
 # API: 今日班表
@@ -1599,12 +1599,12 @@ def get_weekly_roster():
 def get_today_roster():
     from datetime import datetime
     today_str = datetime.now().strftime('%Y-%m-%d')
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT staff_name, location, shift_code 
-        FROM staff_roster 
+        SELECT staff_name, location, shift_code
+        FROM staff_roster
         WHERE date = ?
         ORDER BY location, staff_name
     """, (today_str,))
@@ -1621,7 +1621,7 @@ def get_today_roster():
 def get_latest_needs():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 獲取查詢參數：type=all/請購/調撥，預設顯示全部
         filter_type = request.args.get('type', 'all')
@@ -1669,27 +1669,27 @@ def get_latest_needs():
                 ORDER BY date DESC, id DESC
                 LIMIT 50
             """)
-        
+
         rows = cursor.fetchall()
-        
+
         if not rows:
             return jsonify({'date': None, 'items': []})
-        
+
         # 獲取最新日期用於顯示
         latest_date = rows[0]['date'] if rows else None
-        
+
         result_items = []
         for row in rows:
             product_code = row['product_code'] if row['product_code'] else ''
-            
+
             # 產品名稱優先順序：1. needs.item_name 2. inventory.item_spec
             display_name = row['item_name'] if row['item_name'] else ''
-            
+
             # 如果 needs 沒有產品名稱，或名稱看起來像編號，從庫存表查詢
             if product_code:
                 cursor.execute("""
-                    SELECT item_spec FROM inventory 
-                    WHERE product_id = ? 
+                    SELECT item_spec FROM inventory
+                    WHERE product_id = ?
                     ORDER BY report_date DESC LIMIT 1
                 """, (product_code,))
                 inv_row = cursor.fetchone()
@@ -1698,7 +1698,7 @@ def get_latest_needs():
                     has_chinese = display_name and any('\u4e00' <= char <= '\u9fff' for char in display_name)
                     if not display_name or not has_chinese:
                         display_name = inv_row['item_spec']
-            
+
             # 查詢最後一次進貨價格與廠商名稱
             last_price = None
             last_vendor = None
@@ -1712,7 +1712,7 @@ def get_latest_needs():
                 if price_row:
                     last_price = price_row['price']
                     last_vendor = price_row['supplier_name']
-            
+
             # 查詢庫存分布（只顯示最新日期、庫存 > 0 的倉庫）
             stock_warehouses = []
             if product_code:
@@ -1734,7 +1734,19 @@ def get_latest_needs():
                     """, (product_code, latest_row['latest_date']))
                     stock_rows = cursor.fetchall()
                     stock_warehouses = [{'warehouse': r['warehouse'], 'qty': r['total_qty']} for r in stock_rows]
-            
+
+            # 查詢客戶姓名
+            customer_name = ''
+            if row['customer_code'] and row['customer_code'] not in ('nan', 'None', 'NaN'):
+                cursor.execute("""
+                    SELECT short_name FROM customers
+                    WHERE customer_id = ?
+                    LIMIT 1
+                """, (row['customer_code'],))
+                cust_row = cursor.fetchone()
+                if cust_row:
+                    customer_name = cust_row['short_name']
+
             result_items.append({
                 'id': row['id'],
                 'date': row['date'],
@@ -1742,6 +1754,7 @@ def get_latest_needs():
                 'display_name': display_name,
                 'quantity': row['quantity'],
                 'customer_code': row['customer_code'] if row['customer_code'] and row['customer_code'] not in ('nan', 'None', 'NaN') else '',
+                'customer_name': customer_name,
                 'department': row['department'],
                 'requester': row['requester'],
                 'vendor_delivery': row['vendor_delivery'],
@@ -1758,7 +1771,7 @@ def get_latest_needs():
                 'request_type': row['request_type'] if row['request_type'] else '請購',
                 'transfer_from': row['transfer_from'] if row['transfer_from'] else ''
             })
-        
+
         return jsonify({
             'date': latest_date,
             'items': result_items
@@ -1774,22 +1787,22 @@ def get_latest_needs():
 def get_summary():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("SELECT SUM(amount) FROM sales_history WHERE date >= '2026-01-01'")
     total_revenue = cursor.fetchone()[0] or 0
-    
+
     cursor.execute("SELECT SUM(amount) FROM sales_history WHERE date = '2026-02-21'")
     today_revenue = cursor.fetchone()[0] or 0
-    
+
     cursor.execute("SELECT COUNT(DISTINCT date) FROM sales_history WHERE date >= '2026-01-01'")
     day_count = cursor.fetchone()[0] or 1
     avg_revenue = total_revenue // day_count
-    
+
     cursor.execute("SELECT MAX(daily_total) FROM (SELECT date, SUM(amount) as daily_total FROM sales_history WHERE date >= '2026-01-01' GROUP BY date)")
     max_revenue = cursor.fetchone()[0] or 0
-    
+
     conn.close()
-    
+
     return jsonify({
         'total': total_revenue,
         'today': today_revenue,
@@ -1803,15 +1816,15 @@ def get_service_records_summary():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 取得查詢參數
     year = request.args.get('year', datetime.now().year, type=int)
     month = request.args.get('month', datetime.now().month, type=int)
-    
+
     # 計算當月日期範圍
     start_date = f"{year}-{month:02d}-01"
     end_date = f"{year}-{month:02d}-31"
-    
+
     # 獲取各業務員服務筆數
     cursor.execute("""
         SELECT salesperson, COUNT(*) as total_count,
@@ -1820,9 +1833,9 @@ def get_service_records_summary():
         WHERE date >= ? AND date <= ?
         GROUP BY salesperson
     """, (start_date, end_date))
-    
+
     salesperson_rows = cursor.fetchall()
-    
+
     # 獲取服務分類統計
     cursor.execute("""
         SELECT service_type, COUNT(*) as count
@@ -1831,11 +1844,11 @@ def get_service_records_summary():
         GROUP BY service_type
         ORDER BY count DESC
     """, (start_date, end_date))
-    
+
     service_type_rows = cursor.fetchall()
-    
+
     conn.close()
-    
+
     # 構建回傳格式
     salesperson_summary = []
     for row in salesperson_rows:
@@ -1844,14 +1857,14 @@ def get_service_records_summary():
             'total_count': row['total_count'],
             'contract_count': row['contract_count']
         })
-    
+
     service_types = []
     for row in service_type_rows:
         service_types.append({
             'type': row['service_type'],
             'count': row['count']
         })
-    
+
     return jsonify({
         'success': True,
         'year': year,
@@ -1893,10 +1906,10 @@ def search_customer():
     query = request.args.get('q', '').strip()
     if not query:
         return jsonify({'found': False, 'message': '請輸入搜尋關鍵字'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 模糊搜尋客戶（姓名或手機），上限50筆
     cursor.execute("""
         SELECT customer_id, short_name, phone1, mobile, company_address
@@ -1905,13 +1918,13 @@ def search_customer():
         ORDER BY short_name
         LIMIT 50
     """, (f'%{query}%', f'%{query}%', f'%{query}%'))
-    
+
     customers = cursor.fetchall()
-    
+
     if not customers:
         conn.close()
         return jsonify({'found': False, 'message': '找不到符合的客戶'})
-    
+
     # 如果只有一筆，直接回傳詳細資料
     if len(customers) == 1:
         customer = customers[0]
@@ -1931,7 +1944,7 @@ def search_customer():
         purchases = cursor.fetchall()
         total_spent = sum(p['amount'] for p in purchases) if purchases else 0
         conn.close()
-        
+
         return jsonify({
             'found': True,
             'multiple': False,
@@ -1952,7 +1965,7 @@ def search_customer():
             } for p in purchases],
             'total_spent': total_spent
         })
-    
+
     # 多筆結果，回傳列表讓用戶選擇
     conn.close()
     return jsonify({
@@ -1990,18 +2003,18 @@ def admin_health_check():
 def get_customer_detail(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 查詢客戶基本資料
     cursor.execute("""
         SELECT customer_id, short_name, phone1, mobile, company_address
         FROM customers WHERE customer_id = ?
     """, (customer_id,))
     customer = cursor.fetchone()
-    
+
     if not customer:
         conn.close()
         return jsonify({'found': False, 'message': '找不到該客戶'})
-    
+
     # 查詢消費紀錄（直接使用 sales_history 的 product_name）
     cursor.execute("""
         SELECT s.date, s.product_code, s.product_name, s.quantity, s.amount, s.salesperson
@@ -2012,9 +2025,9 @@ def get_customer_detail(customer_id):
     """, (customer['customer_id'],))
     purchases = cursor.fetchall()
     total_spent = sum(p['amount'] for p in purchases) if purchases else 0
-    
+
     conn.close()
-    
+
     return jsonify({
         'found': True,
         'customer': {
@@ -2040,10 +2053,10 @@ def get_customer_detail(customer_id):
 def get_service_records_detail():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 本季日期範圍
     cursor.execute("""
-        SELECT 
+        SELECT
             date,
             salesperson,
             COUNT(*) as count,
@@ -2056,10 +2069,10 @@ def get_service_records_detail():
         ORDER BY date DESC, salesperson
     """)
     daily_stats = cursor.fetchall()
-    
+
     # 服務分類統計
     cursor.execute("""
-        SELECT 
+        SELECT
             service_type,
             COUNT(*) as count
         FROM service_records
@@ -2068,10 +2081,10 @@ def get_service_records_detail():
         ORDER BY count DESC
     """)
     service_type_stats = cursor.fetchall()
-    
+
     # 客戶來源統計
     cursor.execute("""
-        SELECT 
+        SELECT
             customer_source,
             COUNT(*) as count
         FROM service_records
@@ -2081,10 +2094,10 @@ def get_service_records_detail():
         ORDER BY count DESC
     """)
     source_stats = cursor.fetchall()
-    
+
     # 業務員本季總覽
     cursor.execute("""
-        SELECT 
+        SELECT
             salesperson,
             COUNT(*) as total_count,
             COUNT(DISTINCT customer_code) as unique_customers,
@@ -2095,9 +2108,9 @@ def get_service_records_detail():
         ORDER BY total_count DESC
     """)
     salesperson_summary = cursor.fetchall()
-    
+
     conn.close()
-    
+
     return jsonify({
         'daily_stats': [{
             'date': r['date'],
@@ -2128,45 +2141,45 @@ def get_service_records_detail():
 def verify_password():
     data = request.get_json()
     password = data.get('password', '')
-    
+
     # 獲取客戶端 IP
     client_ip = get_client_ip()
-    
+
     # 步驟 1：檢查 IP 是否被鎖定
     is_locked, lock_message = check_ip_locked(client_ip)
     if is_locked:
         return jsonify({'success': False, 'message': lock_message}), 403
-    
+
     # 驗證密碼格式
     if not password or len(password) != 4:
         # 格式錯誤也算失敗
         record_failed_login(client_ip)
         return jsonify({'success': False, 'message': '密碼格式錯誤'})
-    
+
     # 查詢資料庫驗證密碼（同時檢查 staff.is_active=1）
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT sp.name, sp.department, sp.title, s.is_active 
+        SELECT sp.name, sp.department, sp.title, s.is_active
         FROM staff_passwords sp
         JOIN staff s ON sp.name = s.name
         WHERE sp.password = ?
     ''', (password,))
     row = cursor.fetchone()
     conn.close()
-    
+
     if row:
         # 檢查員工是否已停用
         if not row['is_active']:
             record_failed_login(client_ip)
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': '⚠️ 此帳號已被停用，請聯繫管理員。'
             }), 403
-        
+
         # 步驟 2：登入成功，重置失敗記錄
         reset_login_attempts(client_ip)
-        
+
         return jsonify({
             'success': True,
             'name': row['name'],
@@ -2176,10 +2189,10 @@ def verify_password():
     else:
         # 步驟 3：密碼錯誤，記錄失敗
         is_now_locked = record_failed_login(client_ip)
-        
+
         if is_now_locked:
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': '⚠️ 登入失敗次數過多，此 IP 已被安全鎖定，請於 15 分鐘後再試。'
             }), 403
         else:
@@ -2190,16 +2203,16 @@ def verify_password():
 def verify_boss_password():
     data = request.get_json()
     password = data.get('password', '')
-    
+
     if not password:
         return jsonify({'success': False, 'message': '請輸入密碼'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT password FROM boss_password WHERE id = 1')
     row = cursor.fetchone()
     conn.close()
-    
+
     if row and row['password'] == password:
         return jsonify({'success': True, 'role': 'boss'})
     else:
@@ -2211,13 +2224,13 @@ def verify_accountant():
     data = request.get_json()
     name = data.get('name', '')
     password = data.get('password', '')
-    
+
     if not name or not password:
         return jsonify({'success': False, 'message': '請輸入帳號密碼'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 驗證帳號密碼
     cursor.execute('''
         SELECT sp.name, sp.department, sp.title, s.is_active
@@ -2227,17 +2240,17 @@ def verify_accountant():
     ''', (name, password))
     row = cursor.fetchone()
     conn.close()
-    
+
     if not row:
         return jsonify({'success': False, 'message': '帳號或密碼錯誤'})
-    
+
     if not row['is_active']:
         return jsonify({'success': False, 'message': '帳號已停用'})
-    
+
     # 檢查是否為會計職位
     if '會計' not in row['title']:
         return jsonify({'success': False, 'message': '無會計權限'})
-    
+
     return jsonify({
         'success': True,
         'role': 'accountant',
@@ -2252,24 +2265,24 @@ def update_boss_password():
     data = request.get_json()
     old_password = data.get('old_password', '')
     new_password = data.get('new_password', '')
-    
+
     if not old_password or not new_password:
         return jsonify({'success': False, 'message': '請輸入完整資訊'})
-    
+
     if len(new_password) < 4:
         return jsonify({'success': False, 'message': '新密碼長度至少 4 碼'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 驗證舊密碼
     cursor.execute('SELECT password FROM boss_password WHERE id = 1')
     row = cursor.fetchone()
-    
+
     if not row or row['password'] != old_password:
         conn.close()
         return jsonify({'success': False, 'message': '舊密碼錯誤'})
-    
+
     # 更新密碼
     cursor.execute(
         'UPDATE boss_password SET password = ?, updated_at = datetime("now", "localtime") WHERE id = 1',
@@ -2277,7 +2290,7 @@ def update_boss_password():
     )
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True})
 
 # API: 產品資訊查詢
@@ -2285,34 +2298,34 @@ def update_boss_password():
 @app.route('/api/products/search')
 def search_products():
     keyword = request.args.get('keyword', '').strip()
-    
+
     if not keyword or len(keyword) < 2:
         return jsonify({'success': True, 'items': []})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 從 products 表搜尋（最多 50 筆）
     cursor.execute("""
         SELECT product_code, product_name
         FROM products
         WHERE product_code LIKE ? OR product_name LIKE ?
-        ORDER BY 
+        ORDER BY
             CASE WHEN product_code = ? THEN 0 ELSE 1 END,
             product_name
         LIMIT 50
     """, (f'%{keyword}%', f'%{keyword}%', keyword.upper()))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     items = []
     for row in rows:
         items.append({
             'product_code': row['product_code'],
             'item_name': row['product_name']
         })
-    
+
     return jsonify({'success': True, 'items': items})
 
 
@@ -2321,32 +2334,32 @@ def get_product_info():
     code = request.args.get('code', '').strip()
     if not code:
         return jsonify({'found': False})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 查詢產品名稱（從 products 表）
     cursor.execute("""
-        SELECT product_name FROM products 
+        SELECT product_name FROM products
         WHERE product_code = ?
     """, (code,))
     name_row = cursor.fetchone()
-    
+
     if not name_row:
         return jsonify({'found': False, 'message': '產品不存在'})
-    
+
     product_name = name_row['product_name']
-    
+
     # 查詢該產品的最新報表日期
     cursor.execute("""
         SELECT MAX(report_date) FROM inventory WHERE product_id = ?
     """, (code,))
     latest_date_row = cursor.fetchone()
     latest_date = latest_date_row[0] if latest_date_row else None
-    
+
     total_stock = 0
     stock_list = []
-    
+
     if latest_date:
         # 查總庫存（所有倉庫加總，含0）
         cursor.execute("""
@@ -2356,7 +2369,7 @@ def get_product_info():
         """, (code, latest_date))
         total_row = cursor.fetchone()
         total_stock = total_row['total'] if total_row and total_row['total'] else 0
-        
+
         # 查有庫存的倉庫（只顯示 qty > 0）
         cursor.execute("""
             SELECT warehouse, stock_quantity as qty
@@ -2366,7 +2379,7 @@ def get_product_info():
         """, (code, latest_date))
         stock_rows = cursor.fetchall()
         stock_list = [{'warehouse': r['warehouse'], 'qty': r['qty']} for r in stock_rows]
-    
+
     # 查最新進貨資訊
     cursor.execute("""
         SELECT supplier_name, price, date
@@ -2376,9 +2389,9 @@ def get_product_info():
         LIMIT 1
     """, (code,))
     purchase_row = cursor.fetchone()
-    
+
     conn.close()
-    
+
     result = {
         'found': True,
         'product_code': code,
@@ -2386,16 +2399,16 @@ def get_product_info():
         'total_stock': total_stock,
         'stock': stock_list
     }
-    
+
     # 庫存為空時添加提示
     if len(stock_list) == 0 and total_stock == 0:
         result['stock_note'] = '庫存報表未列出（可能為 0）'
-    
+
     if purchase_row:
         result['last_supplier'] = purchase_row['supplier_name']
         result['last_purchase_price'] = purchase_row['price']
         result['last_purchase_date'] = purchase_row['date']
-    
+
     return jsonify(result)
 
 # API: 客戶編號查詢
@@ -2454,7 +2467,7 @@ def search_customers():
         # 建立搜尋模式：支援部分匹配
         exact_pattern = f'%{keyword}%'
         # 移除空白後的模糊匹配（如「黃柏翰」匹配「黃柏翰有限公司」）
-        fuzzy_pattern = f'%{keyword.replace(" ", "").replace("　", "")}%'
+        fuzzy_pattern = f'%{keyword.replace(" ", "").replace(" ", "")}%'
 
         if source_table == 'customer_master':
             # 查詢 customer_master（加強版）
@@ -2540,19 +2553,19 @@ recent_submissions = {}
 @app.route('/api/needs/batch', methods=['POST'])
 def create_needs_batch():
     import re
-    
+
     start_time = time.time()
     trace_id = str(uuid.uuid4())[:16]
-    
+
     data = request.get_json()
     items = data.get('items', [])
     requester = data.get('items', [{}])[0].get('requester', '') if items else ''
     department = data.get('items', [{}])[0].get('department', '') if items else ''
-    
+
     # 防止重複提交：檢查 5 秒內是否有相同請求
     current_time = datetime.now()
     request_key = f"{requester}_{hash(str(items))}"
-    
+
     if request_key in recent_submissions:
         last_submit_time = recent_submissions[request_key]
         if (current_time - last_submit_time).total_seconds() < 5:
@@ -2567,10 +2580,10 @@ def create_needs_batch():
                 details={'department': department, 'item_count': len(items), 'reason': 'duplicate_request'}
             )
             return jsonify({'success': False, 'message': '請勿重複提交，請稍候 5 秒後再試'}), 429
-    
+
     # 記錄本次提交時間
     recent_submissions[request_key] = current_time
-    
+
     # 清理過期的記錄（超過 60 秒的）
     expired_keys = [k for k, v in recent_submissions.items() if (current_time - v).total_seconds() > 60]
     for k in expired_keys:
@@ -2592,7 +2605,7 @@ def create_needs_batch():
         product_code = item.get('product_code', '')
         product_name = item.get('product_name', '')
         is_new_product = item.get('is_new_product', False)
-        
+
         # 驗證 product_name 不可為空
         if not product_name or product_name.strip() == '':
             log_event(
@@ -2605,7 +2618,7 @@ def create_needs_batch():
                 error_code='VALIDATION_ERROR'
             )
             return jsonify({'success': False, 'message': f'第{idx}筆：產品名稱不可為空'}), 400
-        
+
         # 非新品時，驗證 product_code 格式
         if not is_new_product and product_code:
             if not re.match(r'^[A-Za-z0-9-]+$', product_code):
@@ -2619,9 +2632,9 @@ def create_needs_batch():
                     error_code='VALIDATION_ERROR'
                 )
                 return jsonify({'success': False, 'message': f'第{idx}筆：產品編號只能輸入英文、數字與連字號'}), 400
-        
+
         # 新品時，product_name 必填已在上面驗證
-        
+
         # 驗證：用途為「客戶」時，必須提供客戶資料
         purpose = item.get('purpose', '備貨')
         customer_code = item.get('customer_code', '')
@@ -2639,16 +2652,16 @@ def create_needs_batch():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 開始 Transaction（第二防線：交易原子性）
     cursor.execute("BEGIN IMMEDIATE")
-    
+
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     inserted = 0
     staging_records_created = []  # 記錄已建立的 staging 以便回滾
     new_customer_count = 0
     new_product_count = 0
-    
+
     try:
         for item in items:
             purpose = item.get('purpose', '備貨')
@@ -2672,32 +2685,32 @@ def create_needs_batch():
                     # 清理手機號碼
                     clean_mobile = customer_mobile.strip()
                     clean_mobile = re.sub(r'[^0-9]', '', clean_mobile)
-                    
+
                     # 驗證手機格式（點2：必須符合 ^09\d{8}$）
                     if re.match(r'^09\d{8}$', clean_mobile):
                         # 檢查是否已有同手機的 pending staging
                         cursor.execute("""
-                            SELECT id, temp_customer_id, raw_input 
-                            FROM staging_records 
-                            WHERE type = 'customer' 
-                              AND raw_mobile = ? 
+                            SELECT id, temp_customer_id, raw_input
+                            FROM staging_records
+                            WHERE type = 'customer'
+                              AND raw_mobile = ?
                               AND status = 'pending'
-                            ORDER BY created_at DESC 
+                            ORDER BY created_at DESC
                             LIMIT 1
                         """, (clean_mobile,))
                         existing = cursor.fetchone()
-                        
+
                         if existing:
                             # 同手機已存在，更新 last_seen_at（點1）
                             cursor.execute("""
-                                UPDATE staging_records 
+                                UPDATE staging_records
                                 SET last_seen_at = datetime('now', 'localtime')
                                 WHERE id = ?
                             """, (existing['id'],))
-                            
+
                             # 使用現有的 temp_customer_id
                             customer_staging_id = existing['temp_customer_id']
-                            
+
                             # 檢查是否同名不同（特殊標記）
                             input_name = item.get('customer_name', '').strip()
                             if existing['raw_input'] != input_name:
@@ -2714,46 +2727,46 @@ def create_needs_batch():
                                 import hashlib
                                 hash_val = hashlib.md5(clean_mobile.encode()).hexdigest()[:8].upper()
                                 customer_staging_id = f'TEMP-C-{hash_val}'
-                            
+
                             cursor.execute("""
-                                INSERT INTO staging_records 
+                                INSERT INTO staging_records
                                 (type, raw_input, raw_mobile, temp_customer_id, source_type,
                                  requester, department, status, created_at, last_seen_at)
-                                VALUES (?, ?, ?, ?, 'needs', ?, ?, 'pending', 
+                                VALUES (?, ?, ?, ?, 'needs', ?, ?, 'pending',
                                         datetime('now', 'localtime'), datetime('now', 'localtime'))
-                            """, ('customer', item.get('customer_name', ''), clean_mobile, 
+                            """, ('customer', item.get('customer_name', ''), clean_mobile,
                                   customer_staging_id, item['requester'], item['department']))
                     else:
                         print(f"手機格式錯誤，跳過 staging: {clean_mobile}")
-                            
+
                 except Exception as e:
                     print(f"建立客戶 staging 失敗: {e}")
-            
+
             # 點3：新品產品 staging 處理（每筆獨立，不去重）
             if is_new_product and product_staging_id and product_staging_id.startswith('TEMP-P-'):
                 try:
                     # 檢查是否已存在（避免完全重複提交）
                     cursor.execute("""
-                        SELECT id FROM staging_records 
+                        SELECT id FROM staging_records
                         WHERE type = 'product' AND temp_product_id = ? AND status = 'pending'
                         LIMIT 1
                     """, (product_staging_id,))
                     existing_product = cursor.fetchone()
-                    
+
                     if not existing_product:
                         # 每筆新品都建立獨立的 staging（不去重）
                         cursor.execute("""
-                            INSERT INTO staging_records 
+                            INSERT INTO staging_records
                             (type, raw_input, temp_product_id, source_type,
                              requester, department, status, created_at, last_seen_at)
-                            VALUES (?, ?, ?, 'needs', ?, ?, 'pending', 
+                            VALUES (?, ?, ?, 'needs', ?, ?, 'pending',
                                     datetime('now', 'localtime'), datetime('now', 'localtime'))
-                        """, ('product', product_name, product_staging_id, 
+                        """, ('product', product_name, product_staging_id,
                               item['requester'], item['department']))
                         print(f"建立產品 staging: {product_staging_id}")
                     else:
                         print(f"產品 staging 已存在: {product_staging_id}")
-                        
+
                 except Exception as e:
                     print(f"建立產品 staging 失敗: {e}")
 
@@ -2794,13 +2807,13 @@ def create_needs_batch():
                 print(f"匯入失敗: {e}")
                 # 發生錯誤時拋出例外，讓外層 catch 並執行 ROLLBACK
                 raise e
-        
+
         # 統計本次建立的 staging 數量
         product_staging_count = 0
         for item in items:
             if item.get('is_new_product') and item.get('product_staging_id'):
                 product_staging_count += 1
-    
+
     except Exception as e:
         # Transaction 失敗，執行 ROLLBACK
         conn.rollback()
@@ -2821,10 +2834,10 @@ def create_needs_batch():
         )
         conn.close()
         return jsonify({'success': False, 'message': f'提交失敗，系統已自動回滾: {error_msg}'}), 500
-    
+
     total_items = len(items)
     response_data = {'success': True, 'count': inserted}
-    
+
     # 如果有新客戶，回傳 customer_staging_id
     first_customer_staging_id = None
     for item in items:
@@ -2834,11 +2847,11 @@ def create_needs_batch():
             break
     if first_customer_staging_id:
         response_data['customer_staging_id'] = first_customer_staging_id
-    
+
     # 如果有新品，回傳 product_staging_count
     if product_staging_count > 0:
         response_data['product_staging_count'] = product_staging_count
-    
+
     if inserted == 0:
         duration_ms = int((time.time() - start_time) * 1000)
         log_event(
@@ -2882,7 +2895,7 @@ def create_needs_batch():
     else:
         if product_staging_count > 0:
             response_data['message'] = f'成功提交 {inserted} 筆，新品已送入待建檔中心（{product_staging_count}筆）'
-        
+
         duration_ms = int((time.time() - start_time) * 1000)
         log_event(
             event_type='NEEDS_SUBMIT',
@@ -2903,7 +2916,7 @@ def create_needs_batch():
         # Transaction 成功，執行 COMMIT
         conn.commit()
         conn.close()
-        
+
         # 發送 Telegram 通知
         try:
             item_count = len(items)
@@ -2912,7 +2925,7 @@ def create_needs_batch():
             product_name = first_item.get('product_name', '未知產品')
             request_type = first_item.get('request_type', '請購')
             transfer_from = first_item.get('transfer_from', '')
-            
+
             # 依類型決定通知格式和發送對象
             if request_type == '調撥':
                 telegram_msg = f"""🔄 <b>新調撥需求通知</b>
@@ -2926,8 +2939,8 @@ def create_needs_batch():
 
 請至系統查看詳情"""
                 # 調撥發送到會計個人
-                send_telegram_notification(telegram_msg, TELEGRAM_ACCOUNTANT_CHAT_ID, 
-                                           notification_type='調撥需求', 
+                send_telegram_notification(telegram_msg, TELEGRAM_ACCOUNTANT_CHAT_ID,
+                                           notification_type='調撥需求',
                                            related_record_id=response_data.get('need_id'),
                                            related_record_type='needs')
             else:
@@ -2947,7 +2960,7 @@ def create_needs_batch():
                                            related_record_type='needs')
         except Exception as e:
             print(f"Telegram 通知發送失敗: {e}")
-        
+
         return jsonify(response_data)
 
 
@@ -2957,13 +2970,13 @@ def get_recent_needs():
     requester = request.args.get('requester', '')
     department = request.args.get('department', '')
     current_user = request.args.get('current_user', '')
-    
+
     if not department:
         return jsonify({'items': []})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 獲取同單位的待處理或30分鐘內的已取消需求
         cursor.execute("""
@@ -2978,27 +2991,27 @@ def get_recent_needs():
             ORDER BY created_at DESC
             LIMIT 20
         """, (department,))
-        
+
         rows = cursor.fetchall()
-        
+
         items = []
         for row in rows:
             minutes_ago = row['minutes_ago'] if row['minutes_ago'] else 999
             # 只能取消自己的，且狀態為待處理，且30分鐘內
             can_cancel = (row['status'] == '待處理' and minutes_ago < 30 and row['requester'] == current_user)
-            
+
             # 查詢產品名稱
             product_name = ''
             if row['product_code']:
                 cursor.execute("""
-                    SELECT item_spec FROM inventory 
-                    WHERE product_id = ? 
+                    SELECT item_spec FROM inventory
+                    WHERE product_id = ?
                     ORDER BY report_date DESC LIMIT 1
                 """, (row['product_code'],))
                 inv_row = cursor.fetchone()
                 if inv_row:
                     product_name = inv_row['item_spec']
-            
+
             items.append({
                 'id': row['id'],
                 'date': row['date'],
@@ -3018,7 +3031,7 @@ def get_recent_needs():
                 'product_status': row['product_status'],
                 'customer_status': row['customer_status']
             })
-        
+
         return jsonify({'items': items})
     except Exception as e:
         print(f"get_recent_needs 錯誤: {e}")
@@ -3125,22 +3138,22 @@ def get_needs_history():
     # 分頁參數
     limit = min(int(request.args.get('limit', 50)), 500)
     offset = int(request.args.get('offset', 0))
-    
+
     # 篩選參數
     status_filter = request.args.get('status', 'all')
     search_query = request.args.get('q', '').strip()
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     include_cancelled = request.args.get('include_cancelled', '1') == '1'
-    
+
     # 取得當前使用者（從登入 session）
     current_user = request.args.get('current_user', '') or request.headers.get('X-Current-User', '')
     department = request.args.get('department', '')
     scope = request.args.get('scope', '')
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 檢查使用者權限
         can_view_all = False
@@ -3152,11 +3165,11 @@ def get_needs_history():
                 # 檢查是否為管理員角色（包含老闆、主管、admin 等關鍵字）
                 if any(keyword in title for keyword in ['老闆', '主管', 'Admin', 'admin']):
                     can_view_all = True
-        
+
         # 建立 WHERE 條件
         where_clauses = []
         params = []
-        
+
         # 如果有指定部門，按部門篩選（顯示同部門所有人）
         if department:
             where_clauses.append("department = ?")
@@ -3166,7 +3179,7 @@ def get_needs_history():
             if current_user:
                 where_clauses.append("requester = ?")
                 params.append(current_user)
-        
+
         # 狀態篩選
         if status_filter == 'cancelled':
             where_clauses.append("cancelled_at IS NOT NULL")
@@ -3177,7 +3190,7 @@ def get_needs_history():
         else:  # all
             if not include_cancelled:
                 where_clauses.append("cancelled_at IS NULL")
-        
+
         # 日期範圍
         if date_from:
             where_clauses.append("date >= ?")
@@ -3185,37 +3198,37 @@ def get_needs_history():
         if date_to:
             where_clauses.append("date <= ?")
             params.append(date_to)
-        
+
         # 搜尋關鍵字
         if search_query:
             where_clauses.append("""
-                (item_name LIKE ? OR 
-                 customer_code LIKE ? OR 
-                 requester LIKE ? OR 
+                (item_name LIKE ? OR
+                 customer_code LIKE ? OR
+                 requester LIKE ? OR
                  department LIKE ? OR
                  product_code LIKE ?)
             """)
             search_pattern = f'%{search_query}%'
             params.extend([search_pattern] * 5)
-        
+
         # 組合 WHERE
         where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
-        
+
         # DEBUG: 記錄 SQL 和參數
         import sys
         print(f"[DEBUG] needs/history: user={current_user}, can_view_all={can_view_all}, scope={scope}", flush=True)
         print(f"[DEBUG] SQL: SELECT COUNT(*) as total FROM needs {where_sql}", flush=True)
         print(f"[DEBUG] params: {params}", flush=True)
-        
+
         # 查詢總筆數
         count_sql = f"SELECT COUNT(*) as total FROM needs {where_sql}"
         cursor.execute(count_sql, params)
         total = cursor.fetchone()['total']
-        
+
         # 查詢資料
         query_sql = f"""
-            SELECT 
-                id, date, item_name, product_code, quantity, 
+            SELECT
+                id, date, item_name, product_code, quantity,
                 customer_code, department, requester, remark,
                 status, cancelled_at, completed_at, created_at,
                 purpose, request_type, is_new_customer, is_new_product
@@ -3226,7 +3239,7 @@ def get_needs_history():
         """
         cursor.execute(query_sql, params + [limit, offset])
         rows = cursor.fetchall()
-        
+
         # 處理資料
         items = []
         for row in rows:
@@ -3240,7 +3253,7 @@ def get_needs_history():
             else:
                 display_status = row['status'] or '待處理'
                 status_type = 'active'
-            
+
             items.append({
                 'id': row['id'],
                 'date': row['date'],
@@ -3261,7 +3274,7 @@ def get_needs_history():
                 'is_new_customer': row['is_new_customer'],
                 'is_new_product': row['is_new_product']
             })
-        
+
         return jsonify({
             'success': True,
             'total': total,
@@ -3269,7 +3282,7 @@ def get_needs_history():
             'limit': limit,
             'offset': offset
         })
-        
+
     except Exception as e:
         print(f"get_needs_history 錯誤: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -3317,9 +3330,9 @@ def purchase_need():
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute("""
             UPDATE needs
-            SET status = '已採購', processed_at = ?, processed_by = ?
+            SET status = '已採購', processed_at = ?
             WHERE id = ?
-        """, (now, requester, need_id))
+        """, (now, need_id))
 
         conn.commit()
         return jsonify({'success': True})
@@ -3370,9 +3383,9 @@ def transfer_need():
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute("""
             UPDATE needs
-            SET status = '已調撥', processed_at = ?, processed_by = ?
+            SET status = '已調撥', processed_at = ?
             WHERE id = ?
-        """, (now, requester, need_id))
+        """, (now, need_id))
 
         conn.commit()
         return jsonify({'success': True})
@@ -3509,13 +3522,13 @@ def update_need_remark():
 def run_all_scripts():
     import subprocess
     import os
-    
+
     parser_dir = '/Users/aiserver/srv/parser'
     log_dir = '/Users/aiserver/srv/logs'
-    
+
     # 確保日誌目錄存在
     os.makedirs(log_dir, exist_ok=True)
-    
+
     # 要執行的腳本列表（排除重開機）
     scripts = [
         ('inventory_parser.py', '庫存模組'),
@@ -3532,13 +3545,13 @@ def run_all_scripts():
         ('generate_ai_analysis.py', 'AI 業績分析'),
         ('auto_backup.sh', '數據備份')
     ]
-    
+
     results = []
-    
+
     for script_name, script_desc in scripts:
         script_path = os.path.join(parser_dir, script_name)
         log_path = os.path.join(log_dir, script_name.replace('.py', '.log').replace('.sh', '.log'))
-        
+
         try:
             # 檢查腳本是否存在
             if not os.path.exists(script_path):
@@ -3548,7 +3561,7 @@ def run_all_scripts():
                     'message': f'腳本不存在: {script_name}'
                 })
                 continue
-            
+
             # 根據腳本類型選擇執行方式
             if script_name.endswith('.sh'):
                 # Shell 腳本
@@ -3556,7 +3569,7 @@ def run_all_scripts():
             else:
                 # Python 腳本
                 cmd = ['/opt/homebrew/bin/python3', script_path]
-            
+
             # 執行腳本
             result = subprocess.run(
                 cmd,
@@ -3564,7 +3577,7 @@ def run_all_scripts():
                 text=True,
                 timeout=300  # 5分鐘超時
             )
-            
+
             if result.returncode == 0:
                 results.append({
                     'script': script_desc,
@@ -3577,7 +3590,7 @@ def run_all_scripts():
                     'status': 'error',
                     'message': f'返回碼 {result.returncode}: {result.stderr[:100]}'
                 })
-                
+
         except subprocess.TimeoutExpired:
             results.append({
                 'script': script_desc,
@@ -3590,7 +3603,7 @@ def run_all_scripts():
                 'status': 'error',
                 'message': str(e)[:100]
             })
-    
+
     return jsonify({
         'success': True,
         'results': results
@@ -3602,16 +3615,16 @@ def run_all_scripts():
 def run_single_script():
     import subprocess
     import os
-    
+
     data = request.get_json()
     script_desc = data.get('script_name', '')
-    
+
     if not script_desc:
         return jsonify({'success': False, 'message': '缺少腳本名稱'})
-    
+
     parser_dir = '/Users/aiserver/srv/parser'
     log_dir = '/Users/aiserver/srv/logs'
-    
+
     # 腳本對照表
     scripts_map = {
         '庫存模組': ('inventory_parser.py', 'inventory_parser.log'),
@@ -3628,13 +3641,13 @@ def run_single_script():
         'AI 業績分析': ('generate_ai_analysis.py', 'ai_analysis.log'),
         '數據備份': ('auto_backup.sh', 'backup.log')
     }
-    
+
     if script_desc not in scripts_map:
         return jsonify({'success': False, 'message': f'未知的腳本: {script_desc}'})
-    
+
     script_name, log_name = scripts_map[script_desc]
     script_path = os.path.join(parser_dir, script_name)
-    
+
     # 檢查腳本是否存在
     if not os.path.exists(script_path):
         return jsonify({
@@ -3645,14 +3658,14 @@ def run_single_script():
                 'message': f'腳本不存在: {script_name}'
             }
         })
-    
+
     try:
         # 根據腳本類型選擇執行方式
         if script_name.endswith('.sh'):
             cmd = ['/bin/bash', script_path]
         else:
             cmd = ['/opt/homebrew/bin/python3', script_path]
-        
+
         # 執行腳本
         result = subprocess.run(
             cmd,
@@ -3660,7 +3673,7 @@ def run_single_script():
             text=True,
             timeout=300  # 5分鐘超時
         )
-        
+
         if result.returncode == 0:
             return jsonify({
                 'success': True,
@@ -3679,7 +3692,7 @@ def run_single_script():
                     'message': f'返回碼 {result.returncode}'
                 }
             })
-            
+
     except subprocess.TimeoutExpired:
         return jsonify({
             'success': True,
@@ -3705,23 +3718,23 @@ def run_single_script():
 def get_service_records():
     salesperson = request.args.get('salesperson', '')
     quarter = request.args.get('quarter', '')
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     query = """
-        SELECT id, date, customer_code, customer_name, service_item, 
+        SELECT id, date, customer_code, customer_name, service_item,
                service_type, customer_source, is_contract, salesperson, store, updated_at,
                is_new_customer, customer_staging_id, customer_status
-        FROM service_records 
+        FROM service_records
         WHERE 1=1
     """
     params = []
-    
+
     if salesperson:
         query += " AND salesperson = ?"
         params.append(salesperson)
-    
+
     if quarter:
         if quarter == 'Q1':
             query += " AND date >= '2026-01-01' AND date <= '2026-03-31'"
@@ -3731,12 +3744,12 @@ def get_service_records():
             query += " AND date >= '2026-07-01' AND date <= '2026-09-30'"
         elif quarter == 'Q4':
             query += " AND date >= '2026-10-01' AND date <= '2026-12-31'"
-    
+
     query += " ORDER BY date DESC, id DESC"
-    
+
     cursor.execute(query, params)
     rows = cursor.fetchall()
-    
+
     result = []
     for row in rows:
         result.append({
@@ -3752,7 +3765,7 @@ def get_service_records():
             'store': row['store'],
             'updated_at': row['updated_at']
         })
-    
+
     conn.close()
     return jsonify({'success': True, 'items': result})
 
@@ -3761,14 +3774,14 @@ def get_service_records():
 @app.route('/api/service-records', methods=['POST'])
 def create_service_record():
     data = request.get_json()
-    
+
     records = data.get('records', [])
     if not records:
         return jsonify({'success': False, 'message': '沒有資料'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     inserted_count = 0
     for record in records:
         date = record.get('date')
@@ -3780,65 +3793,65 @@ def create_service_record():
         is_contract = 1 if record.get('is_contract') == '是' else 0
         salesperson = record.get('salesperson', '')
         store = record.get('store', '')
-        
+
         # 檢查是否為新客戶
         is_new_customer = record.get('is_new_customer', False)
         customer_mobile = record.get('customer_mobile', '')
         customer_staging_id = None
         customer_status = 'approved'
-        
+
         # 如果是新客戶，建立 staging 記錄
         if is_new_customer and customer_mobile:
             # 生成臨時客戶 ID
             temp_id = 'TEMP-C-' + datetime.now().strftime('%Y%m%d%H%M%S') + str(inserted_count)
-            
+
             # 插入 staging_records
             cursor.execute("""
-                INSERT INTO staging_records 
+                INSERT INTO staging_records
                 (type, raw_input, raw_mobile, temp_customer_id, source_type,
                  requester, department, status, created_at)
                 VALUES (?, ?, ?, ?, 'service_record', ?, ?, 'pending', datetime('now', 'localtime'))
-            """, ('customer', customer_name, customer_mobile, temp_id, 
+            """, ('customer', customer_name, customer_mobile, temp_id,
                   salesperson, '業務部'))
-            
+
             # 獲取剛插入的 staging ID
             cursor.execute("SELECT last_insert_rowid()")
             customer_staging_id = cursor.fetchone()[0]
             customer_status = 'pending'
-            
+
             # 使用臨時 ID 作為客戶編號
             customer_code = temp_id
-        
+
         if service_type == '門市支援' and store:
             customer_name = store
-        
+
         cursor.execute("""
-            INSERT INTO service_records 
-            (date, customer_code, customer_name, service_item, service_type, 
+            INSERT INTO service_records
+            (date, customer_code, customer_name, service_item, service_type,
              customer_source, is_contract, salesperson, store, updated_at,
              is_new_customer, customer_staging_id, customer_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), ?, ?, ?)
         """, (date, customer_code, customer_name, service_item, service_type,
               customer_source, is_contract, salesperson, store,
               1 if is_new_customer else 0, customer_staging_id, customer_status))
-        
+
         # 獲取剛插入的 service_records ID
         cursor.execute("SELECT last_insert_rowid()")
         service_record_id = cursor.fetchone()[0]
-        
+
         # 如果是新客戶，更新 staging_records 的 source_id
         if is_new_customer and customer_staging_id:
             cursor.execute("""
-                UPDATE staging_records 
+                UPDATE staging_records
                 SET source_id = ?, source_type = 'service_record'
                 WHERE id = ?
             """, (service_record_id, customer_staging_id))
-        
+
         inserted_count += 1
-    
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True, 'count': inserted_count})
 
 
@@ -3847,12 +3860,12 @@ def create_service_record():
 def delete_service_record(record_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("DELETE FROM service_records WHERE id = ?", (record_id,))
-    
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True})
 
 
@@ -3867,16 +3880,16 @@ def create_customer_staging():
     department = data.get('department', '').strip()
     source_id = data.get('source_id')
     source_type = data.get('source_type', 'needs')
-    
+
     if not short_name:
         return jsonify({'success': False, 'error': '客戶姓名不可為空'})
-    
+
     if not mobile:
         return jsonify({'success': False, 'error': '手機號碼不可為空'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 產生 temp_customer_id
     today = datetime.now().strftime('%Y%m%d')
     cursor.execute(
@@ -3885,20 +3898,20 @@ def create_customer_staging():
     )
     count = cursor.fetchone()[0] + 1
     temp_id = f'TEMP-{today}-{count:03d}'
-    
+
     # 寫入 staging_records
     cursor.execute("""
-        INSERT INTO staging_records 
-        (type, raw_input, raw_mobile, temp_customer_id, source_id, source_type, 
+        INSERT INTO staging_records
+        (type, raw_input, raw_mobile, temp_customer_id, source_id, source_type,
          requester, department, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-    """, ('customer', short_name, mobile, temp_id, source_id, source_type, 
+    """, ('customer', short_name, mobile, temp_id, source_id, source_type,
           created_by, department, datetime.now().isoformat()))
-    
+
     staging_id = cursor.lastrowid
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True, 'staging_id': staging_id, 'temp_customer_id': temp_id})
 
 # API: 建立商品待建檔
@@ -3908,25 +3921,25 @@ def create_product_staging():
     product_name = data.get('product_name', '').strip()
     input_product_code = data.get('input_product_code', '').strip()
     requested_by = data.get('requested_by', '').strip()
-    
+
     if not product_name:
         return jsonify({'success': False, 'error': '商品名稱不可為空'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 正規化商品編號
     normalized_code = input_product_code.upper().replace(' ', '') if input_product_code else None
-    
+
     cursor.execute("""
         INSERT INTO product_staging (product_name, input_product_code, normalized_name, requested_by, status)
         VALUES (?, ?, ?, ?, 'pending')
     """, (product_name, input_product_code, normalized_code, requested_by))
-    
+
     staging_id = cursor.lastrowid
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True, 'staging_id': staging_id})
 
 # API: 獲取待建檔列表
@@ -3934,27 +3947,27 @@ def create_product_staging():
 def get_staging_list():
     status = request.args.get('status', 'pending')
     type_filter = request.args.get('type', 'all')  # 'customer', 'product', 'all'
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
     result = {'customers': [], 'products': []}
-    
+
     if type_filter in ('all', 'customer'):
         cursor.execute("""
-            SELECT * FROM customer_staging 
+            SELECT * FROM customer_staging
             WHERE status = ?
             ORDER BY created_at DESC
         """, (status,))
         result['customers'] = [dict(row) for row in cursor.fetchall()]
-    
+
     if type_filter in ('all', 'product'):
         cursor.execute("""
-            SELECT * FROM product_staging 
+            SELECT * FROM product_staging
             WHERE status = ?
             ORDER BY created_at DESC
         """, (status,))
         result['products'] = [dict(row) for row in cursor.fetchall()]
-    
+
     conn.close()
     return jsonify({'success': True, 'data': result})
 
@@ -3964,30 +3977,30 @@ def approve_customer_staging(staging_id):
     data = request.json
     erp_customer_id = data.get('erp_customer_id', '').strip()
     note = data.get('note', '').strip()
-    
+
     if not erp_customer_id:
         return jsonify({'success': False, 'error': '請輸入 ERP 客戶編號'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 更新 staging 表
     cursor.execute("""
-        UPDATE customer_staging 
+        UPDATE customer_staging
         SET status = 'approved', erp_customer_id = ?, note = ?
         WHERE id = ?
     """, (erp_customer_id, note, staging_id))
-    
+
     # 更新對應的需求單
     cursor.execute("""
-        UPDATE needs 
+        UPDATE needs
         SET customer_status = 'approved', customer_code = ?
         WHERE customer_staging_id = ?
     """, (erp_customer_id, staging_id))
-    
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True})
 
 # API: 核准商品待建檔
@@ -3996,30 +4009,30 @@ def approve_product_staging(staging_id):
     data = request.json
     erp_product_code = data.get('erp_product_code', '').strip()
     note = data.get('note', '').strip()
-    
+
     if not erp_product_code:
         return jsonify({'success': False, 'error': '請輸入 ERP 商品編號'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 更新 staging 表
     cursor.execute("""
-        UPDATE product_staging 
+        UPDATE product_staging
         SET status = 'approved', erp_product_code = ?, note = ?
         WHERE id = ?
     """, (erp_product_code, note, staging_id))
-    
+
     # 更新對應的需求單
     cursor.execute("""
-        UPDATE needs 
+        UPDATE needs
         SET product_status = 'approved', product_code = ?
         WHERE product_staging_id = ?
     """, (erp_product_code, staging_id))
-    
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True})
 
 # API: 拒絕待建檔
@@ -4027,38 +4040,38 @@ def approve_product_staging(staging_id):
 def reject_staging(type, staging_id):
     data = request.json
     note = data.get('note', '').strip()
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     if type == 'customer':
         cursor.execute("""
-            UPDATE customer_staging 
+            UPDATE customer_staging
             SET status = 'rejected', note = ?
             WHERE id = ?
         """, (note, staging_id))
-        
+
         cursor.execute("""
-            UPDATE needs 
+            UPDATE needs
             SET customer_status = 'rejected'
             WHERE customer_staging_id = ?
         """, (staging_id,))
     else:
         cursor.execute("""
-            UPDATE product_staging 
+            UPDATE product_staging
             SET status = 'rejected', note = ?
             WHERE id = ?
         """, (note, staging_id))
-        
+
         cursor.execute("""
-            UPDATE needs 
+            UPDATE needs
             SET product_status = 'rejected'
             WHERE product_staging_id = ?
         """, (staging_id,))
-    
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True})
 
 
@@ -4068,20 +4081,20 @@ def get_customer_needs_review():
     """獲取狀態為 needs_review 的客戶待建檔列表"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
-        SELECT s.*, 
+        SELECT s.*,
                (SELECT GROUP_CONCAT(customer_id || ':' || short_name, ';')
-                FROM customers m 
+                FROM customers m
                 WHERE m.mobile = s.mobile) as potential_matches
         FROM customer_staging s
         WHERE s.status = 'needs_review'
         ORDER BY s.created_at ASC
     """)
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     items = []
     for row in rows:
         item = dict(row)
@@ -4096,7 +4109,7 @@ def get_customer_needs_review():
         else:
             item['potential_matches'] = []
         items.append(item)
-    
+
     return jsonify({'success': True, 'items': items})
 
 
@@ -4105,7 +4118,7 @@ def get_customer_needs_review():
 def manual_match_customer(staging_id):
     """
     人工匹配客戶待建檔
-    
+
     請求參數:
     - master_customer_id: 選擇的 master 客戶 ID
     - operator: 操作人員
@@ -4113,61 +4126,61 @@ def manual_match_customer(staging_id):
     data = request.json
     master_customer_id = data.get('master_customer_id', '').strip()
     operator = data.get('operator', 'system').strip()
-    
+
     if not master_customer_id:
         return jsonify({'success': False, 'error': '請選擇客戶'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 檢查 staging 資料
         cursor.execute("SELECT * FROM customer_staging WHERE id = ?", (staging_id,))
         staging = cursor.fetchone()
-        
+
         if not staging:
             return jsonify({'success': False, 'error': 'Staging 資料不存在'})
-        
+
         # 檢查客戶（使用 customers 表）
         cursor.execute("SELECT customer_id, short_name, mobile FROM customers WHERE customer_id = ?",
                       (master_customer_id,))
         master = cursor.fetchone()
-        
+
         if not master:
             return jsonify({'success': False, 'error': 'Master 客戶不存在'})
-        
+
         now = datetime.now().isoformat()
         reason = f'人工審核匹配 by {operator}: 選擇客戶 {master["short_name"]}({master_customer_id})'
-        
+
         # 更新 staging
         cursor.execute("""
-            UPDATE customer_staging 
+            UPDATE customer_staging
             SET status = 'synced',
                 erp_customer_id = ?,
                 match_reason = ?,
                 matched_at = ?,
                 audit_log = json_array(
                     IFNULL(json_extract(audit_log, '$'), json_array()),
-                    json_object('timestamp', ?, 'action', 'MANUAL_MATCH', 
-                               'details', json_object('operator', ?, 'selected_customer_id', ?, 
+                    json_object('timestamp', ?, 'action', 'MANUAL_MATCH',
+                               'details', json_object('operator', ?, 'selected_customer_id', ?,
                                                      'selected_customer_name', ?))
                 )
             WHERE id = ?
-        """, (master_customer_id, reason, now, now, operator, master_customer_id, 
+        """, (master_customer_id, reason, now, now, operator, master_customer_id,
               master['short_name'], staging_id))
-        
+
         # 更新需求單
         cursor.execute("""
-            UPDATE needs 
-            SET customer_code = ?, 
+            UPDATE needs
+            SET customer_code = ?,
                 customer_status = 'synced'
             WHERE customer_staging_id = ?
         """, (master_customer_id, staging_id))
-        
+
         affected_rows = cursor.rowcount
-        
+
         conn.commit()
-        
+
         return jsonify({
             'success': True,
             'staging_id': staging_id,
@@ -4175,7 +4188,7 @@ def manual_match_customer(staging_id):
             'customer_name': master['short_name'],
             'updated_needs': affected_rows
         })
-        
+
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'error': str(e)})
@@ -4188,33 +4201,33 @@ def manual_match_customer(staging_id):
 def search_customer_master():
     """搜尋客戶（用於人工匹配時選擇）- 統一使用 customers 表"""
     keyword = request.args.get('keyword', '').strip()
-    
+
     if not keyword or len(keyword) < 2:
         return jsonify({'success': True, 'items': []})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 正規化手機號
     mobile_normalized = keyword.replace('-', '').replace(' ', '')
     if mobile_normalized.startswith('+886'):
         mobile_normalized = '0' + mobile_normalized[4:]
-    
+
     cursor.execute("""
         SELECT customer_id, short_name, mobile, phone1 as phone
         FROM customers
-        WHERE short_name LIKE ? 
-           OR mobile LIKE ? 
+        WHERE short_name LIKE ?
+           OR mobile LIKE ?
            OR customer_id LIKE ?
-        ORDER BY 
+        ORDER BY
             CASE WHEN mobile = ? THEN 0 ELSE 1 END,
             short_name
         LIMIT 20
     """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%', mobile_normalized))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     items = [{
         'customer_id': r['customer_id'],
         'short_name': r['short_name'],
@@ -4222,7 +4235,7 @@ def search_customer_master():
         'mobile_raw': r['mobile_raw'],
         'phone': r['phone']
     } for r in rows]
-    
+
     return jsonify({'success': True, 'items': items})
 
 
@@ -4286,17 +4299,17 @@ def get_product_needs_review():
     """獲取狀態為 needs_review 的商品待建檔列表"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
         SELECT *
         FROM product_staging
         WHERE status = 'needs_review'
         ORDER BY created_at ASC
     """)
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     return jsonify({'success': True, 'items': [dict(row) for row in rows]})
 
 
@@ -4305,7 +4318,7 @@ def get_product_needs_review():
 def manual_match_product(staging_id):
     """
     人工匹配商品待建檔
-    
+
     請求參數:
     - master_product_code: 選擇的 master 商品編號
     - operator: 操作人員
@@ -4313,61 +4326,61 @@ def manual_match_product(staging_id):
     data = request.json
     master_product_code = data.get('master_product_code', '').strip()
     operator = data.get('operator', 'system').strip()
-    
+
     if not master_product_code:
         return jsonify({'success': False, 'error': '請選擇商品'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 檢查 staging 資料
         cursor.execute("SELECT * FROM product_staging WHERE id = ?", (staging_id,))
         staging = cursor.fetchone()
-        
+
         if not staging:
             return jsonify({'success': False, 'error': 'Staging 資料不存在'})
-        
+
         # 檢查 master 商品
         cursor.execute("SELECT product_code, product_name FROM product_master WHERE product_code = ?",
                       (master_product_code,))
         master = cursor.fetchone()
-        
+
         if not master:
             return jsonify({'success': False, 'error': 'Master 商品不存在'})
-        
+
         now = datetime.now().isoformat()
         reason = f'人工審核匹配 by {operator}: 選擇商品 {master["product_name"]}({master_product_code})'
-        
+
         # 更新 staging
         cursor.execute("""
-            UPDATE product_staging 
+            UPDATE product_staging
             SET status = 'synced',
                 erp_product_code = ?,
                 match_reason = ?,
                 matched_at = ?,
                 audit_log = json_array(
                     IFNULL(json_extract(audit_log, '$'), json_array()),
-                    json_object('timestamp', ?, 'action', 'MANUAL_MATCH', 
-                               'details', json_object('operator', ?, 'selected_product_code', ?, 
+                    json_object('timestamp', ?, 'action', 'MANUAL_MATCH',
+                               'details', json_object('operator', ?, 'selected_product_code', ?,
                                                      'selected_product_name', ?))
                 )
             WHERE id = ?
         """, (master_product_code, reason, now, now, operator, master_product_code,
               master['product_name'], staging_id))
-        
+
         # 更新需求單
         cursor.execute("""
-            UPDATE needs 
-            SET product_code = ?, 
+            UPDATE needs
+            SET product_code = ?,
                 product_status = 'synced'
             WHERE product_staging_id = ?
         """, (master_product_code, staging_id))
-        
+
         affected_rows = cursor.rowcount
-        
+
         conn.commit()
-        
+
         return jsonify({
             'success': True,
             'staging_id': staging_id,
@@ -4375,7 +4388,7 @@ def manual_match_product(staging_id):
             'product_name': master['product_name'],
             'updated_needs': affected_rows
         })
-        
+
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'error': str(e)})
@@ -4388,33 +4401,33 @@ def manual_match_product(staging_id):
 def search_product_master():
     """搜尋 Master 商品（用於人工匹配時選擇）"""
     keyword = request.args.get('keyword', '').strip()
-    
+
     if not keyword or len(keyword) < 2:
         return jsonify({'success': True, 'items': []})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
         SELECT product_code, product_name, category
         FROM product_master
-        WHERE product_code LIKE ? 
+        WHERE product_code LIKE ?
            OR product_name LIKE ?
-        ORDER BY 
+        ORDER BY
             CASE WHEN product_code = ? THEN 0 ELSE 1 END,
             product_name
         LIMIT 20
     """, (f'%{keyword}%', f'%{keyword}%', keyword.upper()))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     items = [{
         'product_code': r['product_code'],
         'product_name': r['product_name'],
         'category': r['category']
     } for r in rows]
-    
+
     return jsonify({'success': True, 'items': items})
 
 
@@ -4485,12 +4498,12 @@ def get_staging_records():
     """
     type_filter = request.args.get('type', 'all')
     view = request.args.get('view', 'pending')
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     records = []
-    
+
     # 根據 view 決定 WHERE 條件
     # 注意：同時檢查 staging_records.status 以處理資料不一致情況
     if view == 'pending':
@@ -4504,7 +4517,7 @@ def get_staging_records():
     else:  # all
         product_where = "n.cancelled_at IS NULL"
         customer_where = "n.cancelled_at IS NULL"
-    
+
     # 查詢商品
     if type_filter == 'product' or type_filter == 'all':
         cursor.execute(f"""
@@ -4520,7 +4533,7 @@ def get_staging_records():
             ORDER BY sr.created_at DESC
         """, ())
         records.extend([dict(row) for row in cursor.fetchall()])
-    
+
     # 查詢客戶
     if type_filter == 'customer' or type_filter == 'all':
         cursor.execute(f"""
@@ -4536,10 +4549,10 @@ def get_staging_records():
             ORDER BY sr.created_at DESC
         """, ())
         records.extend([dict(row) for row in cursor.fetchall()])
-    
+
     # 統計：分開計算 pending 和 resolved（與 records 查詢使用相同條件：依 staging.status）
     cursor.execute("""
-        SELECT 
+        SELECT
             -- Product pending (staging.status != 'resolved')
             (SELECT COUNT(DISTINCT sr.id)
              FROM needs n
@@ -4569,10 +4582,10 @@ def get_staging_records():
                AND sr.status = 'resolved'
             ) as customer_resolved
     """)
-    
+
     stats = dict(cursor.fetchone())
     conn.close()
-    
+
     return jsonify({
         'success': True,
         'records': records,
@@ -4588,25 +4601,25 @@ def resolve_staging_record(record_id):
     data = request.json
     resolved_code = data.get('resolved_code', '').strip()
     resolved_name = data.get('resolved_name', '').strip()
-    
+
     if not resolved_code:
         return jsonify({'success': False, 'error': '請輸入正式編號'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 獲取記錄資訊
         cursor.execute("SELECT * FROM staging_records WHERE id = ?", (record_id,))
         record = cursor.fetchone()
-        
+
         if not record:
             return jsonify({'success': False, 'error': '記錄不存在'})
-        
+
         # 更新記錄
         now = datetime.now().isoformat()
         cursor.execute("""
-            UPDATE staging_records 
+            UPDATE staging_records
             SET status = 'resolved',
                 resolved_code = ?,
                 resolved_name = ?,
@@ -4616,26 +4629,26 @@ def resolve_staging_record(record_id):
                 updated_at = ?
             WHERE id = ?
         """, (resolved_code, resolved_name, now, now, record_id))
-        
+
         # 更新來源單據
         if record['source_type'] == 'needs':
             if record['type'] == 'customer':
                 # needs 表沒有 customer_name 欄位，只更新 customer_code
                 cursor.execute("""
-                    UPDATE needs 
+                    UPDATE needs
                     SET customer_code = ?, customer_status = 'resolved'
                     WHERE id = ?
                 """, (resolved_code, record['source_id']))
             else:  # product
                 cursor.execute("""
-                    UPDATE needs 
+                    UPDATE needs
                     SET product_code = ?, product_status = 'resolved'
                     WHERE id = ?
                 """, (resolved_code, record['source_id']))
-        
+
         conn.commit()
         return jsonify({'success': True})
-        
+
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'error': str(e)})
@@ -4648,7 +4661,7 @@ def run_staging_reconcile():
     """執行客戶自動對照"""
     import subprocess
     import sys
-    
+
     try:
         result = subprocess.run(
             [sys.executable, '/Users/aiserver/srv/parser/reconcile_customers.py'],
@@ -4656,7 +4669,7 @@ def run_staging_reconcile():
             text=True,
             timeout=300
         )
-        
+
         # 解析統計
         stats = {'auto_resolved': 0, 'needs_review': 0, 'errors': 0}
         for line in result.stdout.split('\n'):
@@ -4670,13 +4683,13 @@ def run_staging_reconcile():
                     stats['needs_review'] = int(line.split(':')[1].strip())
                 except:
                     pass
-        
+
         return jsonify({
             'success': True,
             'stats': stats,
             'output': result.stdout
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -4688,21 +4701,21 @@ def get_supervision_score():
     """查詢督導評分"""
     store_name = request.args.get('store', '').strip()
     date = request.args.get('date', '').strip()
-    
+
     if not store_name or not date:
         return jsonify({'success': False, 'error': '店別和日期必填'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
-        SELECT * FROM supervision_scores 
+        SELECT * FROM supervision_scores
         WHERE store_name = ? AND date = ?
     """, (store_name, date))
-    
+
     row = cursor.fetchone()
     conn.close()
-    
+
     if row:
         return jsonify({'success': True, 'score': dict(row)})
     else:
@@ -4713,51 +4726,51 @@ def get_supervision_score():
 def save_supervision_score():
     """儲存/更新督導評分"""
     data = request.json
-    
+
     # 驗證必填欄位
     store_name = data.get('store_name', '').strip()
     date = data.get('date', '').strip()
-    
+
     if not store_name or not date:
         return jsonify({'success': False, 'message': '店別和日期必填'}), 400
-    
+
     # 驗證日期格式
     try:
         datetime.strptime(date, '%Y-%m-%d')
     except ValueError:
         return jsonify({'success': False, 'message': '日期格式錯誤，應為 YYYY-MM-DD'}), 400
-    
+
     # 驗證分數只能是 0/1/2
     score_fields = ['attendance', 'appearance', 'service_attitude', 'professional_knowledge',
                    'sales_process', 'storefront_cleanliness', 'store_cleanliness', 'product_display',
                    'cable_management', 'warehouse_organization', 'reply_speed', 'reply_attitude',
                    'information_complete']
-    
+
     for field in score_fields:
         value = data.get(field, 0)
         if value not in [0, 1, 2]:
             return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
-    
+
     # problem_grasp 和 follow_up 也接受文字內容（用於存放問題描述和後續追蹤）
     for field in ['problem_grasp', 'follow_up']:
         value = data.get(field, 0)
         # 如果是數字，檢查範圍；如果是字串，允許通過
         if isinstance(value, (int, float)) and value not in [0, 1, 2]:
             return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 檢查是否已存在
         cursor.execute("""
-            SELECT id FROM supervision_scores 
+            SELECT id FROM supervision_scores
             WHERE store_name = ? AND date = ?
         """, (store_name, date))
-        
+
         existing = cursor.fetchone()
         now = datetime.now().isoformat()
-        
+
         if existing:
             # 更新
             cursor.execute("""
@@ -4810,10 +4823,10 @@ def save_supervision_score():
                 now
             ))
             message = '評分已儲存'
-        
+
         conn.commit()
         return jsonify({'success': True, 'message': message})
-        
+
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -4828,22 +4841,22 @@ def get_roster():
     """查詢班表"""
     location = request.args.get('store', '').strip()
     date = request.args.get('date', '').strip()
-    
+
     if not location or not date:
         return jsonify({'success': False, 'error': '店別和日期必填'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
-        SELECT * FROM staff_roster 
+        SELECT * FROM staff_roster
         WHERE location = ? AND date = ?
         ORDER BY staff_name
     """, (location, date))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     return jsonify({'success': True, 'roster': [dict(row) for row in rows]})
 
 
@@ -4851,39 +4864,39 @@ def get_roster():
 def save_roster():
     """儲存/更新班表"""
     data = request.json
-    
+
     # 驗證必填欄位
     location = data.get('location', '').strip()
     staff_name = data.get('staff_name', '').strip()
     date = data.get('date', '').strip()
     shift_code = data.get('shift_code', '').strip()
-    
+
     if not location or not staff_name or not date or not shift_code:
         return jsonify({'success': False, 'message': '店別、人員、日期、班別必填'}), 400
-    
+
     # 驗證日期格式
     try:
         datetime.strptime(date, '%Y-%m-%d')
     except ValueError:
         return jsonify({'success': False, 'message': '日期格式錯誤，應為 YYYY-MM-DD'}), 400
-    
+
     # 驗證班別
     if shift_code not in ['早', '晚', '值', '休', '全', '特']:
         return jsonify({'success': False, 'message': '班別只能是 早/晚/值/休/全/特'}), 400
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 檢查是否已存在（同日同人）
         cursor.execute("""
-            SELECT rowid FROM staff_roster 
+            SELECT rowid FROM staff_roster
             WHERE date = ? AND staff_name = ?
         """, (date, staff_name))
-        
+
         existing = cursor.fetchone()
         now = datetime.now().isoformat()
-        
+
         if existing:
             # 更新
             cursor.execute("""
@@ -4899,10 +4912,10 @@ def save_roster():
                 VALUES (?, ?, ?, ?, ?)
             """, (date, staff_name, location, shift_code, now))
             message = '班表已儲存'
-        
+
         conn.commit()
         return jsonify({'success': True, 'message': message})
-        
+
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -4917,29 +4930,29 @@ def get_roster_range():
     start = request.args.get('start', '').strip()
     end = request.args.get('end', '').strip()
     staff = request.args.get('staff', '').strip()
-    
+
     if not store or not start or not end:
         return jsonify({'success': False, 'error': '店別、開始日期、結束日期必填'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     if staff:
         cursor.execute("""
-            SELECT * FROM staff_roster 
+            SELECT * FROM staff_roster
             WHERE location = ? AND date >= ? AND date <= ? AND staff_name = ?
             ORDER BY date
         """, (store, start, end, staff))
     else:
         cursor.execute("""
-            SELECT * FROM staff_roster 
+            SELECT * FROM staff_roster
             WHERE location = ? AND date >= ? AND date <= ?
             ORDER BY date, staff_name
         """, (store, start, end))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     return jsonify({'success': True, 'roster': [dict(row) for row in rows]})
 
 
@@ -4948,14 +4961,14 @@ def save_roster_batch():
     """批量儲存班表"""
     data = request.json
     records = data.get('records', [])
-    
+
     if not records:
         return jsonify({'success': False, 'message': '沒有班表資料'}), 400
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
     now = datetime.now().isoformat()
-    
+
     try:
         saved_count = 0
         for record in records:
@@ -4963,28 +4976,28 @@ def save_roster_batch():
             staff_name = record.get('staff_name', '').strip()
             date = record.get('date', '').strip()
             shift_code = record.get('shift_code', '').strip()
-            
+
             if not all([location, staff_name, date, shift_code]):
                 continue
-            
+
             # 驗證日期格式
             try:
                 datetime.strptime(date, '%Y-%m-%d')
             except ValueError:
                 continue
-            
+
             # 驗證班別
             if shift_code not in ['早', '晚', '值', '休', '全', '特']:
                 continue
-            
+
             # 檢查是否已存在
             cursor.execute("""
-                SELECT rowid FROM staff_roster 
+                SELECT rowid FROM staff_roster
                 WHERE date = ? AND staff_name = ?
             """, (date, staff_name))
-            
+
             existing = cursor.fetchone()
-            
+
             if existing:
                 cursor.execute("""
                     UPDATE staff_roster SET
@@ -4996,12 +5009,12 @@ def save_roster_batch():
                     INSERT INTO staff_roster (date, staff_name, location, shift_code, updated_at)
                     VALUES (?, ?, ?, ?, ?)
                 """, (date, staff_name, location, shift_code, now))
-            
+
             saved_count += 1
-        
+
         conn.commit()
         return jsonify({'success': True, 'message': f'已儲存 {saved_count} 筆班表'})
-        
+
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -5022,15 +5035,15 @@ def admin_audit_summary():
     """回傳稽核檢查摘要（A1-A5）"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     checks = {}
-    
+
     try:
         # A1: Staging resolved 但 needs 未回填
         cursor.execute("""
             SELECT COUNT(*) as cnt
             FROM staging_records s
-            JOIN needs n ON (s.temp_customer_id = n.customer_staging_id 
+            JOIN needs n ON (s.temp_customer_id = n.customer_staging_id
                           OR s.temp_product_id = n.product_staging_id)
             WHERE s.status = 'resolved'
               AND s.resolved_code IS NOT NULL
@@ -5038,7 +5051,7 @@ def admin_audit_summary():
                    OR n.product_code LIKE 'TEMP-P-%')
         """)
         checks['A1'] = cursor.fetchone()['cnt']
-        
+
         # A2: 待建檔異常 - needs 已有正式碼但 staging 仍 pending/needs_review
         # 條件：staging pending/needs_review + needs 未取消 + 不是 TEMP 編號
         cursor.execute("""
@@ -5063,7 +5076,7 @@ def admin_audit_summary():
             )
         """)
         checks['A2'] = cursor.fetchone()['cnt']
-        
+
         # A3: Needs 指到不存在的正式主檔
         # 排除臨時客戶 (TEMP-C-%) 和臨時產品 (TEMP-P-%, NEW-%)
         # 注意：needs.customer_code 可能存 customer_id 或 short_name
@@ -5073,16 +5086,16 @@ def admin_audit_summary():
             LEFT JOIN customers c1 ON n.customer_code = c1.customer_id
             LEFT JOIN customers c2 ON n.customer_code = c2.short_name
             LEFT JOIN products p ON n.product_code = p.product_code
-            WHERE (n.customer_code != '' 
-                   AND n.customer_code NOT LIKE 'TEMP-C-%' 
+            WHERE (n.customer_code != ''
+                   AND n.customer_code NOT LIKE 'TEMP-C-%'
                    AND c1.customer_id IS NULL
                    AND c2.short_name IS NULL)
-               OR (n.product_code NOT LIKE 'TEMP-P-%' 
+               OR (n.product_code NOT LIKE 'TEMP-P-%'
                    AND n.product_code NOT LIKE 'NEW-%'
                    AND p.product_code IS NULL)
         """)
         checks['A3'] = cursor.fetchone()['cnt']
-        
+
         # A4: 同手機重複 customer staging
         cursor.execute("""
             SELECT COUNT(*) as cnt FROM (
@@ -5094,7 +5107,7 @@ def admin_audit_summary():
             )
         """)
         checks['A4'] = cursor.fetchone()['cnt']
-        
+
         # A5: Products 同名多 product_code
         cursor.execute("""
             SELECT COUNT(*) as cnt FROM (
@@ -5105,9 +5118,9 @@ def admin_audit_summary():
             )
         """)
         checks['A5'] = cursor.fetchone()['cnt']
-        
+
         return jsonify({'success': True, 'checks': checks})
-        
+
     except Exception as e:
         print(f"admin_audit_summary 錯誤: {e}")
         return jsonify({'success': False, 'message': '系統錯誤'}), 500
@@ -5123,14 +5136,14 @@ def admin_audit_detail():
     code = request.args.get('code', '')
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         items = []
-        
+
         if code == 'A1':
             # Staging resolved 但 needs 未回填
             cursor.execute("""
-                SELECT 
+                SELECT
                     s.id as staging_id,
                     s.type,
                     s.raw_input,
@@ -5145,7 +5158,7 @@ def admin_audit_detail():
                     n.requester,
                     n.department
                 FROM staging_records s
-                JOIN needs n ON (s.temp_customer_id = n.customer_staging_id 
+                JOIN needs n ON (s.temp_customer_id = n.customer_staging_id
                               OR s.temp_product_id = n.product_staging_id)
                 WHERE s.status = 'resolved'
                   AND s.resolved_code IS NOT NULL
@@ -5155,11 +5168,11 @@ def admin_audit_detail():
                 LIMIT 100
             """)
             items = [dict(row) for row in cursor.fetchall()]
-            
+
         elif code == 'A2':
             # A2: 待建檔異常 - needs 已有正式碼但 staging 仍 pending/needs_review
             cursor.execute("""
-                SELECT 
+                SELECT
                     s.id as staging_id,
                     s.type,
                     s.status as staging_status,
@@ -5176,7 +5189,7 @@ def admin_audit_detail():
                   AND n.cancelled_at IS NULL
                   AND n.customer_code NOT LIKE 'TEMP-C-%'
                 UNION ALL
-                SELECT 
+                SELECT
                     s.id as staging_id,
                     s.type,
                     s.status as staging_status,
@@ -5196,13 +5209,13 @@ def admin_audit_detail():
                 LIMIT 100
             """)
             items = [dict(row) for row in cursor.fetchall()]
-            
+
         elif code == 'A3':
             # Needs 指到不存在的正式主檔
             # 排除臨時客戶 (TEMP-C-%) 和臨時產品 (TEMP-P-%, NEW-%)
             # 注意：needs.customer_code 可能存 customer_id 或 short_name
             cursor.execute("""
-                SELECT 
+                SELECT
                     n.id,
                     n.customer_code,
                     n.product_code,
@@ -5214,22 +5227,22 @@ def admin_audit_detail():
                 LEFT JOIN customers c1 ON n.customer_code = c1.customer_id
                 LEFT JOIN customers c2 ON n.customer_code = c2.short_name
                 LEFT JOIN products p ON n.product_code = p.product_code
-                WHERE (n.customer_code != '' 
-                       AND n.customer_code NOT LIKE 'TEMP-C-%' 
+                WHERE (n.customer_code != ''
+                       AND n.customer_code NOT LIKE 'TEMP-C-%'
                        AND c1.customer_id IS NULL
                        AND c2.short_name IS NULL)
-                   OR (n.product_code NOT LIKE 'TEMP-P-%' 
+                   OR (n.product_code NOT LIKE 'TEMP-P-%'
                        AND n.product_code NOT LIKE 'NEW-%'
                        AND p.product_code IS NULL)
                 ORDER BY n.created_at DESC
                 LIMIT 100
             """)
             items = [dict(row) for row in cursor.fetchall()]
-            
+
         elif code == 'A4':
             # 同手機重複 customer staging
             cursor.execute("""
-                SELECT 
+                SELECT
                     s1.id,
                     s1.raw_mobile,
                     s1.raw_input,
@@ -5248,11 +5261,11 @@ def admin_audit_detail():
                 LIMIT 100
             """)
             items = [dict(row) for row in cursor.fetchall()]
-            
+
         elif code == 'A5':
             # Products 同名多 product_code
             cursor.execute("""
-                SELECT 
+                SELECT
                     p1.product_name,
                     p1.product_code,
                     p1.created_at
@@ -5267,9 +5280,9 @@ def admin_audit_detail():
                 LIMIT 100
             """)
             items = [dict(row) for row in cursor.fetchall()]
-        
+
         return jsonify({'success': True, 'code': code, 'items': items})
-        
+
     except Exception as e:
         print(f"admin_audit_detail 錯誤: {e}")
         return jsonify({'success': False, 'message': '系統錯誤'}), 500
@@ -5286,22 +5299,22 @@ def admin_table_query():
     limit = min(int(request.args.get('limit', 100)), 500)
     offset = int(request.args.get('offset', 0))
     keyword = request.args.get('keyword', '')
-    
+
     # 白名單驗證（只允許特定表）
-    allowed_tables = ['needs', 'staging_records', 'customers', 'products', 
+    allowed_tables = ['needs', 'staging_records', 'customers', 'products',
                       'inventory', 'purchase_history', 'sales_history',
                       'admin_audit_log', 'admin_tombstone', 'ops_events']
     if table_name not in allowed_tables:
         return jsonify({'success': False, 'message': '不允許訪問該表'}), 403
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 構建查詢
         where_clause = "1=1"
         params = []
-        
+
         if keyword:
             # 根據不同表構建搜尋條件
             if table_name == 'needs':
@@ -5319,7 +5332,7 @@ def admin_table_query():
             elif table_name == 'ops_events':
                 where_clause += " AND (event_type LIKE ? OR source LIKE ? OR actor LIKE ?)"
                 params.extend([f'%{keyword}%'] * 3)
-        
+
         # staging_records 特殊處理：以 needs 為準（未取消 + TEMP 編號）
         if table_name == 'staging_records':
             # 獲取資料：商品 + 客戶，以 needs 驅動，不看 staging.status
@@ -5330,22 +5343,22 @@ def admin_table_query():
                 JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
                 WHERE n.cancelled_at IS NULL
                   AND n.product_code LIKE 'TEMP-P-%'
-                
+
                 UNION ALL
-                
+
                 -- 客戶：以 needs 為準
                 SELECT DISTINCT sr.*, n.id as needs_id, n.status as needs_status
                 FROM needs n
                 JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
                 WHERE n.cancelled_at IS NULL
                   AND n.customer_code LIKE 'TEMP-C-%'
-                
+
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
             """, (limit, offset))
-            
+
             items = [dict(row) for row in cursor.fetchall()]
-            
+
             # 獲取總筆數
             cursor.execute("""
                 SELECT COUNT(*) as total FROM (
@@ -5363,7 +5376,7 @@ def admin_table_query():
                 )
             """)
             total = cursor.fetchone()['total']
-            
+
             return jsonify({
                 'success': True,
                 'table': table_name,
@@ -5372,15 +5385,15 @@ def admin_table_query():
                 'limit': limit,
                 'offset': offset
             })
-        
+
         # 獲取總筆數
         cursor.execute(f"SELECT COUNT(*) as total FROM {table_name} WHERE {where_clause}", params)
         total = cursor.fetchone()['total']
-        
+
         # 決定排序欄位
         sort_field = request.args.get('sort', 'created_at')
         sort_order = request.args.get('order', 'desc').upper()
-        
+
         # 不同表的預設排序欄位映射
         sort_field_map = {
             'inventory': 'report_date',
@@ -5390,16 +5403,16 @@ def admin_table_query():
             'sales_history': 'date',
             'customers': 'updated_at'  # customers 表使用 updated_at
         }
-        
+
         # 驗證排序欄位是否存在，不存在則使用 id
         actual_sort_field = sort_field_map.get(table_name, sort_field)
         if actual_sort_field == 'created_at' and table_name in ['purchase_history', 'sales_history']:
             actual_sort_field = 'date'
-        
+
         # 驗證排序方向
         if sort_order not in ['ASC', 'DESC']:
             sort_order = 'DESC'
-        
+
         # 獲取資料
         query_params = params + [limit, offset]
         cursor.execute(f"""
@@ -5408,9 +5421,9 @@ def admin_table_query():
             ORDER BY {actual_sort_field} {sort_order}
             LIMIT ? OFFSET ?
         """, query_params)
-        
+
         items = [dict(row) for row in cursor.fetchall()]
-        
+
         return jsonify({
             'success': True,
             'table': table_name,
@@ -5419,7 +5432,7 @@ def admin_table_query():
             'limit': limit,
             'offset': offset
         })
-        
+
     except Exception as e:
         print(f"admin_table_query 錯誤: {e}")
         return jsonify({'success': False, 'message': '系統錯誤'}), 500
@@ -5434,36 +5447,36 @@ def admin_row_get():
     """獲取單筆資料詳情"""
     table_name = request.args.get('table', '')
     row_id = request.args.get('id')
-    
+
     allowed_tables = ['needs', 'staging_records', 'customers', 'products',
                       'inventory', 'purchase_history', 'sales_history',
                       'admin_audit_log', 'admin_tombstone', 'ops_events']
     if table_name not in allowed_tables:
         return jsonify({'success': False, 'message': '不允許訪問該表'}), 403
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 檢查表是否有 id 欄位
         cursor.execute(f"PRAGMA table_info({table_name})")
         columns = cursor.fetchall()
         has_id = any(col['name'] == 'id' for col in columns)
-        
+
         if has_id:
             cursor.execute(f"SELECT * FROM {table_name} WHERE id = ?", (row_id,))
         else:
             # 對於沒有 id 的表，使用索引查詢
             # 獲取所有欄位，用 LIMIT 和 OFFSET 模擬單筆查詢
             cursor.execute(f"SELECT * FROM {table_name} LIMIT 1 OFFSET ?", (int(row_id),))
-        
+
         row = cursor.fetchone()
-        
+
         if not row:
             return jsonify({'success': False, 'message': '資料不存在'}), 404
-        
+
         return jsonify({'success': True, 'item': dict(row)})
-        
+
     except Exception as e:
         print(f"admin_row_get 錯誤: {e}")
         return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'}), 500
@@ -5481,42 +5494,42 @@ def admin_fix_apply():
     ids = data.get('ids', [])
     action = data.get('action')
     admin_user = request.args.get('admin') or request.headers.get('X-Admin-User')
-    
+
     if not fix_code or not ids or not action:
         return jsonify({'success': False, 'message': '缺少必要參數'}), 400
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         fixed_count = 0
-        
+
         if fix_code == 'A1' and action == 'backfill':
             # 回填 staging.resolved_code 到 needs
             for item_id in ids:
                 cursor.execute("""
                     UPDATE needs
                     SET customer_code = (
-                        SELECT resolved_code FROM staging_records 
+                        SELECT resolved_code FROM staging_records
                         WHERE temp_customer_id = needs.customer_staging_id
                     ),
                         product_code = COALESCE((
-                            SELECT resolved_code FROM staging_records 
+                            SELECT resolved_code FROM staging_records
                             WHERE temp_product_id = needs.product_staging_id
                         ), product_code)
                     WHERE id = ?
                 """, (item_id,))
                 fixed_count += cursor.rowcount
-        
+
         # 記錄 audit log
         cursor.execute("""
             INSERT INTO admin_audit_log (admin_user, action, fix_code, affected_ids, affected_count, created_at)
             VALUES (?, ?, ?, ?, ?, datetime('now'))
         """, (admin_user, action, fix_code, json.dumps(ids), fixed_count))
-        
+
         conn.commit()
         return jsonify({'success': True, 'fixed_count': fixed_count})
-        
+
     except Exception as e:
         print(f"admin_fix_apply 錯誤: {e}")
         conn.rollback()
@@ -5532,28 +5545,28 @@ def admin_audit_log():
     """獲取管理員操作日誌"""
     limit = min(int(request.args.get('limit', 50)), 100)
     offset = int(request.args.get('offset', 0))
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         # 檢查表是否存在
         cursor.execute("""
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='admin_audit_log'
         """)
         if not cursor.fetchone():
             return jsonify({'success': True, 'items': [], 'message': '日誌表尚未建立'})
-        
+
         cursor.execute("""
             SELECT * FROM admin_audit_log
             ORDER BY created_at DESC
             LIMIT ? OFFSET ?
         """, (limit, offset))
-        
+
         items = [dict(row) for row in cursor.fetchall()]
         return jsonify({'success': True, 'items': items})
-        
+
     except Exception as e:
         print(f"admin_audit_log 錯誤: {e}")
         return jsonify({'success': False, 'message': '系統錯誤'}), 500
@@ -5610,33 +5623,33 @@ def admin_observability_events():
     status = request.args.get('status', '')
     hours = int(request.args.get('hours', 24))
     limit = int(request.args.get('limit', 50))
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         sql = """
-            SELECT id, ts, event_type, source, trace_id, actor, status, 
+            SELECT id, ts, event_type, source, trace_id, actor, status,
                    duration_ms, summary, affected_rows
             FROM ops_events
             WHERE ts > datetime('now', '-{} hours')
         """.format(hours)
         params = []
-        
+
         if event_type:
             sql += " AND event_type = ?"
             params.append(event_type)
         if status:
             sql += " AND status = ?"
             params.append(status)
-        
+
         sql += " ORDER BY ts DESC LIMIT ?"
         params.append(limit)
-        
+
         cursor.execute(sql, params)
         items = [dict(r) for r in cursor.fetchall()]
         conn.close()
-        
+
         return jsonify({'success': True, 'items': items})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -5647,16 +5660,16 @@ def admin_observability_trace(trace_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             SELECT * FROM ops_events
             WHERE trace_id = ? OR parent_trace_id = ?
             ORDER BY ts
         """, (trace_id, trace_id))
-        
+
         items = [dict(r) for r in cursor.fetchall()]
         conn.close()
-        
+
         return jsonify({'success': True, 'trace_id': trace_id, 'items': items})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -5666,7 +5679,7 @@ def admin_observability_last_event():
     """取得最後一次成功/失敗事件"""
     event_type = request.args.get('type', 'IMPORT')
     status = request.args.get('status', 'OK')
-    
+
     try:
         event = get_last_event(event_type, status, hours=48)
         return jsonify({'success': True, 'event': event})
@@ -5700,29 +5713,29 @@ def admin_db_row_stats():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         today = datetime.now().strftime('%Y-%m-%d')
-        
+
         # needs 表統計
         cursor.execute("SELECT COUNT(*) as total FROM needs")
         needs_total = cursor.fetchone()['total']
         cursor.execute("SELECT COUNT(*) as today FROM needs WHERE created_at >= ?", (today,))
         needs_today = cursor.fetchone()['today']
-        
+
         # staging_records 表統計
         cursor.execute("SELECT COUNT(*) as total FROM staging_records")
         staging_total = cursor.fetchone()['total']
         cursor.execute("SELECT COUNT(*) as today FROM staging_records WHERE DATE(created_at) = ?", (today,))
         staging_today = cursor.fetchone()['today']
-        
+
         # admin_audit_log 表統計
         cursor.execute("SELECT COUNT(*) as total FROM admin_audit_log")
         audit_total = cursor.fetchone()['total']
         cursor.execute("SELECT COUNT(*) as today FROM admin_audit_log WHERE DATE(created_at) = ?", (today,))
         audit_today = cursor.fetchone()['today']
-        
+
         conn.close()
-        
+
         return jsonify({
             'success': True,
             'needs': {'total': needs_total, 'today_added': needs_today},
@@ -5738,23 +5751,23 @@ def admin_db_size():
     """資料庫檔案大小監控"""
     try:
         import os
-        
+
         db_path = '/Users/aiserver/srv/db/company.db'
         wal_path = db_path + '-wal'
         shm_path = db_path + '-shm'
-        
+
         # 取得檔案大小
         db_size = os.path.getsize(db_path) if os.path.exists(db_path) else 0
         wal_size = os.path.getsize(wal_path) if os.path.exists(wal_path) else 0
         shm_size = os.path.getsize(shm_path) if os.path.exists(shm_path) else 0
-        
+
         # 取得 journal mode
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("PRAGMA journal_mode")
         journal_mode = cursor.fetchone()[0]
         conn.close()
-        
+
         return jsonify({
             'success': True,
             'db_size_mb': round(db_size / (1024 * 1024), 2),
@@ -5772,7 +5785,7 @@ def admin_db_slow_queries():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # 查詢最近 20 筆慢查詢（從 ops_events 表查詢，因為 admin_audit_log 沒有 ts 欄位）
         cursor.execute("""
             SELECT ts, source as action, duration_ms, details_json
@@ -5781,7 +5794,7 @@ def admin_db_slow_queries():
             ORDER BY ts DESC
             LIMIT 20
         """)
-        
+
         rows = cursor.fetchall()
         items = [{
             'timestamp': row['ts'],
@@ -5789,9 +5802,9 @@ def admin_db_slow_queries():
             'duration_ms': row['duration_ms'] or 0,
             'details': row['details_json']
         } for row in rows]
-        
+
         conn.close()
-        
+
         return jsonify({'success': True, 'items': items})
     except Exception as e:
         print(f"[DB Monitor] 慢查詢查詢錯誤: {e}")
@@ -5813,7 +5826,7 @@ def admin_customers_sync():
     try:
         admin_user = request.args.get('admin') or request.headers.get('X-Admin-User')
         mode = request.args.get('mode', 'sync')  # 預設為 sync
-        
+
         if mode == 'init':
             # 初始化：從 customers 匯入到 customer_master
             result = sync_customers_to_master(actor=admin_user)
@@ -5822,7 +5835,7 @@ def admin_customers_sync():
             # 同步：從 customer_master 同步到 customers
             result = sync_customers_from_master(actor=admin_user)
             action = '同步'
-        
+
         if result['success']:
             return jsonify({
                 'success': True,
@@ -5836,7 +5849,7 @@ def admin_customers_sync():
                 'message': result.get('error', f'{action}失敗'),
                 'mode': mode
             }), 500
-            
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -5864,10 +5877,10 @@ def get_targets():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     year = request.args.get("year", datetime.now().year, type=int)
     month = request.args.get("month", datetime.now().month, type=int)
-    
+
     # 查詢部門目標
     cursor.execute("""
         SELECT subject_name, target_amount
@@ -5875,7 +5888,7 @@ def get_targets():
         WHERE category = "部門" AND year = ? AND month = ? AND period_type = "monthly"
     """, (year, month))
     dept_rows = cursor.fetchall()
-    
+
     # 查詢門市目標
     cursor.execute("""
         SELECT subject_name, target_amount
@@ -5883,7 +5896,7 @@ def get_targets():
         WHERE category = "門市" AND year = ? AND month = ? AND period_type = "monthly"
     """, (year, month))
     store_rows = cursor.fetchall()
-    
+
     # 查詢個人目標
     cursor.execute("""
         SELECT subject_name, target_amount
@@ -5891,9 +5904,9 @@ def get_targets():
         WHERE category = "個人" AND year = ? AND month = ? AND period_type = "monthly"
     """, (year, month))
     personal_rows = cursor.fetchall()
-    
+
     conn.close()
-    
+
     return jsonify({
         "success": True,
         "year": year,
@@ -5909,28 +5922,28 @@ def save_targets():
     from datetime import datetime
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         data = request.get_json()
         year = data.get("year")
         month = data.get("month")
         targets = data.get("targets", [])
-        
+
         saved_count = 0
-        
+
         for target in targets:
             category = target.get("category")
             name = target.get("name")
             amount = target.get("target")
-            
+
             # 檢查是否已存在
             cursor.execute("""
                 SELECT 1 FROM performance_metrics
                 WHERE category = ? AND subject_name = ? AND year = ? AND month = ? AND period_type = 'monthly'
             """, (category, name, year, month))
-            
+
             existing = cursor.fetchone()
-            
+
             if existing:
                 # 更新現有記錄
                 cursor.execute("""
@@ -5942,22 +5955,22 @@ def save_targets():
                 # 插入新記錄
                 cursor.execute("""
                     INSERT INTO performance_metrics
-                    (category, subject_name, target_amount, revenue_amount, profit_amount, 
+                    (category, subject_name, target_amount, revenue_amount, profit_amount,
                      achievement_rate, margin_rate, year, month, period_type, updated_at)
                     VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, 'monthly', datetime('now', 'localtime'))
                 """, (category, name, amount, year, month))
-            
+
             saved_count += 1
-        
+
         conn.commit()
         conn.close()
-        
+
         return jsonify({
             "success": True,
             "saved_count": saved_count,
             "message": f"成功儲存 {saved_count} 筆目標"
         })
-        
+
     except Exception as e:
         conn.rollback()
         conn.close()
@@ -6110,7 +6123,7 @@ def update_staff(staff_id):
             data.get("id_number"),
             staff_id
         ))
-        
+
         conn.commit()
         conn.close()
         return jsonify({"success": True, "message": "員工更新成功"})
@@ -6182,10 +6195,10 @@ def get_system_announcements():
           AND (expires_at IS NULL OR datetime(expires_at) > datetime(?))
         ORDER BY is_pinned DESC, created_at DESC
     """, (now,))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     return jsonify({
         "success": True,
         "items": [{
@@ -6204,10 +6217,10 @@ def create_system_announcement():
     data = request.get_json()
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute("""
-            INSERT INTO system_announcements 
+            INSERT INTO system_announcements
             (title, content, level, is_pinned, expires_at, created_by, created_at)
             VALUES (?, ?, ?, ?, ?, ?, datetime("now", "localtime"))
         """, (
@@ -6218,7 +6231,7 @@ def create_system_announcement():
             data.get("expires_at"),
             data.get("created_by", "admin")
         ))
-        
+
         conn.commit()
         conn.close()
         return jsonify({"success": True, "message": "公告新增成功"})
@@ -6233,11 +6246,11 @@ def update_system_announcement(announcement_id):
     data = request.get_json()
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute("""
             UPDATE system_announcements
-            SET title = ?, content = ?, level = ?, is_pinned = ?, 
+            SET title = ?, content = ?, level = ?, is_pinned = ?,
                 is_active = ?, expires_at = ?
             WHERE id = ?
         """, (
@@ -6249,7 +6262,7 @@ def update_system_announcement(announcement_id):
             data.get("expires_at"),
             announcement_id
         ))
-        
+
         conn.commit()
         conn.close()
         return jsonify({"success": True, "message": "公告更新成功"})
@@ -6263,14 +6276,14 @@ def delete_system_announcement(announcement_id):
     """刪除系統公告（軟刪除：設為 is_active=0）"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute("""
             UPDATE system_announcements
             SET is_active = 0
             WHERE id = ?
         """, (announcement_id,))
-        
+
         conn.commit()
         conn.close()
         return jsonify({"success": True, "message": "公告已關閉"})
@@ -6285,16 +6298,16 @@ def get_all_system_announcements():
     """取得所有系統公告（管理員用，包含已停用）"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
         SELECT id, title, content, level, is_active, is_pinned, created_at, expires_at
         FROM system_announcements
         ORDER BY is_pinned DESC, created_at DESC
     """)
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     return jsonify({
         "success": True,
         "items": [{
@@ -6316,13 +6329,13 @@ TELEGRAM_BOT_TOKEN = "8623161623:AAGWlwGjp0Vf3bzpiVgLltQFbcGFY4kpFxo"
 TELEGRAM_CHAT_ID = "8545239755"  # 老闆個人（請購通知）
 TELEGRAM_ACCOUNTANT_CHAT_ID = "8203016237"  # 會計個人（調撥通知）
 
-def send_telegram_notification(message, chat_id=None, notification_type='general', 
+def send_telegram_notification(message, chat_id=None, notification_type='general',
                                 related_record_id=None, related_record_type=None):
     """發送 Telegram 通知並記錄到資料庫"""
     chat_id = chat_id or TELEGRAM_CHAT_ID
     recipient_name = '老闆' if chat_id == TELEGRAM_CHAT_ID else ('會計' if chat_id == TELEGRAM_ACCOUNTANT_CHAT_ID else '未知')
     message_preview = message[:50] + '...' if len(message) > 50 else message
-    
+
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
@@ -6332,35 +6345,35 @@ def send_telegram_notification(message, chat_id=None, notification_type='general
         }
         response = requests.post(url, json=payload, timeout=5)
         result = response.json()
-        
+
         # 記錄到資料庫
         status = 'success' if result.get('ok') else 'failed'
         error_msg = result.get('description') if not result.get('ok') else None
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO notification_logs 
-            (notification_type, recipient_chat_id, recipient_name, message_preview, 
+            INSERT INTO notification_logs
+            (notification_type, recipient_chat_id, recipient_name, message_preview,
              status, error_message, related_record_id, related_record_type)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (notification_type, str(chat_id), recipient_name, message_preview,
               status, error_msg, related_record_id, related_record_type))
         conn.commit()
         conn.close()
-        
+
         return result
     except Exception as e:
         error_msg = str(e)
         print(f"Telegram 通知發送失敗: {error_msg}")
-        
+
         # 記錄失敗到資料庫
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO notification_logs 
-                (notification_type, recipient_chat_id, recipient_name, message_preview, 
+                INSERT INTO notification_logs
+                (notification_type, recipient_chat_id, recipient_name, message_preview,
                  status, error_message, related_record_id, related_record_type)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (notification_type, str(chat_id), recipient_name, message_preview,
@@ -6369,7 +6382,7 @@ def send_telegram_notification(message, chat_id=None, notification_type='general
             conn.close()
         except:
             pass
-        
+
         return None
 
 # ============================================
@@ -6383,16 +6396,16 @@ def send_email_alert(subject, body):
         email_user = os.getenv('EMAIL_USER')
         email_password = os.getenv('EMAIL_PASSWORD')
         email_to = os.getenv('EMAIL_TO', email_user)
-        
+
         if not email_user or not email_password:
             print("[EMAIL] 未設定 Email 帳號密碼，跳過發送")
             return False
-        
+
         msg = MIMEMultipart()
         msg['From'] = email_user
         msg['To'] = email_to
         msg['Subject'] = f"[電腦舖系統告警] {subject}"
-        
+
         body_html = f"""
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6;">
@@ -6407,20 +6420,921 @@ def send_email_alert(subject, body):
         </body>
         </html>
         """
-        
+
         msg.attach(MIMEText(body_html, 'html'))
-        
+
         server = smtplib.SMTP(email_host, email_port)
         server.starttls()
         server.login(email_user, email_password)
         server.send_message(msg)
         server.quit()
-        
+
         print(f"[EMAIL] 告警郵件已發送: {subject}")
         return True
     except Exception as e:
         print(f"[EMAIL] 發送失敗: {e}")
         return False
+
+
+# ============================================
+# API: 客戶建檔
+# ============================================
+
+# API: 取得下一個客戶編號
+@app.route('/api/customer/next-id')
+def get_next_customer_id():
+    """根據門市前綴產生下一個客戶編號"""
+    prefix = request.args.get('prefix', 'SA')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 查詢該前綴的最大編號
+        cursor.execute("""
+            SELECT customer_id FROM customers
+            WHERE customer_id LIKE ?
+            ORDER BY customer_id DESC LIMIT 1
+        """, (prefix + '-%',))
+
+        row = cursor.fetchone()
+        if row:
+            # 解析最後編號
+            last_id = row['customer_id']
+            try:
+                last_num = int(last_id.split('-')[1])
+                next_num = last_num + 1
+            except:
+                next_num = 1
+        else:
+            next_num = 1
+
+        # 格式化編號（5碼數字）
+        customer_id = f"{prefix}-{next_num:05d}"
+
+        return jsonify({'success': True, 'customer_id': customer_id})
+    except Exception as e:
+        print(f"[ERROR] 產生客戶編號失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# API: 檢查客戶是否重複
+@app.route('/api/customer/check')
+def check_customer_exists():
+    """檢查手機或電話是否已存在"""
+    mobile = request.args.get('mobile', '')
+    phone = request.args.get('phone', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        if mobile:
+            cursor.execute("""
+                SELECT customer_id, short_name FROM customers
+                WHERE mobile = ? LIMIT 1
+            """, (mobile,))
+        elif phone:
+            cursor.execute("""
+                SELECT customer_id, short_name FROM customers
+                WHERE phone1 = ? LIMIT 1
+            """, (phone,))
+        else:
+            return jsonify({'exists': False})
+
+        row = cursor.fetchone()
+        if row:
+            return jsonify({
+                'exists': True,
+                'customer_id': row['customer_id'],
+                'short_name': row['short_name']
+            })
+        else:
+            return jsonify({'exists': False})
+    except Exception as e:
+        print(f"[ERROR] 檢查客戶失敗: {e}")
+        return jsonify({'exists': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+
+# API: 建立客戶
+@app.route('/api/customer/create', methods=['POST'])
+def create_customer():
+    """建立新客戶"""
+    data = request.get_json()
+
+    # 驗證必填欄位
+    customer_id = data.get('customer_id', '').strip()
+    short_name = data.get('short_name', '').strip()
+    mobile = data.get('mobile', '').strip()
+
+    if not customer_id or not short_name or not mobile:
+        return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 再次驗證手機是否重複
+        cursor.execute("SELECT 1 FROM customers WHERE mobile = ? LIMIT 1", (mobile,))
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': '此手機號碼已存在'}), 409
+
+        # 插入客戶資料
+        cursor.execute("""
+            INSERT INTO customers (
+                customer_id, short_name, phone1, mobile, contact,
+                tax_id, company_address, delivery_address, payment_type
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            customer_id,
+            short_name,
+            data.get('phone1', ''),
+            mobile,
+            data.get('contact', ''),
+            data.get('tax_id', ''),
+            data.get('company_address', ''),
+            data.get('delivery_address', ''),
+            data.get('payment_type', '')
+        ))
+
+        conn.commit()
+        return jsonify({'success': True, 'customer_id': customer_id})
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'message': '客戶編號已存在'}), 409
+    except Exception as e:
+        print(f"[ERROR] 建立客戶失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
+# API: 產生對外銷貨單號
+# ============================================
+
+@app.route('/api/sales/next-invoice-no')
+def get_next_sales_invoice_no():
+    """
+    產生下一個對外銷貨單號
+    格式：門市代碼-YYYYMMDD-序號
+    例如：FY-20260306-001
+    """
+    store_code = request.args.get('store', 'FY')  # 預設豐原
+    date_str = request.args.get('date', datetime.now().strftime('%Y%m%d'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 查詢該門市該日期最後的序號
+        prefix = f"{store_code}-{date_str}-"
+        cursor.execute("""
+            SELECT sales_invoice_no FROM sales_history
+            WHERE sales_invoice_no LIKE ?
+            ORDER BY sales_invoice_no DESC LIMIT 1
+        """, (prefix + '%',))
+
+        row = cursor.fetchone()
+        if row and row['sales_invoice_no']:
+            try:
+                # 解析最後序號
+                last_seq = int(row['sales_invoice_no'].split('-')[-1])
+                next_seq = last_seq + 1
+            except:
+                next_seq = 1
+        else:
+            next_seq = 1
+
+        # 格式化單號
+        invoice_no = f"{store_code}-{date_str}-{next_seq:03d}"
+
+        return jsonify({
+            'success': True,
+            'invoice_no': invoice_no,
+            'store_code': store_code,
+            'date': date_str,
+            'sequence': next_seq
+        })
+    except Exception as e:
+        print(f"[ERROR] 產生銷貨單號失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
+# API: 廠商建檔
+# ============================================
+
+@app.route('/api/supplier/next-id')
+def get_next_supplier_id():
+    """產生下一個廠商編號"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 查詢最大的廠商編號
+        cursor.execute("""
+            SELECT supplier_id FROM suppliers
+            WHERE supplier_id LIKE 'SUP-%'
+            ORDER BY supplier_id DESC LIMIT 1
+        """)
+
+        row = cursor.fetchone()
+        if row:
+            try:
+                last_num = int(row['supplier_id'].split('-')[1])
+                next_num = last_num + 1
+            except:
+                next_num = 1
+        else:
+            next_num = 1
+
+        supplier_id = f"SUP-{next_num:05d}"
+
+        return jsonify({'success': True, 'supplier_id': supplier_id})
+    except Exception as e:
+        print(f"[ERROR] 產生廠商編號失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/supplier/create', methods=['POST'])
+def create_supplier():
+    """建立新廠商"""
+    data = request.get_json()
+
+    supplier_id = data.get('supplier_id', '').strip()
+    supplier_name = data.get('supplier_name', '').strip()
+    contact_person = data.get('contact_person', '').strip()
+
+    if not supplier_id or not supplier_name or not contact_person:
+        return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO suppliers (
+                supplier_id, supplier_name, short_name, tax_id, contact_person,
+                phone, mobile, email, address, payment_terms,
+                bank_name, bank_account, remark, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            supplier_id,
+            supplier_name,
+            data.get('short_name', ''),
+            data.get('tax_id', ''),
+            contact_person,
+            data.get('phone', ''),
+            data.get('mobile', ''),
+            data.get('email', ''),
+            data.get('address', ''),
+            data.get('payment_terms', ''),
+            data.get('bank_name', ''),
+            data.get('bank_account', ''),
+            data.get('remark', ''),
+            data.get('created_by', '')
+        ))
+
+        conn.commit()
+        return jsonify({'success': True, 'supplier_id': supplier_id})
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'message': '廠商編號已存在'}), 409
+    except Exception as e:
+        print(f"[ERROR] 建立廠商失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
+# API: 產品建檔
+# ============================================
+
+@app.route('/api/product/categories')
+def get_product_categories():
+    """取得產品大分類列表"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT category_code as code, category_name as name
+            FROM product_categories
+            WHERE status = '啟用'
+            ORDER BY category_code
+        """)
+        rows = cursor.fetchall()
+
+        categories = [{'code': r['code'], 'name': r['name']} for r in rows]
+
+        return jsonify({'success': True, 'categories': categories})
+    except Exception as e:
+        print(f"[ERROR] 取得產品分類失敗: {e}")
+        return jsonify({'success': False, 'categories': []}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/product/subcategories')
+def get_product_subcategories():
+    """取得產品小分類（廠牌）列表"""
+    main_code = request.args.get('main', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 從現有產品中統計小分類
+        cursor.execute("""
+            SELECT DISTINCT SUBSTR(product_code, 4, 2) as code
+            FROM products
+            WHERE product_code LIKE ?
+            ORDER BY code
+        """, (f"{main_code}-%",))
+
+        rows = cursor.fetchall()
+        subcategories = [{'code': r['code'], 'name': r['code']} for r in rows if r['code']]
+
+        return jsonify({'success': True, 'subcategories': subcategories})
+    except Exception as e:
+        print(f"[ERROR] 取得小分類失敗: {e}")
+        return jsonify({'success': False, 'subcategories': []}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/product/next-code')
+def get_next_product_code():
+    """產生下一個產品編號"""
+    main_code = request.args.get('main', '')
+    sub_code = request.args.get('sub', '')
+
+    if not main_code or not sub_code:
+        return jsonify({'success': False, 'message': '缺少分類資訊'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 查詢該分類最大序號
+        prefix = f"{main_code}-{sub_code}-"
+        cursor.execute("""
+            SELECT product_code FROM products
+            WHERE product_code LIKE ?
+            ORDER BY product_code DESC LIMIT 1
+        """, (prefix + '%',))
+
+        row = cursor.fetchone()
+        if row:
+            try:
+                last_seq = int(row['product_code'].split('-')[-1])
+                next_seq = last_seq + 1
+            except:
+                next_seq = 1
+        else:
+            next_seq = 1
+
+        product_code = f"{main_code}-{sub_code}-{next_seq:04d}"
+
+        return jsonify({
+            'success': True,
+            'product_code': product_code,
+            'sequence': next_seq
+        })
+    except Exception as e:
+        print(f"[ERROR] 產生產品編號失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
+# 進貨管理 API
+# ============================================
+
+@app.route('/api/suppliers/search')
+def search_suppliers():
+    """搜尋廠商"""
+    keyword = request.args.get('keyword', '').strip()
+
+    if not keyword:
+        return jsonify({'success': True, 'suppliers': []})
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT DISTINCT supplier_name as supplier_name
+            FROM purchase_history
+            WHERE supplier_name LIKE ?
+            ORDER BY supplier_name
+            LIMIT 10
+        """, (f'%{keyword}%',))
+
+        rows = cursor.fetchall()
+        suppliers = [{'supplier_name': r['supplier_name']} for r in rows]
+
+        return jsonify({'success': True, 'suppliers': suppliers})
+    except Exception as e:
+        print(f"[ERROR] 搜尋廠商失敗: {e}")
+        return jsonify({'success': False, 'suppliers': []}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/supplier/info')
+def get_supplier_info():
+    """取得廠商資訊（由名稱查詢）"""
+    name = request.args.get('name', '').strip()
+
+    if not name:
+        return jsonify({'success': False, 'message': '缺少廠商名稱'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 先從 suppliers 表查詢
+        cursor.execute("""
+            SELECT supplier_id, supplier_name, contact_person, phone, email, address
+            FROM suppliers
+            WHERE supplier_name = ?
+            LIMIT 1
+        """, (name,))
+
+        row = cursor.fetchone()
+
+        if row:
+            supplier = {
+                'supplier_id': row['supplier_id'],
+                'supplier_name': row['supplier_name'],
+                'contact_person': row['contact_person'],
+                'phone': row['phone'],
+                'email': row['email'],
+                'address': row['address']
+            }
+            return jsonify({'success': True, 'supplier': supplier})
+        else:
+            # 如果找不到，回傳名稱作為 ID（舊資料相容）
+            return jsonify({
+                'success': True,
+                'supplier': {
+                    'supplier_id': name,
+                    'supplier_name': name
+                }
+            })
+    except Exception as e:
+        print(f"[ERROR] 取得廠商資訊失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/purchase/next-order-no')
+def get_next_purchase_order_no():
+    """產生下一個進貨單號"""
+    today = datetime.now().strftime('%Y%m%d')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 查詢當日最大序號
+        cursor.execute("""
+            SELECT order_no FROM purchase_history
+            WHERE order_no LIKE ?
+            ORDER BY order_no DESC LIMIT 1
+        """, (f'PO-{today}%',))
+
+        row = cursor.fetchone()
+        if row:
+            try:
+                last_seq = int(row['order_no'].split('-')[-1])
+                next_seq = last_seq + 1
+            except:
+                next_seq = 1
+        else:
+            next_seq = 1
+
+        order_no = f"PO-{today}-{next_seq:03d}"
+
+        return jsonify({
+            'success': True,
+            'order_no': order_no
+        })
+    except Exception as e:
+        print(f"[ERROR] 產生進貨單號失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/purchase/create', methods=['POST'])
+def create_purchase_order():
+    """建立進貨單"""
+    data = request.get_json()
+
+    order_no = data.get('order_no')
+    date = data.get('date')
+    supplier_name = data.get('supplier_name')
+    warehouse = data.get('warehouse')
+    invoice_number = data.get('invoice_number')
+    items = data.get('items', [])
+    created_by = data.get('created_by', '')
+
+    if not all([order_no, date, supplier_name, warehouse]):
+        return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
+
+    if not items:
+        return jsonify({'success': False, 'message': '請至少輸入一筆產品明細'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 插入每筆明細
+        for item in items:
+            cursor.execute("""
+                INSERT INTO purchase_history
+                (order_no, invoice_number, date, supplier_name, warehouse, product_code, product_name, quantity, price, amount, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                order_no,
+                invoice_number,
+                date,
+                supplier_name,
+                warehouse,
+                item.get('product_code', ''),
+                item['product_name'],
+                item['quantity'],
+                item['price'],
+                item['amount'],
+                created_by
+            ))
+
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'進貨單 {order_no} 建立成功',
+            'order_no': order_no,
+            'item_count': len(items)
+        })
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 建立進貨單失敗: {e}")
+        return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/product/category', methods=['POST'])
+def create_product_category():
+    """新增產品大分類"""
+    data = request.get_json()
+    code = data.get('code', '').upper().strip()
+    name = data.get('name', '').strip()
+
+    if not code or len(code) != 2:
+        return jsonify({'success': False, 'message': '分類代碼必須為2碼英文'}), 400
+    if not name:
+        return jsonify({'success': False, 'message': '請輸入分類名稱'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO product_categories (category_code, category_name, created_by)
+            VALUES (?, ?, ?)
+        """, (code, name, data.get('created_by', '')))
+
+        conn.commit()
+        return jsonify({'success': True, 'code': code, 'name': name})
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'message': '分類代碼已存在'}), 409
+    except Exception as e:
+        print(f"[ERROR] 新增分類失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/product/create', methods=['POST'])
+def create_product():
+    """建立新產品"""
+    data = request.get_json()
+
+    product_code = data.get('product_code', '').strip()
+    product_name = data.get('product_name', '').strip()
+
+    if not product_code or not product_name:
+        return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO products (
+                product_code, product_name, category, unit,
+                created_by, last_seen_at
+            ) VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))
+        """, (
+            product_code,
+            product_name,
+            data.get('category', ''),
+            data.get('unit', '個'),
+            data.get('created_by', '')
+        ))
+
+        conn.commit()
+        return jsonify({'success': True, 'product_code': product_code})
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'message': '產品編號已存在'}), 409
+    except Exception as e:
+        print(f"[ERROR] 建立產品失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/product/search')
+def search_product_single():
+    """搜尋產品"""
+    keyword = request.args.get('keyword', '').strip()
+
+    if not keyword or len(keyword) < 2:
+        return jsonify({'success': False, 'products': []})
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT product_code, product_name
+            FROM products
+            WHERE product_name LIKE ? OR product_code LIKE ?
+            ORDER BY product_name
+            LIMIT 10
+        """, (f'%{keyword}%', f'%{keyword}%'))
+
+        rows = cursor.fetchall()
+        products = [{'product_code': r['product_code'], 'product_name': r['product_name']} for r in rows]
+
+        return jsonify({'success': True, 'products': products})
+    except Exception as e:
+        print(f"[ERROR] 搜尋產品失敗: {e}")
+        return jsonify({'success': False, 'products': []}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/staff/code')
+def get_staff_code():
+    """取得員工編號（依姓名查詢）"""
+    name = request.args.get('name', '').strip()
+
+    if not name:
+        return jsonify({'success': False, 'message': '缺少姓名'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT staff_code
+            FROM staff_passwords
+            WHERE name = ?
+            LIMIT 1
+        """, (name,))
+
+        row = cursor.fetchone()
+        if row:
+            return jsonify({'success': True, 'code': row['staff_code']})
+        else:
+            return jsonify({'success': False, 'code': None})
+    except Exception as e:
+        print(f"[ERROR] 取得員工編號失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/supplier/next-code')
+def get_next_supplier_code():
+    """產生下一個廠商編號"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 找出最大的廠商編號序號
+        cursor.execute("""
+            SELECT supplier_id
+            FROM suppliers
+            WHERE supplier_id LIKE 'SUP-%'
+            ORDER BY supplier_id DESC
+            LIMIT 1
+        """)
+
+        row = cursor.fetchone()
+        if row:
+            # 解析現有編號，產生下一個序號
+            parts = row['supplier_id'].split('-')
+            if len(parts) >= 2:
+                try:
+                    current_num = int(parts[1])
+                    next_num = current_num + 1
+                except ValueError:
+                    next_num = 1
+            else:
+                next_num = 1
+        else:
+            next_num = 1
+
+        # 格式化序號為4碼
+        supplier_code = f"SUP-{next_num:04d}"
+
+        return jsonify({'success': True, 'supplier_code': supplier_code})
+    except Exception as e:
+        print(f"[ERROR] 產生廠商編號失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
+# 庫存查詢 API
+# ============================================
+
+@app.route('/api/inventory/search')
+def search_inventory():
+    """搜尋庫存商品（僅查詢最新日期資料）"""
+    query = request.args.get('q', '').strip()
+    category = request.args.get('category', '').strip()
+    warehouse = request.args.get('warehouse', '').strip()
+
+    if not query or len(query) < 2:
+        return jsonify({'success': False, 'products': []})
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 先取得最新報表日期
+        cursor.execute("SELECT MAX(report_date) as latest_date FROM inventory")
+        latest_date = cursor.fetchone()['latest_date']
+
+        sql = """
+            SELECT DISTINCT i.product_id, i.item_spec
+            FROM inventory i
+            WHERE i.report_date = ?
+            AND (i.item_spec LIKE ? OR i.product_id LIKE ?)
+        """
+        params = [latest_date, f'%{query}%', f'%{query}%']
+
+        if category:
+            sql += " AND i.product_id LIKE ?"
+            params.append(f'{category}%')
+
+        if warehouse:
+            sql += " AND i.warehouse = ?"
+            params.append(warehouse)
+
+        sql += " ORDER BY i.item_spec LIMIT 20"
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        products = [{
+            'product_id': r['product_id'],
+            'item_spec': r['item_spec']
+        } for r in rows]
+
+        return jsonify({'success': True, 'products': products, 'report_date': latest_date})
+    except Exception as e:
+        print(f"[ERROR] 搜尋庫存失敗: {e}")
+        return jsonify({'success': False, 'products': [], 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory/product/<product_id>')
+def get_inventory_by_product(product_id):
+    """取得指定商品的庫存明細（僅查詢最新日期資料）"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 先取得最新報表日期
+        cursor.execute("SELECT MAX(report_date) as latest_date FROM inventory")
+        latest_date = cursor.fetchone()['latest_date']
+
+        # 取得商品基本資訊
+        cursor.execute("""
+            SELECT DISTINCT product_id, item_spec, unit
+            FROM inventory
+            WHERE product_id = ? AND report_date = ?
+            LIMIT 1
+        """, (product_id, latest_date))
+
+        product_row = cursor.fetchone()
+        if not product_row:
+            return jsonify({'success': False, 'message': '找不到商品'}), 404
+
+        # 取得各倉庫庫存
+        cursor.execute("""
+            SELECT warehouse, wh_type, stock_quantity, unit_cost, total_cost
+            FROM inventory
+            WHERE product_id = ? AND report_date = ?
+            ORDER BY warehouse
+        """, (product_id, latest_date))
+
+        inventory_rows = cursor.fetchall()
+
+        return jsonify({
+            'success': True,
+            'product': {
+                'product_id': product_row['product_id'],
+                'item_spec': product_row['item_spec'],
+                'unit': product_row['unit']
+            },
+            'inventory': [{
+                'warehouse': r['warehouse'],
+                'wh_type': r['wh_type'],
+                'stock_quantity': r['stock_quantity'],
+                'unit_cost': r['unit_cost'],
+                'total_cost': r['total_cost']
+            } for r in inventory_rows],
+            'report_date': latest_date
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得庫存明細失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory/list')
+def list_inventory():
+    """根據條件列出庫存（僅查詢最新日期資料）"""
+    category = request.args.get('category', '').strip()
+    warehouse = request.args.get('warehouse', '').strip()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 先取得最新報表日期
+        cursor.execute("SELECT MAX(report_date) as latest_date FROM inventory")
+        latest_date = cursor.fetchone()['latest_date']
+
+        sql = """
+            SELECT i.product_id, i.item_spec, i.warehouse, i.stock_quantity
+            FROM inventory i
+            WHERE i.report_date = ?
+        """
+        params = [latest_date]
+
+        if category:
+            sql += " AND i.product_id LIKE ?"
+            params.append(f'{category}%')
+
+        if warehouse:
+            sql += " AND i.warehouse = ?"
+            params.append(warehouse)
+
+        sql += " ORDER BY i.item_spec, i.warehouse LIMIT 100"
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        items = [{
+            'product_id': r['product_id'],
+            'item_spec': r['item_spec'],
+            'warehouse': r['warehouse'],
+            'stock_quantity': r['stock_quantity']
+        } for r in rows]
+
+        return jsonify({
+            'success': True,
+            'items': items,
+            'report_date': latest_date
+        })
+    except Exception as e:
+        print(f"[ERROR] 列出庫存失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
 
 
 # ============================================
