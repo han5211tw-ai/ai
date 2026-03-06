@@ -7338,6 +7338,441 @@ def list_inventory():
 
 
 # ============================================
+# API: 資料列表查詢（分頁）
+# ============================================
+
+@app.route('/api/suppliers/list')
+def get_suppliers_list():
+    """取得廠商列表（分頁）"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 50, type=int)
+    search = request.args.get('search', '').strip()
+
+    offset = (page - 1) * limit
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 計算總筆數
+        count_sql = "SELECT COUNT(*) as total FROM suppliers WHERE 1=1"
+        count_params = []
+        if search:
+            count_sql += " AND (supplier_name LIKE ? OR short_name LIKE ? OR supplier_id LIKE ?)"
+            count_params = [f'%{search}%', f'%{search}%', f'%{search}%']
+        cursor.execute(count_sql, count_params)
+        total = cursor.fetchone()['total']
+
+        # 查詢資料
+        sql = """
+            SELECT supplier_id, supplier_name, short_name, tax_id, contact_person,
+                   phone, mobile, email, address, payment_terms, status,
+                   created_at, created_by
+            FROM suppliers
+            WHERE 1=1
+        """
+        params = []
+        if search:
+            sql += " AND (supplier_name LIKE ? OR short_name LIKE ? OR supplier_id LIKE ?)"
+            params = [f'%{search}%', f'%{search}%', f'%{search}%']
+        sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        suppliers = [{
+            'supplier_id': r['supplier_id'],
+            'supplier_name': r['supplier_name'],
+            'short_name': r['short_name'],
+            'tax_id': r['tax_id'],
+            'contact_person': r['contact_person'],
+            'phone': r['phone'],
+            'mobile': r['mobile'],
+            'email': r['email'],
+            'address': r['address'],
+            'payment_terms': r['payment_terms'],
+            'status': r['status'],
+            'created_at': r['created_at'],
+            'created_by': r['created_by']
+        } for r in rows]
+
+        return jsonify({
+            'success': True,
+            'suppliers': suppliers,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得廠商列表失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/supplier/update', methods=['POST'])
+def update_supplier():
+    """更新廠商資料"""
+    data = request.get_json()
+    supplier_id = data.get('supplier_id', '').strip()
+
+    if not supplier_id:
+        return jsonify({'success': False, 'message': '缺少廠商編號'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE suppliers SET
+                supplier_name = ?,
+                short_name = ?,
+                tax_id = ?,
+                contact_person = ?,
+                phone = ?,
+                mobile = ?,
+                email = ?,
+                address = ?,
+                payment_terms = ?,
+                bank_name = ?,
+                bank_account = ?,
+                remark = ?,
+                status = ?,
+                updated_at = datetime('now', 'localtime'),
+                updated_by = ?
+            WHERE supplier_id = ?
+        """, (
+            data.get('supplier_name', ''),
+            data.get('short_name', ''),
+            data.get('tax_id', ''),
+            data.get('contact_person', ''),
+            data.get('phone', ''),
+            data.get('mobile', ''),
+            data.get('email', ''),
+            data.get('address', ''),
+            data.get('payment_terms', ''),
+            data.get('bank_name', ''),
+            data.get('bank_account', ''),
+            data.get('remark', ''),
+            data.get('status', '啟用'),
+            data.get('updated_by', ''),
+            supplier_id
+        ))
+
+        conn.commit()
+        return jsonify({'success': True, 'message': '廠商資料更新成功'})
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 更新廠商失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/products/list')
+def get_products_list():
+    """取得產品列表（分頁）"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 50, type=int)
+    search = request.args.get('search', '').strip()
+
+    offset = (page - 1) * limit
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 計算總筆數
+        count_sql = "SELECT COUNT(*) as total FROM products WHERE 1=1"
+        count_params = []
+        if search:
+            count_sql += " AND (product_name LIKE ? OR product_code LIKE ?)"
+            count_params = [f'%{search}%', f'%{search}%']
+        cursor.execute(count_sql, count_params)
+        total = cursor.fetchone()['total']
+
+        # 查詢資料
+        sql = """
+            SELECT product_code, product_name, category, unit, created_at, created_by
+            FROM products
+            WHERE 1=1
+        """
+        params = []
+        if search:
+            sql += " AND (product_name LIKE ? OR product_code LIKE ?)"
+            params = [f'%{search}%', f'%{search}%']
+        sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        products = [{
+            'product_code': r['product_code'],
+            'product_name': r['product_name'],
+            'category': r['category'],
+            'unit': r['unit'],
+            'created_at': r['created_at'],
+            'created_by': r['created_by']
+        } for r in rows]
+
+        return jsonify({
+            'success': True,
+            'products': products,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得產品列表失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/product/update', methods=['POST'])
+def update_product():
+    """更新產品資料"""
+    data = request.get_json()
+    product_code = data.get('product_code', '').strip()
+
+    if not product_code:
+        return jsonify({'success': False, 'message': '缺少產品編號'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE products SET
+                product_name = ?,
+                category = ?,
+                unit = ?,
+                updated_at = datetime('now', 'localtime')
+            WHERE product_code = ?
+        """, (
+            data.get('product_name', ''),
+            data.get('category', ''),
+            data.get('unit', '個'),
+            product_code
+        ))
+
+        conn.commit()
+        return jsonify({'success': True, 'message': '產品資料更新成功'})
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 更新產品失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/customers/list')
+def get_customers_list():
+    """取得客戶列表（分頁）"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 50, type=int)
+    search = request.args.get('search', '').strip()
+
+    offset = (page - 1) * limit
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 計算總筆數
+        count_sql = "SELECT COUNT(*) as total FROM customers WHERE 1=1"
+        count_params = []
+        if search:
+            count_sql += " AND (short_name LIKE ? OR customer_id LIKE ? OR mobile LIKE ?)"
+            count_params = [f'%{search}%', f'%{search}%', f'%{search}%']
+        cursor.execute(count_sql, count_params)
+        total = cursor.fetchone()['total']
+
+        # 查詢資料
+        sql = """
+            SELECT customer_id, short_name, mobile, phone1, contact, tax_id,
+                   company_address, delivery_address, payment_type, created_by
+            FROM customers
+            WHERE 1=1
+        """
+        params = []
+        if search:
+            sql += " AND (short_name LIKE ? OR customer_id LIKE ? OR mobile LIKE ?)"
+            params = [f'%{search}%', f'%{search}%', f'%{search}%']
+        sql += " ORDER BY customer_id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        customers = [{
+            'customer_id': r['customer_id'],
+            'short_name': r['short_name'],
+            'mobile': r['mobile'],
+            'phone1': r['phone1'],
+            'contact': r['contact'],
+            'tax_id': r['tax_id'],
+            'company_address': r['company_address'],
+            'delivery_address': r['delivery_address'],
+            'payment_type': r['payment_type'],
+            'created_by': r['created_by']
+        } for r in rows]
+
+        return jsonify({
+            'success': True,
+            'customers': customers,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得客戶列表失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/customer/update', methods=['POST'])
+def update_customer():
+    """更新客戶資料"""
+    data = request.get_json()
+    customer_id = data.get('customer_id', '').strip()
+
+    if not customer_id:
+        return jsonify({'success': False, 'message': '缺少客戶編號'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE customers SET
+                short_name = ?,
+                mobile = ?,
+                phone1 = ?,
+                contact = ?,
+                tax_id = ?,
+                company_address = ?,
+                delivery_address = ?,
+                payment_type = ?,
+                updated_at = datetime('now', 'localtime')
+            WHERE customer_id = ?
+        """, (
+            data.get('short_name', ''),
+            data.get('mobile', ''),
+            data.get('phone1', ''),
+            data.get('contact', ''),
+            data.get('tax_id', ''),
+            data.get('company_address', ''),
+            data.get('delivery_address', ''),
+            data.get('payment_type', ''),
+            customer_id
+        ))
+
+        conn.commit()
+        return jsonify({'success': True, 'message': '客戶資料更新成功'})
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 更新客戶失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/purchases/list')
+def get_purchases_list():
+    """取得進貨單列表（分頁）"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 50, type=int)
+    search = request.args.get('search', '').strip()
+
+    offset = (page - 1) * limit
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 計算總筆數（依訂單號分組）
+        count_sql = """
+            SELECT COUNT(DISTINCT order_no) as total
+            FROM purchase_history
+            WHERE 1=1
+        """
+        count_params = []
+        if search:
+            count_sql += " AND (order_no LIKE ? OR supplier_name LIKE ?)"
+            count_params = [f'%{search}%', f'%{search}%']
+        cursor.execute(count_sql, count_params)
+        total = cursor.fetchone()['total']
+
+        # 查詢訂單列表
+        sql = """
+            SELECT DISTINCT order_no, date, supplier_name, warehouse, invoice_number, created_by
+            FROM purchase_history
+            WHERE 1=1
+        """
+        params = []
+        if search:
+            sql += " AND (order_no LIKE ? OR supplier_name LIKE ?)"
+            params = [f'%{search}%', f'%{search}%']
+        sql += " ORDER BY date DESC, order_no DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(sql, params)
+        orders = cursor.fetchall()
+
+        # 查詢每張訂單的明細
+        result = []
+        for order in orders:
+            cursor.execute("""
+                SELECT product_code, product_name, quantity, price, amount
+                FROM purchase_history
+                WHERE order_no = ?
+                ORDER BY id
+            """, (order['order_no'],))
+            items = cursor.fetchall()
+
+            total_amount = sum(item['amount'] for item in items)
+
+            result.append({
+                'order_no': order['order_no'],
+                'date': order['date'],
+                'supplier_name': order['supplier_name'],
+                'warehouse': order['warehouse'],
+                'invoice_number': order['invoice_number'],
+                'created_by': order['created_by'],
+                'items': [{
+                    'product_code': i['product_code'],
+                    'product_name': i['product_name'],
+                    'quantity': i['quantity'],
+                    'price': i['price'],
+                    'amount': i['amount']
+                } for i in items],
+                'total_amount': total_amount,
+                'item_count': len(items)
+            })
+
+        return jsonify({
+            'success': True,
+            'purchases': result,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得進貨單列表失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
 # 靜態檔案路由（必須放在所有 API 路由之後）
 # 注意：這個路由會捕獲所有未被前面路由匹配的請求
 # ============================================
