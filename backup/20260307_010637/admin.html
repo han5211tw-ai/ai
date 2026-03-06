@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<!--
+  File: admin.html
+  Version: 20250304-1845
+  ChangeLog:
+    - 20250304-1845: 新增「業績目標管理」連結，移除 AI 分析功能
+    - 20250304: 系統架構圖連結改為 V3 版本 (system_map_v3.html)
+    - 20250303: 左側欄新增「系統架構圖」捷徑連結
+    - 20250303: 更新 auth_ui.js 版本號支援自動過期
+-->
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資料管理中心 | 電腦舖</title>
+    <link rel="stylesheet" href="shared/auth_ui.css">
+    <script src="shared/auth_ui.js?v=20250303-1402"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .login-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+        }
+        .login-box {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .login-box h1 {
+            color: #38bdf8;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        .login-box .subtitle {
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-size: 0.9em;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            color: #e2e8f0;
+            font-size: 1em;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #38bdf8;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(14, 165, 233, 0.3);
+        }
+        .error-msg {
+            color: #f87171;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+        }
+        .dashboard.active {
+            display: block;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.98);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            margin-bottom: 20px;
+        }
+        .sidebar-header h2 {
+            color: #38bdf8;
+            font-size: 1.3em;
+        }
+        .sidebar-header .user-info {
+            color: #94a3b8;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        .nav-section {
+            margin-bottom: 25px;
+        }
+        .nav-title {
+            padding: 0 20px;
+            color: #64748b;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .nav-item {
+            display: block;
+            padding: 12px 20px;
+            color: #cbd5e1;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(56, 189, 248, 0.1);
+            color: #38bdf8;
+            border-left-color: #38bdf8;
+        }
+        .nav-item .icon {
+            display: inline-block;
+            width: 24px;
+            margin-right: 10px;
+        }
+        .nav-item .table-name {
+            display: block;
+            font-size: 0.7em;
+            color: #64748b;
+            margin-top: 2px;
+            margin-left: 34px;
+            font-family: monospace;
+        }
+        .nav-item:hover .table-name, .nav-item.active .table-name {
+            color: #94a3b8;
+        }
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .page-header h1 {
+            font-size: 1.8em;
+            color: #f1f5f9;
+        }
+        
+        /* Audit Cards */
+        .audit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .audit-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .audit-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+        }
+        .audit-card.alert-high {
+            border-left: 4px solid #ef4444;
+        }
+        .audit-card.alert-medium {
+            border-left: 4px solid #f59e0b;
+        }
+        .audit-card.alert-low {
+            border-left: 4px solid #10b981;
+        }
+        .audit-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .audit-card-title {
+            font-size: 0.9em;
+            color: #94a3b8;
+        }
+        .audit-card-count {
+            font-size: 2em;
+            font-weight: bold;
+            color: #f1f5f9;
+        }
+        .audit-card-desc {
+            font-size: 0.85em;
+            color: #64748b;
+            line-height: 1.5;
+        }
+        
+        /* Data Table */
+        .data-table-container {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            gap: 15px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            color: #e2e8f0;
+        }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85em;
+            width: auto;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b, #475569);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 12px 15px;
+            text-align: left;
+            color: #94a3b8;
+            font-weight: 500;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            color: #e2e8f0;
+        }
+        .data-table tr:hover td {
+            background: rgba(56, 189, 248, 0.05);
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        .badge-resolved {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        .badge-cancelled {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: rgba(30, 41, 59, 0.98);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            color: #f1f5f9;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        /* Diff View */
+        .diff-view {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .diff-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        .diff-label {
+            width: 80px;
+            color: #64748b;
+            font-size: 0.85em;
+        }
+        .diff-old {
+            flex: 1;
+            color: #ef4444;
+            text-decoration: line-through;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .diff-new {
+            flex: 1;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+        }
+        .loading.active {
+            display: block;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(56, 189, 248, 0.3);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            z-index: 3000;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+    </style>
+</head>
+<body>
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard" style="display:none;">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>⚙️ 系統管理中心 <span style="font-size:0.7rem;color:#64748b;font-family:monospace;">v1.20</span></h2>
+                <div class="user-info">
+                    <span id="adminName">-</span> | <a href="#" onclick="logout()" style="color:#94a3b8;">登出</a>
+                </div>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">稽核檢查</div>
+                <a class="nav-item active" onclick="showPage('audit')">
+                    <span class="icon">🔍</span>稽核儀表
+                    <span class="table-name">admin_audit_checks</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">資料管理</div>
+                <a class="nav-item" onclick="showPage('staging')">
+                    <span class="icon">⏳</span>待建檔中心
+                    <span class="table-name">staging_records</span>
+                </a>
+                <a class="nav-item" onclick="showPage('needs')">
+                    <span class="icon">📝</span>需求表
+                    <span class="table-name">needs</span>
+                </a>
+                <a class="nav-item" onclick="showPage('customers')">
+                    <span class="icon">👥</span>客戶主檔
+                    <span class="table-name">customers</span>
+                </a>
+                <a class="nav-item" onclick="showPage('products')">
+                    <span class="icon">📦</span>產品主檔
+                    <span class="table-name">products</span>
+                </a>
+                <a class="nav-item" onclick="showPage('inventory')">
+                    <span class="icon">🏭</span>庫存管理
+                    <span class="table-name">inventory</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">交易紀錄</div>
+                <a class="nav-item" onclick="showPage('purchase')">
+                    <span class="icon">📥</span>進貨紀錄
+                    <span class="table-name">purchase_history</span>
+                </a>
+                <a class="nav-item" onclick="showPage('sales')">
+                    <span class="icon">📤</span>銷貨紀錄
+                    <span class="table-name">sales_history</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">系統</div>
+                <a class="nav-item" onclick="window.open('/admin/announcement_management.html', '_blank')">
+                    <span class="icon">📢</span>系統公告
+                    <span class="table-name">announcements</span>
+                </a>
+                <a class="nav-item" onclick="window.open('/target_input.html', '_blank')">
+                    <span class="icon">🎯</span>業績目標
+                    <span class="table-name">target_input.html</span>
+                </a>
+                <a class="nav-item" onclick="window.open('/staff_management.html', '_blank')">
+                    <span class="icon">👤</span>員工管理
+                    <span class="table-name">staff</span>
+                </a>
+                <a class="nav-item" onclick="showPage('audit_log')">
+                    <span class="icon">📋</span>操作日誌
+                    <span class="table-name">admin_audit_log</span>
+                </a>
+                <a class="nav-item" href="/admin/health.html" target="_blank">
+                    <span class="icon">🔧</span>系統健康
+                    <span class="table-name">admin/health.html</span>
+                </a>
+                <a class="nav-item" href="/system_map_v3.html" onclick="window.location.href='/system_map_v3.html?v=' + Date.now(); return false;">
+                    <span class="icon">🗺️</span>系統架構圖 V3
+                    <span class="table-name">system_map_v3.html</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <!-- Audit Dashboard -->
+            <div id="page-audit" class="page-content">
+                <div class="page-header">
+                    <h1>🔍 稽核儀表</h1>
+                    <button class="btn btn-small" onclick="refreshAudit()">重新整理</button>
+                </div>
+                
+                <div class="audit-grid" id="auditCards">
+                    <!-- Cards will be loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Data Management Pages -->
+            <div id="page-needs" class="page-content" style="display:none;">
+                <div class="page-header">
+                    <h1>📝 需求單管理</h1>
+                </div>
+                <div class="data-table-container">
+                    <div class="table-toolbar">
+                        <div class="search-box">
+                            <input type="text" id="needsSearch" placeholder="搜尋：品名、編號、客戶、填表人...">
+                            <button class="btn btn-small" onclick="searchTable('needs')">搜尋</button>
+                        </div>
+                        <div>
+                            <select id="needsFilter" onchange="filterTable('needs')">
+                                <option value="">全部狀態</option>
+                                <option value="待處理">待處理</option>
+                                <option value="已取消">已取消</option>
+                                <option value="已完成">已完成</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table" id="needsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>日期</th>
+                                <th>產品</th>
+                                <th>數量</th>
+                                <th>部門</th>
+                                <th>填表人</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Other pages will be loaded dynamically -->
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✏️ 編輯資料</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Form will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn" onclick="saveChanges()">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // 三段式開機紀錄
+        console.log("[ADMIN] script loaded");
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("[ADMIN] DOM ready");
+            bindSidebar();
+        });
+        
+        // Staff 寫入功能開關（安全模式）
+        // 預設值：false（安全模式，所有寫入按鈕 disabled）
+        // 切換方式：修改此處為 true 並重新整理頁面
+        // 注意：此設定需與後端 ENABLE_STAFF_WRITE 環境變數同步
+        const ENABLE_STAFF_WRITE_UI = true;
+        
+        // Global state
+        let currentAdmin = null;
+        let currentEditData = null;
+        let currentPage = 'audit';
+        
+        // 初始化 - 使用共用登入元件
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[Admin] Initializing with shared auth...');
+            
+            try {
+                const user = await requireLogin({
+                    minRole: 'boss',
+                    title: '🔐 資料管理中心',
+                    subtitle: '僅限授權管理員訪問'
+                });
+                
+                console.log('[Admin] Login success:', user);
+                currentAdmin = user;
+                
+                // 顯示主頁面
+                document.getElementById('dashboard').style.display = 'block';
+                document.getElementById('adminName').textContent = user.name;
+                loadAuditSummary();
+                
+            } catch (e) {
+                console.error('[Admin] Login failed:', e);
+            }
+        });
+        
+        function logout() {
+            authLogout();
+        }
+        
+        function showError(msg) {
+            document.getElementById('loginError').textContent = msg;
+        }
+        
+        // 事件委派綁定 sidebar
+        function bindSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            if (!sidebar) {
+                console.error("[ADMIN] sidebar not found");
+                return;
+            }
+            
+            sidebar.addEventListener('click', (e) => {
+                const item = e.target.closest('.nav-item');
+                if (!item) return;
+
+                // 檢查是否有 href 屬性（外部連結），如果有則不阻止預設行為
+                const href = item.getAttribute('href');
+                if (href && !href.startsWith('#')) {
+                    return; // 讓瀏覽器處理外部連結
+                }
+
+                e.preventDefault();
+                const page = item.dataset.page;
+                if (!page) {
+                    // 嘗試從 onclick 屬性解析
+                    const onclick = item.getAttribute('onclick');
+                    if (onclick && onclick.includes("showPage('")) {
+                        const match = onclick.match(/showPage\('([^']+)'\)/);
+                        if (match) {
+                            openPage(match[1], item);
+                        }
+                    }
+                    return;
+                }
+
+                openPage(page, item);
+            });
+            
+            // 為所有 nav-item 添加 data-page 屬性
+            const items = sidebar.querySelectorAll('.nav-item');
+            items.forEach((item, index) => {
+                const onclick = item.getAttribute('onclick');
+                if (onclick && onclick.includes("showPage('")) {
+                    const match = onclick.match(/showPage\('([^']+)'\)/);
+                    if (match && !item.dataset.page) {
+                        item.dataset.page = match[1];
+                    }
+                }
+            });
+            
+            console.log("[ADMIN] sidebar bind done", items.length);
+        }
+        
+        // openPage - 切換頁面並載入資料
+        async function openPage(page, navItem) {
+            console.log("[ADMIN] click", page);
+            currentPage = page;
+            
+            try {
+                // 1. 更新 UI active 狀態
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                if (navItem) navItem.classList.add('active');
+                
+                // 2. 清空/隱藏所有頁面
+                document.querySelectorAll('.page-content').forEach(el => {
+                    el.style.display = 'none';
+                    el.innerHTML = ''; // 清空內容
+                });
+                
+                // 3. 取得目標頁面容器
+                let pageEl = document.getElementById('page-' + page);
+                if (!pageEl) {
+                    // 動態創建頁面容器
+                    pageEl = document.createElement('div');
+                    pageEl.id = 'page-' + page;
+                    pageEl.className = 'page-content';
+                    document.querySelector('.main-content').appendChild(pageEl);
+                }
+                
+                // 4. 顯示「載入中…」
+                pageEl.style.display = 'block';
+                pageEl.innerHTML = `
+                    <div class="page-header">
+                        <h1>${getPageTitle(page)}</h1>
+                        <span class="update-time">載入中...</span>
+                    </div>
+                    <div class="loading">📡 載入資料中...</div>
+                `;
+                
+                // 5. 呼叫對應的 loader
+                await loadPageData(page, pageEl);
+                
+            } catch (error) {
+                console.error(`[ADMIN] openPage(${page}) failed:`, error);
+                showToast(`載入頁面失敗: ${error.message}`, 'error');
+            }
+        }
+        
+        // 取得頁面標題
+        function getPageTitle(page) {
+            const titles = {
+                'audit': '🔍 稽核儀表',
+                'needs': '📝 需求單管理',
+                'staging': '⏳ 待建檔中心',
+                'customers': '👥 客戶主檔',
+                'products': '📦 產品主檔',
+                'inventory': '🏭 庫存管理',
+                'purchase': '📥 進貨紀錄',
+                'sales': '📤 銷貨紀錄',
+                'staff': '👤 員工管理',
+                'audit_log': '📋 操作日誌'
+            };
+            return titles[page] || page;
+        }
+        
+        // 載入頁面資料
+        async function loadPageData(page, container) {
+            const loaders = {
+                'audit': loadAuditPage,
+                'needs': loadNeedsPage,
+                'staging': loadStagingPage,
+                'customers': loadCustomersPage,
+                'products': loadProductsPage,
+                'inventory': loadInventoryPage,
+                'purchase': loadPurchasePage,
+                'sales': loadSalesPage,
+                'staff': loadStaffPage,
+                'audit_log': loadAuditLogPage
+            };
+            
+            const loader = loaders[page];
+            if (loader) {
+                await loader(container);
+            } else {
+                container.innerHTML = `
+                    <div class="page-header"><h1>${getPageTitle(page)}</h1></div>
+                    <div class="error">⚠️ 此頁面尚未實作</div>
+                `;
+            }
+        }
+        
+        // 顯示 Toast 訊息
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 舊版 showPage 保留相容
+        function showPage(page) {
+            console.warn("[ADMIN] showPage is deprecated, use openPage instead");
+            openPage(page, event?.target);
+        }
+        
+        // Load Audit Summary
+        async function loadAuditSummary() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/admin/audit/summary?admin=' + encodeURIComponent(currentAdmin.name));
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderAuditCards(data.checks);
+                } else {
+                    console.error('Audit Summary Error:', data.message);
+                    showToast('載入稽核資料失敗: ' + (data.message || '未知錯誤'), 'error');
+                }
+            } catch (error) {
+                console.error('Audit Summary Exception:', error);
+                showToast('載入稽核資料失敗: 網路錯誤', 'error');
+            }
+            showLoading(false);
+        }
+        
+        function renderAuditCards(checks) {
+            const container = document.getElementById('auditCards');
+            const cards = [
+                { code: 'A1', title: 'Staging 已 resolved 但 needs 未回填', desc: '客戶/產品 staging 狀態為 resolved，但對應 needs 的 code 仍為空', level: 'high' },
+                { code: 'A2', title: 'Staging pending 但 needs 已有正式碼', desc: '狀態不一致，可能為人工直接修改 needs 導致', level: 'medium' },
+                { code: 'A3', title: 'Needs 指到不存在的正式主檔', desc: 'customer_code/product_code 在 master 表中找不到', level: 'high' },
+                { code: 'A4', title: '同手機重複 customer staging', desc: '去重機制失效，同一手機有多筆 pending staging', level: 'medium' },
+                { code: 'A5', title: 'Products 同名多 product_code', desc: '疑似重複建檔，同名產品有多個編號', level: 'low' }
+            ];
+            
+            container.innerHTML = cards.map(card => {
+                const count = checks[card.code] || 0;
+                return `
+                    <div class="audit-card alert-${card.level}" onclick="showAuditDetail('${card.code}')">
+                        <div class="audit-card-header">
+                            <span class="audit-card-title">${card.code}: ${card.title}</span>
+                            <span class="audit-card-count">${count}</span>
+                        </div>
+                        <div class="audit-card-desc">${card.desc}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // ===== 各頁面 Loader 函數 =====
+        
+        // 1. Audit 稽核頁
+        async function loadAuditPage(container) {
+            try {
+                const response = await fetch('/api/admin/audit/summary?admin=' + encodeURIComponent(currentAdmin.name));
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || '載入失敗');
+                }
+                
+                const checks = data.checks;
+                const cards = [
+                    { code: 'A1', title: 'Staging 已 resolved 但 needs 未回填', desc: '客戶/產品 staging 狀態為 resolved，但對應 needs 的 code 仍為空', level: 'high' },
+                    { code: 'A2', title: 'Staging pending 但 needs 已有正式碼', desc: '狀態不一致，可能為人工直接修改 needs 導致', level: 'medium' },
+                    { code: 'A3', title: 'Needs 指到不存在的正式主檔', desc: 'customer_code/product_code 在 master 表中找不到', level: 'high' },
+                    { code: 'A4', title: '同手機重複 customer staging', desc: '去重機制失效，同一手機有多筆 pending staging', level: 'medium' },
+                    { code: 'A5', title: 'Products 同名多 product_code', desc: '疑似重複建檔，同名產品有多個編號', level: 'low' }
+                ];
+                
+                const cardsHtml = cards.map(card => {
+                    const count = checks[card.code] || 0;
+                    return `
+                        <div class="audit-card alert-${card.level}" onclick="showAuditDetail('${card.code}')">
+                            <div class="audit-card-header">
+                                <span class="audit-card-title">${card.code}: ${card.title}</span>
+                                <span class="audit-card-count">${count}</span>
+                            </div>
+                            <div class="audit-card-desc">${card.desc}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                container.innerHTML = `
+                    <div class="page-header">
+                        <h1>🔍 稽核儀表</h1>
+                        <button class="btn btn-small" onclick="refreshAudit()">重新整理</button>
+                    </div>
+                    <div class="audit-grid">${cardsHtml}</div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="page-header"><h1>🔍 稽核儀表</h1></div>
+                    <div class="error">⚠️ 載入失敗: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 2. Needs 需求單頁
+        async function loadNeedsPage(container) {
+            try {
+                const response = await fetch('/api/admin/table?name=needs&limit=200&offset=0&admin=' + encodeURIComponent(currentAdmin.name));
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || '載入失敗');
+                }
+                
+                const rows = data.items || [];
+                const tableHtml = rows.slice(0, 50).map(row => `
+                    <tr>
+                        <td>${row.id}</td>
+                        <td>${row.date}</td>
+                        <td>${row.item_name}</td>
+                        <td>${row.quantity}</td>
+                        <td>${row.department}</td>
+                        <td>${row.requester}</td>
+                        <td><span class="status-badge ${row.status === '待處理' ? 'pending' : 'done'}">${row.status}</span></td>
+                    </tr>
+                `).join('');
+                
+                container.innerHTML = `
+                    <div class="page-header">
+                        <h1>📝 需求單管理</h1>
+                        <span>共 ${data.total || rows.length} 筆 | 顯示前 50 筆</span>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>日期</th>
+                                    <th>品名</th>
+                                    <th>數量</th>
+                                    <th>部門</th>
+                                    <th>填表人</th>
+                                    <th>狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableHtml || '<tr><td colspan="7" style="text-align:center;">無資料</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="page-header"><h1>📝 需求單管理</h1></div>
+                    <div class="error">⚠️ 載入失敗: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 3. Staging 待建檔頁
+        async function loadStagingPage(container) {
+            try {
+                const response = await fetch('/api/admin/table?name=staging_records&limit=200&offset=0&admin=' + encodeURIComponent(currentAdmin.name));
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || '載入失敗');
+                }
+                
+                const rows = data.items || [];
+                // 分組顯示 pending 和 resolved
+                const pending = rows.filter(r => r.status === 'pending');
+                const resolved = rows.filter(r => r.status === 'resolved');
+                
+                container.innerHTML = `
+                    <div class="page-header">
+                        <h1>⏳ 待建檔中心</h1>
+                        <span>Pending: ${pending.length} | Resolved: ${resolved.length}</span>
+                    </div>
+                    <div class="data-table-container">
+                        <h3>待處理 (Pending)</h3>
+                        <table class="data-table">
+                            <thead><tr><th>ID</th><th>類型</th><th>內容</th><th>狀態</th></tr></thead>
+                            <tbody>${pending.slice(0, 20).map(r => `<tr><td>${r.id}</td><td>${r.type}</td><td>${r.raw_input}</td><td>${r.status}</td></tr>`).join('') || '<tr><td colspan="4">無</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="page-header"><h1>⏳ 待建檔中心</h1></div>
+                    <div class="error">⚠️ 載入失敗: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 4. Customers 客戶頁 - 使用既有搜尋 API (/api/customers/search)
+        let allCustomers = []; // 快取所有客戶資料
+        let customersPage = 1;
+        const CUSTOMERS_PER_PAGE = 50;
+
+        async function loadCustomersPage(container) {
+            container.innerHTML = `
+                <div class="page-header">
+                    <h1>👥 客戶主檔</h1>
+                    <span id="customersCount">請輸入關鍵字搜尋</span>
+                </div>
+                <div class="toolbar" style="margin:15px 0; display:flex; gap:10px; flex-wrap:wrap;">
+                    <input type="text" id="customersSearch" placeholder="搜尋：姓名、手機（至少2個字）" 
+                           style="padding:8px 12px; width:280px; border-radius:6px; border:1px solid rgba(148,163,184,0.3); background:rgba(15,23,42,0.5); color:#e2e8f0;">
+                    <button class="btn" onclick="searchCustomers()">🔍 搜尋</button>
+                    <button class="btn btn-small" onclick="clearCustomersSearch()">清除</button>
+                    <div style="flex:1;"></div>
+                    <button class="btn btn-small" onclick="showSyncPanel()" style="background:rgba(234,179,8,0.2); color:#eab308;">⚙️ 同步管理</button>
+                </div>
+                <div id="syncPanel" style="display:none; margin:15px 0; padding:15px; background:rgba(15,23,42,0.8); border:1px solid rgba(148,163,184,0.2); border-radius:8px;">
+                    <h4 style="margin-bottom:10px; color:#38bdf8;">🔄 資料同步管理</h4>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn" onclick="checkSyncStatus()">📊 檢查狀態</button>
+                        <button class="btn" onclick="initCustomersToMaster()" style="background:rgba(34,197,94,0.2); color:#22c55e;">📥 初始化 (→Master)</button>
+                        <button class="btn" onclick="syncMasterToCustomers()" style="background:rgba(59,130,246,0.2); color:#3b82f6;">🔄 同步 (Master→)</button>
+                    </div>
+                    <div id="syncResult" style="margin-top:10px; font-size:0.9em;"></div>
+                </div>
+                <div class="data-table-container">
+                    <div class="info" style="padding:40px; text-align:center; color:#94a3b8;">
+                        💡 請輸入至少 2 個字元進行搜尋（例如：姓名、手機號）
+                    </div>
+                </div>
+            `;
+
+            // 綁定搜尋框事件
+            const searchInput = document.getElementById('customersSearch');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') searchCustomers();
+                });
+                // 自動聚焦
+                searchInput.focus();
+            }
+        }
+
+        function renderCustomersTable(container, customers = null) {
+            const data = customers || allCustomers;
+            const total = data.length;
+
+            // 更新總筆數
+            const countEl = document.getElementById('customersCount');
+            if (countEl) {
+                if (total === 0) {
+                    countEl.textContent = '找不到符合的客戶';
+                } else {
+                    const totalPages = Math.ceil(total / CUSTOMERS_PER_PAGE);
+                    countEl.textContent = `找到 ${total.toLocaleString()} 筆 | 第 ${customersPage} / ${totalPages} 頁`;
+                }
+            }
+
+            const tableContainer = container.querySelector('.data-table-container');
+
+            if (total === 0) {
+                tableContainer.innerHTML = `
+                    <div class="info" style="padding:40px; text-align:center; color:#94a3b8;">
+                        🔍 找不到符合的客戶，請嘗試其他關鍵字
+                    </div>
+                `;
+                return;
+            }
+
+            const totalPages = Math.ceil(total / CUSTOMERS_PER_PAGE);
+            const start = (customersPage - 1) * CUSTOMERS_PER_PAGE;
+            const end = start + CUSTOMERS_PER_PAGE;
+            const pageData = data.slice(start, end);
+
+            // 渲染表格
+            const tableHtml = pageData.map(row => `
+                <tr style="border-bottom:1px solid rgba(148,163,184,0.1);">
+                    <td style="padding:12px;">${row.customer_id || '-'}</td>
+                    <td style="padding:12px;">${row.short_name || '-'}</td>
+                    <td style="padding:12px;">${row.mobile || row.phone || '-'}</td>
+                    <td style="padding:12px;">${row.contact || '-'}</td>
+                    <td style="padding:12px;">${row.address || '-'}</td>
+                </tr>
+            `).join('');
+
+            tableContainer.innerHTML = `
+                <table class="data-table" style="width:100%; border-collapse:collapse;">
+                    <thead style="background:rgba(148,163,184,0.1);">
+                        <tr>
+                            <th style="padding:12px; text-align:left;">客戶編號</th>
+                            <th style="padding:12px; text-align:left;">姓名</th>
+                            <th style="padding:12px; text-align:left;">手機/電話</th>
+                            <th style="padding:12px; text-align:left;">聯絡人</th>
+                            <th style="padding:12px; text-align:left;">地址</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableHtml}</tbody>
+                </table>
+                ${totalPages > 1 ? `
+                    <div class="pagination" style="margin-top:20px; text-align:center; display:flex; justify-content:center; align-items:center; gap:15px;">
+                        <button class="btn btn-small" onclick="changeCustomersPage(-1)" ${customersPage === 1 ? 'disabled style="opacity:0.5;"' : ''}>◀ 上一頁</button>
+                        <span style="color:#94a3b8;">${customersPage} / ${totalPages}</span>
+                        <button class="btn btn-small" onclick="changeCustomersPage(1)" ${customersPage >= totalPages ? 'disabled style="opacity:0.5;"' : ''}>下一頁 ▶</button>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        async function searchCustomers() {
+            const input = document.getElementById('customersSearch');
+            const keyword = input ? input.value.trim() : '';
+
+            // 檢查關鍵字長度（API 限制：至少 2 個字元）
+            if (keyword.length < 2) {
+                alert('請輸入至少 2 個字元進行搜尋');
+                if (input) input.focus();
+                return;
+            }
+
+            try {
+                const container = document.getElementById('page-customers');
+                const tableContainer = container.querySelector('.data-table-container');
+                tableContainer.innerHTML = '<div class="loading" style="padding:40px; text-align:center; color:#94a3b8;">🔍 搜尋中...</div>';
+
+                const response = await fetch('/api/customers/search?keyword=' + encodeURIComponent(keyword));
+                const data = await response.json();
+
+                if (data.success) {
+                    allCustomers = data.items || [];
+                    customersPage = 1;
+                    renderCustomersTable(container);
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('[ADMIN] 搜尋失敗:', error);
+                alert('搜尋失敗: ' + error.message);
+            }
+        }
+
+        function clearCustomersSearch() {
+            const input = document.getElementById('customersSearch');
+            if (input) input.value = '';
+            const container = document.getElementById('page-customers');
+            if (container) loadCustomersPage(container);
+        }
+
+        function changeCustomersPage(direction) {
+            const totalPages = Math.ceil(allCustomers.length / CUSTOMERS_PER_PAGE);
+            const newPage = customersPage + direction;
+
+            if (newPage >= 1 && newPage <= totalPages) {
+                customersPage = newPage;
+                const container = document.getElementById('page-customers');
+                if (container) renderCustomersTable(container);
+            }
+        }
+
+        // ===== 同步管理功能 =====
+        function showSyncPanel() {
+            const panel = document.getElementById('syncPanel');
+            if (panel) {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        async function checkSyncStatus() {
+            const resultDiv = document.getElementById('syncResult');
+            resultDiv.innerHTML = '<span style="color:#94a3b8;">📡 檢查中...</span>';
+
+            try {
+                const response = await fetch('/api/admin/customers/source?admin=' + encodeURIComponent(currentAdmin.name));
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div style="color:#22c55e;">
+                            ✅ 目前設定：${data.source} (查詢 ${data.table})
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div style="color:#f87171;">❌ 檢查失敗</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color:#f87171;">❌ 錯誤: ${error.message}</div>`;
+            }
+        }
+
+        async function initCustomersToMaster() {
+            if (!confirm('確定要執行初始化嗎？\n這會將 customers 的資料匯入到 customer_master\n（customer_master 必須為空）')) {
+                return;
+            }
+
+            const resultDiv = document.getElementById('syncResult');
+            resultDiv.innerHTML = '<span style="color:#eab308;">⏳ 初始化中，請稍候...</span>';
+
+            try {
+                const response = await fetch('/api/admin/customers/sync?mode=init&admin=' + encodeURIComponent(currentAdmin.name), {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div style="color:#22c55e;">
+                            ✅ ${data.message}<br>
+                            <small>來源: ${data.details.source_count} 筆 | 匯入: ${data.details.synced} 筆 | 耗時: ${data.details.duration_ms}ms</small>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div style="color:#f87171;">❌ ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color:#f87171;">❌ 初始化失敗: ${error.message}</div>`;
+            }
+        }
+
+        async function syncMasterToCustomers() {
+            if (!confirm('確定要執行同步嗎？\n這會將 customer_master 的資料同步到 customers')) {
+                return;
+            }
+
+            const resultDiv = document.getElementById('syncResult');
+            resultDiv.innerHTML = '<span style="color:#eab308;">⏳ 同步中，請稍候...</span>';
+
+            try {
+                const response = await fetch('/api/admin/customers/sync?mode=sync&admin=' + encodeURIComponent(currentAdmin.name), {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const details = data.details;
+                    if (details.skipped) {
+                        resultDiv.innerHTML = `<div style="color:#94a3b8;">⚠️ ${data.message} (customer_master 為空)</div>`;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div style="color:#22c55e;">
+                                ✅ ${data.message}<br>
+                                <small>新增: ${details.inserted || 0} 筆 | 更新: ${details.updated || 0} 筆 | 耗時: ${details.duration_ms}ms</small>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<div style="color:#f87171;">❌ ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color:#f87171;">❌ 同步失敗: ${error.message}</div>`;
+            }
+        }
+
+        // ===== 通用表格渲染函數 =====
+        async function renderDataTable(container, config) {
+            const { title, tableName, columns, searchFields, sortField = 'created_at' } = config;
+            
+            // 狀態管理
+            let offset = 0;
+            const limit = 50;
+            let keyword = '';
+            let currentSort = sortField;
+            let currentOrder = 'desc';
+            
+            // 渲染框架
+            function renderFrame() {
+                container.innerHTML = `
+                    <div class="page-header">
+                        <h1>${title}</h1>
+                        <span id="tableStats">載入中...</span>
+                    </div>
+                    <div class="toolbar" style="margin:15px 0; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <input type="text" id="tableSearch" placeholder="搜尋..." 
+                               style="padding:8px 12px; width:250px; border-radius:6px; border:1px solid rgba(148,163,184,0.3); background:rgba(15,23,42,0.5); color:#e2e8f0;">
+                        <button class="btn" onclick="performSearch()">🔍 搜尋</button>
+                        <button class="btn btn-small" onclick="clearSearch()">清除</button>
+                        <select id="sortSelect" style="padding:8px; border-radius:6px; background:rgba(15,23,42,0.5); color:#e2e8f0; border:1px solid rgba(148,163,184,0.3);">
+                            <option value="${sortField}|desc">${sortField} ↓</option>
+                            <option value="${sortField}|asc">${sortField} ↑</option>
+                            <option value="id|desc">ID ↓</option>
+                            <option value="id|asc">ID ↑</option>
+                        </select>
+                        <button class="btn btn-small" onclick="toggleSort()">↻ 切換排序</button>
+                    </div>
+                    <div class="data-table-container">
+                        <div class="loading" style="padding:40px; text-align:center; color:#94a3b8;">📡 載入資料...</div>
+                    </div>
+                `;
+                
+                // 綁定事件
+                const searchInput = document.getElementById('tableSearch');
+                if (searchInput) {
+                    searchInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') performSearch();
+                    });
+                }
+                
+                const sortSelect = document.getElementById('sortSelect');
+                if (sortSelect) {
+                    sortSelect.addEventListener('change', (e) => {
+                        const [field, order] = e.target.value.split('|');
+                        currentSort = field;
+                        currentOrder = order;
+                        loadData();
+                    });
+                }
+            }
+            
+            // 搜尋函數
+            window.performSearch = function() {
+                const input = document.getElementById('tableSearch');
+                keyword = input ? input.value.trim() : '';
+                offset = 0;
+                loadData();
+            };
+            
+            window.clearSearch = function() {
+                keyword = '';
+                const input = document.getElementById('tableSearch');
+                if (input) input.value = '';
+                offset = 0;
+                loadData();
+            };
+            
+            window.toggleSort = function() {
+                currentOrder = currentOrder === 'desc' ? 'asc' : 'desc';
+                loadData();
+            };
+            
+            window.changePage = function(direction) {
+                const newOffset = offset + (direction * limit);
+                if (newOffset >= 0) {
+                    offset = newOffset;
+                    loadData();
+                }
+            };
+            
+            window.viewRowDetail = async function(idOrIndex, containerId) {
+                // 從指定的 container 獲取資料
+                const targetContainer = containerId ? document.getElementById(containerId) : null;
+                let pageData = [];
+                let localTableName = tableName;
+                let localTitle = title;
+                
+                if (targetContainer && targetContainer.dataset.pageData) {
+                    try {
+                        pageData = JSON.parse(targetContainer.dataset.pageData);
+                        localTableName = targetContainer.dataset.tableName || tableName;
+                        localTitle = targetContainer.dataset.pageTitle || title;
+                    } catch (e) {
+                        console.error('解析 pageData 失敗:', e);
+                    }
+                }
+                
+                try {
+                    // 先嘗試從 API 獲取詳情
+                    const response = await fetch(`/api/admin/row?table=${localTableName}&id=${idOrIndex}&admin=${encodeURIComponent(currentAdmin.name)}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.item) {
+                        showDetailModal(data.item, localTitle);
+                    } else {
+                        // API 找不到，嘗試從當前資料顯示
+                        const idx = parseInt(idOrIndex);
+                        const rowData = pageData && !isNaN(idx) && idx < pageData.length ? pageData[idx] : null;
+                        
+                        if (rowData) {
+                            showDetailModal(rowData, localTitle + ' (列表資料)');
+                        } else {
+                            alert('找不到資料');
+                        }
+                    }
+                } catch (error) {
+                    console.error('viewRowDetail 錯誤:', error);
+                    // API 錯誤，嘗試從當前資料顯示
+                    const idx = parseInt(idOrIndex);
+                    const rowData = pageData && !isNaN(idx) && idx < pageData.length ? pageData[idx] : null;
+                    
+                    if (rowData) {
+                        showDetailModal(rowData, localTitle + ' (列表資料)');
+                    } else {
+                        alert('載入詳情失敗: ' + error.message);
+                    }
+                }
+            };
+            
+            // 載入資料
+            async function loadData() {
+                const tableContainer = container.querySelector('.data-table-container');
+                tableContainer.innerHTML = '<div class="loading" style="padding:40px; text-align:center; color:#94a3b8;">📡 載入中...</div>';
+                
+                try {
+                    let url = `/api/admin/table?name=${tableName}&limit=${limit}&offset=${offset}&sort=${currentSort}&order=${currentOrder}&admin=${encodeURIComponent(currentAdmin.name)}`;
+                    if (keyword) {
+                        url += `&keyword=${encodeURIComponent(keyword)}`;
+                    }
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.message || '載入失敗');
+                    }
+                    
+                    const rows = data.items || [];
+                    const total = data.total || 0;
+                    
+                    // 儲存當前頁資料到 container 的 dataset
+                    container.dataset.pageData = JSON.stringify(rows);
+                    container.dataset.tableName = tableName;
+                    container.dataset.pageTitle = title;
+                    
+                    // 更新統計
+                    const statsEl = document.getElementById('tableStats');
+                    if (statsEl) {
+                        const currentPage = Math.floor(offset / limit) + 1;
+                        const totalPages = Math.ceil(total / limit) || 1;
+                        statsEl.innerHTML = `總計 ${total.toLocaleString()} 筆 | 第 ${currentPage} / ${totalPages} 頁`;
+                    }
+                    
+                    // 渲染表格
+                    const tableHtml = rows.map((row, index) => `
+                        <tr style="border-bottom:1px solid rgba(148,163,184,0.1);">
+                            ${columns.map(col => `
+                                <td style="padding:12px;">${row[col.field] || '-'}</td>
+                            `).join('')}
+                            <td style="padding:12px;">
+                                <button class="btn btn-small" onclick="viewRowDetail('${row.id || index}', '${container.id}')">查看</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    tableContainer.innerHTML = `
+                        <table class="data-table" style="width:100%; border-collapse:collapse;">
+                            <thead style="background:rgba(148,163,184,0.1);">
+                                <tr>
+                                    ${columns.map(col => `<th style="padding:12px; text-align:left;">${col.title}</th>`).join('')}
+                                    <th style="padding:12px; text-align:left;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableHtml || '<tr><td colspan="' + (columns.length + 1) + '" style="text-align:center;padding:40px;">無資料</td></tr>'}</tbody>
+                        </table>
+                        ${total > limit ? `
+                            <div class="pagination" style="margin-top:20px; text-align:center; display:flex; justify-content:center; align-items:center; gap:15px;">
+                                <button class="btn btn-small" onclick="changePage(-1)" ${offset === 0 ? 'disabled style="opacity:0.5;"' : ''}>◀ 上一頁</button>
+                                <span style="color:#94a3b8;">${Math.floor(offset / limit) + 1} / ${Math.ceil(total / limit)}</span>
+                                <button class="btn btn-small" onclick="changePage(1)" ${offset + limit >= total ? 'disabled style="opacity:0.5;"' : ''}>下一頁 ▶</button>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                } catch (error) {
+                    console.error(`[ADMIN] 載入 ${tableName} 失敗:`, error);
+                    tableContainer.innerHTML = `<div class="error" style="padding:20px; color:#f87171;">⚠️ 載入失敗: ${error.message}</div>`;
+                }
+            }
+            
+            // 初始渲染
+            renderFrame();
+            await loadData();
+        }
+        
+        function showDetailModal(item, title) {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; display:flex; justify-content:center; align-items:center; padding:20px;';
+            modal.innerHTML = `
+                <div style="background:rgba(30,41,59,0.95); border:1px solid rgba(148,163,184,0.2); border-radius:12px; max-width:800px; max-height:80vh; overflow:auto; padding:30px; position:relative;">
+                    <button onclick="this.closest('.modal-overlay').remove()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
+                    <h3 style="color:#38bdf8; margin-bottom:15px;">📋 ${title} - 詳細資料</h3>
+                    <pre style="background:rgba(15,23,42,0.5); padding:15px; border-radius:8px; overflow:auto; font-size:12px; color:#e2e8f0; max-height:60vh;">${JSON.stringify(item, null, 2)}</pre>
+                </div>
+            `;
+            modal.className = 'modal-overlay';
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+            document.body.appendChild(modal);
+        }
+
+        // 5. Products 產品頁
+        async function loadProductsPage(container) {
+            await renderDataTable(container, {
+                title: '📦 產品主檔',
+                tableName: 'products',
+                columns: [
+                    { field: 'product_code', title: '產品編號' },
+                    { field: 'product_name', title: '產品名稱' }
+                ],
+                searchFields: ['product_code', 'product_name'],
+                sortField: 'product_code'
+            });
+        }
+        
+        // 6. Inventory 庫存頁
+        async function loadInventoryPage(container) {
+            await renderDataTable(container, {
+                title: '🏭 庫存管理',
+                tableName: 'inventory',
+                columns: [
+                    { field: 'report_date', title: '報表日期' },
+                    { field: 'product_id', title: '產品編號' },
+                    { field: 'item_spec', title: '規格' },
+                    { field: 'warehouse', title: '倉庫' },
+                    { field: 'stock_quantity', title: '庫存量' }
+                ],
+                searchFields: ['product_id', 'item_spec'],
+                sortField: 'report_date'
+            });
+        }
+        
+        // 7. Purchase 進貨頁
+        async function loadPurchasePage(container) {
+            await renderDataTable(container, {
+                title: '📥 進貨紀錄',
+                tableName: 'purchase_history',
+                columns: [
+                    { field: 'date', title: '日期' },
+                    { field: 'supplier_name', title: '供應商' },
+                    { field: 'product_code', title: '產品編號' },
+                    { field: 'product_name', title: '產品名稱' },
+                    { field: 'quantity', title: '數量' },
+                    { field: 'price', title: '單價' }
+                ],
+                searchFields: ['supplier_name', 'product_code', 'product_name'],
+                sortField: 'date'
+            });
+        }
+        
+        // 8. Sales 銷貨頁
+        async function loadSalesPage(container) {
+            await renderDataTable(container, {
+                title: '📤 銷貨紀錄',
+                tableName: 'sales_history',
+                columns: [
+                    { field: 'date', title: '日期' },
+                    { field: 'customer_id', title: '客戶編號' },
+                    { field: 'customer_name', title: '客戶姓名' },
+                    { field: 'product_code', title: '產品編號' },
+                    { field: 'product_name', title: '產品名稱' },
+                    { field: 'quantity', title: '數量' },
+                    { field: 'salesperson', title: '業務' }
+                ],
+                searchFields: ['customer_id', 'customer_name', 'product_name', 'salesperson'],
+                sortField: 'date'
+            });
+        }
+        
+        // 9. Audit Log 操作日誌頁
+        async function loadAuditLogPage(container) {
+            await renderDataTable(container, {
+                title: '📋 操作日誌',
+                tableName: 'admin_audit_log',
+                columns: [
+                    { field: 'created_at', title: '時間' },
+                    { field: 'admin_user', title: '操作者' },
+                    { field: 'action', title: '動作' },
+                    { field: 'affected_count', title: '影響筆數' }
+                ],
+                searchFields: ['admin_user', 'action'],
+                sortField: 'created_at'
+            });
+        }
+
+        // Staff 員工管理頁（唯讀版）
+        async function loadStaffPage(container) {
+            const writeDisabled = !ENABLE_STAFF_WRITE_UI ? 'disabled' : '';
+            const writeTitle = !ENABLE_STAFF_WRITE_UI ? 'title="目前為安全模式，待開啟後可使用"' : '';
+            
+            container.innerHTML = `
+                <div class="page-header">
+                    <h1>👤 員工管理</h1>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="search-box">
+                            <input type="text" id="staffSearch" placeholder="搜尋：姓名、員工編號、部門、門市...">
+                            <button class="btn btn-small" onclick="searchStaff()">搜尋</button>
+                        </div>
+                        <button class="btn btn-small btn-success" ${writeDisabled} ${writeTitle} onclick="showCreateStaffModal()">＋新增員工</button>
+                    </div>
+                </div>
+                <div id="staffTableContainer" class="data-table-container">
+                    <div class="loading">📡 載入員工資料中...</div>
+                </div>
+                <div id="staffPagination" class="pagination"></div>
+            `;
+            
+            await loadStaffList();
+        }
+        
+        // 顯示新增員工彈窗
+        function showCreateStaffModal() {
+            if (!ENABLE_STAFF_WRITE_UI) {
+                showToast('安全模式：寫入功能尚未開啟', 'warning');
+                return;
+            }
+            
+            const roleOptions = [
+                { value: 'boss', label: '老闆' },
+                { value: 'accountant', label: '會計' },
+                { value: 'manager', label: '主管' },
+                { value: 'engineer', label: '工程師' },
+                { value: 'sales', label: '業務' }
+            ];
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.id = 'createStaffModal';
+            modal.innerHTML = `
+                <div class="modal" style="max-width: 500px;">
+                    <h2>＋新增員工</h2>
+                    <div class="form-group">
+                        <label>員工編號 (staff_code) *</label>
+                        <input type="text" id="createStaffCode" placeholder="例如：E009" class="form-control">
+                        <small style="color: #666;">對外顯示用編號，不可重複</small>
+                    </div>
+                    <div class="form-group">
+                        <label>姓名 *</label>
+                        <input type="text" id="createStaffName" placeholder="例如：王小明" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>部門 *</label>
+                        <select id="createStaffDept" class="form-control">
+                            <option value="">請選擇部門</option>
+                            <option value="總公司">總公司</option>
+                            <option value="門市部">門市部</option>
+                            <option value="業務部">業務部</option>
+                            <option value="會計部">會計部</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>門市</label>
+                        <select id="createStaffStore" class="form-control">
+                            <option value="">無（非門市人員）</option>
+                            <option value="豐原門市">豐原門市</option>
+                            <option value="潭子門市">潭子門市</option>
+                            <option value="大雅門市">大雅門市</option>
+                        </select>
+                        <small style="color: #666;">門市部人員請選擇所屬門市</small>
+                    </div>
+                    <div class="form-group">
+                        <label>職稱</label>
+                        <input type="text" id="createStaffTitle" placeholder="例如：工程師" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>角色 *</label>
+                        <select id="createStaffRole" class="form-control">
+                            <option value="">請選擇角色</option>
+                            ${roleOptions.map(r => `<option value="${r.value}">${r.label}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>手機號碼</label>
+                        <input type="text" id="createStaffMobile" placeholder="例如：0912345678" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>身分證字號</label>
+                        <input type="text" id="createStaffIdNumber" placeholder="例如：A123456789" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>生日</label>
+                        <input type="date" id="createStaffBirthDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>到職日期</label>
+                        <input type="date" id="createStaffHireDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>初始密碼 *</label>
+                        <input type="text" id="createStaffPassword" placeholder="4位數字" maxlength="4" class="form-control">
+                        <small style="color: #666;">員工登入密碼，請妥善保管</small>
+                    </div>
+                    <div class="form-group">
+                        <label>確認碼 *</label>
+                        <input type="text" id="createStaffConfirm" placeholder="請輸入 CREATE 以確認" class="form-control">
+                        <small style="color: #e74c3c;">請輸入「CREATE」以確認建立員工</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="document.getElementById('createStaffModal').remove()">取消</button>
+                        <button class="btn btn-primary" onclick="submitCreateStaff()">建立員工</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // 提交新增員工
+        async function submitCreateStaff() {
+            const confirmText = document.getElementById('createStaffConfirm').value.trim();
+            if (confirmText !== 'CREATE') {
+                showToast('確認碼錯誤，請輸入「CREATE」', 'error');
+                return;
+            }
+            
+            const staffCode = document.getElementById('createStaffCode').value.trim();
+            const name = document.getElementById('createStaffName').value.trim();
+            const department = document.getElementById('createStaffDept').value;
+            const store = document.getElementById('createStaffStore').value;
+            const title = document.getElementById('createStaffTitle').value.trim();
+            const role = document.getElementById('createStaffRole').value;
+            const mobile = document.getElementById('createStaffMobile').value.trim();
+            const idNumber = document.getElementById('createStaffIdNumber').value.trim();
+            const birthDate = document.getElementById('createStaffBirthDate').value;
+            const hireDate = document.getElementById('createStaffHireDate').value;
+            const password = document.getElementById('createStaffPassword').value.trim();
+            
+            if (!staffCode || !name || !department || !role || !password) {
+                showToast('請填寫所有必填欄位', 'error');
+                return;
+            }
+            
+            if (!/^\d{4}$/.test(password)) {
+                showToast('密碼必須為4位數字', 'error');
+                return;
+            }
+            
+            const payload = {
+                staff_code: staffCode,
+                name: name,
+                department: department,
+                store: store,
+                title: title,
+                role: role,
+                mobile: mobile,
+                id_number: idNumber,
+                birth_date: birthDate,
+                hire_date: hireDate,
+                password: password
+            };
+            
+            // 過濾敏感資訊，不在 console 顯示 id_number
+            console.log('[STAFF_CREATE payload]', {
+                ...payload,
+                id_number: idNumber ? '***' : ''
+            });
+            
+            try {
+                const response = await fetch(`/api/admin/staff/create?admin=${encodeURIComponent(currentAdmin.name)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`員工 ${name} 建立成功（編號：${data.staff_id}）`, 'success');
+                    document.getElementById('createStaffModal').remove();
+                    loadStaffList(); // 刷新列表
+                } else {
+                    showToast('建立失敗：' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('submitCreateStaff error:', error);
+                showToast('建立失敗：' + error.message, 'error');
+            }
+        }
+
+        // 載入員工列表
+        async function loadStaffList(keyword = '', page = 1) {
+            const limit = 20;
+            const offset = (page - 1) * limit;
+            const container = document.getElementById('staffTableContainer');
+            
+            try {
+                const url = `/api/admin/staff/list?limit=${limit}&offset=${offset}&admin=${encodeURIComponent(currentAdmin.name)}${keyword ? '&keyword=' + encodeURIComponent(keyword) : ''}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    container.innerHTML = `<div class="error">⚠️ 載入失敗: ${data.message}</div>`;
+                    return;
+                }
+                
+                const items = data.items || [];
+                const total = data.total || 0;
+                
+                // 寫入按鈕狀態
+                const writeDisabled = !ENABLE_STAFF_WRITE_UI ? 'disabled' : '';
+                const writeTitle = !ENABLE_STAFF_WRITE_UI ? 'title="目前為安全模式，待開啟後可使用"' : '';
+                
+                // Role 映射：DB enum -> 顯示中文
+                const roleMap = {
+                    'boss': '老闆',
+                    'accountant': '會計',
+                    'manager': '主管',
+                    'engineer': '工程師',
+                    'sales': '業務'
+                };
+                
+                // 渲染表格
+                const tableHtml = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>員工編號</th>
+                                <th>姓名</th>
+                                <th>職稱</th>
+                                <th>部門/門市</th>
+                                <th>角色</th>
+                                <th>手機</th>
+                                <th>狀態</th>
+                                <th>更新時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => {
+                                const rowClass = item.is_active ? '' : 'style="background-color: #f5f5f5; color: #999;"';
+                                const toggleText = item.is_active ? '停用' : '啟用';
+                                const toggleAction = item.is_active ? 'disableStaff' : 'enableStaff';
+                                const roleDisplay = roleMap[item.role] || item.role;
+                                // 優先顯示 staff_code，若無則顯示 staff_id
+                                const displayCode = item.staff_code || item.staff_id;
+                                return `
+                                <tr ${rowClass}>
+                                    <td><strong>${displayCode}</strong><br><small style="color:#999">${item.staff_id}</small></td>
+                                    <td>${item.name}${!item.is_active ? ' <span style="color: #e74c3c;">(停用)</span>' : ''}</td>
+                                    <td>${item.title || '-'}</td>
+                                    <td>${item.department}${item.store ? ' (' + item.store + ')' : ''}</td>
+                                    <td><span class="role-badge">${roleDisplay}</span></td>
+                                    <td>${item.mobile || '-'}</td>
+                                    <td><span class="status-badge ${item.is_active ? 'active' : 'inactive'}">${item.is_active ? '啟用' : '停用'}</span></td>
+                                    <td>${item.updated_at || '-'}</td>
+                                    <td>
+                                        <button class="btn btn-small" onclick="viewStaffDetail('${item.staff_id}')">查看</button>
+                                        <button class="btn btn-small btn-primary" ${writeDisabled} ${writeTitle} onclick="editStaff('${item.staff_id}')">編輯</button>
+                                        <button class="btn btn-small btn-warning" ${writeDisabled} ${writeTitle} onclick="resetStaffPassword('${item.staff_id}', '${item.name}')">重設密碼</button>
+                                        <button class="btn btn-small ${item.is_active ? 'btn-danger' : 'btn-success'}" ${writeDisabled} ${writeTitle} onclick="${toggleAction}('${item.staff_id}', '${item.name}')">${toggleText}</button>
+                                    </td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                container.innerHTML = tableHtml;
+                
+                // 渲染分頁
+                const totalPages = Math.ceil(total / limit);
+                document.getElementById('staffPagination').innerHTML = renderPagination(page, totalPages, keyword);
+                
+            } catch (error) {
+                console.error('loadStaffList error:', error);
+                container.innerHTML = `<div class="error">⚠️ 載入失敗: ${error.message}</div>`;
+            }
+        }
+
+        // 搜尋員工
+        async function searchStaff() {
+            const keyword = document.getElementById('staffSearch').value.trim();
+            await loadStaffList(keyword, 1);
+        }
+
+        // 查看員工詳情
+        async function viewStaffDetail(staffId) {
+            try {
+                const response = await fetch(`/api/admin/staff/row?staff_id=${encodeURIComponent(staffId)}&admin=${encodeURIComponent(currentAdmin.name)}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    showToast('載入失敗: ' + data.message, 'error');
+                    return;
+                }
+                
+                const item = data.item;
+                const jsonStr = JSON.stringify(item, null, 2);
+                
+                // 創建彈窗顯示 JSON
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay active';
+                modal.innerHTML = `
+                    <div class="modal" style="max-width: 600px;">
+                        <h2>員工詳情 - ${item.name}</h2>
+                        <pre style="background: #f5f5f5; padding: 15px; border-radius: 8px; overflow: auto; max-height: 400px; font-size: 0.9em;">${jsonStr}</pre>
+                        <div class="modal-actions">
+                            <button class="btn" onclick="this.closest('.modal-overlay').remove()">關閉</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+            } catch (error) {
+                console.error('viewStaffDetail error:', error);
+                showToast('載入失敗: ' + error.message, 'error');
+            }
+        }
+
+        // ===== Staff 編輯功能 =====
+        async function editStaff(staffId) {
+            if (!ENABLE_STAFF_WRITE_UI) {
+                showToast('安全模式：寫入功能尚未開啟', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/staff/row?staff_id=${encodeURIComponent(staffId)}&admin=${encodeURIComponent(currentAdmin.name)}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    showToast('載入失敗: ' + data.message, 'error');
+                    return;
+                }
+                
+                const item = data.item;
+                // Role 選項：value 為 DB enum，label 為顯示中文
+                const roleOptions = [
+                    { value: 'boss', label: '老闆' },
+                    { value: 'accountant', label: '會計' },
+                    { value: 'manager', label: '主管' },
+                    { value: 'engineer', label: '工程師' },
+                    { value: 'sales', label: '業務' }
+                ];
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay active';
+                modal.id = 'staffEditModal';
+                modal.innerHTML = `
+                    <div class="modal" style="max-width: 500px;">
+                        <h2>編輯員工 - ${item.name}</h2>
+                        <div class="form-group">
+                            <label>對外編號 (staff_code)</label>
+                            <input type="text" id="editStaffCode" value="${item.staff_code || ''}" readonly class="form-control" style="background: #f5f5f5;">
+                            <small style="color: #666;">對外顯示用編號（請聯繫管理員修改）</small>
+                        </div>
+                        <div class="form-group">
+                            <label>系統編號 (staff_id)</label>
+                            <input type="text" id="editStaffId" value="${item.staff_id}" readonly class="form-control" style="background: #f5f5f5;">
+                            <small style="color: #666;">系統內部主鍵，不可修改</small>
+                        </div>
+                        <div class="form-group">
+                            <label>姓名（只讀）</label>
+                            <input type="text" id="editStaffName" value="${item.name}" readonly class="form-control" style="background: #f5f5f5;">
+                            <small style="color: #666;">姓名不可修改，與登入系統關聯</small>
+                        </div>
+                        <div class="form-group">
+                            <label>職稱</label>
+                            <input type="text" id="editStaffTitle" value="${item.title || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>部門</label>
+                            <input type="text" id="editStaffDept" value="${item.department || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>門市</label>
+                            <input type="text" id="editStaffStore" value="${item.store || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>角色</label>
+                            <select id="editStaffRole" class="form-control">
+                                ${roleOptions.map(r => `<option value="${r.value}" ${item.role === r.value ? 'selected' : ''}>${r.label}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>手機號碼</label>
+                            <input type="text" id="editStaffMobile" value="${item.mobile || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>身分證字號</label>
+                            <input type="text" id="editStaffIdNumber" value="${item.id_number || ''}" class="form-control">
+                            <small style="color: #666;">敏感資訊，請妥善保管</small>
+                        </div>
+                        <div class="form-group">
+                            <label>生日</label>
+                            <input type="date" id="editStaffBirthDate" value="${item.birth_date || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>到職日期</label>
+                            <input type="date" id="editStaffHireDate" value="${item.hire_date || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>狀態</label>
+                            <input type="text" value="${item.is_active ? '啟用' : '停用'}" readonly class="form-control" style="background: #f5f5f5;">
+                            <small style="color: #666;">（狀態請使用「停用/啟用」按鈕變更）</small>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary" onclick="document.getElementById('staffEditModal').remove()">取消</button>
+                            <button class="btn btn-primary" onclick="submitStaffUpdate()">儲存</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+            } catch (error) {
+                console.error('editStaff error:', error);
+                showToast('載入失敗: ' + error.message, 'error');
+            }
+        }
+        
+        async function submitStaffUpdate() {
+            // 只收集白名單欄位（絕對不含 name / staff_id 用於定位）
+            const payload = {
+                staff_id: document.getElementById('editStaffId').value,
+                title: document.getElementById('editStaffTitle').value,
+                department: document.getElementById('editStaffDept').value,
+                store: document.getElementById('editStaffStore').value,
+                role: document.getElementById('editStaffRole').value,
+                mobile: document.getElementById('editStaffMobile').value,
+                id_number: document.getElementById('editStaffIdNumber').value,
+                birth_date: document.getElementById('editStaffBirthDate').value,
+                hire_date: document.getElementById('editStaffHireDate').value
+            };
+            
+            // Debug: 確認 payload 不含 name，且 id_number 已遮罩
+            console.log('[STAFF_UPDATE payload]', {
+                ...payload,
+                id_number: payload.id_number ? '***' : ''
+            });
+            
+            try {
+                const response = await fetch(`/api/admin/staff/update?admin=${encodeURIComponent(currentAdmin.name)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('員工資料更新成功', 'success');
+                    document.getElementById('staffEditModal').remove();
+                    loadStaffList(); // 刷新列表
+                } else {
+                    if (data.message && data.message.includes('寫入')) {
+                        showToast('安全模式：寫入尚未開啟', 'warning');
+                    } else {
+                        showToast('更新失敗: ' + data.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('submitStaffUpdate error:', error);
+                showToast('更新失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // ===== 重設密碼功能 =====
+        async function resetStaffPassword(staffId, name) {
+            if (!ENABLE_STAFF_WRITE_UI) {
+                showToast('安全模式：寫入功能尚未開啟', 'warning');
+                return;
+            }
+            
+            const confirmText = prompt(`重設密碼確認\n\n員工: ${name} (${staffId})\n\n請輸入「RESET」以確認重設密碼：`, '');
+            
+            if (confirmText !== 'RESET') {
+                if (confirmText !== null) showToast('確認碼錯誤，已取消', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/staff/reset-password?admin=${encodeURIComponent(currentAdmin.name)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ staff_id: staffId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('已重設密碼（請通知本人）', 'success');
+                } else {
+                    if (data.message && data.message.includes('寫入')) {
+                        showToast('安全模式：寫入尚未開啟', 'warning');
+                    } else {
+                        showToast('重設失敗: ' + data.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('resetStaffPassword error:', error);
+                showToast('重設失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // ===== 停用/啟用功能 =====
+        async function disableStaff(staffId, name) {
+            if (!ENABLE_STAFF_WRITE_UI) {
+                showToast('安全模式：寫入功能尚未開啟', 'warning');
+                return;
+            }
+            
+            const confirmText = prompt(`停用員工確認\n\n員工: ${name} (${staffId})\n\n此操作將使該員工無法登入系統。\n請輸入「DISABLE」以確認停用：`, '');
+            
+            if (confirmText !== 'DISABLE') {
+                if (confirmText !== null) showToast('確認碼錯誤，已取消', 'warning');
+                return;
+            }
+            
+            await toggleStaffStatus(staffId, name, 0, '停用');
+        }
+        
+        async function enableStaff(staffId, name) {
+            if (!ENABLE_STAFF_WRITE_UI) {
+                showToast('安全模式：寫入功能尚未開啟', 'warning');
+                return;
+            }
+            
+            const confirmText = prompt(`啟用員工確認\n\n員工: ${name} (${staffId})\n\n請輸入「ENABLE」以確認啟用：`, '');
+            
+            if (confirmText !== 'ENABLE') {
+                if (confirmText !== null) showToast('確認碼錯誤，已取消', 'warning');
+                return;
+            }
+            
+            await toggleStaffStatus(staffId, name, 1, '啟用');
+        }
+        
+        async function toggleStaffStatus(staffId, name, isActive, actionText) {
+            try {
+                const response = await fetch(`/api/admin/staff/toggle-status?admin=${encodeURIComponent(currentAdmin.name)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ staff_id: staffId, is_active: isActive })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`員工已${actionText}`, 'success');
+                    loadStaffList(); // 刷新列表
+                } else {
+                    if (data.message && data.message.includes('寫入')) {
+                        showToast('安全模式：寫入尚未開啟', 'warning');
+                    } else {
+                        showToast(`${actionText}失敗: ` + data.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('toggleStaffStatus error:', error);
+                showToast(`${actionText}失敗: ` + error.message, 'error');
+            }
+        }
+
+        // 分頁渲染
+        function renderPagination(currentPage, totalPages, keyword) {
+            if (totalPages <= 1) return '';
+            
+            let html = '<div class="pagination">';
+            
+            if (currentPage > 1) {
+                html += `<button onclick="loadStaffList('${keyword}', ${currentPage - 1})">← 上一頁</button>`;
+            }
+            
+            html += `<span>第 ${currentPage} 頁 / 共 ${totalPages} 頁</span>`;
+            
+            if (currentPage < totalPages) {
+                html += `<button onclick="loadStaffList('${keyword}', ${currentPage + 1})">下一頁 →</button>`;
+            }
+            
+            html += '</div>';
+            return html;
+        }
+        
+        // 10. Tombstone 軟刪除記錄頁
+        async function loadTombstonePage(container) {
+            await renderDataTable(container, {
+                title: '🗑️ 軟刪除記錄',
+                tableName: 'admin_tombstone',
+                columns: [
+                    { field: 'created_at', title: '刪除時間' },
+                    { field: 'original_table', title: '原表' },
+                    { field: 'deleted_by', title: '刪除者' },
+                    { field: 'delete_reason', title: '原因' }
+                ],
+                searchFields: ['original_table', 'deleted_by'],
+                sortField: 'created_at'
+            });
+        }
+        
+        // 11. Observability 事件監控頁
+        async function loadObservabilityPage(container) {
+            await renderDataTable(container, {
+                title: '🔭 系統事件監控',
+                tableName: 'ops_events',
+                columns: [
+                    { field: 'ts', title: '時間' },
+                    { field: 'event_type', title: '事件類型' },
+                    { field: 'source', title: '來源' },
+                    { field: 'status', title: '狀態' },
+                    { field: 'duration_ms', title: '耗時(ms)' }
+                ],
+                searchFields: ['event_type', 'source', 'actor'],
+                sortField: 'ts'
+            });
+        }
+        
+        async function showAuditDetail(code) {
+            const container = document.getElementById('page-audit');
+            container.innerHTML = '<div class="loading">載入明細中...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/audit/detail?code=' + code + '&admin=' + encodeURIComponent(currentAdmin.name));
+                const data = await response.json();
+                
+                if (data.success) {
+                    const items = data.items || [];
+                    const itemsHtml = items.slice(0, 20).map(item => `
+                        <div class="detail-item">
+                            <pre>${JSON.stringify(item, null, 2)}</pre>
+                        </div>
+                    `).join('');
+                    
+                    container.innerHTML = `
+                        <div class="page-header">
+                            <h1>🔍 ${code} 明細</h1>
+                            <button class="btn btn-small" onclick="openPage('audit', document.querySelector('[data-page=audit]'))">返回</button>
+                        </div>
+                        <div class="detail-list">${itemsHtml || '<p>無資料</p>'}</div>
+                    `;
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="page-header"><h1>🔍 明細</h1></div>
+                    <div class="error">⚠️ 載入失敗: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 舊版函數保留相容
+        async function loadTableData(table) {
+            console.warn('[ADMIN] loadTableData deprecated');
+        }
+        
+        function renderTable(table, items) {
+            console.warn('[ADMIN] renderTable deprecated');
+        }
+        
+        function showAuditDetailModal(code, items) {
+            console.warn('[ADMIN] showAuditDetailModal deprecated');
+        }
+        
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+        
+        // Utilities
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('active', show);
+        }
+        
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        function refreshAudit() {
+            loadAuditSummary();
+        }
+    </script>
+</html>

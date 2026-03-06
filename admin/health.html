@@ -654,19 +654,15 @@
                           (healthData.api.error_rate_percent_1h > 1 ? 'yellow' : 'green') }
             ]);
             
-            // Run Scripts 詳細資訊
+            // Run Scripts 詳細資訊（只列出目前排程器中啟用的腳本）
             const scriptsList = [
                 { name: '庫存模組', time: '10:30' },
                 { name: '進貨模組', time: '10:35' },
                 { name: '銷貨模組', time: '10:40' },
                 { name: '客戶模組', time: '10:45' },
                 { name: '評論模組', time: '10:50' },
-                { name: '班表模組', time: '10:55' },
-                { name: '績效模組', time: '11:00' },
-                { name: '業績計算', time: '11:05' },
-                { name: '督導評分表', time: '11:10' },
-                { name: 'AI 業績分析', time: '20:00' },
-                { name: '數據備份', time: '04:00' }
+                { name: '數據備份', time: '04:00' },
+                { name: '記憶備份', time: '05:00' }
             ];
             
             const runPanel = createScriptsPanel('run', '排程腳本列表', scriptsList);
