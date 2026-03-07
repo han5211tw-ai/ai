@@ -1,20 +1,13 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>業績目標管理 - 電腦舖營運系統</title>
-    <link rel="stylesheet" href="shared/global-background.css">
-    <script src="shared/global-background.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            min-height: 100vh;
-            color: #fff;
-        }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px 40px; }
+{% extends "base.html" %}
+
+{% block title %}業績目標管理 - 電腦舖營運系統{% endblock %}
+
+{% block page_title %}業績目標管理營運系統{% endblock %}
+
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0 auto; padding: 20px; }
+.container {  margin: 0 auto; padding: 20px 40px; }
         h1 {
             text-align: left;
             font-size: 1.2em;
@@ -225,10 +218,12 @@
             .filter-bar { flex-direction: column; align-items: stretch; }
             .input-target { width: 100%; }
         }
-    </style>
-</head>
-<body>
-    <div class="container">
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="container">
         <h1>🎯 業績目標管理</h1>
         <div class="subtitle">只須輸入個人目標，門市與部門目標自動計算</div>
         
@@ -532,5 +527,212 @@
             document.getElementById('monthSelect').addEventListener('change', loadCurrentData);
         });
     </script>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 員工資料（所屬門市）
+        const staffData = [
+            { name: '林榮祺', store: '豐原', dept: '門市部' },
+            { name: '林峙文', store: '豐原', dept: '門市部' },
+            { name: '劉育仕', store: '潭子', dept: '門市部' },
+            { name: '林煜捷', store: '潭子', dept: '門市部' },
+            { name: '張永承', store: '大雅', dept: '門市部' },
+            { name: '張家碩', store: '大雅', dept: '門市部' },
+            { name: '鄭宇晉', store: '-', dept: '業務部' },
+            { name: '梁仁佑', store: '-', dept: '業務部' }
+        ];
+
+        // 初始化表格
+        function initTable() {
+            const tbody = document.getElementById('personalTable');
+            tbody.innerHTML = staffData.map(staff => `
+                <tr>
+                    <td><strong>${staff.name}</strong></td>
+                    <td>${staff.store}</td>
+                    <td>
+                        <input type="number" 
+                               class="input-target" 
+                               id="target_${staff.name}" 
+                               placeholder="輸入目標"
+                               data-store="${staff.store}"
+                               data-dept="${staff.dept}"
+                               oninput="updateSummary()">
+                        <span class="current-value" id="current_${staff.name}"></span>
+                    </td>
+                    <td><span class="status-badge status-new" id="status_${staff.name}">新資料</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // 更新摘要計算
+        function updateSummary() {
+            let fengyuan = 0, tanzi = 0, daya = 0;
+            let storeDept = 0, businessDept = 0;
+            
+            staffData.forEach(staff => {
+                const input = document.getElementById(`target_${staff.name}`);
+                const value = parseInt(input?.value) || 0;
+                
+                if (staff.store === '豐原') fengyuan += value;
+                if (staff.store === '潭子') tanzi += value;
+                if (staff.store === '大雅') daya += value;
+                
+                if (staff.dept === '門市部') storeDept += value;
+                if (staff.dept === '業務部') businessDept += value;
+            });
+            
+            document.getElementById('summaryFengyuan').textContent = formatMoney(fengyuan);
+            document.getElementById('summaryTanzi').textContent = formatMoney(tanzi);
+            document.getElementById('summaryDaya').textContent = formatMoney(daya);
+            document.getElementById('summaryStoreDept').textContent = formatMoney(storeDept);
+            document.getElementById('summaryBusinessDept').textContent = formatMoney(businessDept);
+            document.getElementById('summaryTotal').textContent = formatMoney(storeDept + businessDept);
+        }
+
+        // 格式化金額
+        function formatMoney(amount) {
+            return 'NT$ ' + (amount || 0).toLocaleString('zh-TW');
+        }
+
+        // 顯示訊息
+        function showMessage(text, type) {
+            const box = document.getElementById('messageBox');
+            box.textContent = text;
+            box.className = 'message ' + type;
+            setTimeout(() => { box.className = 'message'; }, 5000);
+        }
+
+        // 載入現有資料
+        async function loadCurrentData() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            
+            try {
+                const response = await fetch(`/api/targets?year=${year}&month=${month}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 填充個人資料
+                    data.personal.forEach(p => {
+                        const input = document.getElementById(`target_${p.name}`);
+                        const current = document.getElementById(`current_${p.name}`);
+                        const status = document.getElementById(`status_${p.name}`);
+                        
+                        if (input) {
+                            input.value = p.target_amount || '';
+                            if (p.target_amount) {
+                                current.textContent = `現有: ${formatMoney(p.target_amount)}`;
+                                status.textContent = '已設定';
+                                status.className = 'status-badge status-exists';
+                            } else {
+                                current.textContent = '';
+                                status.textContent = '新資料';
+                                status.className = 'status-badge status-new';
+                            }
+                        }
+                    });
+                    
+                    updateSummary();
+                    showMessage(`✅ 已載入 ${year}年${month}月 的目標資料`, 'success');
+                }
+            } catch (error) {
+                console.error('載入資料失敗:', error);
+                showMessage('❌ 載入資料失敗', 'error');
+            }
+        }
+
+        // 儲存全部目標
+        async function saveAllTargets() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            
+            const personalTargets = [];
+            let fengyuan = 0, tanzi = 0, daya = 0;
+            let storeDept = 0, businessDept = 0;
+            
+            // 收集個人目標並計算門市/部門合計
+            staffData.forEach(staff => {
+                const input = document.getElementById(`target_${staff.name}`);
+                const value = input && input.value ? parseInt(input.value) : 0;
+                
+                if (value > 0) {
+                    personalTargets.push({
+                        category: '個人',
+                        name: staff.name,
+                        target: value
+                    });
+                }
+                
+                // 計算門市合計
+                if (staff.store === '豐原') fengyuan += value;
+                if (staff.store === '潭子') tanzi += value;
+                if (staff.store === '大雅') daya += value;
+                
+                // 計算部門合計
+                if (staff.dept === '門市部') storeDept += value;
+                if (staff.dept === '業務部') businessDept += value;
+            });
+            
+            if (personalTargets.length === 0) {
+                showMessage('⚠️ 請至少輸入一個目標', 'error');
+                return;
+            }
+            
+            // 加入門市目標
+            const storeTargets = [
+                { category: '門市', name: '豐原門市', target: fengyuan },
+                { category: '門市', name: '潭子門市', target: tanzi },
+                { category: '門市', name: '大雅門市', target: daya }
+            ].filter(t => t.target > 0);
+            
+            // 加入部門目標
+            const deptTargets = [
+                { category: '部門', name: '門市部', target: storeDept },
+                { category: '部門', name: '業務部', target: businessDept }
+            ].filter(t => t.target > 0);
+            
+            // 加入公司總目標
+            const companyTarget = { category: '公司', name: '公司', target: storeDept + businessDept };
+            
+            const allTargets = [...personalTargets, ...storeTargets, ...deptTargets];
+            if (companyTarget.target > 0) {
+                allTargets.push(companyTarget);
+            }
+            
+            try {
+                const response = await fetch('/api/targets/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ year, month, targets: allTargets })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ 成功儲存 ${result.saved_count} 筆目標（含自動計算的門市與部門目標）`, 'success');
+                    loadCurrentData();
+                } else {
+                    showMessage('❌ 儲存失敗: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('儲存失敗:', error);
+                showMessage('❌ 儲存失敗', 'error');
+            }
+        }
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initTable();
+            const now = new Date();
+            document.getElementById('yearSelect').value = now.getFullYear();
+            document.getElementById('monthSelect').value = now.getMonth() + 1;
+            loadCurrentData();
+            
+            // 監聽年份和月份變化，自動載入資料
+            document.getElementById('yearSelect').addEventListener('change', loadCurrentData);
+            document.getElementById('monthSelect').addEventListener('change', loadCurrentData);
+        });
+</script>
+{% endblock %}

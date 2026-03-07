@@ -33,7 +33,7 @@ class SidebarNavigation {
                 section: '待辦清單',
                 items: [
                     { id: 'pending-needs', icon: '📋', label: '待請購清單', route: '/pending/needs', minRole: 'staff', requireTitle: ['老闆'] },
-                    { id: 'pending-transfer', icon: '🚚', label: '待調撥清單', route: '/pending/transfer', minRole: 'staff', requireTitle: ['會計'] }
+                    { id: 'pending-transfer', icon: '🚚', label: '待調撥清單', route: '/pending/transfer', minRole: 'staff', requireTitle: ['老闆', '會計'] }
                 ]
             },
             {
@@ -43,8 +43,7 @@ class SidebarNavigation {
                     { id: 'customers', icon: '👤', label: '客戶建檔', route: '/customers', minRole: 'staff', excludeTitle: ['會計'] },
                     { id: 'suppliers', icon: '🏭', label: '廠商建檔', route: '/suppliers', minRole: 'admin' },
                     { id: 'purchase', icon: '📥', label: '進貨輸入', route: '/purchase', minRole: 'admin' }
-                ],
-                excludeTitle: ['老闆']
+                ]
             },
             {
                 section: '報表中心',
