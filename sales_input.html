@@ -421,6 +421,27 @@
             <a href="index.html">🏠 首頁</a>
         </div>
 
+        <!-- 帶入訂單區塊 -->
+        <div class="card" id="orderImportSection">
+            <h2>📋 帶入訂單（選填）</h2>
+            <div class="form-group">
+                <div class="search-wrapper">
+                    <input type="text" id="orderSearch" class="form-control" placeholder="🔍 搜尋訂單號碼或客戶名稱..." oninput="searchOrders(this)">
+                    <input type="hidden" id="sourceDocNo">
+                    <input type="hidden" id="orderDepositAmount" value="0">
+                    <div id="orderSuggestions" class="suggestions"></div>
+                </div>
+            </div>
+            <div id="orderInfo" style="display:none; margin-top:15px; padding:15px; background:rgba(0,212,255,0.05); border:1px solid rgba(0,212,255,0.2); border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <span>訂單號：<span id="displayOrderNo" style="color:#00d4ff;"></span></span>
+                    <span>訂金已收：<span id="displayDeposit" style="color:#4caf50;"></span> 元</span>
+                    <span>應收尾款：<span id="displayBalance" style="color:#ffc107;"></span> 元</span>
+                </div>
+                <button class="btn-delete" onclick="clearOrderImport()" style="margin-top:10px;">清除訂單</button>
+            </div>
+        </div>
+
         <!-- 銷貨單表單 -->
         <div class="card">
             <h2>📋 基本資訊</h2>
@@ -457,24 +478,6 @@
                     <input type="hidden" id="customerId">
                     <input type="hidden" id="customerName">
                     <div id="customerSuggestions" class="suggestions"></div>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>付款方式 <span class="required">*</span></label>
-                    <select id="paymentMethod" class="form-control" onchange="onPaymentMethodChange()">
-                        <option value="">請選擇付款方式</option>
-                        <option value="現金">💵 現金</option>
-                        <option value="匯款">🏦 匯款</option>
-                        <option value="刷卡">💳 刷卡</option>
-                        <option value="支票">📄 支票</option>
-                        <option value="月結">📅 月結</option>
-                    </select>
-                </div>
-                <div class="form-group" id="dueDateGroup" style="display:none;">
-                    <label>應收款日 <span class="required">*</span></label>
-                    <input type="date" id="dueDate" class="form-control">
                 </div>
             </div>
         </div>
@@ -517,6 +520,16 @@
         <!-- 付款方式與提交 -->
         <div class="card">
             <h2>💳 付款資訊</h2>
+            
+            <!-- 訂金資訊顯示（帶入訂單時顯示） -->
+            <div id="depositInfoSection" style="display:none; margin-bottom:20px; padding:15px; background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:15px; font-size:1.1em;">
+                    <span>總金額：<span id="paymentTotalAmount" class="amount-display">0</span> 元</span>
+                    <span style="color:#4caf50;">訂金已收：<span id="paymentDepositAmount">0</span> 元</span>
+                    <span style="color:#ffc107; font-weight:bold;">應收尾款：<span id="paymentBalanceAmount">0</span> 元</span>
+                </div>
+            </div>
+            
             <div class="form-row">
                 <div class="form-group">
                     <label>付款方式 <span class="required">*</span></label>
@@ -732,6 +745,131 @@
             } catch (error) {
                 console.error('搜尋產品失敗:', error);
             }
+        }
+
+        // 搜尋訂單
+        async function searchOrders(input) {
+            const keyword = input.value.trim();
+            const suggestions = document.getElementById('orderSuggestions');
+            
+            if (keyword.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/sales-doc/list?type=ORDER&search=${encodeURIComponent(keyword)}&limit=10`);
+                const data = await response.json();
+                
+                if (data.success && data.documents.length > 0) {
+                    // 過濾掉已結案的訂單
+                    const activeOrders = data.documents.filter(d => d.status !== 'CLOSED');
+                    
+                    if (activeOrders.length > 0) {
+                        suggestions.innerHTML = activeOrders.map(o => 
+                            `<div class="suggestion-item" onclick="selectOrder('${o.doc_no}', '${o.target_id}', '${o.target_name.replace(/'/g, "\\'")}', ${o.deposit_amount || 0}, ${o.total_amount})">${o.doc_no} - ${o.target_name} (訂金:${o.deposit_amount || 0}元)</div>`
+                        ).join('');
+                        suggestions.style.display = 'block';
+                    } else {
+                        suggestions.style.display = 'none';
+                    }
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('搜尋訂單失敗:', error);
+            }
+        }
+
+        // 選擇訂單
+        async function selectOrder(docNo, targetId, targetName, depositAmount, totalAmount) {
+            document.getElementById('orderSearch').value = docNo + ' - ' + targetName;
+            document.getElementById('sourceDocNo').value = docNo;
+            document.getElementById('orderDepositAmount').value = depositAmount;
+            document.getElementById('orderSuggestions').style.display = 'none';
+            
+            // 帶入客戶資訊
+            document.getElementById('customerId').value = targetId;
+            document.getElementById('customerName').value = targetName;
+            document.getElementById('customerSearch').value = targetName;
+            
+            // 計算餘額
+            const balanceAmount = totalAmount - depositAmount;
+            
+            // 顯示訂單資訊
+            document.getElementById('displayOrderNo').textContent = docNo;
+            document.getElementById('displayDeposit').textContent = depositAmount.toLocaleString();
+            document.getElementById('displayBalance').textContent = balanceAmount.toLocaleString();
+            document.getElementById('orderInfo').style.display = 'block';
+            
+            // 顯示付款區塊的訂金資訊
+            document.getElementById('paymentTotalAmount').textContent = totalAmount.toLocaleString();
+            document.getElementById('paymentDepositAmount').textContent = depositAmount.toLocaleString();
+            document.getElementById('paymentBalanceAmount').textContent = balanceAmount.toLocaleString();
+            document.getElementById('depositInfoSection').style.display = 'block';
+            
+            // 載入訂單明細
+            await loadOrderItems(docNo);
+        }
+
+        // 載入訂單明細
+        async function loadOrderItems(docNo) {
+            try {
+                const response = await fetch(`/api/sales-doc/detail?doc_no=${encodeURIComponent(docNo)}`);
+                const data = await response.json();
+                
+                if (data.success && data.document.items) {
+                    const tbody = document.getElementById('itemsBody');
+                    tbody.innerHTML = '';
+                    
+                    data.document.items.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <div class="search-wrapper">
+                                    <input type="text" class="form-control product-search" value="${item.product_name}" readonly>
+                                    <input type="hidden" class="product-code" value="${item.product_code}">
+                                </div>
+                            </td>
+                            <td><input type="number" class="form-control quantity" value="${item.qty}" min="1" onchange="calculateRow(this)"></td>
+                            <td><input type="number" class="form-control price" value="${item.unit_price}" min="0" onchange="calculateRow(this)" data-cost="0"></td>
+                            <td class="amount-display amount">${item.subtotal.toLocaleString()}</td>
+                            <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="cost">-</span></td>
+                            <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="profit">-</span></td>
+                            <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="margin">-</span></td>
+                            <td><button class="btn-delete" onclick="deleteRow(this)">刪除</button></td>
+                        `;
+                        tbody.appendChild(row);
+                        
+                        // 載入成本
+                        if (canViewCost) {
+                            loadProductCost(row, item.product_code);
+                        }
+                    });
+                    
+                    calculateTotal();
+                }
+            } catch (error) {
+                console.error('載入訂單明細失敗:', error);
+            }
+        }
+
+        // 清除訂單帶入
+        function clearOrderImport() {
+            document.getElementById('orderSearch').value = '';
+            document.getElementById('sourceDocNo').value = '';
+            document.getElementById('orderDepositAmount').value = '0';
+            document.getElementById('orderInfo').style.display = 'none';
+            document.getElementById('depositInfoSection').style.display = 'none';
+            
+            // 清空客戶
+            document.getElementById('customerId').value = '';
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerSearch').value = '';
+            
+            // 重置明細
+            initDefaultRows();
+            calculateTotal();
         }
 
         // 選擇產品
@@ -993,6 +1131,10 @@
             
             const totalAmount = parseInt(document.getElementById('totalAmount').textContent.replace(/,/g, ''));
             
+            // 取得訂單相關資訊
+            const sourceDocNo = document.getElementById('sourceDocNo').value;
+            const depositAmount = parseInt(document.getElementById('orderDepositAmount').value) || 0;
+            
             const payload = {
                 sales_order_no: orderNo,
                 date: date,
@@ -1004,7 +1146,9 @@
                 items: items,
                 total_amount: totalAmount,
                 payment_method: paymentMethod,
-                due_date: dueDate
+                due_date: dueDate,
+                source_doc_no: sourceDocNo,
+                deposit_amount: depositAmount
             };
             
             try {
