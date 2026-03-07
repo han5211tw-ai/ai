@@ -141,6 +141,40 @@
         .check-result.loading {
             color: #00d4ff;
         }
+
+        /* 客戶類型選擇 */
+        .customer-type-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .customer-type-option {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+        .customer-type-option:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+        .customer-type-option.active {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+        }
+        .customer-type-option .icon {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            display: block;
+        }
         .btn-submit {
             width: 100%;
             padding: 14px;
@@ -361,6 +395,18 @@
             <a href="customer_search.html" target="_blank">🔍 客戶查詢</a>
         </div>
 
+        <!-- 客戶類型選擇 -->
+        <div class="customer-type-selector">
+            <div class="customer-type-option active" onclick="selectCustomerType('personal')" id="typePersonal">
+                <span class="icon">👤</span>
+                <span>個人客戶</span>
+            </div>
+            <div class="customer-type-option" onclick="selectCustomerType('company')" id="typeCompany">
+                <span class="icon">🏢</span>
+                <span>公司客戶</span>
+            </div>
+        </div>
+
         <div class="card">
             <h2>📋 基本資訊</h2>
             
@@ -376,35 +422,35 @@
             </div>
 
             <div class="form-group">
-                <label>客戶名稱 <span class="required">*</span></label>
-                <input type="text" id="shortName" class="form-control" placeholder="請輸入客戶姓名或公司全名">
+                <label id="labelShortName">客戶名稱 <span class="required">*</span></label>
+                <input type="text" id="shortName" class="form-control" placeholder="請輸入客戶姓名">
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>手機號碼 <span class="required">*</span></label>
+                    <label id="labelMobile">手機號碼 <span class="required" id="reqMobile">*</span></label>
                     <input type="text" id="mobile" class="form-control" placeholder="例如：0912345678" maxlength="10">
                     <div id="mobileCheck" class="check-result"></div>
                 </div>
                 <div class="form-group">
-                    <label>電話號碼</label>
+                    <label id="labelPhone">電話號碼 <span class="required" id="reqPhone" style="display:none;">*</span></label>
                     <input type="text" id="phone1" class="form-control" placeholder="例如：04-12345678">
                     <div id="phoneCheck" class="check-result"></div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>聯絡人</label>
+            <div class="form-group" id="groupContact">
+                <label>聯絡人 <span class="required" id="reqContact" style="display:none;">*</span></label>
                 <input type="text" id="contact" class="form-control" placeholder="請輸入聯絡人姓名">
             </div>
 
-            <div class="form-group">
-                <label>統一編號</label>
-                <input type="text" id="taxId" class="form-control" placeholder="請輸入統一編號（8碼）" maxlength="8">
+            <div class="form-group" id="groupTaxId">
+                <label>統一編號 <span class="required" id="reqTaxId" style="display:none;">*</span></label>
+                    <input type="text" id="taxId" class="form-control" placeholder="請輸入統一編號（8碼）" maxlength="8">
             </div>
 
-            <div class="form-group">
-                <label>地址</label>
+            <div class="form-group" id="groupAddress">
+                <label>地址 <span class="required" id="reqAddress" style="display:none;">*</span></label>
                 <input type="text" id="companyAddress" class="form-control" placeholder="請輸入地址">
             </div>
 
@@ -478,6 +524,7 @@
         let currentPage = 1;
         let totalPages = 1;
         let currentCustomer = null;
+        let customerType = 'personal'; // 'personal' 或 'company'
 
         // 取得當前使用者資訊
         function getCurrentUser() {
@@ -597,13 +644,62 @@
             updateSubmitButton();
         }
 
+        // 選擇客戶類型
+        function selectCustomerType(type) {
+            customerType = type;
+            
+            // 更新選項樣式
+            document.getElementById('typePersonal').classList.toggle('active', type === 'personal');
+            document.getElementById('typeCompany').classList.toggle('active', type === 'company');
+            
+            // 更新欄位標籤和必填標記
+            if (type === 'personal') {
+                // 個人客戶
+                document.getElementById('labelShortName').innerHTML = '客戶名稱 <span class="required">*</span>';
+                document.getElementById('shortName').placeholder = '請輸入客戶姓名';
+                document.getElementById('labelMobile').innerHTML = '手機號碼 <span class="required" id="reqMobile">*</span>';
+                document.getElementById('reqMobile').style.display = 'inline';
+                document.getElementById('reqPhone').style.display = 'none';
+                document.getElementById('reqContact').style.display = 'none';
+                document.getElementById('reqTaxId').style.display = 'none';
+                document.getElementById('reqAddress').style.display = 'none';
+            } else {
+                // 公司客戶
+                document.getElementById('labelShortName').innerHTML = '公司名稱 <span class="required">*</span>';
+                document.getElementById('shortName').placeholder = '請輸入公司全名';
+                document.getElementById('labelMobile').innerHTML = '手機號碼 <span class="required" id="reqMobile" style="display:none;">*</span>';
+                document.getElementById('labelPhone').innerHTML = '電話號碼 <span class="required" id="reqPhone">*</span>';
+                document.getElementById('reqMobile').style.display = 'none';
+                document.getElementById('reqPhone').style.display = 'inline';
+                document.getElementById('reqContact').style.display = 'inline';
+                document.getElementById('reqTaxId').style.display = 'inline';
+                document.getElementById('reqAddress').style.display = 'inline';
+            }
+            
+            updateSubmitButton();
+        }
+
         // 更新提交按鈕狀態
         function updateSubmitButton() {
             const shortName = document.getElementById('shortName').value.trim();
             const mobile = document.getElementById('mobile').value.trim();
+            const phone = document.getElementById('phone1').value.trim();
+            const contact = document.getElementById('contact').value.trim();
+            const taxId = document.getElementById('taxId').value.trim();
+            const address = document.getElementById('companyAddress').value.trim();
             const btn = document.getElementById('submitBtn');
             
-            btn.disabled = !shortName || !mobile || !isMobileValid || !isPhoneValid;
+            let isValid = shortName && isMobileValid && isPhoneValid;
+            
+            if (customerType === 'personal') {
+                // 個人客戶：必填客戶名稱、手機
+                isValid = isValid && mobile;
+            } else {
+                // 公司客戶：必填公司名稱、手機或電話（至少一項）、聯絡人、統一編號、地址
+                isValid = isValid && (mobile || phone) && contact && taxId && address;
+            }
+            
+            btn.disabled = !isValid;
         }
 
         // 提交表單
@@ -683,6 +779,10 @@
             document.getElementById('phone1').addEventListener('blur', checkPhone);
             document.getElementById('shortName').addEventListener('input', updateSubmitButton);
             document.getElementById('mobile').addEventListener('input', updateSubmitButton);
+            document.getElementById('phone1').addEventListener('input', updateSubmitButton);
+            document.getElementById('contact').addEventListener('input', updateSubmitButton);
+            document.getElementById('taxId').addEventListener('input', updateSubmitButton);
+            document.getElementById('companyAddress').addEventListener('input', updateSubmitButton);
 
             // 載入客戶列表
             loadCustomerList();
