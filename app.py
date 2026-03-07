@@ -8152,8 +8152,350 @@ def get_sales_detail():
 
 
 # ============================================
+# API: 報價/訂單/銷貨單管理 (sales_documents)
+# ============================================
+
+@app.route('/api/quote/next-no')
+def get_next_quote_no():
+    """產生下一個報價單號"""
+    store_code = request.args.get('store', 'FY')
+    date_str = request.args.get('date', datetime.now().strftime('%Y%m%d'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        prefix = f"QU-{store_code}-{date_str}-"
+        cursor.execute("""
+            SELECT doc_no FROM sales_documents 
+            WHERE doc_no LIKE ? AND doc_type = 'QUOTE'
+            ORDER BY doc_no DESC LIMIT 1
+        """, (prefix + '%',))
+        
+        row = cursor.fetchone()
+        if row and row['doc_no']:
+            try:
+                last_seq = int(row['doc_no'].split('-')[-1])
+                next_seq = last_seq + 1
+            except:
+                next_seq = 1
+        else:
+            next_seq = 1
+        
+        quote_no = f"QU-{store_code}-{date_str}-{next_seq:03d}"
+        
+        return jsonify({'success': True, 'quote_no': quote_no})
+    except Exception as e:
+        print(f"[ERROR] 產生報價單號失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/sales-doc/create', methods=['POST'])
+def create_sales_document():
+    """建立銷售單據（報價/訂單/銷貨）"""
+    data = request.get_json()
+    
+    doc_no = data.get('doc_no')
+    doc_type = data.get('doc_type', 'QUOTE')
+    target_id = data.get('target_id')
+    target_name = data.get('target_name')
+    total_amount = data.get('total_amount', 0)
+    items = data.get('items', [])
+    salesperson = data.get('salesperson', '')
+    salesperson_id = data.get('salesperson_id', '')
+    
+    if not all([doc_no, target_id, items]):
+        return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 插入單頭
+        cursor.execute("""
+            INSERT INTO sales_documents 
+            (doc_no, doc_type, target_id, target_name, total_amount, 
+             deposit_amount, balance_amount, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 0, ?, 'DRAFT', datetime('now', 'localtime'), datetime('now', 'localtime'))
+        """, (doc_no, doc_type, target_id, target_name, total_amount, total_amount))
+        
+        # 插入明細
+        for item in items:
+            cursor.execute("""
+                INSERT INTO sales_document_items 
+                (doc_no, product_code, qty, unit_price, subtotal)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                doc_no,
+                item.get('product_code', ''),
+                item.get('qty', 0),
+                item.get('unit_price', 0),
+                item.get('subtotal', 0)
+            ))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': f'{doc_type}單 {doc_no} 建立成功'})
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 建立銷售單據失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/sales-doc/list')
+def get_sales_documents_list():
+    """取得銷售單據列表"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 50, type=int)
+    doc_type = request.args.get('type', 'QUOTE')
+    search = request.args.get('search', '').strip()
+    salesperson = request.args.get('salesperson', '').strip()
+    
+    offset = (page - 1) * limit
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 計算總筆數
+        count_sql = """
+            SELECT COUNT(*) as total FROM sales_documents
+            WHERE doc_type = ?
+        """
+        count_params = [doc_type]
+        
+        if search:
+            count_sql += " AND (doc_no LIKE ? OR target_name LIKE ?)"
+            count_params.extend([f'%{search}%', f'%{search}%'])
+        
+        if salesperson:
+            count_sql += " AND salesperson_id = ?"
+            count_params.append(salesperson)
+        
+        cursor.execute(count_sql, count_params)
+        total = cursor.fetchone()['total']
+        
+        # 查詢列表
+        sql = """
+            SELECT doc_no, doc_type, target_id, target_name, total_amount, 
+                   status, created_at, salesperson, salesperson_id
+            FROM sales_documents
+            WHERE doc_type = ?
+        """
+        params = [doc_type]
+        
+        if search:
+            sql += " AND (doc_no LIKE ? OR target_name LIKE ?)"
+            params.extend([f'%{search}%', f'%{search}%'])
+        
+        if salesperson:
+            sql += " AND salesperson_id = ?"
+            params.append(salesperson)
+        
+        sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor.execute(sql, params)
+        documents = cursor.fetchall()
+        
+        result = [{
+            'doc_no': d['doc_no'],
+            'doc_type': d['doc_type'],
+            'target_id': d['target_id'],
+            'target_name': d['target_name'],
+            'total_amount': d['total_amount'],
+            'status': d['status'],
+            'created_at': d['created_at'],
+            'salesperson': d['salesperson'],
+            'salesperson_id': d['salesperson_id']
+        } for d in documents]
+        
+        return jsonify({
+            'success': True,
+            'documents': result,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得銷售單據列表失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/sales-doc/detail')
+def get_sales_document_detail():
+    """取得銷售單據詳情"""
+    doc_no = request.args.get('doc_no', '').strip()
+    
+    if not doc_no:
+        return jsonify({'success': False, 'message': '缺少單號'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 查詢單頭
+        cursor.execute("""
+            SELECT doc_no, doc_type, target_id, target_name, total_amount,
+                   deposit_amount, balance_amount, source_doc_no, status,
+                   created_at, salesperson, salesperson_id
+            FROM sales_documents
+            WHERE doc_no = ?
+            LIMIT 1
+        """, (doc_no,))
+        
+        header = cursor.fetchone()
+        if not header:
+            return jsonify({'success': False, 'message': '找不到單據'}), 404
+        
+        # 查詢明細
+        cursor.execute("""
+            SELECT product_code, qty, unit_price, subtotal
+            FROM sales_document_items
+            WHERE doc_no = ?
+            ORDER BY id
+        """, (doc_no,))
+        items = cursor.fetchall()
+        
+        return jsonify({
+            'success': True,
+            'document': {
+                'doc_no': header['doc_no'],
+                'doc_type': header['doc_type'],
+                'target_id': header['target_id'],
+                'target_name': header['target_name'],
+                'total_amount': header['total_amount'],
+                'deposit_amount': header['deposit_amount'],
+                'balance_amount': header['balance_amount'],
+                'source_doc_no': header['source_doc_no'],
+                'status': header['status'],
+                'created_at': header['created_at'],
+                'salesperson': header['salesperson'],
+                'salesperson_id': header['salesperson_id'],
+                'items': [{
+                    'product_code': i['product_code'],
+                    'qty': i['qty'],
+                    'unit_price': i['unit_price'],
+                    'subtotal': i['subtotal']
+                } for i in items]
+            }
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得銷售單據詳情失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/sales-doc/convert', methods=['POST'])
+def convert_sales_document():
+    """轉換單據（報價轉訂單、訂單轉銷貨）"""
+    data = request.get_json()
+    
+    source_doc_no = data.get('source_doc_no')
+    new_doc_no = data.get('new_doc_no')
+    new_doc_type = data.get('doc_type', 'ORDER')
+    deposit_amount = data.get('deposit_amount', 0)
+    
+    if not all([source_doc_no, new_doc_no]):
+        return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 查詢來源單
+        cursor.execute("""
+            SELECT * FROM sales_documents WHERE doc_no = ?
+        """, (source_doc_no,))
+        source = cursor.fetchone()
+        
+        if not source:
+            return jsonify({'success': False, 'message': '找不到來源單據'}), 404
+        
+        # 計算餘額
+        total_amount = source['total_amount']
+        balance_amount = total_amount - deposit_amount
+        
+        # 建立新單
+        cursor.execute("""
+            INSERT INTO sales_documents 
+            (doc_no, doc_type, target_id, target_name, total_amount,
+             deposit_amount, balance_amount, source_doc_no, status, 
+             created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', datetime('now', 'localtime'), datetime('now', 'localtime'))
+        """, (
+            new_doc_no,
+            new_doc_type,
+            source['target_id'],
+            source['target_name'],
+            total_amount,
+            deposit_amount,
+            balance_amount,
+            source_doc_no
+        ))
+        
+        # 複製明細
+        cursor.execute("""
+            SELECT product_code, qty, unit_price, subtotal
+            FROM sales_document_items
+            WHERE doc_no = ?
+        """, (source_doc_no,))
+        items = cursor.fetchall()
+        
+        for item in items:
+            cursor.execute("""
+                INSERT INTO sales_document_items 
+                (doc_no, product_code, qty, unit_price, subtotal)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                new_doc_no,
+                item['product_code'],
+                item['qty'],
+                item['unit_price'],
+                item['subtotal']
+            ))
+        
+        # 更新來源單狀態為已結案
+        cursor.execute("""
+            UPDATE sales_documents 
+            SET status = 'CLOSED', updated_at = datetime('now', 'localtime')
+            WHERE doc_no = ?
+        """, (source_doc_no,))
+        
+        # 如果有訂金，寫入 finance_ledger
+        if deposit_amount > 0:
+            cursor.execute("""
+                INSERT INTO finance_ledger 
+                (record_type, target_id, target_name, reference_doc, total_amount,
+                 status, payment_method, cleared_at, created_at)
+                VALUES (?, ?, ?, ?, ?, 'PAID', '現金', datetime('now', 'localtime'), datetime('now', 'localtime'))
+            """, (
+                'AR',
+                source['target_id'],
+                source['target_name'],
+                new_doc_no,
+                deposit_amount
+            ))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': f'已成功轉換為 {new_doc_no}'})
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 轉換單據失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
 # 靜態檔案路由（必須放在所有 API 路由之後）
-# 注意：這個路由會捕獲所有未被前面路由匹配的請求
 # ============================================
 @app.route('/<path:path>')
 def static_files(path):

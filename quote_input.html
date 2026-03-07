@@ -1,0 +1,531 @@
+        let currentUser = null;
+        let canEditAll = false;
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentQuote = null;
+
+        // 頁面載入時檢查權限
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (window.checkAuth) {
+                const authResult = await window.checkAuth({ minRole: 'staff' });
+                if (!authResult.success) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                currentUser = authResult;
+                const userTitle = authResult.title || '';
+                
+                // 老闆和會計可以編輯全部
+                canEditAll = (userTitle === '老闆' || userTitle.includes('會計'));
+                
+                document.getElementById('userDisplay').textContent = authResult.name || '';
+                document.getElementById('salesperson').value = authResult.name || '';
+                document.getElementById('salespersonId').value = authResult.staff_code || '';
+                
+                // 設定單位代號
+                const dept = authResult.department || '';
+                const storeCode = getStoreCode(dept);
+                document.getElementById('storeCode').value = storeCode;
+                
+                // 設定日期為今天
+                document.getElementById('quoteDate').value = new Date().toISOString().slice(0, 10);
+                
+                // 產生報價單號
+                await generateQuoteNo();
+            }
+            
+            // 初始化預設3列
+            initDefaultRows();
+            loadQuoteList();
+        });
+
+        // 取得單位代號
+        function getStoreCode(department) {
+            const map = {
+                '豐原門市': 'FY',
+                '潭子門市': 'TZ',
+                '大雅門市': 'DY',
+                '業務部': 'OW',
+                '總公司': 'HQ'
+            };
+            return map[department] || 'FY';
+        }
+
+        // 產生報價單號
+        async function generateQuoteNo() {
+            const storeCode = document.getElementById('storeCode').value;
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            
+            try {
+                const response = await fetch(`/api/quote/next-no?store=${storeCode}&date=${today}`);
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('quoteNo').value = data.quote_no;
+                }
+            } catch (error) {
+                console.error('產生報價單號失敗:', error);
+            }
+        }
+
+        // 初始化預設3列
+        function initDefaultRows() {
+            const tbody = document.getElementById('itemsBody');
+            tbody.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                addRow();
+            }
+        }
+
+        // 新增列
+        function addRow() {
+            const tbody = document.getElementById('itemsBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="search-wrapper">
+                        <input type="text" class="form-control product-search" placeholder="搜尋產品名稱" oninput="searchProducts(this)">
+                        <input type="hidden" class="product-code">
+                        <div class="suggestions"></div>
+                    </div>
+                </td>
+                <td><input type="number" class="form-control quantity" placeholder="數量" min="1" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="form-control price" placeholder="單價" min="0" onchange="calculateRow(this)"></td>
+                <td class="amount-display subtotal">0</td>
+                <td><button class="btn-delete" onclick="deleteRow(this)">刪除</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        // 刪除列
+        function deleteRow(btn) {
+            const tbody = document.getElementById('itemsBody');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+                calculateTotal();
+            } else {
+                alert('至少需要保留一筆明細');
+            }
+        }
+
+        // 搜尋產品
+        async function searchProducts(input) {
+            const keyword = input.value.trim();
+            const suggestions = input.parentElement.querySelector('.suggestions');
+            
+            if (keyword.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/product/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await response.json();
+                
+                if (data.success && data.products.length > 0) {
+                    suggestions.innerHTML = data.products.map(p => 
+                        `<div class="suggestion-item" onclick="selectProduct(this, '${p.product_code}', '${p.product_name.replace(/'/g, "\\'")}')">${p.product_name}</div>`
+                    ).join('');
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('搜尋產品失敗:', error);
+            }
+        }
+
+        // 選擇產品
+        function selectProduct(el, code, name) {
+            const row = el.closest('tr');
+            const searchInput = row.querySelector('.product-search');
+            const codeInput = row.querySelector('.product-code');
+            
+            searchInput.value = name;
+            codeInput.value = code;
+            el.parentElement.style.display = 'none';
+        }
+
+        // 計算單列
+        function calculateRow(input) {
+            const row = input.closest('tr');
+            const quantity = parseInt(row.querySelector('.quantity').value) || 0;
+            const price = parseInt(row.querySelector('.price').value) || 0;
+            
+            const subtotal = quantity * price;
+            row.querySelector('.subtotal').textContent = subtotal.toLocaleString();
+            
+            calculateTotal();
+        }
+
+        // 計算總計
+        function calculateTotal() {
+            let totalAmount = 0;
+            
+            document.querySelectorAll('#itemsBody tr').forEach(row => {
+                const subtotalText = row.querySelector('.subtotal').textContent.replace(/,/g, '');
+                totalAmount += parseInt(subtotalText) || 0;
+            });
+            
+            document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
+        }
+
+        // 搜尋客戶
+        async function searchCustomers(input) {
+            const keyword = input.value.trim();
+            const suggestions = document.getElementById('customerSuggestions');
+            
+            if (keyword.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/customer/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await response.json();
+                
+                if (data.success && data.customers.length > 0) {
+                    suggestions.innerHTML = data.customers.map(c => 
+                        `<div class="suggestion-item" onclick="selectCustomer('${c.customer_id}', '${c.short_name.replace(/'/g, "\\'")}')">${c.short_name} (${c.customer_id})</div>`
+                    ).join('');
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('搜尋客戶失敗:', error);
+            }
+        }
+
+        // 選擇客戶
+        function selectCustomer(id, name) {
+            document.getElementById('customerSearch').value = name;
+            document.getElementById('customerId').value = id;
+            document.getElementById('customerName').value = name;
+            document.getElementById('customerSuggestions').style.display = 'none';
+        }
+
+        // 提交表單
+        async function submitForm() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            
+            const quoteNo = document.getElementById('quoteNo').value;
+            const date = document.getElementById('quoteDate').value;
+            const customerId = document.getElementById('customerId').value;
+            const customerName = document.getElementById('customerName').value;
+            
+            if (!customerId) {
+                alert('請選擇客戶');
+                btn.disabled = false;
+                return;
+            }
+            
+            // 收集明細
+            const items = [];
+            let hasError = false;
+            
+            document.querySelectorAll('#itemsBody tr').forEach(row => {
+                const productCode = row.querySelector('.product-code').value;
+                const productName = row.querySelector('.product-search').value;
+                const quantity = parseInt(row.querySelector('.quantity').value) || 0;
+                const price = parseInt(row.querySelector('.price').value) || 0;
+                
+                if (productName && quantity > 0 && price >= 0) {
+                    items.push({
+                        product_code: productCode,
+                        product_name: productName,
+                        qty: quantity,
+                        unit_price: price,
+                        subtotal: quantity * price
+                    });
+                } else if (productName || quantity > 0 || price > 0) {
+                    hasError = true;
+                }
+            });
+            
+            if (hasError) {
+                alert('請完整填寫所有明細（產品名稱、數量、單價）');
+                btn.disabled = false;
+                return;
+            }
+            
+            if (items.length === 0) {
+                alert('請至少輸入一筆產品明細');
+                btn.disabled = false;
+                return;
+            }
+            
+            const totalAmount = parseInt(document.getElementById('totalAmount').textContent.replace(/,/g, ''));
+            
+            const payload = {
+                doc_no: quoteNo,
+                doc_type: 'QUOTE',
+                target_id: customerId,
+                target_name: customerName,
+                total_amount: totalAmount,
+                items: items,
+                salesperson: document.getElementById('salesperson').value,
+                salesperson_id: document.getElementById('salespersonId').value
+            };
+            
+            try {
+                const response = await fetch('/api/sales-doc/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`報價單 ${quoteNo} 儲存成功！`, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(data.message || '儲存失敗', 'error');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+                btn.disabled = false;
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 載入報價單列表
+        async function loadQuoteList(page = 1, search = '') {
+            currentPage = page;
+            
+            try {
+                let url = `/api/sales-doc/list?page=${page}&limit=50&type=QUOTE`;
+                if (search) url += `&search=${encodeURIComponent(search)}`;
+                if (!canEditAll) url += `&salesperson=${currentUser.staff_code || ''}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderQuoteTable(data.documents);
+                    totalPages = data.total_pages;
+                    updatePagination(data.page, data.total_pages, data.total);
+                }
+            } catch (error) {
+                console.error('載入報價單列表失敗:', error);
+                document.getElementById('quoteTableBody').innerHTML = 
+                    '<tr><td colspan="7" style="text-align:center;color:#f44336;padding:30px;">載入失敗</td></tr>';
+            }
+        }
+
+        // 渲染表格
+        function renderQuoteTable(quotes) {
+            const tbody = document.getElementById('quoteTableBody');
+            if (quotes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#8892b0;padding:30px;">暫無資料</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = quotes.map(q => {
+                const statusClass = q.status === 'DRAFT' ? 'status-draft' : 
+                                   q.status === 'CONFIRMED' ? 'status-confirmed' : 'status-closed';
+                const statusText = q.status === 'DRAFT' ? '草稿' : 
+                                  q.status === 'CONFIRMED' ? '已確認' : '已結案';
+                
+                // 檢查是否可以編輯（自己的或老闆/會計）
+                const canEdit = canEditAll || q.salesperson_id === currentUser.staff_code;
+                
+                return `
+                    <tr onclick="viewQuote('${q.doc_no}')">
+                        <td>${q.doc_no}</td>
+                        <td>${q.created_at ? q.created_at.substring(0, 10) : '-'}</td>
+                        <td>${q.target_name}</td>
+                        <td>${q.salesperson}</td>
+                        <td>${q.total_amount.toLocaleString()} 元</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>
+                            ${canEdit && q.status === 'DRAFT' ? `<button class="btn-convert" onclick="event.stopPropagation(); showConvertModal('${q.doc_no}', ${q.total_amount})">轉訂單</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 更新分頁
+        function updatePagination(page, totalPages, total) {
+            document.getElementById('pageInfo').textContent = `第 ${page} / ${totalPages} 頁 (共 ${total} 筆)`;
+            document.getElementById('prevBtn').disabled = page <= 1;
+            document.getElementById('nextBtn').disabled = page >= totalPages;
+        }
+
+        // 切換頁面
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                const search = document.getElementById('searchInput').value.trim();
+                loadQuoteList(newPage, search);
+            }
+        }
+
+        // 搜尋
+        function searchQuotes() {
+            const search = document.getElementById('searchInput').value.trim();
+            loadQuoteList(1, search);
+        }
+
+        // 檢視報價單詳情
+        async function viewQuote(docNo) {
+            try {
+                const response = await fetch(`/api/sales-doc/detail?doc_no=${encodeURIComponent(docNo)}`);
+                const data = await response.json();
+                if (data.success) {
+                    currentQuote = data.document;
+                    showModal(currentQuote);
+                }
+            } catch (error) {
+                console.error('載入報價單詳情失敗:', error);
+            }
+        }
+
+        // 顯示彈窗
+        function showModal(quote) {
+            const itemsHtml = quote.items.map(item => `
+                <div class="item-row">
+                    <span>${item.product_name}</span>
+                    <span>${item.qty} x ${item.unit_price.toLocaleString()} = ${item.subtotal.toLocaleString()} 元</span>
+                </div>
+            `).join('');
+
+            const statusClass = quote.status === 'DRAFT' ? 'status-draft' : 
+                               quote.status === 'CONFIRMED' ? 'status-confirmed' : 'status-closed';
+            const statusText = quote.status === 'DRAFT' ? '草稿' : 
+                              quote.status === 'CONFIRMED' ? '已確認' : '已結案';
+
+            const canEdit = canEditAll || quote.salesperson_id === currentUser.staff_code;
+            const canConvert = canEdit && quote.status === 'DRAFT';
+
+            const content = document.getElementById('modalContent');
+            content.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>報價單號</label>
+                        <input type="text" class="form-control" value="${quote.doc_no}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>狀態</label>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>客戶</label>
+                        <input type="text" class="form-control" value="${quote.target_name}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>業務員</label>
+                        <input type="text" class="form-control" value="${quote.salesperson}" readonly>
+                    </div>
+                </div>
+                <div class="items-list">
+                    <h4>📦 產品明細</h4>
+                    ${itemsHtml}
+                    <div class="item-row" style="margin-top: 10px; padding-top: 10px; border-top: 2px solid rgba(0, 212, 255, 0.3); font-weight: bold;">
+                        <span>總計</span>
+                        <span style="color: #00d4ff;">${quote.total_amount.toLocaleString()} 元</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('viewModal').classList.add('active');
+            document.getElementById('editBtn').style.display = canEdit ? 'inline-block' : 'none';
+            document.getElementById('convertBtn').style.display = canConvert ? 'inline-block' : 'none';
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('viewModal').classList.remove('active');
+            currentQuote = null;
+        }
+
+        // 啟用編輯
+        function enableEdit() {
+            if (!currentQuote) return;
+            showToast('編輯功能開發中', 'warning');
+        }
+
+        // 顯示轉訂單彈窗
+        function showConvertModal(quoteNo, totalAmount) {
+            if (quoteNo) {
+                document.getElementById('convertQuoteNo').value = quoteNo;
+                document.getElementById('convertTotalAmount').value = totalAmount.toLocaleString() + ' 元';
+            } else if (currentQuote) {
+                document.getElementById('convertQuoteNo').value = currentQuote.doc_no;
+                document.getElementById('convertTotalAmount').value = currentQuote.total_amount.toLocaleString() + ' 元';
+            }
+            
+            // 產生訂單號碼
+            const storeCode = document.getElementById('storeCode').value;
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            document.getElementById('orderNo').value = `${storeCode}-${today}-OD`;
+            
+            document.getElementById('convertModal').classList.add('active');
+        }
+
+        // 關閉轉換彈窗
+        function closeConvertModal() {
+            document.getElementById('convertModal').classList.remove('active');
+        }
+
+        // 確認轉換
+        async function confirmConvert() {
+            const quoteNo = document.getElementById('convertQuoteNo').value;
+            const orderNo = document.getElementById('orderNo').value;
+            const depositAmount = parseInt(document.getElementById('depositAmount').value) || 0;
+            const totalAmount = parseInt(document.getElementById('convertTotalAmount').value.replace(/[^0-9]/g, ''));
+            
+            if (depositAmount > totalAmount) {
+                alert('訂金金額不能超過總金額');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/sales-doc/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_doc_no: quoteNo,
+                        new_doc_no: orderNo,
+                        doc_type: 'ORDER',
+                        deposit_amount: depositAmount
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`已成功轉換為訂單 ${orderNo}`, 'success');
+                    closeConvertModal();
+                    closeModal();
+                    loadQuoteList();
+                } else {
+                    showToast(data.message || '轉換失敗', 'error');
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+            }
+        }
+
+        // 點擊外部關閉建議
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrapper')) {
+                document.querySelectorAll('.suggestions').forEach(el => el.style.display = 'none');
+            }
+            if (!e.target.closest('#customerSearch')) {
+                document.getElementById('customerSuggestions').style.display = 'none';
+            }
+        });
