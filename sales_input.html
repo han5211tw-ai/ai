@@ -459,6 +459,24 @@
                     <div id="customerSuggestions" class="suggestions"></div>
                 </div>
             </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>付款方式 <span class="required">*</span></label>
+                    <select id="paymentMethod" class="form-control" onchange="onPaymentMethodChange()">
+                        <option value="">請選擇付款方式</option>
+                        <option value="現金">💵 現金</option>
+                        <option value="匯款">🏦 匯款</option>
+                        <option value="刷卡">💳 刷卡</option>
+                        <option value="支票">📄 支票</option>
+                        <option value="月結">📅 月結</option>
+                    </select>
+                </div>
+                <div class="form-group" id="dueDateGroup" style="display:none;">
+                    <label>應收款日 <span class="required">*</span></label>
+                    <input type="date" id="dueDate" class="form-control">
+                </div>
+            </div>
         </div>
 
         <!-- 產品明細 -->
@@ -783,9 +801,53 @@
                 document.getElementById('submitBtn').disabled = true;
                 document.getElementById('profitWarning').style.display = 'block';
             } else {
-                document.getElementById('submitBtn').disabled = false;
-                document.getElementById('profitWarning').style.display = 'none';
+                updateSubmitButton();
             }
+        }
+
+        // 付款方式變更處理
+        function onPaymentMethodChange() {
+            const method = document.getElementById('paymentMethod').value;
+            const dueDateGroup = document.getElementById('dueDateGroup');
+            
+            if (method === '月結') {
+                dueDateGroup.style.display = 'block';
+                // 預設30天後
+                const today = new Date();
+                today.setDate(today.getDate() + 30);
+                document.getElementById('dueDate').value = today.toISOString().slice(0, 10);
+            } else {
+                dueDateGroup.style.display = 'none';
+                document.getElementById('dueDate').value = '';
+            }
+            
+            updateSubmitButton();
+        }
+
+        // 更新提交按鈕狀態
+        function updateSubmitButton() {
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const dueDate = document.getElementById('dueDate').value;
+            
+            let isValid = true;
+            
+            // 檢查付款方式
+            if (!paymentMethod) {
+                isValid = false;
+            }
+            
+            // 月結必須有應收款日
+            if (paymentMethod === '月結' && !dueDate) {
+                isValid = false;
+            }
+            
+            // 檢查利潤
+            const hasNegativeProfit = document.getElementById('profitWarning').style.display === 'block';
+            if (hasNegativeProfit) {
+                isValid = false;
+            }
+            
+            document.getElementById('submitBtn').disabled = !isValid;
         }
 
         // 搜尋客戶
@@ -833,9 +895,23 @@
             const customerId = document.getElementById('customerId').value;
             const customerName = document.getElementById('customerName').value;
             const invoiceNo = document.getElementById('invoiceNo').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const dueDate = document.getElementById('dueDate').value;
             
             if (!date || !customerId) {
                 alert('請填寫必填欄位（日期、客戶）');
+                btn.disabled = false;
+                return;
+            }
+            
+            if (!paymentMethod) {
+                alert('請選擇付款方式');
+                btn.disabled = false;
+                return;
+            }
+            
+            if (paymentMethod === '月結' && !dueDate) {
+                alert('月結請款請填寫應收款日');
                 btn.disabled = false;
                 return;
             }
@@ -891,6 +967,8 @@
                 return;
             }
             
+            const totalAmount = parseInt(document.getElementById('totalAmount').textContent.replace(/,/g, ''));
+            
             const payload = {
                 sales_order_no: orderNo,
                 date: date,
@@ -900,7 +978,9 @@
                 salesperson: document.getElementById('salesperson').value,
                 salesperson_id: document.getElementById('salespersonId').value,
                 items: items,
-                total_amount: parseInt(document.getElementById('totalAmount').textContent.replace(/,/g, ''))
+                total_amount: totalAmount,
+                payment_method: paymentMethod,
+                due_date: dueDate
             };
             
             try {
