@@ -800,11 +800,6 @@
             console.log('[ServiceRecord] Initializing with shared auth...');
             
             try {
-                const user = await requireLogin({
-                    minRole: 'staff',
-                    title: '📋 外勤服務紀錄',
-                    subtitle: '身分證後四碼驗證'
-                });
                 
                 console.log('[ServiceRecord] Login success:', user);
                 currentUser = user;

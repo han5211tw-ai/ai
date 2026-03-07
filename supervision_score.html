@@ -526,11 +526,6 @@
             console.log('[Supervision] Initializing with shared auth...');
             
             try {
-                const data = await requireLogin({
-                    minRole: 'accountant',
-                    title: '📋 督導評分表',
-                    subtitle: '身分證後四碼驗證'
-                });
                 
                 console.log('[Supervision] Login success:', data);
                 currentUser = data;
