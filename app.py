@@ -7773,6 +7773,341 @@ def get_purchases_list():
 
 
 # ============================================
+# API: 銷貨管理
+# ============================================
+
+@app.route('/api/sales/next-order-no')
+def get_next_sales_order_no():
+    """產生下一個銷貨單號"""
+    store_code = request.args.get('store', 'FY')
+    date_str = request.args.get('date', datetime.now().strftime('%Y%m%d'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        prefix = f"{store_code}-{date_str}-"
+        cursor.execute("""
+            SELECT sales_invoice_no FROM sales_history 
+            WHERE sales_invoice_no LIKE ? 
+            ORDER BY sales_invoice_no DESC LIMIT 1
+        """, (prefix + '%',))
+        
+        row = cursor.fetchone()
+        if row and row['sales_invoice_no']:
+            try:
+                last_seq = int(row['sales_invoice_no'].split('-')[-1])
+                next_seq = last_seq + 1
+            except:
+                next_seq = 1
+        else:
+            next_seq = 1
+        
+        order_no = f"{store_code}-{date_str}-{next_seq:03d}"
+        
+        return jsonify({'success': True, 'order_no': order_no})
+    except Exception as e:
+        print(f"[ERROR] 產生銷貨單號失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/product/cost')
+def get_product_cost():
+    """取得產品當月平均成本"""
+    product_code = request.args.get('code', '').strip()
+    
+    if not product_code:
+        return jsonify({'success': False, 'cost': 0})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 取得當前年月
+        now = datetime.now()
+        current_year = now.year
+        current_month = now.month
+        
+        # 嘗試抓取當月進貨
+        cursor.execute("""
+            SELECT SUM(quantity) as total_qty, SUM(amount) as total_amount
+            FROM purchase_history
+            WHERE product_code = ? 
+            AND strftime('%Y', date) = ? 
+            AND strftime('%m', date) = ?
+        """, (product_code, str(current_year), f"{current_month:02d}"))
+        
+        row = cursor.fetchone()
+        
+        # 若當月無進貨，遞推至上月
+        if not row or not row['total_qty'] or row['total_qty'] == 0:
+            # 遞推最多12個月
+            for i in range(1, 13):
+                check_month = current_month - i
+                check_year = current_year
+                if check_month <= 0:
+                    check_month += 12
+                    check_year -= 1
+                
+                cursor.execute("""
+                    SELECT SUM(quantity) as total_qty, SUM(amount) as total_amount
+                    FROM purchase_history
+                    WHERE product_code = ? 
+                    AND strftime('%Y', date) = ? 
+                    AND strftime('%m', date) = ?
+                """, (product_code, str(check_year), f"{check_month:02d}"))
+                
+                row = cursor.fetchone()
+                if row and row['total_qty'] and row['total_qty'] > 0:
+                    break
+        
+        if row and row['total_qty'] and row['total_qty'] > 0:
+            avg_cost = row['total_amount'] / row['total_qty']
+            return jsonify({'success': True, 'cost': round(avg_cost)})
+        else:
+            # 無進貨紀錄，回傳0
+            return jsonify({'success': True, 'cost': 0})
+    except Exception as e:
+        print(f"[ERROR] 取得產品成本失敗: {e}")
+        return jsonify({'success': False, 'cost': 0}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/sales/create', methods=['POST'])
+def create_sales_order():
+    """建立銷貨單"""
+    data = request.get_json()
+    
+    sales_order_no = data.get('sales_order_no')
+    date = data.get('date')
+    customer_id = data.get('customer_id')
+    customer_name = data.get('customer_name')
+    invoice_no = data.get('invoice_no', '')
+    salesperson = data.get('salesperson', '')
+    salesperson_id = data.get('salesperson_id', '')
+    items = data.get('items', [])
+    
+    if not all([sales_order_no, date, customer_id, items]):
+        return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
+    
+    # 檢查利潤
+    for item in items:
+        if item.get('profit', 0) <= 0:
+            return jsonify({'success': False, 'message': '存在虧損品項，無法儲存'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 插入每筆明細
+        for item in items:
+            cursor.execute("""
+                INSERT INTO sales_history 
+                (sales_invoice_no, date, customer_id, customer_name, salesperson, salesperson_id,
+                 product_code, product_name, quantity, price, amount, cost, profit, margin,
+                 invoice_no, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+            """, (
+                sales_order_no,
+                date,
+                customer_id,
+                customer_name,
+                salesperson,
+                salesperson_id,
+                item.get('product_code', ''),
+                item['product_name'],
+                item['quantity'],
+                item['price'],
+                item['amount'],
+                item.get('cost', 0),
+                item.get('profit', 0),
+                item.get('margin', 0),
+                invoice_no
+            ))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': f'銷貨單 {sales_order_no} 建立成功'})
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 建立銷貨單失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/sales/list')
+def get_sales_list():
+    """取得銷貨單列表"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 50, type=int)
+    search = request.args.get('search', '').strip()
+    store = request.args.get('store', '').strip()
+    
+    offset = (page - 1) * limit
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 計算總筆數
+        count_sql = """
+            SELECT COUNT(DISTINCT sales_invoice_no) as total
+            FROM sales_history
+            WHERE sales_invoice_no IS NOT NULL AND sales_invoice_no != ''
+        """
+        count_params = []
+        
+        if search:
+            count_sql += " AND (sales_invoice_no LIKE ? OR customer_name LIKE ?)"
+            count_params = [f'%{search}%', f'%{search}%']
+        
+        if store:
+            count_sql += " AND sales_invoice_no LIKE ?"
+            count_params.append(f'{store}-%')
+        
+        cursor.execute(count_sql, count_params)
+        total = cursor.fetchone()['total']
+        
+        # 查詢銷貨單列表
+        sql = """
+            SELECT DISTINCT sales_invoice_no, date, customer_name, salesperson
+            FROM sales_history
+            WHERE sales_invoice_no IS NOT NULL AND sales_invoice_no != ''
+        """
+        params = []
+        
+        if search:
+            sql += " AND (sales_invoice_no LIKE ? OR customer_name LIKE ?)"
+            params = [f'%{search}%', f'%{search}%']
+        
+        if store:
+            sql += " AND sales_invoice_no LIKE ?"
+            params.append(f'{store}-%')
+        
+        sql += " ORDER BY date DESC, sales_invoice_no DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor.execute(sql, params)
+        orders = cursor.fetchall()
+        
+        # 查詢每張單的明細
+        result = []
+        for order in orders:
+            cursor.execute("""
+                SELECT product_code, product_name, quantity, price, amount, cost, profit, margin
+                FROM sales_history
+                WHERE sales_invoice_no = ?
+                ORDER BY id
+            """, (order['sales_invoice_no'],))
+            items = cursor.fetchall()
+            
+            total_amount = sum(item['amount'] for item in items)
+            
+            result.append({
+                'sales_order_no': order['sales_invoice_no'],
+                'date': order['date'],
+                'customer_name': order['customer_name'],
+                'salesperson': order['salesperson'],
+                'items': [{
+                    'product_code': i['product_code'],
+                    'product_name': i['product_name'],
+                    'quantity': i['quantity'],
+                    'price': i['price'],
+                    'amount': i['amount'],
+                    'cost': i['cost'],
+                    'profit': i['profit'],
+                    'margin': i['margin']
+                } for i in items],
+                'total_amount': total_amount,
+                'item_count': len(items)
+            })
+        
+        return jsonify({
+            'success': True,
+            'sales': result,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得銷貨單列表失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/sales/detail')
+def get_sales_detail():
+    """取得銷貨單詳情"""
+    order_no = request.args.get('order_no', '').strip()
+    
+    if not order_no:
+        return jsonify({'success': False, 'message': '缺少單號'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 查詢單據頭
+        cursor.execute("""
+            SELECT DISTINCT sales_invoice_no, date, customer_id, customer_name, 
+                           salesperson, salesperson_id, invoice_no
+            FROM sales_history
+            WHERE sales_invoice_no = ?
+            LIMIT 1
+        """, (order_no,))
+        
+        header = cursor.fetchone()
+        if not header:
+            return jsonify({'success': False, 'message': '找不到銷貨單'}), 404
+        
+        # 查詢明細
+        cursor.execute("""
+            SELECT product_code, product_name, quantity, price, amount, cost, profit, margin
+            FROM sales_history
+            WHERE sales_invoice_no = ?
+            ORDER BY id
+        """, (order_no,))
+        items = cursor.fetchall()
+        
+        total_amount = sum(item['amount'] for item in items)
+        
+        return jsonify({
+            'success': True,
+            'sale': {
+                'sales_order_no': header['sales_invoice_no'],
+                'date': header['date'],
+                'customer_id': header['customer_id'],
+                'customer_name': header['customer_name'],
+                'salesperson': header['salesperson'],
+                'salesperson_id': header['salesperson_id'],
+                'invoice_no': header['invoice_no'],
+                'items': [{
+                    'product_code': i['product_code'],
+                    'product_name': i['product_name'],
+                    'quantity': i['quantity'],
+                    'price': i['price'],
+                    'amount': i['amount'],
+                    'cost': i['cost'],
+                    'profit': i['profit'],
+                    'margin': i['margin']
+                } for i in items],
+                'total_amount': total_amount,
+                'item_count': len(items)
+            }
+        })
+    except Exception as e:
+        print(f"[ERROR] 取得銷貨單詳情失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+
+# ============================================
 # 靜態檔案路由（必須放在所有 API 路由之後）
 # 注意：這個路由會捕獲所有未被前面路由匹配的請求
 # ============================================
