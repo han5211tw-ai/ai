@@ -179,6 +179,170 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        /* 資料列表樣式 */
+        .data-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .data-section h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .data-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .data-filters input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            font-size: 0.95em;
+        }
+        .data-filters input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .data-filters button {
+            padding: 10px 20px;
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            color: #00d4ff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        .data-filters button:hover {
+            background: rgba(0, 212, 255, 0.3);
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .data-table th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+        }
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccd6f6;
+        }
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+        }
+        .data-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            align-items: center;
+        }
+        .data-pagination button {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .data-pagination button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .data-pagination button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .data-pagination span {
+            color: #8892b0;
+            font-size: 0.9em;
+        }
+
+        /* 彈窗樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .modal .form-row {
+            margin-bottom: 15px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .btn-edit {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            color: #ffc107;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .btn-edit:hover {
+            background: rgba(255, 193, 7, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -262,6 +426,47 @@
 
             <button id="submitBtn" class="btn-submit" onclick="submitForm()">✓ 建立客戶資料</button>
         </div>
+
+        <!-- 資料列表區塊 -->
+        <div class="data-section">
+            <h3>📜 客戶資料列表</h3>
+            <div class="data-filters">
+                <input type="text" id="searchInput" placeholder="搜尋客戶名稱、手機、編號..." onkeyup="if(event.key==='Enter')searchCustomers()">
+                <button onclick="searchCustomers()">🔍 搜尋</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>客戶編號</th>
+                        <th>客戶名稱</th>
+                        <th>手機</th>
+                        <th>電話</th>
+                        <th>付款方式</th>
+                    </tr>
+                </thead>
+                <tbody id="customerTableBody">
+                    <tr><td colspan="5" style="text-align:center;color:#8892b0;padding:30px;">載入中...</td></tr>
+                </tbody>
+            </table>
+            <div class="data-pagination">
+                <button onclick="changePage(-1)" id="prevBtn">← 上一頁</button>
+                <span id="pageInfo">第 1 頁</span>
+                <button onclick="changePage(1)" id="nextBtn">下一頁 →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 檢視/編修彈窗 -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <h3>📋 客戶資料詳情</h3>
+            <div id="modalContent"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">關閉</button>
+                <button class="btn-edit" id="editBtn" onclick="enableEdit()" style="display:none;">✏️ 編修</button>
+                <button class="btn-primary" id="saveBtn" onclick="saveEdit()" style="display:none;">💾 儲存</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -269,6 +474,10 @@
         let prefix = '';
         let isMobileValid = false;
         let isPhoneValid = true;
+        let canEdit = false;
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentCustomer = null;
 
         // 取得當前使用者資訊
         function getCurrentUser() {
@@ -465,12 +674,204 @@
             prefix = getPrefix(currentUser.department);
             generateCustomerId();
 
+            // 檢查編輯權限（老闆、會計、主管都可以編修）
+            const userTitle = currentUser.title || '';
+            canEdit = (userTitle === '老闆' || userTitle.includes('會計') || userTitle.includes('主管'));
+
             // 綁定事件
             document.getElementById('mobile').addEventListener('blur', checkMobile);
             document.getElementById('phone1').addEventListener('blur', checkPhone);
             document.getElementById('shortName').addEventListener('input', updateSubmitButton);
             document.getElementById('mobile').addEventListener('input', updateSubmitButton);
+
+            // 載入客戶列表
+            loadCustomerList();
         });
+
+        // 載入客戶列表
+        async function loadCustomerList(page = 1, search = '') {
+            currentPage = page;
+            try {
+                const url = `/api/customers/list?page=${page}&limit=50&search=${encodeURIComponent(search)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderCustomerTable(data.customers);
+                    totalPages = data.total_pages;
+                    updatePagination(data.page, data.total_pages, data.total);
+                }
+            } catch (error) {
+                console.error('載入客戶列表失敗:', error);
+                document.getElementById('customerTableBody').innerHTML = 
+                    '<tr><td colspan="5" style="text-align:center;color:#f44336;padding:30px;">載入失敗</td></tr>';
+            }
+        }
+
+        // 渲染表格
+        function renderCustomerTable(customers) {
+            const tbody = document.getElementById('customerTableBody');
+            if (customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8892b0;padding:30px;">暫無資料</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = customers.map(c => `
+                <tr onclick="viewCustomer('${c.customer_id}')">
+                    <td>${c.customer_id}</td>
+                    <td>${c.short_name}</td>
+                    <td>${c.mobile || '-'}</td>
+                    <td>${c.phone1 || '-'}</td>
+                    <td>${c.payment_type || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 更新分頁
+        function updatePagination(page, totalPages, total) {
+            document.getElementById('pageInfo').textContent = `第 ${page} / ${totalPages} 頁 (共 ${total} 筆)`;
+            document.getElementById('prevBtn').disabled = page <= 1;
+            document.getElementById('nextBtn').disabled = page >= totalPages;
+        }
+
+        // 切換頁面
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                const search = document.getElementById('searchInput').value.trim();
+                loadCustomerList(newPage, search);
+            }
+        }
+
+        // 搜尋
+        function searchCustomers() {
+            const search = document.getElementById('searchInput').value.trim();
+            loadCustomerList(1, search);
+        }
+
+        // 檢視客戶詳情
+        async function viewCustomer(customerId) {
+            try {
+                const response = await fetch(`/api/customers/list?search=${encodeURIComponent(customerId)}`);
+                const data = await response.json();
+                if (data.success && data.customers.length > 0) {
+                    currentCustomer = data.customers[0];
+                    showModal(currentCustomer);
+                }
+            } catch (error) {
+                console.error('載入客戶詳情失敗:', error);
+            }
+        }
+
+        // 顯示彈窗
+        function showModal(customer) {
+            const content = document.getElementById('modalContent');
+            content.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>客戶編號</label>
+                        <input type="text" id="modal_customerId" class="form-control" value="${customer.customer_id}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>付款方式</label>
+                        <select id="modal_paymentType" class="form-control" disabled>
+                            <option value="">請選擇</option>
+                            <option value="現金" ${customer.payment_type === '現金' ? 'selected' : ''}>現金</option>
+                            <option value="支票" ${customer.payment_type === '支票' ? 'selected' : ''}>支票</option>
+                            <option value="匯款" ${customer.payment_type === '匯款' ? 'selected' : ''}>匯款</option>
+                            <option value="月結" ${customer.payment_type === '月結' ? 'selected' : ''}>月結</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>客戶名稱</label>
+                    <input type="text" id="modal_shortName" class="form-control" value="${customer.short_name || ''}" readonly>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>手機</label>
+                        <input type="text" id="modal_mobile" class="form-control" value="${customer.mobile || ''}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>電話</label>
+                        <input type="text" id="modal_phone1" class="form-control" value="${customer.phone1 || ''}" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>聯絡人</label>
+                    <input type="text" id="modal_contact" class="form-control" value="${customer.contact || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>統一編號</label>
+                    <input type="text" id="modal_taxId" class="form-control" value="${customer.tax_id || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>地址</label>
+                    <input type="text" id="modal_companyAddress" class="form-control" value="${customer.company_address || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>送貨地址</label>
+                    <input type="text" id="modal_deliveryAddress" class="form-control" value="${customer.delivery_address || ''}" readonly>
+                </div>
+            `;
+
+            document.getElementById('viewModal').classList.add('active');
+            document.getElementById('editBtn').style.display = canEdit ? 'inline-block' : 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('viewModal').classList.remove('active');
+            currentCustomer = null;
+        }
+
+        // 啟用編輯
+        function enableEdit() {
+            const inputs = document.querySelectorAll('#modalContent input:not(#modal_customerId), #modalContent select');
+            inputs.forEach(input => {
+                input.readOnly = false;
+                input.disabled = false;
+            });
+            document.getElementById('editBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'inline-block';
+        }
+
+        // 儲存編輯
+        async function saveEdit() {
+            if (!currentCustomer) return;
+
+            const payload = {
+                customer_id: document.getElementById('modal_customerId').value,
+                short_name: document.getElementById('modal_shortName').value,
+                mobile: document.getElementById('modal_mobile').value,
+                phone1: document.getElementById('modal_phone1').value,
+                contact: document.getElementById('modal_contact').value,
+                tax_id: document.getElementById('modal_taxId').value,
+                company_address: document.getElementById('modal_companyAddress').value,
+                delivery_address: document.getElementById('modal_deliveryAddress').value,
+                payment_type: document.getElementById('modal_paymentType').value
+            };
+
+            try {
+                const response = await fetch('/api/customer/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('客戶資料更新成功！', 'success');
+                    closeModal();
+                    loadCustomerList(currentPage, document.getElementById('searchInput').value.trim());
+                } else {
+                    showToast(data.message || '更新失敗', 'error');
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+            }
+        }
     </script>
 </body>
 </html>
