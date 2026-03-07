@@ -402,7 +402,7 @@
 <div class="container">
 <div class="container">
         <div class="header-row">
-            <h1>💰 銷貨輸入</h1>
+            
             <div class="user-info">
                 <span id="userDisplay" class="user-name"></span>
                 <button onclick="window.authLogout && window.authLogout()" class="btn-logout">登出</button>
@@ -416,7 +416,7 @@
 
         <!-- 帶入訂單區塊 -->
         <div class="card" id="orderImportSection">
-            <h2>📋 帶入訂單（選填）</h2>
+            
             <div class="form-group">
                 <div class="search-wrapper">
                     <input type="text" id="orderSearch" class="form-control" placeholder="🔍 搜尋訂單號碼或客戶名稱..." oninput="searchOrders(this)">
@@ -437,7 +437,7 @@
 
         <!-- 銷貨單表單 -->
         <div class="card">
-            <h2>📋 基本資訊</h2>
+            
             
             <div class="form-row">
                 <div class="form-group">
@@ -477,7 +477,7 @@
 
         <!-- 產品明細 -->
         <div class="card">
-            <h2>📦 產品明細</h2>
+            
             
             <table>
                 <thead>
@@ -512,7 +512,7 @@
 
         <!-- 付款方式與提交 -->
         <div class="card">
-            <h2>💳 付款資訊</h2>
+            
             
             <!-- 訂金資訊顯示（帶入訂單時顯示） -->
             <div id="depositInfoSection" style="display:none; margin-bottom:20px; padding:15px; background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); border-radius:8px;">
@@ -548,7 +548,7 @@
 
         <!-- 資料列表區塊 -->
         <div class="data-section">
-            <h3>📜 銷貨單列表</h3>
+            
             <div class="data-filters">
                 <input type="text" id="searchInput" placeholder="搜尋單號、客戶..." onkeyup="if(event.key==='Enter')searchSales()">
                 <button onclick="searchSales()">🔍 搜尋</button>
@@ -579,7 +579,7 @@
     <!-- 檢視/編修彈窗 -->
     <div class="modal-overlay" id="viewModal">
         <div class="modal">
-            <h3>📋 銷貨單詳情</h3>
+            
             <div id="modalContent"></div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal()">關閉</button>
@@ -729,7 +729,7 @@
                 
                 if (data.success && data.products.length > 0) {
                     suggestions.innerHTML = data.products.map(p => 
-                        `<div class="suggestion-item" onclick="selectProduct(this, '${p.product_code}', '${p.product_name.replace(/'/g, "\\'")}')">${p.product_name}</div>`
+                        `<div class="suggestion-item" onclick="selectProduct(this, '${p.product_code}', '${p.product_name.replace(/'/g, "\'")}')">${p.product_name}</div>`
                     ).join('');
                     suggestions.style.display = 'block';
                 } else {
@@ -760,7 +760,7 @@
                     
                     if (activeOrders.length > 0) {
                         suggestions.innerHTML = activeOrders.map(o => 
-                            `<div class="suggestion-item" onclick="selectOrder('${o.doc_no}', '${o.target_id}', '${o.target_name.replace(/'/g, "\\'")}', ${o.deposit_amount || 0}, ${o.total_amount})">${o.doc_no} - ${o.target_name} (訂金:${o.deposit_amount || 0}元)</div>`
+                            `<div class="suggestion-item" onclick="selectOrder('${o.doc_no}', '${o.target_id}', '${o.target_name.replace(/'/g, "\'")}', ${o.deposit_amount || 0}, ${o.total_amount})">${o.doc_no} - ${o.target_name} (訂金:${o.deposit_amount || 0}元)</div>`
                         ).join('');
                         suggestions.style.display = 'block';
                     } else {
@@ -1021,7 +1021,7 @@
                 
                 if (data.success && data.customers.length > 0) {
                     suggestions.innerHTML = data.customers.map(c => 
-                        `<div class="suggestion-item" onclick="selectCustomer('${c.customer_id}', '${c.short_name.replace(/'/g, "\\'")}')">${c.short_name} (${c.customer_id})</div>`
+                        `<div class="suggestion-item" onclick="selectCustomer('${c.customer_id}', '${c.short_name.replace(/'/g, "\'")}')">${c.short_name} (${c.customer_id})</div>`
                     ).join('');
                     suggestions.style.display = 'block';
                 } else {
@@ -1299,7 +1299,7 @@
                     <input type="text" class="form-control" value="${sale.invoice_no || '-'}" readonly>
                 </div>
                 <div class="items-list">
-                    <h4>📦 產品明細</h4>
+                    
                     <table style="width:100%;margin-top:10px;">
                         <thead>
                             <tr>

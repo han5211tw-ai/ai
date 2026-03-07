@@ -399,7 +399,7 @@
 
     <div class="container">
         <div class="header-row">
-            <h1>📦 產品建檔</h1>
+            
             <div class="user-info">
                 <span id="userDisplay" class="user-name"></span>
                 <button onclick="window.authLogout && window.authLogout()" class="btn-logout">登出</button>
@@ -412,7 +412,7 @@
         </div>
 
         <div class="card">
-            <h2>📋 基本資訊</h2>
+            
 
             <div class="form-row">
                 <div class="form-group">
@@ -481,7 +481,7 @@
 
         <!-- 資料列表區塊 -->
         <div class="data-section">
-            <h3>📜 產品資料列表</h3>
+            
             <div class="data-filters">
                 <input type="text" id="searchInput" placeholder="搜尋產品名稱、編號..." onkeyup="if(event.key==='Enter')searchProducts()">
                 <button onclick="searchProducts()">🔍 搜尋</button>
@@ -509,7 +509,7 @@
     <!-- 檢視/編修彈窗 -->
     <div class="modal-overlay" id="viewModal">
         <div class="modal view-modal">
-            <h3>📋 產品資料詳情</h3>
+            
             <div id="modalContent"></div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal()">關閉</button>
@@ -522,7 +522,7 @@
     <!-- 新增類別彈窗 -->
     <div class="modal-overlay" id="addCategoryModal">
         <div class="modal">
-            <h3>+ 新增產品大分類</h3>
+            
             <div class="form-group">
                 <label>分類代碼（2碼英文）<span style="color: #f44336;">*</span></label>
                 <input type="text" id="newCategoryCode" class="form-control" placeholder="例如：BA" maxlength="2">
