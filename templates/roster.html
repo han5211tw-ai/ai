@@ -1,0 +1,1021 @@
+{% extends "base.html" %}
+
+{% block title %}班表 - 電腦舖營運系統{% endblock %}
+{% block page_title %}班表營運系統{% endblock %}
+
+{% block styles %}
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 95%; margin: 0 auto; padding: 20px 40px; }
+        h1 {
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover, .nav a.active, .nav span.active {
+            color: #00d4ff;
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
+        }
+
+        /* 功能入口按鈕（仿 business.html 樣式）*/
+        .section-title {
+            font-size: 1.1em;
+            color: #00d4ff;
+            margin: 30px 0 15px 0;
+            padding-left: 10px;
+            border-left: 3px solid #00d4ff;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .btn-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .btn-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00d4ff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.2);
+        }
+        .btn-icon { font-size: 2em; margin-bottom: 10px; }
+        .btn-title { font-size: 1em; font-weight: 600; margin-bottom: 5px; color: #fff; }
+        .btn-desc { font-size: 0.85em; color: #8892b0; }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+        }
+        .stat-box h3 {
+            color: #8892b0;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .stat-box .number {
+            font-size: 2em;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .store-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+        }
+        .store-card h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .staff-list {
+            list-style: none;
+        }
+        .staff-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .staff-list li:last-child { border-bottom: none; }
+        .staff-name { color: #ccd6f6; }
+        .shift-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .shift-zao { background: rgba(255, 152, 0, 0.2); color: #ff9800; border: 1px solid rgba(255, 152, 0, 0.3); }
+        .shift-wan { background: rgba(63, 81, 181, 0.2); color: #7986cb; border: 1px solid rgba(63, 81, 181, 0.3); }
+        .shift-quan { background: rgba(0, 150, 136, 0.2); color: #4db6ac; border: 1px solid rgba(0, 150, 136, 0.3); }
+        .shift-zhi { background: rgba(156, 39, 176, 0.2); color: #ba68c8; border: 1px solid rgba(156, 39, 176, 0.3); }
+        .shift-off { background: rgba(136, 146, 176, 0.2); color: #8892b0; border: 1px solid rgba(136, 146, 176, 0.3); }
+        .shift-zao-bg { background: rgba(255, 152, 0, 0.1); color: #ff9800; font-weight: 600; }
+        .shift-wan-bg { background: rgba(63, 81, 181, 0.1); color: #7986cb; font-weight: 600; }
+        .shift-quan-bg { background: rgba(0, 150, 136, 0.1); color: #4db6ac; font-weight: 600; }
+        .shift-zhi-bg { background: rgba(156, 39, 176, 0.1); color: #ba68c8; font-weight: 600; }
+        .shift-off-bg { background: rgba(136, 146, 176, 0.1); color: #8892b0; }
+        .shift-te { background: rgba(244, 67, 54, 0.2); color: #f44336; border: 1px solid rgba(244, 67, 54, 0.3); }
+        .shift-te-bg { background: rgba(244, 67, 54, 0.1); color: #f44336; font-weight: 600; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        td { color: #ccd6f6; }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #00d4ff;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班表 - 電腦舖營運系統</title>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 95%; margin: 0 auto; padding: 20px 40px; }
+        h1 {
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover, .nav a.active, .nav span.active {
+            color: #00d4ff;
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
+        }
+
+        /* 功能入口按鈕（仿 business.html 樣式）*/
+        .section-title {
+            font-size: 1.1em;
+            color: #00d4ff;
+            margin: 30px 0 15px 0;
+            padding-left: 10px;
+            border-left: 3px solid #00d4ff;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .btn-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .btn-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00d4ff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.2);
+        }
+        .btn-icon { font-size: 2em; margin-bottom: 10px; }
+        .btn-title { font-size: 1em; font-weight: 600; margin-bottom: 5px; color: #fff; }
+        .btn-desc { font-size: 0.85em; color: #8892b0; }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+        }
+        .stat-box h3 {
+            color: #8892b0;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .stat-box .number {
+            font-size: 2em;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .store-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+        }
+        .store-card h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .staff-list {
+            list-style: none;
+        }
+        .staff-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .staff-list li:last-child { border-bottom: none; }
+        .staff-name { color: #ccd6f6; }
+        .shift-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .shift-zao { background: rgba(255, 152, 0, 0.2); color: #ff9800; border: 1px solid rgba(255, 152, 0, 0.3); }
+        .shift-wan { background: rgba(63, 81, 181, 0.2); color: #7986cb; border: 1px solid rgba(63, 81, 181, 0.3); }
+        .shift-quan { background: rgba(0, 150, 136, 0.2); color: #4db6ac; border: 1px solid rgba(0, 150, 136, 0.3); }
+        .shift-zhi { background: rgba(156, 39, 176, 0.2); color: #ba68c8; border: 1px solid rgba(156, 39, 176, 0.3); }
+        .shift-off { background: rgba(136, 146, 176, 0.2); color: #8892b0; border: 1px solid rgba(136, 146, 176, 0.3); }
+        .shift-zao-bg { background: rgba(255, 152, 0, 0.1); color: #ff9800; font-weight: 600; }
+        .shift-wan-bg { background: rgba(63, 81, 181, 0.1); color: #7986cb; font-weight: 600; }
+        .shift-quan-bg { background: rgba(0, 150, 136, 0.1); color: #4db6ac; font-weight: 600; }
+        .shift-zhi-bg { background: rgba(156, 39, 176, 0.1); color: #ba68c8; font-weight: 600; }
+        .shift-off-bg { background: rgba(136, 146, 176, 0.1); color: #8892b0; }
+        .shift-te { background: rgba(244, 67, 54, 0.2); color: #f44336; border: 1px solid rgba(244, 67, 54, 0.3); }
+        .shift-te-bg { background: rgba(244, 67, 54, 0.1); color: #f44336; font-weight: 600; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        td { color: #ccd6f6; }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #00d4ff;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 班表</h1>
+        
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+        </div>
+
+        <!-- 排班功能入口 -->
+        <div class="section-title">📅 排班功能</div>
+        <div class="btn-grid">
+            <a href="roster_input.html" class="btn-card" target="_blank">
+                <div class="btn-icon">📅</div>
+                <div class="btn-title">班表排班</div>
+                <div class="btn-desc">每月24號開放排班</div>
+            </a>
+        </div>
+
+        <div class="card">
+            <h2>🏢 各門市人員配置（今日）</h2>
+            <div class="store-grid" id="todayRoster">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📅 當周班表（週日開始：<span id="weekRange"></span>）</h2>
+            <div id="weeklyRoster">
+                <div class="loading">載入中...</div>
+            </div>
+            <p style="margin-top: 20px; color: #8892b0; font-size: 0.9em;">
+                📝 班次說明：<span style="color: #ff9800;">早</span> = 早班｜<span style="color: #7986cb;">晚</span> = 晚班｜<span style="color: #4db6ac;">全</span> = 全班｜<span style="color: #ba68c8;">值</span> = 值班｜<span style="color: #8892b0;">休</span> = 休假｜<span style="color: #f44336;">特</span> = 特休
+            </p>
+        </div>
+
+        <a href="index.html" class="back-link">← 返回首頁</a>
+    </div>
+
+    <script>
+        // 班次樣式映射
+        const shiftClassMap = {
+            '早': 'shift-zao-bg',
+            '晚': 'shift-wan-bg',
+            '全': 'shift-quan-bg',
+            '值': 'shift-zhi-bg',
+            '休': 'shift-off-bg',
+            '特': 'shift-te-bg'
+        };
+
+        const shiftBadgeMap = {
+            '早': 'shift-zao',
+            '晚': 'shift-wan',
+            '全': 'shift-quan',
+            '值': 'shift-zhi',
+            '休': 'shift-off',
+            '特': 'shift-te'
+        };
+
+        // 動態計算本週日期（週日為第一天）
+        function getWeekDates() {
+            const today = new Date();
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() - today.getDay()); // 本週日
+            
+            const weekDates = [];
+            const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(sunday);
+                date.setDate(sunday.getDate() + i);
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const dateStr = `${date.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                weekDates.push({
+                    date: dateStr,
+                    display: `${month}/${day}<br>${weekdays[i]}`
+                });
+            }
+            return weekDates;
+        }
+        
+        const weekDates = getWeekDates();
+
+        // 載入班表資料
+        async function loadRosterData() {
+            try {
+                // 載入今日班表
+                const todayResponse = await fetch('/api/roster/today');
+                const todayData = await todayResponse.json();
+                
+                // 載入當周班表
+                const weeklyResponse = await fetch('/api/roster/weekly');
+                const weeklyData = await weeklyResponse.json();
+                
+                // 按門市分組今日班表
+                const byLocation = {};
+                todayData.forEach(staff => {
+                    if (!byLocation[staff.location]) byLocation[staff.location] = [];
+                    byLocation[staff.location].push(staff);
+                });
+                
+                // 取得今天日期顯示
+                const today = new Date();
+                const todayMonth = today.getMonth() + 1;
+                const todayDay = today.getDate();
+                const todayWeekday = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'][today.getDay()];
+                const todayDisplay = `${todayMonth}/${todayDay} ${todayWeekday}`;
+                
+                // 更新標題
+                const sundayDisplay = `${weekDates[0].date.slice(5,7)}/${weekDates[0].date.slice(8,10)}`;
+                const saturdayDisplay = `${weekDates[6].date.slice(5,7)}/${weekDates[6].date.slice(8,10)}`;
+                document.getElementById('weekRange').textContent = `${sundayDisplay} 週日 ~ ${saturdayDisplay} 週六`;
+                
+                // 依門市排序：豐原、潭子、大雅
+                const storeOrder = { '豐原': 1, '潭子': 2, '大雅': 3 };
+                const sortedLocations = Object.entries(byLocation).sort((a, b) => {
+                    return (storeOrder[a[0]] || 99) - (storeOrder[b[0]] || 99);
+                });
+                
+                // 填充今日班表
+                let todayHtml = '';
+                sortedLocations.forEach(([location, staffList]) => {
+                    todayHtml += '<div class="store-card">';
+                    todayHtml += '<h3>🏪 ' + location + '（' + todayDisplay + '）</h3>';
+                    todayHtml += '<ul class="staff-list">';
+                    staffList.forEach(staff => {
+                        const badgeClass = shiftBadgeMap[staff.shift] || 'shift-off';
+                        todayHtml += '<li><span class="staff-name">' + staff.name + '</span>';
+                        todayHtml += '<span class="shift-badge ' + badgeClass + '">' + staff.shift + '</span></li>';
+                    });
+                    todayHtml += '</ul></div>';
+                });
+                document.getElementById('todayRoster').innerHTML = todayHtml;
+                
+                // 儲存週班表資料到全局變數
+                weeklyRosterData = weeklyData;
+
+                // 依門市排序當周班表
+                const weeklyArray = Object.entries(weeklyData);
+                weeklyArray.sort((a, b) => {
+                    const orderA = storeOrder[a[1].location] || 99;
+                    const orderB = storeOrder[b[1].location] || 99;
+                    if (orderA !== orderB) return orderA - orderB;
+                    return a[0].localeCompare(b[0]);
+                });
+                
+                // 填充當周班表
+                let weeklyHtml = '<table><thead><tr><th>人員</th><th>門市</th>';
+                weekDates.forEach(d => {
+                    weeklyHtml += '<th>' + d.display + '</th>';
+                });
+                weeklyHtml += '</tr></thead><tbody>';
+                
+                weeklyArray.forEach(([name, data]) => {
+                    weeklyHtml += '<tr><td style="cursor:pointer;color:#fff;" onclick="showMonthlyRoster(\'' + name + '\')" title="點擊查看整月班表">' + name + '</td><td>' + data.location + '</td>';
+                    weekDates.forEach(d => {
+                        const shift = data.shifts[d.date] || '';
+                        const shiftClass = shift ? (shiftClassMap[shift] || 'shift-off-bg') : '';
+                        weeklyHtml += '<td class="' + shiftClass + '">' + shift + '</td>';
+                    });
+                    weeklyHtml += '</tr>';
+                });
+                weeklyHtml += '</tbody></table>';
+                
+                document.getElementById('weeklyRoster').innerHTML = weeklyHtml;
+                
+            } catch (error) {
+                console.error('載入班表失敗:', error);
+                document.getElementById('todayRoster').innerHTML = '<div class="loading">載入失敗</div>';
+                document.getElementById('weeklyRoster').innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        loadRosterData();
+
+        // 全局變數儲存週班表資料
+        let weeklyRosterData = {};
+
+        // 顯示整月班表彈窗
+        async function showMonthlyRoster(staffName) {
+            const now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1;
+
+            // 從週班表資料中取得門市
+            let staffStore = '';
+            if (weeklyRosterData[staffName]) {
+                staffStore = weeklyRosterData[staffName].location;
+            }
+
+            if (!staffStore) {
+                alert('無法找到該員工資料');
+                return;
+            }
+
+            // 建立彈窗
+            const modal = document.createElement('div');
+            modal.id = 'monthlyRosterModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px;';
+
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:30px;max-width:600px;width:100%;max-height:135vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:15px;">
+                        <h2 style="color:#00d4ff;font-size:1.3em;">${staffName} - ${year}年${month}月班表</h2>
+                        <button onclick="closeMonthlyRoster()" style="background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:#f44336;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:0.9em;">✕ 關閉</button>
+                    </div>
+                    <div id="monthlyRosterContent" style="text-align:center;color:#8892b0;padding:40px;">載入中...</div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // 載入班表資料
+            try {
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
+                const endDate = `${year}-${String(month).padStart(2,'0')}-${daysInMonth}`;
+
+                const response = await fetch(`/api/roster/range?store=${encodeURIComponent(staffStore)}&start=${startDate}&end=${endDate}`);
+                const data = await response.json();
+
+                let staffRoster = {};
+                if (data.success && data.roster) {
+                    data.roster.forEach(record => {
+                        if (record.staff_name === staffName) {
+                            staffRoster[record.date] = record.shift_code;
+                        }
+                    });
+                }
+
+                // 生成月曆 HTML
+                const firstDay = new Date(year, month - 1, 1).getDay();
+                let calendarHtml = `
+                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px;">
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">日</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">一</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">二</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">三</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">四</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">五</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">六</div>
+                `;
+
+                // 空白格子
+                for (let i = 0; i < firstDay; i++) {
+                    calendarHtml += '<div style="aspect-ratio:1;"></div>';
+                }
+
+                // 日期格子
+                let workDays = 0;
+                let restDays = 0;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                    const shift = staffRoster[dateStr] || '';
+
+                    let shiftColor = '#8892b0';
+                    let shiftBg = 'rgba(255,255,255,0.05)';
+
+                    if (shift === '早班' || shift === '早') {
+                        shiftColor = '#ff9800';
+                        shiftBg = 'rgba(255,152,0,0.2)';
+                        workDays++;
+                    } else if (shift === '中班' || shift === '中') {
+                        shiftColor = '#4caf50';
+                        shiftBg = 'rgba(76,175,80,0.2)';
+                        workDays++;
+                    } else if (shift === '晚班' || shift === '晚') {
+                        shiftColor = '#9c27b0';
+                        shiftBg = 'rgba(156,39,176,0.2)';
+                        workDays++;
+                    } else if (shift === '全班' || shift === '全') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'rgba(0,212,255,0.2)';
+                        workDays++;
+                    } else if (shift === '值班' || shift === '值') {
+                        shiftColor = '#e91e63';
+                        shiftBg = 'rgba(233,30,99,0.2)';
+                        workDays++;
+                    } else if (shift === '休假' || shift === '休' || shift === '特休' || shift === '特') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'rgba(0,212,255,0.1)';
+                        restDays++;
+                    }
+
+                    calendarHtml += `
+                        <div style="aspect-ratio:1;background:${shiftBg};border:1px solid rgba(255,255,255,0.1);border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:5px;">
+                            <div style="font-size:0.8em;color:#8892b0;margin-bottom:2px;">${day}</div>
+                            <div style="font-size:0.9em;color:${shiftColor};font-weight:bold;">${shift || '-'}</div>
+                        </div>
+                    `;
+                }
+
+                calendarHtml += '</div>';
+
+                // 統計資訊
+                calendarHtml += `
+                    <div style="display:flex;justify-content:space-around;padding:15px;background:rgba(255,255,255,0.05);border-radius:8px;margin-top:15px;">
+                        <div style="text-align:center;">
+                            <div style="color:#4caf50;font-size:1.2em;font-weight:bold;">${workDays}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">上班天數</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="color:#00d4ff;font-size:1.2em;font-weight:bold;">${restDays}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">休假天數</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="color:#fff;font-size:1.2em;font-weight:bold;">${daysInMonth}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">總天數</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('monthlyRosterContent').innerHTML = calendarHtml;
+            } catch (e) {
+                console.error('載入班表失敗:', e);
+                document.getElementById('monthlyRosterContent').innerHTML = '<div style="color:#f44336;">載入失敗，請重試</div>';
+            }
+        }
+
+        // 關閉整月班表彈窗
+        function closeMonthlyRoster() {
+            const modal = document.getElementById('monthlyRosterModal');
+            if (modal) modal.remove();
+        }
+    </script>
+</html>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 班次樣式映射
+        const shiftClassMap = {
+            '早': 'shift-zao-bg',
+            '晚': 'shift-wan-bg',
+            '全': 'shift-quan-bg',
+            '值': 'shift-zhi-bg',
+            '休': 'shift-off-bg',
+            '特': 'shift-te-bg'
+        };
+
+        const shiftBadgeMap = {
+            '早': 'shift-zao',
+            '晚': 'shift-wan',
+            '全': 'shift-quan',
+            '值': 'shift-zhi',
+            '休': 'shift-off',
+            '特': 'shift-te'
+        };
+
+        // 動態計算本週日期（週日為第一天）
+        function getWeekDates() {
+            const today = new Date();
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() - today.getDay()); // 本週日
+            
+            const weekDates = [];
+            const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(sunday);
+                date.setDate(sunday.getDate() + i);
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const dateStr = `${date.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                weekDates.push({
+                    date: dateStr,
+                    display: `${month}/${day}<br>${weekdays[i]}`
+                });
+            }
+            return weekDates;
+        }
+        
+        const weekDates = getWeekDates();
+
+        // 載入班表資料
+        async function loadRosterData() {
+            try {
+                // 載入今日班表
+                const todayResponse = await fetch('/api/roster/today');
+                const todayData = await todayResponse.json();
+                
+                // 載入當周班表
+                const weeklyResponse = await fetch('/api/roster/weekly');
+                const weeklyData = await weeklyResponse.json();
+                
+                // 按門市分組今日班表
+                const byLocation = {};
+                todayData.forEach(staff => {
+                    if (!byLocation[staff.location]) byLocation[staff.location] = [];
+                    byLocation[staff.location].push(staff);
+                });
+                
+                // 取得今天日期顯示
+                const today = new Date();
+                const todayMonth = today.getMonth() + 1;
+                const todayDay = today.getDate();
+                const todayWeekday = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'][today.getDay()];
+                const todayDisplay = `${todayMonth}/${todayDay} ${todayWeekday}`;
+                
+                // 更新標題
+                const sundayDisplay = `${weekDates[0].date.slice(5,7)}/${weekDates[0].date.slice(8,10)}`;
+                const saturdayDisplay = `${weekDates[6].date.slice(5,7)}/${weekDates[6].date.slice(8,10)}`;
+                document.getElementById('weekRange').textContent = `${sundayDisplay} 週日 ~ ${saturdayDisplay} 週六`;
+                
+                // 依門市排序：豐原、潭子、大雅
+                const storeOrder = { '豐原': 1, '潭子': 2, '大雅': 3 };
+                const sortedLocations = Object.entries(byLocation).sort((a, b) => {
+                    return (storeOrder[a[0]] || 99) - (storeOrder[b[0]] || 99);
+                });
+                
+                // 填充今日班表
+                let todayHtml = '';
+                sortedLocations.forEach(([location, staffList]) => {
+                    todayHtml += '<div class="store-card">';
+                    todayHtml += '<h3>🏪 ' + location + '（' + todayDisplay + '）</h3>';
+                    todayHtml += '<ul class="staff-list">';
+                    staffList.forEach(staff => {
+                        const badgeClass = shiftBadgeMap[staff.shift] || 'shift-off';
+                        todayHtml += '<li><span class="staff-name">' + staff.name + '</span>';
+                        todayHtml += '<span class="shift-badge ' + badgeClass + '">' + staff.shift + '</span></li>';
+                    });
+                    todayHtml += '</ul></div>';
+                });
+                document.getElementById('todayRoster').innerHTML = todayHtml;
+                
+                // 儲存週班表資料到全局變數
+                weeklyRosterData = weeklyData;
+
+                // 依門市排序當周班表
+                const weeklyArray = Object.entries(weeklyData);
+                weeklyArray.sort((a, b) => {
+                    const orderA = storeOrder[a[1].location] || 99;
+                    const orderB = storeOrder[b[1].location] || 99;
+                    if (orderA !== orderB) return orderA - orderB;
+                    return a[0].localeCompare(b[0]);
+                });
+                
+                // 填充當周班表
+                let weeklyHtml = '<table><thead><tr><th>人員</th><th>門市</th>';
+                weekDates.forEach(d => {
+                    weeklyHtml += '<th>' + d.display + '</th>';
+                });
+                weeklyHtml += '</tr></thead><tbody>';
+                
+                weeklyArray.forEach(([name, data]) => {
+                    weeklyHtml += '<tr><td style="cursor:pointer;color:#fff;" onclick="showMonthlyRoster(\'' + name + '\')" title="點擊查看整月班表">' + name + '</td><td>' + data.location + '</td>';
+                    weekDates.forEach(d => {
+                        const shift = data.shifts[d.date] || '';
+                        const shiftClass = shift ? (shiftClassMap[shift] || 'shift-off-bg') : '';
+                        weeklyHtml += '<td class="' + shiftClass + '">' + shift + '</td>';
+                    });
+                    weeklyHtml += '</tr>';
+                });
+                weeklyHtml += '</tbody></table>';
+                
+                document.getElementById('weeklyRoster').innerHTML = weeklyHtml;
+                
+            } catch (error) {
+                console.error('載入班表失敗:', error);
+                document.getElementById('todayRoster').innerHTML = '<div class="loading">載入失敗</div>';
+                document.getElementById('weeklyRoster').innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        loadRosterData();
+
+        // 全局變數儲存週班表資料
+        let weeklyRosterData = {};
+
+        // 顯示整月班表彈窗
+        async function showMonthlyRoster(staffName) {
+            const now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1;
+
+            // 從週班表資料中取得門市
+            let staffStore = '';
+            if (weeklyRosterData[staffName]) {
+                staffStore = weeklyRosterData[staffName].location;
+            }
+
+            if (!staffStore) {
+                alert('無法找到該員工資料');
+                return;
+            }
+
+            // 建立彈窗
+            const modal = document.createElement('div');
+            modal.id = 'monthlyRosterModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px;';
+
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:30px;max-width:600px;width:100%;max-height:135vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:15px;">
+                        <h2 style="color:#00d4ff;font-size:1.3em;">${staffName} - ${year}年${month}月班表</h2>
+                        <button onclick="closeMonthlyRoster()" style="background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:#f44336;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:0.9em;">✕ 關閉</button>
+                    </div>
+                    <div id="monthlyRosterContent" style="text-align:center;color:#8892b0;padding:40px;">載入中...</div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // 載入班表資料
+            try {
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
+                const endDate = `${year}-${String(month).padStart(2,'0')}-${daysInMonth}`;
+
+                const response = await fetch(`/api/roster/range?store=${encodeURIComponent(staffStore)}&start=${startDate}&end=${endDate}`);
+                const data = await response.json();
+
+                let staffRoster = {};
+                if (data.success && data.roster) {
+                    data.roster.forEach(record => {
+                        if (record.staff_name === staffName) {
+                            staffRoster[record.date] = record.shift_code;
+                        }
+                    });
+                }
+
+                // 生成月曆 HTML
+                const firstDay = new Date(year, month - 1, 1).getDay();
+                let calendarHtml = `
+                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px;">
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">日</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">一</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">二</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">三</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">四</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">五</div>
+                        <div style="text-align:center;color:#00d4ff;font-weight:bold;padding:10px;">六</div>
+                `;
+
+                // 空白格子
+                for (let i = 0; i < firstDay; i++) {
+                    calendarHtml += '<div style="aspect-ratio:1;"></div>';
+                }
+
+                // 日期格子
+                let workDays = 0;
+                let restDays = 0;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                    const shift = staffRoster[dateStr] || '';
+
+                    let shiftColor = '#8892b0';
+                    let shiftBg = 'rgba(255,255,255,0.05)';
+
+                    if (shift === '早班' || shift === '早') {
+                        shiftColor = '#ff9800';
+                        shiftBg = 'rgba(255,152,0,0.2)';
+                        workDays++;
+                    } else if (shift === '中班' || shift === '中') {
+                        shiftColor = '#4caf50';
+                        shiftBg = 'rgba(76,175,80,0.2)';
+                        workDays++;
+                    } else if (shift === '晚班' || shift === '晚') {
+                        shiftColor = '#9c27b0';
+                        shiftBg = 'rgba(156,39,176,0.2)';
+                        workDays++;
+                    } else if (shift === '全班' || shift === '全') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'rgba(0,212,255,0.2)';
+                        workDays++;
+                    } else if (shift === '值班' || shift === '值') {
+                        shiftColor = '#e91e63';
+                        shiftBg = 'rgba(233,30,99,0.2)';
+                        workDays++;
+                    } else if (shift === '休假' || shift === '休' || shift === '特休' || shift === '特') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'rgba(0,212,255,0.1)';
+                        restDays++;
+                    }
+
+                    calendarHtml += `
+                        <div style="aspect-ratio:1;background:${shiftBg};border:1px solid rgba(255,255,255,0.1);border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:5px;">
+                            <div style="font-size:0.8em;color:#8892b0;margin-bottom:2px;">${day}</div>
+                            <div style="font-size:0.9em;color:${shiftColor};font-weight:bold;">${shift || '-'}</div>
+                        </div>
+                    `;
+                }
+
+                calendarHtml += '</div>';
+
+                // 統計資訊
+                calendarHtml += `
+                    <div style="display:flex;justify-content:space-around;padding:15px;background:rgba(255,255,255,0.05);border-radius:8px;margin-top:15px;">
+                        <div style="text-align:center;">
+                            <div style="color:#4caf50;font-size:1.2em;font-weight:bold;">${workDays}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">上班天數</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="color:#00d4ff;font-size:1.2em;font-weight:bold;">${restDays}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">休假天數</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="color:#fff;font-size:1.2em;font-weight:bold;">${daysInMonth}</div>
+                            <div style="color:#8892b0;font-size:0.85em;">總天數</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('monthlyRosterContent').innerHTML = calendarHtml;
+            } catch (e) {
+                console.error('載入班表失敗:', e);
+                document.getElementById('monthlyRosterContent').innerHTML = '<div style="color:#f44336;">載入失敗，請重試</div>';
+            }
+        }
+
+        // 關閉整月班表彈窗
+        function closeMonthlyRoster() {
+            const modal = document.getElementById('monthlyRosterModal');
+            if (modal) modal.remove();
+        }
+</script>
+{% endblock %}

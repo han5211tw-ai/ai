@@ -19,8 +19,7 @@ class SidebarNavigation {
                     { id: 'quote', icon: '📄', label: '報價作業', route: '/quote', minRole: 'staff' },
                     { id: 'sales', icon: '💰', label: '銷貨輸入', route: '/sales', minRole: 'staff' },
                     { id: 'documents', icon: '📑', label: '單據查詢', route: '/documents', minRole: 'staff' },
-                    { id: 'needs', icon: '📋', label: '需求作業', route: '/needs', minRole: 'staff' },
-                    { id: 'schedule', icon: '📅', label: '排班管理', route: '/schedule', minRole: 'staff' }
+                    { id: 'needs', icon: '📋', label: '需求作業', route: '/needs', minRole: 'staff' }
                 ]
             },
             {
@@ -54,7 +53,7 @@ class SidebarNavigation {
                     { id: 'report-sales', icon: '📉', label: '業務業績', route: '/report/sales', minRole: 'staff', requireTitle: ['老闆', '會計', '業務人員', '業務部主管'] },
                     { id: 'report-store', icon: '🏪', label: '門市業績', route: '/report/store', minRole: 'staff', requireTitle: ['老闆', '會計', '工程師', '門市部主管'] },
                     { id: 'report-personal', icon: '🎯', label: '個人業績', route: '/report/personal', minRole: 'staff' },
-                    { id: 'report-service', icon: '🔧', label: '服務數據', route: '/report/service', minRole: 'staff', requireTitle: ['老闆', '會計', '業務人員', '門市部主管', '業務部主管'] }
+                    
                 ]
             },
             {
