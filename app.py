@@ -1,5 +1,5 @@
 #!/opt/homebrew/bin/python3
-from flask import Flask, jsonify, send_from_directory, request
+from flask import Flask, jsonify, send_from_directory, request, render_template
 from health_check import get_health_status
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -37,7 +37,10 @@ from observability import (
     record_api_metrics, get_debug_sql, is_workday, get_weekday_name
 )
 
-app = Flask(__name__)
+app = Flask(__name__, 
+    template_folder='/Users/aiserver/.openclaw/workspace/dashboard-site/templates',
+    static_folder='/Users/aiserver/.openclaw/workspace/dashboard-site'
+)
 CORS(app)
 
 DB_PATH = '/Users/aiserver/srv/db/company.db'
@@ -713,7 +716,16 @@ generate_analysis()
 
 @app.route('/')
 def index():
-    return send_from_directory(STATIC_DIR, 'index.html')
+    return render_template('index.html')
+
+# 模板頁面路由
+@app.route('/<path:page>.html')
+def render_page(page):
+    """渲染模板頁面"""
+    try:
+        return render_template(f'{page}.html')
+    except:
+        return send_from_directory(STATIC_DIR, f'{page}.html')
 
 
 

@@ -105,9 +105,7 @@ class AppShellIntegration {
             case 'needs':
                 this.loadPageInIframe(workspace, 'needs_input.html');
                 break;
-            case 'schedule':
-                this.loadPageInIframe(workspace, 'schedule.html');
-                break;
+            
             case 'inventory':
                 this.loadPageInIframe(workspace, 'inventory_query.html');
                 break;
@@ -133,14 +131,22 @@ class AppShellIntegration {
                 this.loadPageInIframe(workspace, 'Accountants.html');
                 break;
             case 'report-dept':
+                this.loadPageInIframe(workspace, 'department.html');
+                break;
             case 'report-sales':
+                this.loadPageInIframe(workspace, 'business.html');
+                break;
             case 'report-store':
+                this.loadPageInIframe(workspace, 'store.html');
+                break;
             case 'report-personal':
-            case 'report-service':
-                this.loadPageInIframe(workspace, 'Store_Manager.html');
+                this.loadPageInIframe(workspace, 'personal.html');
                 break;
             case 'admin':
                 this.loadPageInIframe(workspace, 'admin.html');
+                break;
+            case 'dashboard':
+                this.loadPageInIframe(workspace, 'index.html');
                 break;
             default:
                 this.loadDashboard(workspace);

@@ -1,0 +1,1474 @@
+{% extends "base.html" %}
+
+{% block title %}客戶建檔 - 電腦舖營運系統{% endblock %}
+{% block page_title %}客戶建檔營運系統{% endblock %}
+
+{% block styles %}
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px 40px; }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        h1 {
+            font-size: 1.2em;
+            margin-bottom: 0;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .user-name {
+            color: #00d4ff;
+            font-size: 0.95em;
+        }
+        .btn-logout {
+            padding: 6px 12px;
+            background: rgba(244,67,54,0.2);
+            border: 1px solid rgba(244,67,54,0.5);
+            color: #f44336;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        .subtitle {
+            text-align: left;
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover {
+            color: #00d4ff;
+            border-color: #00d4ff;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #8892b0;
+            font-size: 0.9em;
+        }
+        .form-group label .required {
+            color: #f44336;
+            margin-left: 4px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        .form-control:read-only {
+            background: rgba(255, 255, 255, 0.05);
+            color: #8892b0;
+            cursor: not-allowed;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .check-result {
+            margin-top: 8px;
+            font-size: 0.85em;
+            min-height: 20px;
+        }
+        .check-result.success {
+            color: #4caf50;
+        }
+        .check-result.error {
+            color: #f44336;
+        }
+        .check-result.loading {
+            color: #00d4ff;
+        }
+
+        /* 客戶類型選擇 */
+        .customer-type-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .customer-type-option {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+        .customer-type-option:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+        .customer-type-option.active {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+        }
+        .customer-type-option .icon {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+        .btn-submit:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.success { background: #4caf50; }
+        .toast.error { background: #f44336; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* 資料列表樣式 */
+        .data-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .data-section h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .data-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .data-filters input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            font-size: 0.95em;
+        }
+        .data-filters input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .data-filters button {
+            padding: 10px 20px;
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            color: #00d4ff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        .data-filters button:hover {
+            background: rgba(0, 212, 255, 0.3);
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .data-table th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+        }
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccd6f6;
+        }
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+        }
+        .data-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            align-items: center;
+        }
+        .data-pagination button {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .data-pagination button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .data-pagination button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .data-pagination span {
+            color: #8892b0;
+            font-size: 0.9em;
+        }
+
+        /* 彈窗樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .modal .form-row {
+            margin-bottom: 15px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .btn-edit {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            color: #ffc107;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .btn-edit:hover {
+            background: rgba(255, 193, 7, 0.3);
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h1>📝 客戶建檔</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span id="userDisplay" style="color: #00d4ff; font-size: 0.95em;"></span>
+                <button onclick="window.authLogout && window.authLogout()" style="padding: 6px 12px; background: rgba(244,67,54,0.2); border: 1px solid rgba(244,67,54,0.5); color: #f44336; border-radius: 4px; cursor: pointer; font-size: 0.85em;">登出</button>
+            </div>
+        </div>
+        <p class="subtitle">Customer Registration</p>
+
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+            <a href="customer_search.html" target="_blank">🔍 客戶查詢</a>
+        </div>
+
+        <!-- 客戶類型選擇 -->
+        <div class="customer-type-selector">
+            <div class="customer-type-option active" onclick="selectCustomerType('personal')" id="typePersonal">
+                <span class="icon">👤</span>
+                <span>個人客戶</span>
+            </div>
+            <div class="customer-type-option" onclick="selectCustomerType('company')" id="typeCompany">
+                <span class="icon">🏢</span>
+                <span>公司客戶</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 基本資訊</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>建檔人員</label>
+                    <input type="text" id="createdBy" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label>客戶編號</label>
+                    <input type="text" id="customerId" class="form-control" readonly>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="labelShortName">客戶名稱 <span class="required">*</span></label>
+                <input type="text" id="shortName" class="form-control" placeholder="請輸入客戶姓名">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="labelMobile">手機號碼 <span class="required" id="reqMobile">*</span></label>
+                    <input type="text" id="mobile" class="form-control" placeholder="例如：0912345678" maxlength="10">
+                    <div id="mobileCheck" class="check-result"></div>
+                </div>
+                <div class="form-group">
+                    <label id="labelPhone">電話號碼 <span class="required" id="reqPhone" style="display:none;">*</span></label>
+                    <input type="text" id="phone1" class="form-control" placeholder="例如：04-12345678">
+                    <div id="phoneCheck" class="check-result"></div>
+                </div>
+            </div>
+
+            <div class="form-group" id="groupContact" style="display:none;">
+                <label>聯絡人 <span class="required" id="reqContact" style="display:none;">*</span></label>
+                <input type="text" id="contact" class="form-control" placeholder="請輸入聯絡人姓名">
+            </div>
+
+            <div class="form-group" id="groupTaxId" style="display:none;">
+                <label>統一編號 <span class="required" id="reqTaxId" style="display:none;">*</span></label>
+                    <input type="text" id="taxId" class="form-control" placeholder="請輸入統一編號（8碼）" maxlength="8">
+            </div>
+
+            <div class="form-group" id="groupAddress">
+                <label>地址 <span class="required" id="reqAddress" style="display:none;">*</span></label>
+                <input type="text" id="companyAddress" class="form-control" placeholder="請輸入地址">
+            </div>
+
+            <div class="form-group">
+                <label>送貨地址</label>
+                <input type="text" id="deliveryAddress" class="form-control" placeholder="請輸入送貨地址">
+            </div>
+
+            <div class="form-group">
+                <label>付款方式</label>
+                <select id="paymentType" class="form-control">
+                    <option value="">請選擇付款方式</option>
+                    <option value="現金">現金</option>
+                    <option value="支票">支票</option>
+                    <option value="匯款">匯款</option>
+                    <option value="月結">月結</option>
+                </select>
+            </div>
+
+            <button id="submitBtn" class="btn-submit" onclick="submitForm()">✓ 建立客戶資料</button>
+        </div>
+
+        <!-- 資料列表區塊 -->
+        <div class="data-section">
+            <h3>📜 客戶資料列表</h3>
+            <div class="data-filters">
+                <input type="text" id="searchInput" placeholder="搜尋客戶名稱、手機、編號..." onkeyup="if(event.key==='Enter')searchCustomers()">
+                <button onclick="searchCustomers()">🔍 搜尋</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>客戶編號</th>
+                        <th>客戶名稱</th>
+                        <th>手機</th>
+                        <th>電話</th>
+                        <th>付款方式</th>
+                    </tr>
+                </thead>
+                <tbody id="customerTableBody">
+                    <tr><td colspan="5" style="text-align:center;color:#8892b0;padding:30px;">載入中...</td></tr>
+                </tbody>
+            </table>
+            <div class="data-pagination">
+                <button onclick="changePage(-1)" id="prevBtn">← 上一頁</button>
+                <span id="pageInfo">第 1 頁</span>
+                <button onclick="changePage(1)" id="nextBtn">下一頁 →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 檢視/編修彈窗 -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <h3>📋 客戶資料詳情</h3>
+            <div id="modalContent"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">關閉</button>
+                <button class="btn-edit" id="editBtn" onclick="enableEdit()" style="display:none;">✏️ 編修</button>
+                <button class="btn-primary" id="saveBtn" onclick="saveEdit()" style="display:none;">💾 儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let prefix = '';
+        let isMobileValid = false;
+        let isPhoneValid = true;
+        let canEdit = false;
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentCustomer = null;
+        let customerType = 'personal'; // 'personal' 或 'company'
+
+        // 取得當前使用者資訊
+        function getCurrentUser() {
+            const data = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+            return data ? JSON.parse(data) : null;
+        }
+
+        // 顯示登入人姓名
+        function displayUserName() {
+            const user = getCurrentUser();
+            if (user && user.name) {
+                document.getElementById('userDisplay').textContent = '👤 ' + user.name;
+            }
+        }
+
+        // 取得門市前綴
+        function getPrefix(department) {
+            const prefixMap = {
+                '豐原門市': 'FY',
+                '潭子門市': 'TZ',
+                '大雅門市': 'DY',
+                '業務部': 'SA',
+                '總公司': 'HQ'
+            };
+            return prefixMap[department] || 'SA';
+        }
+
+        // 產生客戶編號
+        async function generateCustomerId() {
+            try {
+                const response = await fetch('/api/customer/next-id?prefix=' + encodeURIComponent(prefix));
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('customerId').value = data.customer_id;
+                }
+            } catch (error) {
+                console.error('產生編號失敗:', error);
+            }
+        }
+
+        // 檢查手機號碼
+        async function checkMobile() {
+            const mobile = document.getElementById('mobile').value.trim();
+            const checkDiv = document.getElementById('mobileCheck');
+            
+            if (!mobile) {
+                checkDiv.textContent = '';
+                isMobileValid = false;
+                updateSubmitButton();
+                return;
+            }
+
+            checkDiv.textContent = '檢查中...';
+            checkDiv.className = 'check-result loading';
+
+            try {
+                const response = await fetch('/api/customer/check?mobile=' + encodeURIComponent(mobile));
+                const data = await response.json();
+                
+                if (data.exists) {
+                    checkDiv.textContent = '⚠️ 此手機已存在客戶：' + data.customer_id + ' ' + data.short_name;
+                    checkDiv.className = 'check-result error';
+                    isMobileValid = false;
+                } else {
+                    checkDiv.textContent = '✓ 此手機號碼可使用';
+                    checkDiv.className = 'check-result success';
+                    isMobileValid = true;
+                }
+            } catch (error) {
+                checkDiv.textContent = '';
+                isMobileValid = false;
+            }
+            updateSubmitButton();
+        }
+
+        // 檢查電話號碼
+        async function checkPhone() {
+            const phone = document.getElementById('phone1').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const checkDiv = document.getElementById('phoneCheck');
+            
+            // 若有手機號碼，不檢查電話
+            if (mobile) {
+                checkDiv.textContent = '';
+                isPhoneValid = true;
+                updateSubmitButton();
+                return;
+            }
+
+            if (!phone) {
+                checkDiv.textContent = '';
+                isPhoneValid = true;
+                updateSubmitButton();
+                return;
+            }
+
+            checkDiv.textContent = '檢查中...';
+            checkDiv.className = 'check-result loading';
+
+            try {
+                const response = await fetch('/api/customer/check?phone=' + encodeURIComponent(phone));
+                const data = await response.json();
+                
+                if (data.exists) {
+                    checkDiv.textContent = '⚠️ 此電話已存在客戶：' + data.customer_id + ' ' + data.short_name;
+                    checkDiv.className = 'check-result error';
+                    isPhoneValid = false;
+                } else {
+                    checkDiv.textContent = '✓ 此電話號碼可使用';
+                    checkDiv.className = 'check-result success';
+                    isPhoneValid = true;
+                }
+            } catch (error) {
+                checkDiv.textContent = '';
+                isPhoneValid = true;
+            }
+            updateSubmitButton();
+        }
+
+        // 選擇客戶類型
+        function selectCustomerType(type) {
+            customerType = type;
+            
+            // 更新選項樣式
+            document.getElementById('typePersonal').classList.toggle('active', type === 'personal');
+            document.getElementById('typeCompany').classList.toggle('active', type === 'company');
+            
+            // 更新欄位標籤和必填標記
+            if (type === 'personal') {
+                // 個人客戶
+                document.getElementById('labelShortName').innerHTML = '客戶名稱 <span class="required">*</span>';
+                document.getElementById('shortName').placeholder = '請輸入客戶姓名';
+                document.getElementById('labelMobile').innerHTML = '手機號碼 <span class="required" id="reqMobile">*</span>';
+                document.getElementById('reqMobile').style.display = 'inline';
+                document.getElementById('reqPhone').style.display = 'none';
+                document.getElementById('reqContact').style.display = 'none';
+                document.getElementById('reqTaxId').style.display = 'none';
+                document.getElementById('reqAddress').style.display = 'none';
+                document.getElementById('groupTaxId').style.display = 'none';
+                document.getElementById('groupContact').style.display = 'none';
+                document.getElementById('taxId').value = '';
+                document.getElementById('contact').value = '';
+            } else {
+                // 公司客戶
+                document.getElementById('labelShortName').innerHTML = '公司名稱 <span class="required">*</span>';
+                document.getElementById('shortName').placeholder = '請輸入公司全名';
+                document.getElementById('labelMobile').innerHTML = '手機號碼 <span class="required" id="reqMobile" style="display:none;">*</span>';
+                document.getElementById('labelPhone').innerHTML = '電話號碼 <span class="required" id="reqPhone">*</span>';
+                document.getElementById('reqMobile').style.display = 'none';
+                document.getElementById('reqPhone').style.display = 'inline';
+                document.getElementById('reqContact').style.display = 'inline';
+                document.getElementById('reqTaxId').style.display = 'inline';
+                document.getElementById('reqAddress').style.display = 'inline';
+                document.getElementById('groupTaxId').style.display = 'block';
+                document.getElementById('groupContact').style.display = 'block';
+            }
+            
+            updateSubmitButton();
+        }
+
+        // 更新提交按鈕狀態
+        function updateSubmitButton() {
+            const shortName = document.getElementById('shortName').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const phone = document.getElementById('phone1').value.trim();
+            const contact = document.getElementById('contact').value.trim();
+            const taxId = document.getElementById('taxId').value.trim();
+            const address = document.getElementById('companyAddress').value.trim();
+            const btn = document.getElementById('submitBtn');
+            
+            let isValid = shortName && isMobileValid && isPhoneValid;
+            
+            if (customerType === 'personal') {
+                // 個人客戶：必填客戶名稱、手機
+                isValid = isValid && mobile;
+            } else {
+                // 公司客戶：必填公司名稱、手機或電話（至少一項）、聯絡人、統一編號、地址
+                isValid = isValid && (mobile || phone) && contact && taxId && address;
+            }
+            
+            btn.disabled = !isValid;
+        }
+
+        // 提交表單
+        async function submitForm() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '處理中...';
+
+            const payload = {
+                customer_id: document.getElementById('customerId').value,
+                short_name: document.getElementById('shortName').value.trim(),
+                mobile: document.getElementById('mobile').value.trim(),
+                phone1: document.getElementById('phone1').value.trim(),
+                contact: document.getElementById('contact').value.trim(),
+                tax_id: document.getElementById('taxId').value.trim(),
+                company_address: document.getElementById('companyAddress').value.trim(),
+                delivery_address: document.getElementById('deliveryAddress').value.trim(),
+                payment_type: document.getElementById('paymentType').value,
+                created_by: currentUser.name
+            };
+
+            try {
+                const response = await fetch('/api/customer/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('客戶建立成功：' + payload.customer_id, 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast(data.message || '建立失敗', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '✓ 建立客戶資料';
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+                btn.disabled = false;
+                btn.textContent = '✓ 建立客戶資料';
+            }
+        }
+
+        // 顯示提示訊息
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 頁面載入
+        document.addEventListener('DOMContentLoaded', function() {
+            currentUser = getCurrentUser();
+            if (!currentUser) {
+                alert('請先登入');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            displayUserName();
+            document.getElementById('createdBy').value = currentUser.name;
+            
+            prefix = getPrefix(currentUser.department);
+            generateCustomerId();
+
+            // 檢查編輯權限（老闆、會計、主管都可以編修）
+            const userTitle = currentUser.title || '';
+            canEdit = (userTitle === '老闆' || userTitle.includes('會計') || userTitle.includes('主管'));
+
+            // 綁定事件
+            document.getElementById('mobile').addEventListener('blur', checkMobile);
+            document.getElementById('phone1').addEventListener('blur', checkPhone);
+            document.getElementById('shortName').addEventListener('input', updateSubmitButton);
+            document.getElementById('mobile').addEventListener('input', updateSubmitButton);
+            document.getElementById('phone1').addEventListener('input', updateSubmitButton);
+            document.getElementById('contact').addEventListener('input', updateSubmitButton);
+            document.getElementById('taxId').addEventListener('input', updateSubmitButton);
+            document.getElementById('companyAddress').addEventListener('input', updateSubmitButton);
+
+            // 載入客戶列表
+            loadCustomerList();
+        });
+
+        // 載入客戶列表
+        async function loadCustomerList(page = 1, search = '') {
+            currentPage = page;
+            try {
+                const url = `/api/customers/list?page=${page}&limit=50&search=${encodeURIComponent(search)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderCustomerTable(data.customers);
+                    totalPages = data.total_pages;
+                    updatePagination(data.page, data.total_pages, data.total);
+                }
+            } catch (error) {
+                console.error('載入客戶列表失敗:', error);
+                document.getElementById('customerTableBody').innerHTML = 
+                    '<tr><td colspan="5" style="text-align:center;color:#f44336;padding:30px;">載入失敗</td></tr>';
+            }
+        }
+
+        // 付款方式代碼轉中文
+        function getPaymentTypeName(code) {
+            const map = {
+                'C': '現金',
+                'M': '月結',
+                'T': '匯款',
+                '現金': '現金',
+                '支票': '支票',
+                '匯款': '匯款',
+                '月結': '月結'
+            };
+            return map[code] || code || '-';
+        }
+
+        // 渲染表格
+        function renderCustomerTable(customers) {
+            const tbody = document.getElementById('customerTableBody');
+            if (customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8892b0;padding:30px;">暫無資料</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = customers.map(c => `
+                <tr onclick="viewCustomer('${c.customer_id}')">
+                    <td>${c.customer_id}</td>
+                    <td>${c.short_name}</td>
+                    <td>${c.mobile || '-'}</td>
+                    <td>${c.phone1 || '-'}</td>
+                    <td>${getPaymentTypeName(c.payment_type)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 更新分頁
+        function updatePagination(page, totalPages, total) {
+            document.getElementById('pageInfo').textContent = `第 ${page} / ${totalPages} 頁 (共 ${total} 筆)`;
+            document.getElementById('prevBtn').disabled = page <= 1;
+            document.getElementById('nextBtn').disabled = page >= totalPages;
+        }
+
+        // 切換頁面
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                const search = document.getElementById('searchInput').value.trim();
+                loadCustomerList(newPage, search);
+            }
+        }
+
+        // 搜尋
+        function searchCustomers() {
+            const search = document.getElementById('searchInput').value.trim();
+            loadCustomerList(1, search);
+        }
+
+        // 檢視客戶詳情
+        async function viewCustomer(customerId) {
+            try {
+                const response = await fetch(`/api/customers/list?search=${encodeURIComponent(customerId)}`);
+                const data = await response.json();
+                if (data.success && data.customers.length > 0) {
+                    currentCustomer = data.customers[0];
+                    showModal(currentCustomer);
+                }
+            } catch (error) {
+                console.error('載入客戶詳情失敗:', error);
+            }
+        }
+
+        // 顯示彈窗
+        function showModal(customer) {
+            const content = document.getElementById('modalContent');
+            content.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>客戶編號</label>
+                        <input type="text" id="modal_customerId" class="form-control" value="${customer.customer_id}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>付款方式</label>
+                        <select id="modal_paymentType" class="form-control" disabled>
+                            <option value="">請選擇</option>
+                            <option value="C" ${customer.payment_type === 'C' || customer.payment_type === '現金' ? 'selected' : ''}>現金</option>
+                            <option value="M" ${customer.payment_type === 'M' || customer.payment_type === '月結' ? 'selected' : ''}>月結</option>
+                            <option value="T" ${customer.payment_type === 'T' || customer.payment_type === '匯款' ? 'selected' : ''}>匯款</option>
+                            <option value="支票" ${customer.payment_type === '支票' ? 'selected' : ''}>支票</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>客戶名稱</label>
+                    <input type="text" id="modal_shortName" class="form-control" value="${customer.short_name || ''}" readonly>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>手機</label>
+                        <input type="text" id="modal_mobile" class="form-control" value="${customer.mobile || ''}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>電話</label>
+                        <input type="text" id="modal_phone1" class="form-control" value="${customer.phone1 || ''}" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>聯絡人</label>
+                    <input type="text" id="modal_contact" class="form-control" value="${customer.contact || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>統一編號</label>
+                    <input type="text" id="modal_taxId" class="form-control" value="${customer.tax_id || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>地址</label>
+                    <input type="text" id="modal_companyAddress" class="form-control" value="${customer.company_address || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>送貨地址</label>
+                    <input type="text" id="modal_deliveryAddress" class="form-control" value="${customer.delivery_address || ''}" readonly>
+                </div>
+            `;
+
+            document.getElementById('viewModal').classList.add('active');
+            document.getElementById('editBtn').style.display = canEdit ? 'inline-block' : 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('viewModal').classList.remove('active');
+            currentCustomer = null;
+        }
+
+        // 啟用編輯
+        function enableEdit() {
+            const inputs = document.querySelectorAll('#modalContent input:not(#modal_customerId), #modalContent select');
+            inputs.forEach(input => {
+                input.readOnly = false;
+                input.disabled = false;
+            });
+            document.getElementById('editBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'inline-block';
+        }
+
+        // 儲存編輯
+        async function saveEdit() {
+            if (!currentCustomer) return;
+
+            const payload = {
+                customer_id: document.getElementById('modal_customerId').value,
+                short_name: document.getElementById('modal_shortName').value,
+                mobile: document.getElementById('modal_mobile').value,
+                phone1: document.getElementById('modal_phone1').value,
+                contact: document.getElementById('modal_contact').value,
+                tax_id: document.getElementById('modal_taxId').value,
+                company_address: document.getElementById('modal_companyAddress').value,
+                delivery_address: document.getElementById('modal_deliveryAddress').value,
+                payment_type: document.getElementById('modal_paymentType').value
+            };
+
+            try {
+                const response = await fetch('/api/customer/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('客戶資料更新成功！', 'success');
+                    closeModal();
+                    loadCustomerList(currentPage, document.getElementById('searchInput').value.trim());
+                } else {
+                    showToast(data.message || '更新失敗', 'error');
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+            }
+        }
+    </script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+        let prefix = '';
+        let isMobileValid = false;
+        let isPhoneValid = true;
+        let canEdit = false;
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentCustomer = null;
+        let customerType = 'personal'; // 'personal' 或 'company'
+
+        // 取得當前使用者資訊
+        function getCurrentUser() {
+            const data = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+            return data ? JSON.parse(data) : null;
+        }
+
+        // 顯示登入人姓名
+        function displayUserName() {
+            const user = getCurrentUser();
+            if (user && user.name) {
+                document.getElementById('userDisplay').textContent = '👤 ' + user.name;
+            }
+        }
+
+        // 取得門市前綴
+        function getPrefix(department) {
+            const prefixMap = {
+                '豐原門市': 'FY',
+                '潭子門市': 'TZ',
+                '大雅門市': 'DY',
+                '業務部': 'SA',
+                '總公司': 'HQ'
+            };
+            return prefixMap[department] || 'SA';
+        }
+
+        // 產生客戶編號
+        async function generateCustomerId() {
+            try {
+                const response = await fetch('/api/customer/next-id?prefix=' + encodeURIComponent(prefix));
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('customerId').value = data.customer_id;
+                }
+            } catch (error) {
+                console.error('產生編號失敗:', error);
+            }
+        }
+
+        // 檢查手機號碼
+        async function checkMobile() {
+            const mobile = document.getElementById('mobile').value.trim();
+            const checkDiv = document.getElementById('mobileCheck');
+            
+            if (!mobile) {
+                checkDiv.textContent = '';
+                isMobileValid = false;
+                updateSubmitButton();
+                return;
+            }
+
+            checkDiv.textContent = '檢查中...';
+            checkDiv.className = 'check-result loading';
+
+            try {
+                const response = await fetch('/api/customer/check?mobile=' + encodeURIComponent(mobile));
+                const data = await response.json();
+                
+                if (data.exists) {
+                    checkDiv.textContent = '⚠️ 此手機已存在客戶：' + data.customer_id + ' ' + data.short_name;
+                    checkDiv.className = 'check-result error';
+                    isMobileValid = false;
+                } else {
+                    checkDiv.textContent = '✓ 此手機號碼可使用';
+                    checkDiv.className = 'check-result success';
+                    isMobileValid = true;
+                }
+            } catch (error) {
+                checkDiv.textContent = '';
+                isMobileValid = false;
+            }
+            updateSubmitButton();
+        }
+
+        // 檢查電話號碼
+        async function checkPhone() {
+            const phone = document.getElementById('phone1').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const checkDiv = document.getElementById('phoneCheck');
+            
+            // 若有手機號碼，不檢查電話
+            if (mobile) {
+                checkDiv.textContent = '';
+                isPhoneValid = true;
+                updateSubmitButton();
+                return;
+            }
+
+            if (!phone) {
+                checkDiv.textContent = '';
+                isPhoneValid = true;
+                updateSubmitButton();
+                return;
+            }
+
+            checkDiv.textContent = '檢查中...';
+            checkDiv.className = 'check-result loading';
+
+            try {
+                const response = await fetch('/api/customer/check?phone=' + encodeURIComponent(phone));
+                const data = await response.json();
+                
+                if (data.exists) {
+                    checkDiv.textContent = '⚠️ 此電話已存在客戶：' + data.customer_id + ' ' + data.short_name;
+                    checkDiv.className = 'check-result error';
+                    isPhoneValid = false;
+                } else {
+                    checkDiv.textContent = '✓ 此電話號碼可使用';
+                    checkDiv.className = 'check-result success';
+                    isPhoneValid = true;
+                }
+            } catch (error) {
+                checkDiv.textContent = '';
+                isPhoneValid = true;
+            }
+            updateSubmitButton();
+        }
+
+        // 選擇客戶類型
+        function selectCustomerType(type) {
+            customerType = type;
+            
+            // 更新選項樣式
+            document.getElementById('typePersonal').classList.toggle('active', type === 'personal');
+            document.getElementById('typeCompany').classList.toggle('active', type === 'company');
+            
+            // 更新欄位標籤和必填標記
+            if (type === 'personal') {
+                // 個人客戶
+                document.getElementById('labelShortName').innerHTML = '客戶名稱 <span class="required">*</span>';
+                document.getElementById('shortName').placeholder = '請輸入客戶姓名';
+                document.getElementById('labelMobile').innerHTML = '手機號碼 <span class="required" id="reqMobile">*</span>';
+                document.getElementById('reqMobile').style.display = 'inline';
+                document.getElementById('reqPhone').style.display = 'none';
+                document.getElementById('reqContact').style.display = 'none';
+                document.getElementById('reqTaxId').style.display = 'none';
+                document.getElementById('reqAddress').style.display = 'none';
+                document.getElementById('groupTaxId').style.display = 'none';
+                document.getElementById('groupContact').style.display = 'none';
+                document.getElementById('taxId').value = '';
+                document.getElementById('contact').value = '';
+            } else {
+                // 公司客戶
+                document.getElementById('labelShortName').innerHTML = '公司名稱 <span class="required">*</span>';
+                document.getElementById('shortName').placeholder = '請輸入公司全名';
+                document.getElementById('labelMobile').innerHTML = '手機號碼 <span class="required" id="reqMobile" style="display:none;">*</span>';
+                document.getElementById('labelPhone').innerHTML = '電話號碼 <span class="required" id="reqPhone">*</span>';
+                document.getElementById('reqMobile').style.display = 'none';
+                document.getElementById('reqPhone').style.display = 'inline';
+                document.getElementById('reqContact').style.display = 'inline';
+                document.getElementById('reqTaxId').style.display = 'inline';
+                document.getElementById('reqAddress').style.display = 'inline';
+                document.getElementById('groupTaxId').style.display = 'block';
+                document.getElementById('groupContact').style.display = 'block';
+            }
+            
+            updateSubmitButton();
+        }
+
+        // 更新提交按鈕狀態
+        function updateSubmitButton() {
+            const shortName = document.getElementById('shortName').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const phone = document.getElementById('phone1').value.trim();
+            const contact = document.getElementById('contact').value.trim();
+            const taxId = document.getElementById('taxId').value.trim();
+            const address = document.getElementById('companyAddress').value.trim();
+            const btn = document.getElementById('submitBtn');
+            
+            let isValid = shortName && isMobileValid && isPhoneValid;
+            
+            if (customerType === 'personal') {
+                // 個人客戶：必填客戶名稱、手機
+                isValid = isValid && mobile;
+            } else {
+                // 公司客戶：必填公司名稱、手機或電話（至少一項）、聯絡人、統一編號、地址
+                isValid = isValid && (mobile || phone) && contact && taxId && address;
+            }
+            
+            btn.disabled = !isValid;
+        }
+
+        // 提交表單
+        async function submitForm() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '處理中...';
+
+            const payload = {
+                customer_id: document.getElementById('customerId').value,
+                short_name: document.getElementById('shortName').value.trim(),
+                mobile: document.getElementById('mobile').value.trim(),
+                phone1: document.getElementById('phone1').value.trim(),
+                contact: document.getElementById('contact').value.trim(),
+                tax_id: document.getElementById('taxId').value.trim(),
+                company_address: document.getElementById('companyAddress').value.trim(),
+                delivery_address: document.getElementById('deliveryAddress').value.trim(),
+                payment_type: document.getElementById('paymentType').value,
+                created_by: currentUser.name
+            };
+
+            try {
+                const response = await fetch('/api/customer/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('客戶建立成功：' + payload.customer_id, 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast(data.message || '建立失敗', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '✓ 建立客戶資料';
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+                btn.disabled = false;
+                btn.textContent = '✓ 建立客戶資料';
+            }
+        }
+
+        // 顯示提示訊息
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 頁面載入
+        document.addEventListener('DOMContentLoaded', function() {
+            currentUser = getCurrentUser();
+            if (!currentUser) {
+                alert('請先登入');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            displayUserName();
+            document.getElementById('createdBy').value = currentUser.name;
+            
+            prefix = getPrefix(currentUser.department);
+            generateCustomerId();
+
+            // 檢查編輯權限（老闆、會計、主管都可以編修）
+            const userTitle = currentUser.title || '';
+            canEdit = (userTitle === '老闆' || userTitle.includes('會計') || userTitle.includes('主管'));
+
+            // 綁定事件
+            document.getElementById('mobile').addEventListener('blur', checkMobile);
+            document.getElementById('phone1').addEventListener('blur', checkPhone);
+            document.getElementById('shortName').addEventListener('input', updateSubmitButton);
+            document.getElementById('mobile').addEventListener('input', updateSubmitButton);
+            document.getElementById('phone1').addEventListener('input', updateSubmitButton);
+            document.getElementById('contact').addEventListener('input', updateSubmitButton);
+            document.getElementById('taxId').addEventListener('input', updateSubmitButton);
+            document.getElementById('companyAddress').addEventListener('input', updateSubmitButton);
+
+            // 載入客戶列表
+            loadCustomerList();
+        });
+
+        // 載入客戶列表
+        async function loadCustomerList(page = 1, search = '') {
+            currentPage = page;
+            try {
+                const url = `/api/customers/list?page=${page}&limit=50&search=${encodeURIComponent(search)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderCustomerTable(data.customers);
+                    totalPages = data.total_pages;
+                    updatePagination(data.page, data.total_pages, data.total);
+                }
+            } catch (error) {
+                console.error('載入客戶列表失敗:', error);
+                document.getElementById('customerTableBody').innerHTML = 
+                    '<tr><td colspan="5" style="text-align:center;color:#f44336;padding:30px;">載入失敗</td></tr>';
+            }
+        }
+
+        // 付款方式代碼轉中文
+        function getPaymentTypeName(code) {
+            const map = {
+                'C': '現金',
+                'M': '月結',
+                'T': '匯款',
+                '現金': '現金',
+                '支票': '支票',
+                '匯款': '匯款',
+                '月結': '月結'
+            };
+            return map[code] || code || '-';
+        }
+
+        // 渲染表格
+        function renderCustomerTable(customers) {
+            const tbody = document.getElementById('customerTableBody');
+            if (customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8892b0;padding:30px;">暫無資料</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = customers.map(c => `
+                <tr onclick="viewCustomer('${c.customer_id}')">
+                    <td>${c.customer_id}</td>
+                    <td>${c.short_name}</td>
+                    <td>${c.mobile || '-'}</td>
+                    <td>${c.phone1 || '-'}</td>
+                    <td>${getPaymentTypeName(c.payment_type)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 更新分頁
+        function updatePagination(page, totalPages, total) {
+            document.getElementById('pageInfo').textContent = `第 ${page} / ${totalPages} 頁 (共 ${total} 筆)`;
+            document.getElementById('prevBtn').disabled = page <= 1;
+            document.getElementById('nextBtn').disabled = page >= totalPages;
+        }
+
+        // 切換頁面
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                const search = document.getElementById('searchInput').value.trim();
+                loadCustomerList(newPage, search);
+            }
+        }
+
+        // 搜尋
+        function searchCustomers() {
+            const search = document.getElementById('searchInput').value.trim();
+            loadCustomerList(1, search);
+        }
+
+        // 檢視客戶詳情
+        async function viewCustomer(customerId) {
+            try {
+                const response = await fetch(`/api/customers/list?search=${encodeURIComponent(customerId)}`);
+                const data = await response.json();
+                if (data.success && data.customers.length > 0) {
+                    currentCustomer = data.customers[0];
+                    showModal(currentCustomer);
+                }
+            } catch (error) {
+                console.error('載入客戶詳情失敗:', error);
+            }
+        }
+
+        // 顯示彈窗
+        function showModal(customer) {
+            const content = document.getElementById('modalContent');
+            content.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>客戶編號</label>
+                        <input type="text" id="modal_customerId" class="form-control" value="${customer.customer_id}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>付款方式</label>
+                        <select id="modal_paymentType" class="form-control" disabled>
+                            <option value="">請選擇</option>
+                            <option value="C" ${customer.payment_type === 'C' || customer.payment_type === '現金' ? 'selected' : ''}>現金</option>
+                            <option value="M" ${customer.payment_type === 'M' || customer.payment_type === '月結' ? 'selected' : ''}>月結</option>
+                            <option value="T" ${customer.payment_type === 'T' || customer.payment_type === '匯款' ? 'selected' : ''}>匯款</option>
+                            <option value="支票" ${customer.payment_type === '支票' ? 'selected' : ''}>支票</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>客戶名稱</label>
+                    <input type="text" id="modal_shortName" class="form-control" value="${customer.short_name || ''}" readonly>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>手機</label>
+                        <input type="text" id="modal_mobile" class="form-control" value="${customer.mobile || ''}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>電話</label>
+                        <input type="text" id="modal_phone1" class="form-control" value="${customer.phone1 || ''}" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>聯絡人</label>
+                    <input type="text" id="modal_contact" class="form-control" value="${customer.contact || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>統一編號</label>
+                    <input type="text" id="modal_taxId" class="form-control" value="${customer.tax_id || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>地址</label>
+                    <input type="text" id="modal_companyAddress" class="form-control" value="${customer.company_address || ''}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>送貨地址</label>
+                    <input type="text" id="modal_deliveryAddress" class="form-control" value="${customer.delivery_address || ''}" readonly>
+                </div>
+            `;
+
+            document.getElementById('viewModal').classList.add('active');
+            document.getElementById('editBtn').style.display = canEdit ? 'inline-block' : 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('viewModal').classList.remove('active');
+            currentCustomer = null;
+        }
+
+        // 啟用編輯
+        function enableEdit() {
+            const inputs = document.querySelectorAll('#modalContent input:not(#modal_customerId), #modalContent select');
+            inputs.forEach(input => {
+                input.readOnly = false;
+                input.disabled = false;
+            });
+            document.getElementById('editBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'inline-block';
+        }
+
+        // 儲存編輯
+        async function saveEdit() {
+            if (!currentCustomer) return;
+
+            const payload = {
+                customer_id: document.getElementById('modal_customerId').value,
+                short_name: document.getElementById('modal_shortName').value,
+                mobile: document.getElementById('modal_mobile').value,
+                phone1: document.getElementById('modal_phone1').value,
+                contact: document.getElementById('modal_contact').value,
+                tax_id: document.getElementById('modal_taxId').value,
+                company_address: document.getElementById('modal_companyAddress').value,
+                delivery_address: document.getElementById('modal_deliveryAddress').value,
+                payment_type: document.getElementById('modal_paymentType').value
+            };
+
+            try {
+                const response = await fetch('/api/customer/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('客戶資料更新成功！', 'success');
+                    closeModal();
+                    loadCustomerList(currentPage, document.getElementById('searchInput').value.trim());
+                } else {
+                    showToast(data.message || '更新失敗', 'error');
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+            }
+        }
+</script>
+{% endblock %}
