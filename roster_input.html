@@ -30,7 +30,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            background: linear-gradient(135deg, #0a0a0a 0%, var(--color-bg-secondary) 50%, var(--color-bg-elevated) 100%);
             min-height: 100vh;
             color: #fff;
             padding: 20px;
@@ -40,16 +40,16 @@
             text-align: center;
             font-size: 1.8em;
             margin-bottom: 20px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(90deg, var(--color-accent-cyan), #7b2cbf);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         /* 登入區塊 */
         .login-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--color-bg-hover);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-lg);
             padding: 40px;
             
             width: 100%;
@@ -57,23 +57,23 @@
             text-align: center;
         }
         .login-box h2 {
-            color: #00d4ff;
+            color: var(--color-accent-cyan);
             margin-bottom: 30px;
             font-size: 1.3em;
         }
         .login-box input {
             width: 100%;
             padding: 12px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--color-border-hover);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-hover);
             color: #fff;
             font-size: 1em;
             margin-bottom: 20px;
         }
         .login-box input:focus {
             outline: none;
-            border-color: #00d4ff;
+            border-color: var(--color-accent-cyan);
         }
         .login-box .btn {
             width: 100%;
@@ -81,22 +81,22 @@
             font-size: 1.05em;
         }
         .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 6px; color: #8892b0; font-size: 0.95em; }
+        .form-group label { display: block; margin-bottom: 6px; color: var(--color-text-secondary); font-size: 0.95em; }
         .form-group input, .form-group select {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--color-border-hover);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-hover);
             color: #fff;
             font-size: 0.95em;
         }
-        .form-group select option { background: #1a1a2e; color: #fff; }
+        .form-group select option { background: var(--color-bg-secondary); color: #fff; }
         .btn {
             padding: 10px 25px;
             border: none;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--color-accent-cyan), #7b2cbf);
             color: #fff;
             font-size: 1.05em;
             cursor: pointer;
@@ -104,7 +104,7 @@
         }
         .btn:hover { transform: translateY(-2px); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .error-msg { color: #f44336; margin-top: 10px; font-size: 0.95em; }
+        .error-msg { color: var(--color-status-error); margin-top: 10px; font-size: 0.95em; }
 
         /* 登入區塊顯示控制 */
         .login-section {
@@ -120,34 +120,34 @@
 
         /* 用戶資訊 */
         .user-info {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            background: var(--color-bg-hover);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
             padding: 12px 20px;
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .user-info span { color: #00d4ff; font-weight: bold; }
+        .user-info span { color: var(--color-accent-cyan); font-weight: bold; }
         .btn-logout {
             padding: 5px 12px;
             font-size: 0.9em;
             background: rgba(244, 67, 54, 0.2);
             border: 1px solid rgba(244, 67, 54, 0.5);
-            color: #f44336;
+            color: var(--color-status-error);
         }
 
         /* 主管選擇器 */
         .supervisor-panel {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
             padding: 20px;
             margin-bottom: 20px;
         }
         .supervisor-panel h3 {
-            color: #00d4ff;
+            color: var(--color-accent-cyan);
             margin-bottom: 15px;
         }
         .form-row {
@@ -164,14 +164,14 @@
         .month-info {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
             padding: 20px;
             margin-bottom: 20px;
             text-align: center;
         }
         .month-title {
             font-size: 1.3em;
-            color: #00d4ff;
+            color: var(--color-accent-cyan);
             margin-bottom: 10px;
         }
         .roster-status {
@@ -208,13 +208,13 @@
         .shift-stats {
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             padding: 15px 20px;
             margin: 15px 0 20px 0;
             text-align: center;
         }
         .shift-stats-title {
-            color: #8892b0;
+            color: var(--color-text-secondary);
             font-size: 0.9em;
             margin-bottom: 10px;
         }
@@ -233,11 +233,11 @@
         .shift-stat-count {
             font-size: 1.4em;
             font-weight: bold;
-            color: #00d4ff;
+            color: var(--color-accent-cyan);
         }
         .shift-stat-label {
             font-size: 0.75em;
-            color: #8892b0;
+            color: var(--color-text-secondary);
             margin-top: 2px;
         }
 
@@ -245,7 +245,7 @@
         .staff-roster {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             padding: 20px;
             margin-bottom: 30px;
         }
@@ -259,11 +259,11 @@
         }
         .staff-name {
             font-size: 1.2em;
-            color: #00d4ff;
+            color: var(--color-accent-cyan);
             font-weight: bold;
         }
         .staff-name .self-tag {
-            color: #4caf50;
+            color: var(--color-status-success);
             font-size: 0.8em;
             margin-left: 8px;
         }
@@ -277,7 +277,7 @@
             text-align: center;
         }
         .calendar-header div {
-            color: #8892b0;
+            color: var(--color-text-secondary);
             font-size: 0.85em;
             padding: 8px;
         }
@@ -289,7 +289,7 @@
         .calendar-day {
             background: rgba(0,0,0,0.3);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             padding: 10px 5px;
             text-align: center;
             min-height: 80px;
@@ -303,14 +303,14 @@
         }
         .calendar-day .day-number {
             font-size: 0.9em;
-            color: #8892b0;
+            color: var(--color-text-secondary);
             margin-bottom: 5px;
         }
         .calendar-day .shift-select {
             width: 100%;
             padding: 6px 2px;
             border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             background: rgba(0,0,0,0.5);
             color: #fff;
             font-size: 0.85em;
@@ -321,13 +321,13 @@
             opacity: 0.7;
             cursor: not-allowed;
         }
-        .calendar-day .shift-select option { background: #1a1a2e; color: #fff; }
+        .calendar-day .shift-select option { background: var(--color-bg-secondary); color: #fff; }
         .calendar-day .shift-早 { background: rgba(255,152,0,0.2); color: #ff9800; }
         .calendar-day .shift-晚 { background: rgba(63,81,181,0.2); color: #7986cb; }
         .calendar-day .shift-值 { background: rgba(156,39,176,0.2); color: #ba68c8; }
-        .calendar-day .shift-休 { background: rgba(136,146,176,0.2); color: #8892b0; }
+        .calendar-day .shift-休 { background: rgba(136,146,176,0.2); color: var(--color-text-secondary); }
         .calendar-day .shift-全 { background: rgba(0,150,136,0.2); color: #4db6ac; }
-        .calendar-day .shift-特 { background: rgba(244,67,54,0.2); color: #f44336; }
+        .calendar-day .shift-特 { background: rgba(244,67,54,0.2); color: var(--color-status-error); }
 
         /* 儲存按鈕 */
         .action-buttons {
@@ -338,7 +338,7 @@
             margin-bottom: 40px;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, var(--color-accent-cyan), #7b2cbf);
             color: #fff;
             padding: 12px 40px;
         }
@@ -349,7 +349,7 @@
             top: 20px;
             right: 20px;
             padding: 15px 25px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             color: #fff;
             font-weight: 500;
             z-index: 2000;
@@ -372,7 +372,7 @@
         <!-- 排班區塊 -->
         <div id="rosterSection" class="roster-section" style="display:none;">
             <div class="user-info">
-                <div>填表人：<span id="userName">-</span>｜單位：<span id="userStore">-</span> <span style="font-size:0.7rem;color:#8892b0;font-family:monospace;">v1.10</span></div>
+                <div>填表人：<span id="userName">-</span>｜單位：<span id="userStore">-</span> <span style="font-size:0.7rem;color:var(--color-text-secondary);font-family:monospace;">v1.10</span></div>
                 <button class="btn btn-logout" onclick="logout()">重新登入</button>
             </div>
 
@@ -479,42 +479,27 @@
             }
         };
 
-        // 初始化 - 使用共用登入元件
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('[Roster] Initializing with shared auth...');
-            
-            try {
-                const data = await requireLogin({
-                    minRole: 'staff',
-                    title: '📅 排班功能',
-                    subtitle: '身分證後四碼驗證'
-                });
-                
-                console.log('[Roster] Login success:', data);
-                currentUser = data;
-                isSupervisor = data.department.includes('主管') || data.name === '莊圍迪';
+        // 頁面登入成功後的處理
+        window.onLoginSuccess = function(data) {
+            console.log('[Roster] Login success:', data);
+            currentUser = data;
+            isSupervisor = data.department.includes('主管') || data.name === '莊圍迪';
 
-                document.getElementById('rosterSection').style.display = 'block';
-                sessionStorage.setItem('roster_user', JSON.stringify(data));
+            document.getElementById('rosterSection').style.display = 'block';
+            sessionStorage.setItem('roster_user', JSON.stringify(data));
 
-                document.getElementById('userName').textContent = data.name;
-                document.getElementById('userStore').textContent = isSupervisor ? '主管' : (staffStore[data.name] + '門市');
-
-                if (isSupervisor) {
-                    document.getElementById('supervisorPanel').style.display = 'block';
-                    setMonthTitle();
-                    document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:#8892b0; padding:40px;">請先選擇門市</div>';
-                } else {
-                    document.getElementById('supervisorPanel').style.display = 'none';
-                    currentStore = staffStore[data.name];
-                    staffList = storeStaff[currentStore];
-                    setMonthTitle();
-                    loadEmployeeRoster();
-                }
-            } catch (e) {
-                console.error('[Roster] Login failed:', e);
+            if (isSupervisor) {
+                document.getElementById('supervisorPanel').style.display = 'block';
+                setMonthTitle();
+                document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:var(--color-text-secondary); padding:40px;">請先選擇門市</div>';
+            } else {
+                document.getElementById('supervisorPanel').style.display = 'none';
+                currentStore = staffStore[data.name];
+                staffList = storeStaff[currentStore];
+                setMonthTitle();
+                loadEmployeeRoster();
             }
-        });
+        };
 
         // 登出
         function logout() {
@@ -538,7 +523,7 @@
                 if (isSupervisor) {
                     document.getElementById('supervisorPanel').style.display = 'block';
                     setMonthTitle();
-                    document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:#8892b0; padding:40px;">請先選擇門市</div>';
+                    document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:var(--color-text-secondary); padding:40px;">請先選擇門市</div>';
                 } else {
                     document.getElementById('supervisorPanel').style.display = 'none';
                     currentStore = staffStore[currentUser.name];
@@ -576,19 +561,19 @@
             const saveBtn = document.getElementById('saveBtn');
 
             if (!isNextMonth) {
-                statusDiv.innerHTML = `<span style="color:#f44336;">✗ 只能排下個月的班表</span>`;
+                statusDiv.innerHTML = `<span style="color:var(--color-status-error);">✗ 只能排下個月的班表</span>`;
                 saveBtn.disabled = true;
                 return;
             }
 
             if (currentDate < 24) {
-                statusDiv.innerHTML = `<span style="color:#f44336;">✗ 排班尚未開放，每月24號開放</span>`;
+                statusDiv.innerHTML = `<span style="color:var(--color-status-error);">✗ 排班尚未開放，每月24號開放</span>`;
                 saveBtn.disabled = true;
             } else if (currentDate === lastDayOfMonth && currentHour >= 15) {
-                statusDiv.innerHTML = `<span style="color:#f44336;">✗ 本月排班已截止（月底15:00截止）</span>`;
+                statusDiv.innerHTML = `<span style="color:var(--color-status-error);">✗ 本月排班已截止（月底15:00截止）</span>`;
                 saveBtn.disabled = true;
             } else {
-                statusDiv.innerHTML = `<span style="color:#4caf50;">✓ 排班開放中（24號開放，月底15:00截止）</span>`;
+                statusDiv.innerHTML = `<span style="color:var(--color-status-success);">✓ 排班開放中（24號開放，月底15:00截止）</span>`;
                 saveBtn.disabled = false;
             }
         }
@@ -597,7 +582,7 @@
         async function loadSupervisorRoster() {
             const store = document.getElementById('supervisorStore').value;
             if (!store) {
-                document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:#8892b0; padding:40px;">請先選擇門市</div>';
+                document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:var(--color-text-secondary); padding:40px;">請先選擇門市</div>';
                 return;
             }
             currentStore = store;
