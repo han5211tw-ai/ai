@@ -255,8 +255,23 @@
         </main>
     </div>
 
-    <!-- Test Panel -->
+    <!-- Role Switcher Panel -->
     <div class="test-panel">
+        <h4>👤 角色切換</h4>
+        <button class="test-btn" onclick="switchRole('boss')" style="background: rgba(0, 212, 255, 0.3); border-color: #00d4ff;">👑 老闆視角</button>
+        <button class="test-btn" onclick="switchRole('accountant')" style="background: rgba(123, 44, 191, 0.3); border-color: #7b2cbf;">🧮 會計視角</button>
+        <button class="test-btn" onclick="switchRole('storeManager')" style="background: rgba(255, 152, 0, 0.3); border-color: #ff9800;">🏪 門市主管視角</button>
+        <button class="test-btn" onclick="switchRole('salesManager')" style="background: rgba(33, 150, 243, 0.3); border-color: #2196f3;">📊 業務主管視角</button>
+        <button class="test-btn" onclick="switchRole('staff')" style="background: rgba(76, 175, 80, 0.3); border-color: #4caf50;">👔 業務視角</button>
+        <button class="test-btn" onclick="switchRole('engineer')" style="background: rgba(156, 39, 176, 0.3); border-color: #9c27b0;">🔧 工程師視角</button>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <div id="currentRole" style="color: #00d4ff; font-weight: bold;">目前角色：業務</div>
+            <div id="rolePermissions" style="color: #8892b0; font-size: 11px; margin-top: 4px;">可見：首頁、報價作業、銷貨輸入、單據查詢、需求作業、排班管理、庫存查詢、客戶查詢、客戶建檔、業務業績、個人業績、服務數據</div>
+        </div>
+    </div>
+
+    <!-- Test Panel -->
+    <div class="test-panel" style="bottom: 240px;">
         <h4>🔧 快速測試</h4>
         <button class="test-btn" onclick="testSidebarNavigation()">測試 Sidebar 導航</button>
         <button class="test-btn" onclick="testSplitView()">測試 Split View</button>
@@ -273,28 +288,99 @@
     <script src="shared/modal-system.js"></script>
     
     <script>
+        // Current role state
+        let currentNav = null;
+        let currentRole = 'staff';
+
+        const roleConfigs = {
+            boss: {
+                name: '黃柏翰',
+                title: '老闆',
+                display: '👑 老闆',
+                permissions: '全部功能（含系統設定、所有報表、待請購清單，不含資料管理）'
+            },
+            accountant: {
+                name: '會計',
+                title: '會計',
+                display: '🧮 會計',
+                permissions: '單據作業、庫存查詢、客戶查詢、所有報表、待調撥清單（不含客戶建檔、資料管理）'
+            },
+            staff: {
+                name: '業務員',
+                title: '業務人員',
+                display: '👔 業務',
+                permissions: '首頁、報價作業、銷貨輸入、單據查詢、需求作業、排班管理、庫存查詢、客戶查詢、客戶建檔、業務業績、個人業績、服務數據'
+            },
+            engineer: {
+                name: '工程師',
+                title: '工程師',
+                display: '🔧 工程師',
+                permissions: '首頁、報價作業、銷貨輸入、單據查詢、需求作業、排班管理、庫存查詢、客戶查詢、客戶建檔、門市業績、個人業績'
+            },
+            storeManager: {
+                name: '門市部主管',
+                title: '門市部主管',
+                display: '🏪 門市主管',
+                permissions: '全部功能（不含業務業績報表）'
+            },
+            salesManager: {
+                name: '業務部主管',
+                title: '業務部主管',
+                display: '📊 業務主管',
+                permissions: '全部功能（不含門市業績報表）'
+            }
+        };
+
+        // Switch role function
+        function switchRole(role) {
+            currentRole = role;
+            const config = roleConfigs[role];
+
+            // Update UI
+            document.getElementById('currentRole').textContent = `目前角色：${config.display}`;
+            document.getElementById('rolePermissions').textContent = `可見：${config.permissions}`;
+            document.querySelector('.user-name').textContent = config.name;
+            document.querySelector('.user-role').textContent = config.title;
+
+            // Re-render navigation
+            const navContainer = document.getElementById('sidebarNav');
+            navContainer.innerHTML = '';
+
+            currentNav = new SidebarNavigation({
+                container: navContainer,
+                currentUser: { name: config.name, title: config.title },
+                onRouteChange: (route) => {
+                    log(`✓ 路由切換: ${route.label}`, 'pass');
+                    document.getElementById('pageTitle').textContent = route.label;
+                }
+            });
+
+            log(`已切換至 ${config.display} 視角`, 'info');
+        }
+
         // Test Results
         const testResults = document.getElementById('testResults');
-        
+
         function log(message, type = 'info') {
             const div = document.createElement('div');
             div.className = type === 'pass' ? 'test-pass' : type === 'fail' ? 'test-fail' : 'test-info';
             div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
             testResults.appendChild(div);
         }
-        
+
         // Test 1: Sidebar Navigation
         function testSidebarNavigation() {
             log('開始測試 Sidebar Navigation...', 'info');
-            
+
             try {
-                const nav = new SidebarNavigation({
-                    container: document.getElementById('sidebarNav'),
-                    currentUser: { name: '測試員', title: '業務員' },
-                    onRouteChange: (route) => {
-                        log(`✓ 路由切換: ${route.label}`, 'pass');
-                        document.getElementById('pageTitle').textContent = route.label;
-                    }
+                // Test all three roles
+                ['staff', 'accountant', 'boss'].forEach(role => {
+                    const config = roleConfigs[role];
+                    const nav = new SidebarNavigation({
+                        container: document.createElement('div'),
+                        currentUser: { name: config.name, title: config.title }
+                    });
+                    log(`${config.display}: 導航初始化成功`, 'pass');
                 });
                 
                 log('✓ SidebarNavigation 初始化成功', 'pass');
@@ -438,6 +524,9 @@
             log(`- SidebarNavigation: ${typeof SidebarNavigation !== 'undefined' ? '✓' : '✗'}`, typeof SidebarNavigation !== 'undefined' ? 'pass' : 'fail');
             log(`- SplitViewModule: ${typeof SplitViewModule !== 'undefined' ? '✓' : '✗'}`, typeof SplitViewModule !== 'undefined' ? 'pass' : 'fail');
             log(`- ModalSystem: ${typeof ModalSystem !== 'undefined' ? '✓' : '✗'}`, typeof ModalSystem !== 'undefined' ? 'pass' : 'fail');
+
+            // Initialize with boss role by default
+            switchRole('boss');
         });
     </script>
 </body>

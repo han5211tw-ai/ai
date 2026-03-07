@@ -96,6 +96,24 @@ class AppShellIntegration {
             case 'documents':
                 this.loadDocumentModule(workspace);
                 break;
+            case 'quote':
+                this.loadPageInIframe(workspace, 'quote_input.html');
+                break;
+            case 'sales':
+                this.loadPageInIframe(workspace, 'sales_input.html');
+                break;
+            case 'needs':
+                this.loadPageInIframe(workspace, 'needs_input.html');
+                break;
+            case 'schedule':
+                this.loadPageInIframe(workspace, 'schedule.html');
+                break;
+            case 'inventory':
+                this.loadPageInIframe(workspace, 'inventory_query.html');
+                break;
+            case 'customer-search':
+                this.loadPageInIframe(workspace, 'customer_search.html');
+                break;
             case 'products':
                 this.loadPageInIframe(workspace, 'product_create.html');
                 break;
@@ -107,6 +125,22 @@ class AppShellIntegration {
                 break;
             case 'purchase':
                 this.loadPageInIframe(workspace, 'purchase_input.html');
+                break;
+            case 'pending-needs':
+                this.loadPageInIframe(workspace, 'boss.html');
+                break;
+            case 'pending-transfer':
+                this.loadPageInIframe(workspace, 'Accountants.html');
+                break;
+            case 'report-dept':
+            case 'report-sales':
+            case 'report-store':
+            case 'report-personal':
+            case 'report-service':
+                this.loadPageInIframe(workspace, 'Store_Manager.html');
+                break;
+            case 'admin':
+                this.loadPageInIframe(workspace, 'admin.html');
                 break;
             default:
                 this.loadDashboard(workspace);
