@@ -1,8 +1,8 @@
 import multiprocessing
 import os
 
-# Worker 數量（Apple Silicon M4 建議 6-8，目前12-13人使用）
-workers = 6
+# Worker 數量（減少為 2 以避免記憶體不足）
+workers = 2
 worker_class = "sync"
 
 # 綁定

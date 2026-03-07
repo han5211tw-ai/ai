@@ -1,908 +1,479 @@
 {% extends "base.html" %}
 
-{% block title %}會計專區 - 電腦舖營運系統{% endblock %}
+{% block title %}會計專區 - 電腦舖{% endblock %}
+{% block page_title %}會計專區{% endblock %}
 
-{% block page_title %}會計專區營運系統{% endblock %}
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0; padding: 0; }
+
+/* 區塊樣式 */
+.section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    color: #00d4ff;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+/* 表格樣式 */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+.items-table th,
+.items-table td {
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
+}
+
+.items-table th {
+    background: rgba(0, 212, 255, 0.1);
+    color: #00d4ff;
+}
+
+.items-table td {
+    color: var(--color-text-primary);
+}
+
+.items-table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* 輸入框樣式 */
+.items-table input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.items-table input:focus {
+    outline: none;
+    border-color: #00d4ff;
+}
+
+/* 按鈕樣式 */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.2s;
+    font-size: 0.85em;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.btn-danger {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    color: #f44336;
+}
+
+.btn-danger:hover {
+    background: rgba(244, 67, 54, 0.3);
+}
+
+/* 狀態標籤 */
+.status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.status-pending {
+    background: rgba(255, 152, 0, 0.15);
+    color: #ff9800;
+}
+
+.status-arrived {
+    background: rgba(0, 212, 255, 0.15);
+    color: #00d4ff;
+}
+
+.status-completed {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+}
+
+.status-cancelled {
+    background: rgba(244, 67, 54, 0.15);
+    color: #f44336;
+}
+
+/* 庫存標籤 */
+.stock-warehouse {
+    display: inline-block;
+    background: rgba(0, 212, 255, 0.1);
+    color: #00d4ff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin: 2px;
+    font-size: 0.8em;
+}
+
+/* 載入與空狀態 */
+.loading {
+    color: #8892b0;
+    text-align: center;
+    padding: 40px;
+}
+
+.empty-state {
+    text-align: center;
+    color: #8892b0;
+    padding: 40px;
+}
+
+/* 更新時間 */
+.update-time {
+    text-align: center;
+    color: #8892b0;
+    margin-top: 20px;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- 原始內容開始 -->
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>會計專區 - 電腦舖營運系統</title>
-    <link rel="stylesheet" href="shared/auth_ui.css">
-    <script src="shared/auth_ui.js"></script>
-    <script>
-        // 取得當前使用者資訊
-        function getCurrentUser() {
-            const data = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
-            return data ? JSON.parse(data) : null;
-        }
-
-        // 顯示登入人姓名
-        function displayUserName() {
-            const user = getCurrentUser();
-            if (user && user.name) {
-                document.getElementById('userDisplay').textContent = '👤 ' + user.name;
-            }
-        }
-
-        // 頁面載入時自動檢查登入
-        document.addEventListener('DOMContentLoaded', function() {
-            }
-        });
-    </script>
-
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #fef9f3 0%, #fdf6ed 50%, #fcf3e6 100%);
-            min-height: 100vh;
-            color: #4a4a4a;
-        }
-        
-        .container {
-            width: 100%;
-            margin: 0 auto;
-            padding: 20px 40px;
-        }
-        
-        h1 {
-            text-align: left;
-            font-size: 1.2em;
-            margin-bottom: 5px;
-            background: linear-gradient(90deg, #e91e63, #9c27b0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .subtitle {
-            text-align: left;
-            color: #888;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-        }
-        
-        .nav {
-            display: flex;
-            justify-content: flex-start;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .nav a {
-            color: #666;
-            text-decoration: none;
-            padding: 10px 18px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            transition: all 0.3s;
-            background: rgba(255, 255, 255, 0.7);
-        }
-        
-        .nav a:hover {
-            color: #e91e63;
-            border-color: #e91e63;
-            background: rgba(233, 30, 99, 0.05);
-            transform: translateY(-2px);
-        }
-        
-        .nav a.active, .nav span.active {
-            color: #e91e63;
-            border-color: #e91e63;
-            background: rgba(233, 30, 99, 0.1);
-        }
-        .nav span.active {
-            cursor: default;
-        }
-        
-        .card {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 16px;
-            padding: 25px 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-        
-        .card:hover {
-            border-color: #f48fb1;
-            box-shadow: 0 6px 25px rgba(233, 30, 99, 0.1);
-        }
-        
-        .card h2 {
-            color: #e91e63;
-            font-size: 1.3em;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        /* 雲端文件按鈕 */
-        .btn-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            
-            margin: 0 auto;
-        }
-        
-        .btn-card {
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            padding: 20px 15px;
-            text-decoration: none;
-            color: #4a4a4a;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        
-        .btn-card:hover {
-            border-color: #f48fb1;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(233, 30, 99, 0.15);
-        }
-        
-        .btn-icon { 
-            font-size: 2em; 
-            margin-bottom: 8px; 
-        }
-        
-        .btn-title { 
-            font-size: 1.1em; 
-            font-weight: 600; 
-            margin-bottom: 5px;
-            color: #e91e63;
-        }
-        
-        .btn-desc { 
-            font-size: 0.85em; 
-            color: #888; 
-        }
-        
-        /* 表格樣式 */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.95em;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-        }
-        
-        th {
-            background: rgba(233, 30, 99, 0.08);
-            color: #e91e63;
-            font-weight: 600;
-        }
-        
-        td { 
-            color: #555; 
-        }
-        
-        tr:hover { 
-            background: rgba(233, 30, 99, 0.03); 
-        }
-        
-        .loading {
-            color: #888;
-            text-align: center;
-            padding: 40px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            color: #888;
-            padding: 40px;
-        }
-        
-        .update-time {
-            text-align: center;
-            color: #888;
-            margin-top: 30px;
-            font-size: 0.85em;
-        }
-        
-        .details-panel {
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 15px;
-            display: none;
-        }
-        
-        .details-panel.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .details-title {
-            font-size: 1.1em;
-            color: #e91e63;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        }
-        
-        .detail-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        .detail-item:last-child {
-            border-bottom: none;
-        }
-        
-        .detail-label {
-            color: #888;
-        }
-        
-        .detail-value {
-            color: #4a4a4a;
-            font-weight: 500;
-        }
-        
-        .detail-value.green { color: #22c55e; }
-        .detail-value.yellow { color: #eab308; }
-        .detail-value.red { color: #ef4444; }
-        
-        .stock-info {
-            font-size: 0.85em;
-            color: #666;
-        }
-        
-        .stock-warehouse {
-            display: inline-block;
-            background: rgba(233, 30, 99, 0.1);
-            color: #e91e63;
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin: 2px;
-            font-size: 0.8em;
-        }
-        .btn-complete {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .btn-complete:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
-        }
-        .btn-complete:disabled {
-            background: #999;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        .remark-input {
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-            padding: 6px 8px;
-            color: #4a4a4a;
-            font-size: 0.85em;
-            width: 100px;
-        }
-        .remark-input:focus {
-            outline: none;
-            border-color: #e91e63;
-        }
-        .btn-save-remark {
-            background: rgba(233, 30, 99, 0.1);
-            border: 1px solid rgba(233, 30, 99, 0.5);
-            color: #e91e63;
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-            margin-left: 4px;
-        }
-        .btn-save-remark:hover {
-            background: rgba(233, 30, 99, 0.2);
-        }
-        /* 待處理調撥需求表格字體調整 */
-        #needsTable table {
-            font-size: 0.9em;
-        }
-        #needsTable th {
-            font-size: 0.9em;
-        }
-        #needsTable td {
-            font-size: 0.9em;
-        }
-        
-        @media (max-width: 768px) {
-            .btn-grid {
-                grid-template-columns: 1fr;
-            }
-            .status-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <span id="userDisplay" style="color: #e91e63; font-size: 0.95em;"></span>
-                <button onclick="window.authLogout && window.authLogout()" style="padding: 6px 12px; background: rgba(244,67,54,0.2); border: 1px solid rgba(244,67,54,0.5); color: #f44336; border-radius: 4px; cursor: pointer; font-size: 0.85em;">登出</button>
-            </div>
-        </div>
-        <p class="subtitle">Accounting Dashboard</p>
-
-        <!-- 導航連結 -->
-        <div class="nav">
-            <a href="index.html">🏠 首頁</a>
-            <a href="supplier_portal.html" target="_blank">🏭 廠商</a>
-            <a href="staging_center_v2.html">📋 待建檔中心</a>
-        </div>
-
-        <!-- 待處理調撥需求 -->
-        <div class="card">
-            
-            <div id="needsTable">
-                <div class="loading">載入中...</div>
-            </div>
-        </div>
-
-        <!-- 所有人的當月班表 -->
-        <div class="card">
-            
-            <div id="monthlyRosterTable">
-                <div class="loading">載入中...</div>
-            </div>
-        </div>
-
-        <div class="update-time">
-            資料即時從資料庫讀取 | 最後更新：<span id="updateTime">--</span>
+<div class="container">
+    <!-- 待處理調撥需求 -->
+    <div class="section">
+        <div class="section-title">🚚 待處理調撥需求</div>
+        <div id="needsTable">
+            <div class="loading">載入中...</div>
         </div>
     </div>
 
-    <script>
-        // 載入需求表（只顯示調撥且未處理的項目）
-        async function loadNeeds() {
-            try {
-                const response = await fetch('/api/needs/latest?type=' + encodeURIComponent('調撥'));
-                const data = await response.json();
+    <!-- 所有人的當月班表 -->
+    <div class="section">
+        <div class="section-title">📅 所有人的當月班表</div>
+        <div id="monthlyRosterTable">
+            <div class="loading">載入中...</div>
+        </div>
+    </div>
 
-                if (!data.items || data.items.length === 0) {
-                    document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無調撥需求</div>';
-                    return;
-                }
+    <div class="update-time">
+        資料即時從資料庫讀取 | 最後更新：<span id="updateTime">--</span>
+    </div>
+</div>
+{% endblock %}
 
-                const html = `
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>項次</th>
-                                <th>日期</th>
-                                <th>產品編號</th>
-                                <th>產品名稱</th>
-                                <th>數量</th>
-                                <th>調撥來源</th>
-                                <th>需求部門</th>
-                                <th>填表人員</th>
-                                <th>庫存狀況</th>
-                                <th>備註</th>
-                                <th>狀態</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.items.map((item, idx) => `
-                                <tr data-id="${item.id}">
-                                    <td>${idx + 1}</td>
-                                    <td>${item.date || '-'}</td>
-                                    <td style="${item.product_code && item.product_code.startsWith('TEMP') ? 'color:#f44336;font-weight:bold;' : ''}">${item.product_code || '-'}</td>
-                                    <td style="font-size: 0.95em;">
-                                        ${item.display_name || item.item_name}
-                                    </td>
-                                    <td>${item.quantity}</td>
-                                    <td>${item.transfer_from || '-'}</td>
-                                    <td>${item.department || '-'}</td>
-                                    <td>${item.requester || '-'}</td>
-                                    <td>
-                                        ${item.stock_warehouses && item.stock_warehouses.length > 0
-                                            ? item.stock_warehouses.map(sw => `<span class="stock-warehouse">${sw.warehouse}: ${sw.qty}</span>`).join('')
-                                            : '-'
-                                        }
-                                    </td>
-                                    <td>
-                                        <input type="text" class="remark-input" id="remark-${item.id}" value="${item.remark || ''}" placeholder="輸入備註...">
-                                        <button class="btn-save-remark" onclick="saveRemark(${item.id})">儲存</button>
-                                    </td>
-                                    <td>
-                                        <span class="status ${getStatusClass(item.status)}">${item.status}</span>
-                                    </td>
-                                    <td>
-                                        ${item.status === '待處理'
-                                            ? `<button class="btn-transfer" onclick="transferNeed(${item.id}, this)" style="background:rgba(156,39,176,0.2);color:#9c27b0;border:1px solid rgba(156,39,176,0.5);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.85em;">已調撥</button>
-                                               <button class="btn-cancel" onclick="cancelNeed(${item.id}, this)" style="background:rgba(244,67,54,0.2);color:#f44336;border:1px solid rgba(244,67,54,0.5);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.85em;margin-left:5px;">取消</button>`
-                                            : ''
-                                        }
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                document.getElementById('needsTable').innerHTML = html;
-            } catch (error) {
-                console.error('載入需求表失敗:', error);
-                document.getElementById('needsTable').innerHTML = '<div class="empty-state">需求資料載入失敗</div>';
-            }
-        }
+{% block scripts %}
+<script>
+    // 取得當前使用者資訊
+    function getCurrentUser() {
+        const data = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+        return data ? JSON.parse(data) : null;
+    }
 
-        // 儲存備註
-        async function saveRemark(id) {
-            const input = document.getElementById(`remark-${id}`);
-            const remark = input.value.trim();
-            const btn = event.target;
-            const originalText = btn.textContent;
+    // 載入需求表（只顯示調撥且未處理的項目）
+    async function loadNeeds() {
+        try {
+            const response = await fetch('/api/needs/latest?type=' + encodeURIComponent('調撥'));
+            const data = await response.json();
 
-            btn.textContent = '儲存中...';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch('/api/needs/remark', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, remark: remark })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    btn.textContent = '✓ 已儲存';
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                    }, 1500);
-                } else {
-                    alert('儲存失敗：' + (result.message || '未知錯誤'));
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                }
-            } catch (error) {
-                console.error('儲存備註失敗:', error);
-                alert('儲存失敗，請稍後再試');
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        // 標記需求為已調撥
-        async function transferNeed(id, btn) {
-            if (!confirm('確定要標記此需求為已調撥嗎？')) {
+            if (!data.items || data.items.length === 0) {
+                document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無調撥需求</div>';
                 return;
             }
 
-            btn.disabled = true;
-            btn.textContent = '處理中...';
+            const html = `
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>項次</th>
+                            <th>日期</th>
+                            <th>產品編號</th>
+                            <th>產品名稱</th>
+                            <th>數量</th>
+                            <th>調撥來源</th>
+                            <th>需求部門</th>
+                            <th>填表人員</th>
+                            <th>庫存狀況</th>
+                            <th>備註</th>
+                            <th>狀態</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.items.map((item, idx) => `
+                            <tr data-id="${item.id}">
+                                <td>${idx + 1}</td>
+                                <td>${item.date || '-'}</td>
+                                <td style="${item.product_code && item.product_code.startsWith('TEMP') ? 'color:#f44336;font-weight:bold;' : ''}">${item.product_code || '-'}</td>
+                                <td>${item.display_name || item.item_name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${item.transfer_from || '-'}</td>
+                                <td>${item.department || '-'}</td>
+                                <td>${item.requester || '-'}</td>
+                                <td>
+                                    ${item.stock_warehouses && item.stock_warehouses.length > 0
+                                        ? item.stock_warehouses.map(sw => `<span class="stock-warehouse">${sw.warehouse}: ${sw.qty}</span>`).join('')
+                                        : '-'
+                                    }
+                                </td>
+                                <td>
+                                    <input type="text" id="remark-${item.id}" value="${item.remark || ''}" placeholder="輸入備註...">
+                                </td>
+                                <td>
+                                    <span class="status status-${item.status === '待處理' ? 'pending' : item.status === '已調撥' ? 'arrived' : 'completed'}">${item.status}</span>
+                                </td>
+                                <td>
+                                    ${item.status === '待處理'
+                                        ? `<button class="btn btn-success" onclick="transferNeed(${item.id}, this)">已調撥</button>
+                                           <button class="btn btn-danger" onclick="cancelNeed(${item.id}, this)">取消</button>`
+                                        : ''
+                                    }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('needsTable').innerHTML = html;
+        } catch (error) {
+            console.error('載入需求表失敗:', error);
+            document.getElementById('needsTable').innerHTML = '<div class="empty-state">需求資料載入失敗</div>';
+        }
+    }
 
-            try {
-                const response = await fetch('/api/needs/transfer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id })
-                });
+    // 標記需求為已調撥
+    async function transferNeed(id, btn) {
+        if (!confirm('確定要標記此需求為已調撥嗎？')) {
+            return;
+        }
 
-                const result = await response.json();
+        btn.disabled = true;
+        btn.textContent = '處理中...';
 
-                if (result.success) {
-                    // 更新狀態顯示
-                    const row = btn.closest('tr');
-                    const statusCell = row.cells[row.cells.length - 2];
-                    statusCell.innerHTML = '<span class="status status-arrived">已調撥</span>';
-                    btn.outerHTML = '<span style="color:#4caf50;">✓ 已調撥</span>';
-                } else {
-                    alert('標記失敗：' + (result.message || '未知錯誤'));
-                    btn.disabled = false;
-                    btn.textContent = '已調撥';
-                }
-            } catch (error) {
-                console.error('標記失敗:', error);
-                alert('標記失敗，請稍後再試');
+        const currentUser = getCurrentUser();
+
+        try {
+            const response = await fetch('/api/needs/transfer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, requester: currentUser ? currentUser.name : '' })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const row = btn.closest('tr');
+                const statusCell = row.cells[row.cells.length - 2];
+                statusCell.innerHTML = '<span class="status status-arrived">已調撥</span>';
+                btn.outerHTML = '<span style="color:#4caf50;">✓ 已調撥</span>';
+            } else {
+                alert('標記失敗：' + (result.message || '未知錯誤'));
                 btn.disabled = false;
                 btn.textContent = '已調撥';
             }
+        } catch (error) {
+            console.error('標記失敗:', error);
+            alert('標記失敗，請稍後再試');
+            btn.disabled = false;
+            btn.textContent = '已調撥';
+        }
+    }
+
+    // 取消需求
+    async function cancelNeed(id, btn) {
+        if (!confirm('確定要取消此需求嗎？')) {
+            return;
         }
 
-        // 標記需求為已完成（保留用於直接完成）
-        async function completeNeed(id, btn) {
-            if (!confirm('確定要標記此需求為已完成嗎？')) {
-                return;
-            }
+        btn.disabled = true;
+        btn.textContent = '處理中...';
 
-            btn.disabled = true;
-            btn.textContent = '處理中...';
+        const currentUser = getCurrentUser();
 
-            try {
-                const response = await fetch('/api/needs/complete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id })
-                });
+        try {
+            const response = await fetch('/api/needs/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, is_accountant: true, requester: currentUser ? currentUser.name : '' })
+            });
 
-                const result = await response.json();
+            const result = await response.json();
 
-                if (result.success) {
-                    // 移除該行
-                    const row = btn.closest('tr');
-                    row.style.transition = 'all 0.3s ease';
-                    row.style.opacity = '0';
-                    setTimeout(() => {
-                        row.remove();
-                        // 重新整理編號
-                        const rows = document.querySelectorAll('#needsTable tbody tr');
-                        rows.forEach((r, idx) => {
-                            r.cells[0].textContent = idx + 1;
-                        });
-                        // 如果沒有資料了，顯示空狀態
-                        if (rows.length === 0) {
-                            document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
-                        }
-                    }, 300);
-                } else {
-                    alert('標記失敗：' + (result.message || '未知錯誤'));
-                    btn.disabled = false;
-                    btn.textContent = '已完成';
-                }
-            } catch (error) {
-                console.error('標記完成失敗:', error);
-                alert('標記失敗，請稍後再試');
-                btn.disabled = false;
-                btn.textContent = '已完成';
-            }
-        }
-
-        // 取消需求
-        async function cancelNeed(id, btn) {
-            if (!confirm('確定要取消此需求嗎？')) {
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = '處理中...';
-
-            try {
-                // 取得當前使用者資訊
-                const currentUser = getCurrentUser();
-
-                const response = await fetch('/api/needs/cancel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, is_accountant: true, requester: currentUser ? currentUser.name : '' })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    // 移除該行
-                    const row = btn.closest('tr');
-                    row.style.transition = 'all 0.3s ease';
-                    row.style.opacity = '0';
-                    setTimeout(() => {
-                        row.remove();
-                        // 重新整理編號
-                        const rows = document.querySelectorAll('#needsTable tbody tr');
-                        rows.forEach((r, idx) => {
-                            r.cells[0].textContent = idx + 1;
-                        });
-                        // 如果沒有資料了，顯示空狀態
-                        if (rows.length === 0) {
-                            document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
-                        }
-                    }, 300);
-                } else {
-                    alert('取消失敗：' + (result.message || '未知錯誤'));
-                    btn.disabled = false;
-                    btn.textContent = '取消';
-                }
-            } catch (error) {
-                console.error('取消需求失敗:', error);
-                alert('取消失敗，請稍後再試');
+            if (result.success) {
+                const row = btn.closest('tr');
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                    const rows = document.querySelectorAll('#needsTable tbody tr');
+                    rows.forEach((r, idx) => {
+                        r.cells[0].textContent = idx + 1;
+                    });
+                    if (rows.length === 0) {
+                        document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
+                    }
+                }, 300);
+            } else {
+                alert('取消失敗：' + (result.message || '未知錯誤'));
                 btn.disabled = false;
                 btn.textContent = '取消';
             }
+        } catch (error) {
+            console.error('取消需求失敗:', error);
+            alert('取消失敗，請稍後再試');
+            btn.disabled = false;
+            btn.textContent = '取消';
         }
+    }
 
-        // 狀態樣式
-        function getStatusClass(status) {
-            if (!status) return 'badge-pending';
-            if (status === '已採購' || status === '已調撥' || status === '已到貨') return 'badge-arrived';
-            if (status === '已完成') return 'badge-done';
-            if (status === '已取消') return 'badge-cancelled';
-            return 'badge-pending';
-        }
+    // 更新時間
+    document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
 
-        // 更新時間
-        document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
-        
-        // 載入資料
-        loadNeeds();
-        loadMonthlyRoster();
+    // 載入資料
+    loadNeeds();
+    loadMonthlyRoster();
 
-        // 每 1 小時自動重新整理
-        setInterval(() => {
-            location.reload();
-        }, 3600000);
+    // 每 1 小時自動重新整理
+    setInterval(() => {
+        location.reload();
+    }, 3600000);
 
-        // 載入所有人的當月班表
-        async function loadMonthlyRoster() {
-            const container = document.getElementById('monthlyRosterTable');
-            container.innerHTML = '<div class="loading">載入中...</div>';
+    // 載入所有人的當月班表
+    async function loadMonthlyRoster() {
+        const container = document.getElementById('monthlyRosterTable');
+        container.innerHTML = '<div class="loading">載入中...</div>';
 
-            try {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = now.getMonth() + 1;
-                const daysInMonth = new Date(year, month, 0).getDate();
+        try {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const daysInMonth = new Date(year, month, 0).getDate();
 
-                // 取得所有門市
-                const stores = ['豐原', '潭子', '大雅'];
-                let allStaffRoster = {};
+            const stores = ['豐原', '潭子', '大雅'];
+            let allStaffRoster = {};
 
-                for (const store of stores) {
-                    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-                    const endDate = `${year}-${String(month).padStart(2, '0')}-${daysInMonth}`;
+            for (const store of stores) {
+                const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+                const endDate = `${year}-${String(month).padStart(2, '0')}-${daysInMonth}`;
 
-                    const response = await fetch(`/api/roster/range?store=${encodeURIComponent(store)}&start=${startDate}&end=${endDate}`);
-                    const data = await response.json();
-
-                    if (data.success && data.roster) {
-                        data.roster.forEach(record => {
-                            if (!allStaffRoster[record.staff_name]) {
-                                allStaffRoster[record.staff_name] = {
-                                    store: store,
-                                    shifts: {}
-                                };
-                            }
-                            allStaffRoster[record.staff_name].shifts[record.date] = record.shift_code;
-                        });
-                    }
-                }
-
-                if (Object.keys(allStaffRoster).length === 0) {
-                    container.innerHTML = '<div class="empty-state">暫無班表資料</div>';
-                    return;
-                }
-
-                // 生成表格 HTML
-                let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85em;">';
-                html += '<thead><tr style="background:rgba(0,212,255,0.1);">';
-                html += '<th style="padding:10px;border:1px solid rgba(255,255,255,0.1);text-align:left;">人員</th>';
-                html += '<th style="padding:10px;border:1px solid rgba(255,255,255,0.1);text-align:left;">門市</th>';
-
-                // 日期欄位
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const weekday = new Date(year, month - 1, day).getDay();
-                    const weekdayName = ['日', '一', '二', '三', '四', '五', '六'][weekday];
-                    const isWeekend = weekday === 0 || weekday === 6;
-                    const bgStyle = isWeekend ? 'background:rgba(244,67,54,0.1);' : '';
-                    html += `<th style="padding:8px 4px;border:1px solid rgba(255,255,255,0.1);text-align:center;${bgStyle}font-size:0.8em;">${day}<br>${weekdayName}</th>`;
-                }
-
-                html += '</tr></thead><tbody>';
-
-                // 排序：依門市，再依姓名
-                const sortedStaff = Object.entries(allStaffRoster).sort((a, b) => {
-                    const storeOrder = { '豐原': 1, '潭子': 2, '大雅': 3 };
-                    const orderA = storeOrder[a[1].store] || 99;
-                    const orderB = storeOrder[b[1].store] || 99;
-                    if (orderA !== orderB) return orderA - orderB;
-                    return a[0].localeCompare(b[0]);
-                });
-
-                sortedStaff.forEach(([name, data]) => {
-                    html += '<tr>';
-                    html += `<td style="padding:8px;border:1px solid rgba(255,255,255,0.1);white-space:nowrap;">${name}</td>`;
-                    html += `<td style="padding:8px;border:1px solid rgba(255,255,255,0.1);">${data.store}</td>`;
-
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const shift = data.shifts[dateStr] || '';
-
-                        let shiftColor = '#8892b0';
-                        let shiftBg = '';
-
-                        if (shift === '早班' || shift === '早') {
-                            shiftColor = '#ff9800';
-                            shiftBg = 'background:rgba(255,152,0,0.2);';
-                        } else if (shift === '中班' || shift === '中') {
-                            shiftColor = '#4caf50';
-                            shiftBg = 'background:rgba(76,175,80,0.2);';
-                        } else if (shift === '晚班' || shift === '晚') {
-                            shiftColor = '#9c27b0';
-                            shiftBg = 'background:rgba(156,39,176,0.2);';
-                        } else if (shift === '全班' || shift === '全') {
-                            shiftColor = '#00d4ff';
-                            shiftBg = 'background:rgba(0,212,255,0.2);';
-                        } else if (shift === '值班' || shift === '值') {
-                            shiftColor = '#e91e63';
-                            shiftBg = 'background:rgba(233,30,99,0.2);';
-                        } else if (shift === '休假' || shift === '休' || shift === '特休' || shift === '特') {
-                            shiftColor = '#00d4ff';
-                            shiftBg = 'background:rgba(0,212,255,0.1);';
-                        }
-
-                        const weekday = new Date(year, month - 1, day).getDay();
-                        const isWeekend = weekday === 0 || weekday === 6;
-                        const weekendBg = isWeekend ? 'background:rgba(244,67,54,0.05);' : '';
-
-                        html += `<td style="padding:4px;border:1px solid rgba(255,255,255,0.1);text-align:center;color:${shiftColor};${shiftBg}${weekendBg}font-size:0.8em;">${shift || '-'}</td>`;
-                    }
-
-                    html += '</tr>';
-                });
-
-                html += '</tbody></table>';
-                container.innerHTML = html;
-
-            } catch (error) {
-                console.error('載入班表失敗:', error);
-                container.innerHTML = '<div class="empty-state">班表資料載入失敗</div>';
-            }
-        }
-        
-        // ============================================
-        // 自動輪詢新需求通知（方案4）
-        // ============================================
-        let lastNeedCount = 0;
-        let pollingInterval = null;
-        
-        // 播放提示音
-        function playNotificationSound() {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.5);
-                
-                // 第二聲
-                setTimeout(() => {
-                    const osc2 = audioContext.createOscillator();
-                    const gain2 = audioContext.createGain();
-                    osc2.connect(gain2);
-                    gain2.connect(audioContext.destination);
-                    osc2.frequency.value = 1000;
-                    osc2.type = 'sine';
-                    gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                    osc2.start(audioContext.currentTime);
-                    osc2.stop(audioContext.currentTime + 0.5);
-                }, 200);
-            } catch (e) {
-                console.log('無法播放提示音:', e);
-            }
-        }
-        
-        // 顯示通知
-        function showNotification(message) {
-            const div = document.createElement('div');
-            div.style.cssText = 'position:fixed;top:20px;right:20px;background:#e91e63;color:#fff;padding:15px 20px;border-radius:8px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-size:0.95em;line-height:1.5;';
-            div.innerHTML = message;
-            document.body.appendChild(div);
-            
-            setTimeout(() => {
-                div.style.opacity = '0';
-                div.style.transition = 'opacity 0.5s';
-                setTimeout(() => div.remove(), 500);
-            }, 5000);
-        }
-        
-        // 檢查新需求
-        async function checkNewNeeds() {
-            try {
-                const response = await fetch('/api/needs/latest?limit=1');
+                const response = await fetch(`/api/roster/range?store=${encodeURIComponent(store)}&start=${startDate}&end=${endDate}`);
                 const data = await response.json();
-                
-                if (data.items && data.items.length > 0) {
-                    const currentCount = data.items.length;
-                    
-                    // 首次載入時記錄數量
-                    if (lastNeedCount === 0) {
-                        lastNeedCount = currentCount;
-                        return;
-                    }
-                    
-                    // 如果有新需求
-                    if (currentCount > lastNeedCount) {
-                        const latestNeed = data.items[0];
-                        showNotification(`🛒 新需求單！<br>${latestNeed.requester} 提交了 ${latestNeed.product_name || '新需求'}`);
-                        playNotificationSound();
-                        lastNeedCount = currentCount;
-                        
-                        // 重新載入需求表
-                        loadNeeds();
-                    } else {
-                        lastNeedCount = currentCount;
-                    }
-                }
-            } catch (e) {
-                console.log('輪詢新需求失敗:', e);
-            }
-        }
-        
-        // 啟動自動輪詢
-        function startPolling() {
-            if (pollingInterval) return;
-            
-            checkNewNeeds();
-            pollingInterval = setInterval(checkNewNeeds, 30000);
-            console.log('自動輪詢已啟動（每30秒）');
-        }
-        
-        // 停止自動輪詢
-        function stopPolling() {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-                console.log('自動輪詢已停止');
-            }
-        }
-        
-        // 頁面可見時啟動，不可見時停止
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                stopPolling();
-            } else {
-                startPolling();
-            }
-        });
-        
-        // 頁面載入完成後啟動輪詢
-        setTimeout(startPolling, 2000);
-    </script>
-</html>
 
-<!-- 原始內容結束 -->
+                if (data.success && data.roster) {
+                    data.roster.forEach(record => {
+                        if (!allStaffRoster[record.staff_name]) {
+                            allStaffRoster[record.staff_name] = {
+                                store: store,
+                                shifts: {}
+                            };
+                        }
+                        allStaffRoster[record.staff_name].shifts[record.date] = record.shift_code;
+                    });
+                }
+            }
+
+            if (Object.keys(allStaffRoster).length === 0) {
+                container.innerHTML = '<div class="empty-state">暫無班表資料</div>';
+                return;
+            }
+
+            let html = '<table class="items-table">';
+            html += '<thead><tr>';
+            html += '<th>人員</th>';
+            html += '<th>門市</th>';
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const weekday = new Date(year, month - 1, day).getDay();
+                const weekdayName = ['日', '一', '二', '三', '四', '五', '六'][weekday];
+                const isWeekend = weekday === 0 || weekday === 6;
+                const bgStyle = isWeekend ? 'background:rgba(244,67,54,0.1);' : '';
+                html += `<th style="text-align:center;${bgStyle}">${day}<br>${weekdayName}</th>`;
+            }
+
+            html += '</tr></thead><tbody>';
+
+            const sortedStaff = Object.entries(allStaffRoster).sort((a, b) => {
+                const storeOrder = { '豐原': 1, '潭子': 2, '大雅': 3 };
+                const orderA = storeOrder[a[1].store] || 99;
+                const orderB = storeOrder[b[1].store] || 99;
+                if (orderA !== orderB) return orderA - orderB;
+                return a[0].localeCompare(b[0]);
+            });
+
+            sortedStaff.forEach(([name, data]) => {
+                html += '<tr>';
+                html += `<td>${name}</td>`;
+                html += `<td>${data.store}</td>`;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const shift = data.shifts[dateStr] || '';
+
+                    let shiftColor = '#8892b0';
+                    let shiftBg = '';
+
+                    if (shift === '早班' || shift === '早') {
+                        shiftColor = '#ff9800';
+                        shiftBg = 'background:rgba(255,152,0,0.2);';
+                    } else if (shift === '中班' || shift === '中') {
+                        shiftColor = '#4caf50';
+                        shiftBg = 'background:rgba(76,175,80,0.2);';
+                    } else if (shift === '晚班' || shift === '晚') {
+                        shiftColor = '#9c27b0';
+                        shiftBg = 'background:rgba(156,39,176,0.2);';
+                    } else if (shift === '全班' || shift === '全') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'background:rgba(0,212,255,0.2);';
+                    } else if (shift === '值班' || shift === '值') {
+                        shiftColor = '#e91e63';
+                        shiftBg = 'background:rgba(233,30,99,0.2);';
+                    } else if (shift === '休假' || shift === '休' || shift === '特休' || shift === '特') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'background:rgba(0,212,255,0.1);';
+                    }
+
+                    const weekday = new Date(year, month - 1, day).getDay();
+                    const isWeekend = weekday === 0 || weekday === 6;
+                    const weekendBg = isWeekend ? 'background:rgba(244,67,54,0.05);' : '';
+
+                    html += `<td style="text-align:center;color:${shiftColor};${shiftBg}${weekendBg}">${shift || '-'}</td>`;
+                }
+
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+        } catch (error) {
+            console.error('載入班表失敗:', error);
+            container.innerHTML = '<div class="empty-state">班表資料載入失敗</div>';
+        }
+    }
+</script>
 {% endblock %}

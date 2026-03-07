@@ -3035,6 +3035,13 @@ def get_recent_needs():
                 if inv_row:
                     product_name = inv_row['item_spec']
 
+            # 根據 status 決定 status_type
+            status_type = 'active'
+            if row['status'] == '已取消':
+                status_type = 'cancelled'
+            elif row['status'] in ['已採購', '已調撥', '已到貨']:
+                status_type = 'done'
+            
             items.append({
                 'id': row['id'],
                 'date': row['date'],
@@ -3044,6 +3051,7 @@ def get_recent_needs():
                 'customer_code': row['customer_code'],
                 'remark': row['remark'],
                 'status': row['status'],
+                'status_type': status_type,
                 'purpose': row['purpose'],
                 'request_type': row['request_type'],
                 'transfer_from': row['transfer_from'],
@@ -7253,16 +7261,20 @@ def search_inventory():
 
 @app.route('/api/inventory/product/<product_id>')
 def get_inventory_by_product(product_id):
-    """取得指定商品的庫存明細（僅查詢最新日期資料）"""
+    """取得指定商品的庫存明細（查詢全域最新日期的資料）"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # 先取得最新報表日期
+        # 取得全域最新報表日期
         cursor.execute("SELECT MAX(report_date) as latest_date FROM inventory")
-        latest_date = cursor.fetchone()['latest_date']
+        result = cursor.fetchone()
+        latest_date = result['latest_date'] if result else None
+        
+        if not latest_date:
+            return jsonify({'success': False, 'message': '無庫存資料'}), 404
 
-        # 取得商品基本資訊
+        # 取得商品基本資訊（從最新日期的資料）
         cursor.execute("""
             SELECT DISTINCT product_id, item_spec, unit
             FROM inventory
@@ -7272,13 +7284,36 @@ def get_inventory_by_product(product_id):
 
         product_row = cursor.fetchone()
         if not product_row:
-            return jsonify({'success': False, 'message': '找不到商品'}), 404
+            # 商品在最新日期沒有庫存資料，回傳空庫存
+            # 先嘗試取得商品基本資訊（從任何日期）
+            cursor.execute("""
+                SELECT DISTINCT product_id, item_spec, unit
+                FROM inventory
+                WHERE product_id = ?
+                LIMIT 1
+            """, (product_id,))
+            product_row = cursor.fetchone()
+            
+            if not product_row:
+                return jsonify({'success': False, 'message': '找不到商品'}), 404
+            
+            # 回傳空庫存（商品存在但最新日期無庫存）
+            return jsonify({
+                'success': True,
+                'product': {
+                    'product_id': product_row['product_id'],
+                    'item_spec': product_row['item_spec'],
+                    'unit': product_row['unit']
+                },
+                'inventory': [],
+                'report_date': latest_date
+            })
 
-        # 取得各倉庫庫存
+        # 取得各倉庫庫存（只顯示庫存 > 0 的倉庫）
         cursor.execute("""
             SELECT warehouse, wh_type, stock_quantity, unit_cost, total_cost
             FROM inventory
-            WHERE product_id = ? AND report_date = ?
+            WHERE product_id = ? AND report_date = ? AND stock_quantity > 0
             ORDER BY warehouse
         """, (product_id, latest_date))
 
@@ -8533,6 +8568,11 @@ def convert_sales_document():
 # ============================================
 # 靜態檔案路由（必須放在所有 API 路由之後）
 # ============================================
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """提供 static 檔案服務"""
+    return send_from_directory(app.static_folder, filename)
+
 @app.route('/<path:path>')
 def static_files(path):
     """提供靜態檔案服務"""

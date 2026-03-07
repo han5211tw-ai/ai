@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電腦舖營運系統 - SaaS 版</title>
+    <link rel="stylesheet" href="shared/auth_ui.css?v=3">
+    <script src="shared/auth_ui.js?v=3"></script>
+    <style>
+        /* CSS Variables - Design System */
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-hover: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: #8892b0;
+            --text-muted: #64748b;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #7b2cbf;
+            --accent-gradient: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-accent: rgba(0, 212, 255, 0.3);
+            --success: #4caf50;
+            --warning: #ffc107;
+            --danger: #f44336;
+            --sidebar-width: 250px;
+            --header-height: 60px;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100vw; height: 100vh; overflow: hidden; font-family: var(--font-family); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; }
+
+        /* App Shell */
+        .app-shell { display: flex; width: 100%; height: 100%; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); height: 100%; background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { height: var(--header-height); padding: 0 24px; display: flex; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .logo { display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 600; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo-icon { font-size: 1.5rem; }
+        .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { padding: 8px 24px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; margin: 2px 8px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .nav-item.active { background: rgba(0, 212, 255, 0.1); color: var(--accent-primary); border-left-color: var(--accent-primary); }
+        .nav-item-icon { font-size: 1.25rem; width: 24px; text-align: center; }
+        .sidebar-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); }
+        .user-profile { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-role { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg-primary); overflow: hidden; }
+        .top-header { height: var(--header-height); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .page-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .btn-icon { width: 36px; height: 36px; border-radius: 8px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .btn-icon:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-accent); }
+        .content-workspace { flex: 1; overflow: hidden; position: relative; }
+
+        /* Split View */
+        .split-view { display: flex; width: 100%; height: 100%; }
+        .split-left { width: 30%; min-width: 300px; max-width: 400px; background: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .split-right { flex: 1; overflow: auto; padding: 24px; }
+
+        /* History List */
+        .history-header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); }
+        .search-box { position: relative; }
+        .search-box input { width: 100%; padding: 12px 12px 12px 36px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 1rem; }
+        .search-box input:focus { outline: none; border-color: var(--accent-primary); }
+        .search-box::before { content: "🔍"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5; }
+        .history-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .history-item { padding: 16px; margin-bottom: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+        .history-item:hover { background: var(--bg-hover); border-color: var(--border-accent); }
+        .history-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .history-item-no { font-weight: 600; color: var(--accent-primary); }
+        .history-item-status { font-size: 0.85rem; padding: 2px 8px; border-radius: 4px; }
+        .history-item-customer { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 4px; }
+        .history-item-footer { display: flex; justify-content: space-between; align-items: center; }
+        .history-item-amount { font-weight: 600; color: var(--text-primary); }
+        .history-item-date { font-size: 0.85rem; color: var(--text-muted); }
+        .history-pagination { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; gap: 16px; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 10000; }
+        .modal-overlay.active { display: flex; }
+        .modal-container { background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); border-radius: 16px; width: 90%; max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); }
+        .modal-header { padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+        .modal-close { width: 32px; height: 32px; border-radius: 8px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { background: var(--danger); color: white; border-color: var(--danger); }
+        .modal-body { flex: 1; overflow-y: auto; padding: 24px; }
+        .modal-footer { padding: 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; }
+
+        /* Forms */
+        .form-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .form-section-title { font-size: 1.1rem; font-weight: 600; color: var(--accent-primary); margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 24px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+        .form-input { padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 1rem; }
+        .form-input:focus { outline: none; border-color: var(--accent-primary); }
+        .form-input:read-only, .form-input:disabled { background: var(--bg-hover); color: var(--text-muted); cursor: not-allowed; }
+
+        /* Buttons */
+        .btn { padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--accent-gradient); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3); }
+        .btn-secondary { background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-accent); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
+        .badge-draft { background: rgba(255, 193, 7, 0.2); color: var(--warning); }
+        .badge-confirmed { background: rgba(76, 175, 80, 0.2); color: var(--success); }
+        .badge-closed { background: rgba(158, 158, 158, 0.2); color: var(--text-muted); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">🖥️</span>
+                    <span>電腦舖</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">主要功能</div>
+                    <a href="#" class="nav-item active" data-page="dashboard"><span class="nav-item-icon">🏠</span>首頁</a>
+                    <a href="#" class="nav-item" data-page="documents"><span class="nav-item-icon">📝</span>單據作業</a>
+                    <a href="#" class="nav-item" data-page="schedule"><span class="nav-item-icon">📅</span>排班管理</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">資料管理</div>
+                    <a href="#" class="nav-item" data-page="products"><span class="nav-item-icon">📦</span>產品建檔</a>
+                    <a href="#" class="nav-item" data-page="customers"><span class="nav-item-icon">👤</span>客戶建檔</a>
+                    <a href="#" class="nav-item" data-page="suppliers"><span class="nav-item-icon">🏭</span>廠商建檔</a>
+                    <a href="#" class="nav-item" data-page="purchase"><span class="nav-item-icon">📥</span>進貨輸入</a>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebarUserName">載入中...</div>
+                        <div class="user-role" id="sidebarUserRole">載入中...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1 class="page-title" id="pageTitle">首頁</h1>
+                <div class="header-actions">
+                    <button class="btn-icon" onclick="handleLogout()" title="登出">🚪</button>
+                </div>
+            </header>
+            <div class="content-workspace" id="contentWorkspace">
+                <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--text-muted);">
+                    <p>請選擇左側導航項目</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">詳情</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter">
+                <button class="btn btn-secondary" onclick="closeModal()">關閉</button>
+                <button class="btn btn-primary" id="modalSaveBtn" onclick="saveModal()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        const AppState = {
+            currentUser: null,
+            currentPage: 'dashboard',
+            canEditAll: false,
+            formDirty: false
+        };
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initAuth();
+            setupNavigation();
+        });
+
+        async function initAuth() {
+            if (window.checkAuth) {
+                const result = await window.checkAuth({ minRole: 'staff' });
+                if (!result.success) { window.location.href = 'index.html'; return; }
+                AppState.currentUser = result;
+                AppState.canEditAll = (result.title === '老闆' || result.title.includes('會計'));
+                document.getElementById('sidebarUserName').textContent = result.name || '使用者';
+                document.getElementById('sidebarUserRole').textContent = result.title || '員工';
+            }
+        }
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = this.dataset.page;
+                    if (!page) return;
+                    if (AppState.formDirty && !confirm('您有未儲存的資料，確定要離開嗎？')) return;
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    this.classList.add('active');
+                    const titles = { 'dashboard': '首頁', 'documents': '單據作業', 'schedule': '排班管理', 'products': '產品建檔', 'customers': '客戶建檔', 'suppliers': '廠商建檔', 'purchase': '進貨輸入' };
+                    document.getElementById('pageTitle').textContent = titles[page] || page;
+                    loadPageContent(page);
+                    AppState.currentPage = page;
+                    AppState.formDirty = false;
+                });
+            });
+        }
+
+        function loadPageContent(page) {
+            const workspace = document.getElementById('contentWorkspace');
+            if (page === 'documents') {
+                workspace.innerHTML = getDocumentModuleHTML();
+                initDocumentModule();
+            } else if (['products', 'customers', 'suppliers', 'purchase'].includes(page)) {
+                const pages = { 'products': 'product_create.html', 'customers': 'customer_create.html', 'suppliers': 'supplier_create.html', 'purchase': 'purchase_input.html' };
+                workspace.innerHTML = `<iframe src="${pages[page]}" style="width:100%;height:100%;border:none;"></iframe>`;
+            } else {
+                workspace.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted);"><div style="text-align:center;"><h2 style="margin-bottom:16px;">🚧 開發中</h2><p>此功能正在開發中</p></div></div>';
+            }
+        }
+
+        function getDocumentModuleHTML() {
+            return `
+                <div class="split-view">
+                    <div class="split-left">
+                        <div class="history-header">
+                            <div class="search-box">
+                                <input type="text" id="historySearch" placeholder="搜尋單號、客戶...">
+                            </div>
+                        </div>
+                        <div class="history-list" id="historyList">
+                            <div style="padding:20px;text-align:center;color:var(--text-muted);">載入中...</div>
+                        </div>
+                        <div class="history-pagination">
+                            <button class="btn btn-secondary">←</button>
+                            <span>第 1 頁</span>
+                            <button class="btn btn-secondary">→</button>
+                        </div>
+                    </div>
+                    <div class="split-right">
+                        <div class="form-section">
+                            <h2 class="form-section-title">📝 單據作業</h2>
+                            <p style="color:var(--text-muted);">請從左側選擇單據查看詳情，或建立新單據</p>
+                            <div style="margin-top:24px;">
+                                <button class="btn btn-primary" onclick="window.location.href='quote_input.html'">+ 新增報價單</button>
+                                <button class="btn btn-primary" onclick="window.location.href='sales_input.html'" style="margin-left:12px;">+ 新增銷貨單</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function initDocumentModule() {
+            // Mock data for demo
+            const mockData = [
+                { doc_no: 'QU-FY-20260307-001', target_name: '大樹不動產', total_amount: 25000, status: 'DRAFT', created_at: '2026-03-07 10:30', doc_type: 'QUOTE' },
+                { doc_no: 'OD-FY-20260307-002', target_name: '李秉茗', total_amount: 15000, status: 'CONFIRMED', created_at: '2026-03-07 11:15', doc_type: 'ORDER' },
+                { doc_no: 'SO-FY-20260307-003', target_name: '黃靖惟', total_amount: 32000, status: 'CLOSED', created_at: '2026-03-07 09:45', doc_type: 'SALES' }
+            ];
+            renderHistoryList(mockData);
+        }
+
+        function renderHistoryList(data) {
+            const listEl = document.getElementById('historyList');
+            const statusMap = { 'DRAFT': ['草稿', 'badge-draft'], 'CONFIRMED': ['已確認', 'badge-confirmed'], 'CLOSED': ['已結案', 'badge-closed'] };
+            listEl.innerHTML = data.map(item => {
+                const [statusText, statusClass] = statusMap[item.status] || ['未知', ''];
+                return `
+                    <div class="history-item" onclick="openModal('${item.doc_no}', '${item.doc_type}')">
+                        <div class="history-item-header">
+                            <span class="history-item-no">${item.doc_no}</span>
+                            <span class="history-item-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="history-item-customer">${item.target_name}</div>
+                        <div class="history-item-footer">
+                            <span class="history-item-amount">$${item.total_amount.toLocaleString()}</span>
+                            <span class="history-item-date">${item.created_at}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openModal(docNo, docType) {
+            const canEdit = AppState.canEditAll || (docType !== 'SALES');
+            document.getElementById('modalTitle').textContent = `單據詳情 - ${docNo}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">單號</label>
+                        <input type="text" class="form-input" value="${docNo}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">類型</label>
+                        <input type="text" class="form-input" value="${docType}" ${canEdit ? '' : 'readonly'}>
+                    </div>
+                </div>
+                <p style="color:var(--text-muted);margin-top:16px;">${canEdit ? '✏️ 您可以編輯此單據' : '👁️ 您僅能檢視此單據（銷貨單不可修改）'}</p>
+            `;
+            document.getElementById('modalSaveBtn').style.display = canEdit ? 'inline-flex' : 'none';
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function saveModal() {
+            alert('儲存功能開發中');
+            closeModal();
+        }
+
+        function handleLogout() {
+            if (window.authLogout) window.authLogout();
+        }
+    </script>
+</body>
+</html>
