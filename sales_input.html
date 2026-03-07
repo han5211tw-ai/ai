@@ -440,8 +440,8 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>日期 <span class="required">*</span></label>
-                    <input type="date" id="salesDate" class="form-control">
+                    <label>日期</label>
+                    <input type="date" id="salesDate" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: #8892b0; cursor: not-allowed;">
                 </div>
                 <div class="form-group">
                     <label>業務員</label>
@@ -605,6 +605,9 @@
                 
                 // 產生銷貨單號
                 await generateSalesOrderNo();
+                
+                // 設定日期為今天且不可修改
+                document.getElementById('salesDate').value = new Date().toISOString().slice(0, 10);
             }
             
             // 初始化預設3列
