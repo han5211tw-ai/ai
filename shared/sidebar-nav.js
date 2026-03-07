@@ -16,24 +16,51 @@ class SidebarNavigation {
                 section: '主要功能',
                 items: [
                     { id: 'dashboard', icon: '🏠', label: '首頁', route: '/dashboard', minRole: 'staff' },
-                    { id: 'documents', icon: '📝', label: '單據作業', route: '/documents', minRole: 'staff' },
+                    { id: 'quote', icon: '📄', label: '報價作業', route: '/quote', minRole: 'staff' },
+                    { id: 'sales', icon: '💰', label: '銷貨輸入', route: '/sales', minRole: 'staff' },
+                    { id: 'documents', icon: '📑', label: '單據查詢', route: '/documents', minRole: 'staff' },
+                    { id: 'needs', icon: '📋', label: '需求作業', route: '/needs', minRole: 'staff' },
                     { id: 'schedule', icon: '📅', label: '排班管理', route: '/schedule', minRole: 'staff' }
+                ]
+            },
+            {
+                section: '查詢功能',
+                items: [
+                    { id: 'inventory', icon: '📦', label: '庫存查詢', route: '/inventory', minRole: 'staff' },
+                    { id: 'customer-search', icon: '🔍', label: '客戶查詢', route: '/customer-search', minRole: 'staff' }
+                ]
+            },
+            {
+                section: '待辦清單',
+                items: [
+                    { id: 'pending-needs', icon: '📋', label: '待請購清單', route: '/pending/needs', minRole: 'staff', requireTitle: ['老闆'] },
+                    { id: 'pending-transfer', icon: '🚚', label: '待調撥清單', route: '/pending/transfer', minRole: 'staff', requireTitle: ['會計'] }
                 ]
             },
             {
                 section: '資料管理',
                 items: [
-                    { id: 'products', icon: '📦', label: '產品建檔', route: '/products', minRole: 'staff' },
-                    { id: 'customers', icon: '👤', label: '客戶建檔', route: '/customers', minRole: 'staff' },
-                    { id: 'suppliers', icon: '🏭', label: '廠商建檔', route: '/suppliers', minRole: 'staff' },
-                    { id: 'purchase', icon: '📥', label: '進貨輸入', route: '/purchase', minRole: 'staff' }
+                    { id: 'products', icon: '📦', label: '產品建檔', route: '/products', minRole: 'admin' },
+                    { id: 'customers', icon: '👤', label: '客戶建檔', route: '/customers', minRole: 'staff', excludeTitle: ['會計'] },
+                    { id: 'suppliers', icon: '🏭', label: '廠商建檔', route: '/suppliers', minRole: 'admin' },
+                    { id: 'purchase', icon: '📥', label: '進貨輸入', route: '/purchase', minRole: 'admin' }
+                ],
+                excludeTitle: ['老闆']
+            },
+            {
+                section: '報表中心',
+                items: [
+                    { id: 'report-dept', icon: '📈', label: '部門業績', route: '/report/dept', minRole: 'staff', requireTitle: ['老闆', '會計', '門市部主管', '業務部主管'] },
+                    { id: 'report-sales', icon: '📉', label: '業務業績', route: '/report/sales', minRole: 'staff', requireTitle: ['老闆', '會計', '業務人員', '業務部主管'] },
+                    { id: 'report-store', icon: '🏪', label: '門市業績', route: '/report/store', minRole: 'staff', requireTitle: ['老闆', '會計', '工程師', '門市部主管'] },
+                    { id: 'report-personal', icon: '🎯', label: '個人業績', route: '/report/personal', minRole: 'staff' },
+                    { id: 'report-service', icon: '🔧', label: '服務數據', route: '/report/service', minRole: 'staff', requireTitle: ['老闆', '會計', '業務人員', '門市部主管', '業務部主管'] }
                 ]
             },
             {
                 section: '系統管理',
                 items: [
-                    { id: 'admin', icon: '⚙️', label: '系統設定', route: '/admin', minRole: 'boss' },
-                    { id: 'reports', icon: '📊', label: '報表中心', route: '/reports', minRole: 'accountant' }
+                    { id: 'admin', icon: '⚙️', label: '系統設定', route: '/admin', minRole: 'boss' }
                 ],
                 requireAdmin: true
             }
@@ -61,20 +88,44 @@ class SidebarNavigation {
      */
     hasPermission(item) {
         if (!this.currentUser) return false;
-        
+
         const userTitle = this.currentUser.title || '';
         const minRole = item.minRole || 'staff';
-        
-        // 老闆和會計擁有所有權限
-        if (userTitle === '老闆' || userTitle.includes('會計')) {
+
+        // 檢查排除職稱（某些項目特定角色不能看）
+        if (item.excludeTitle) {
+            if (item.excludeTitle.some(t => userTitle.includes(t))) {
+                return false;
+            }
+        }
+
+        // 檢查特定職稱要求（優先於一般權限判斷）
+        if (item.requireTitle) {
+            // 檢查使用者的 title 是否在允許列表中
+            const hasRequiredTitle = item.requireTitle.some(t => userTitle.includes(t));
+            if (!hasRequiredTitle) {
+                return false;
+            }
+            // 有 required title 就允許，不再檢查其他條件
             return true;
         }
-        
+
+        // 老闆擁有所有權限（已排除 requireTitle 的情況）
+        if (userTitle === '老闆') {
+            return true;
+        }
+
+        // 會計擁有 admin 級別權限（但看不到 boss 專屬項目）
+        if (userTitle.includes('會計')) {
+            if (minRole === 'boss') return false;
+            return true;
+        }
+
         // 一般員工只能看到 staff 級別的項目
         if (minRole === 'staff') {
             return true;
         }
-        
+
         return false;
     }
     
@@ -82,19 +133,27 @@ class SidebarNavigation {
      * 渲染導航結構
      */
     render() {
+        const userTitle = this.currentUser?.title || '';
+
         const html = this.navItems
-            .filter(section => !section.requireAdmin || this.isAdmin())
+            .filter(section => {
+                // 檢查區塊層級的排除職稱
+                if (section.excludeTitle && section.excludeTitle.some(t => userTitle.includes(t))) {
+                    return false;
+                }
+                return !section.requireAdmin || this.isAdmin();
+            })
             .map(section => {
                 const visibleItems = section.items.filter(item => this.hasPermission(item));
-                
+
                 if (visibleItems.length === 0) return '';
-                
+
                 return `
                     <div class="nav-section" data-section="${section.section}">
                         <div class="nav-section-title">${section.section}</div>
                         ${visibleItems.map(item => `
-                            <a href="#" 
-                               class="nav-item ${item.id === this.activeRoute ? 'active' : ''}" 
+                            <a href="#"
+                               class="nav-item ${item.id === this.activeRoute ? 'active' : ''}"
                                data-route="${item.id}"
                                data-path="${item.route}"
                                title="${item.label}">
@@ -106,7 +165,7 @@ class SidebarNavigation {
                     </div>
                 `;
             }).join('');
-        
+
         this.container.innerHTML = html;
     }
     
@@ -116,6 +175,7 @@ class SidebarNavigation {
     isAdmin() {
         if (!this.currentUser) return false;
         const title = this.currentUser.title || '';
+        // 只有老闆和會計能看到系統管理區塊
         return title === '老闆' || title.includes('會計');
     }
     
