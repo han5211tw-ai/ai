@@ -439,7 +439,7 @@
                 </div>
             </div>
 
-            <div class="form-group" id="groupContact">
+            <div class="form-group" id="groupContact" style="display:none;">
                 <label>聯絡人 <span class="required" id="reqContact" style="display:none;">*</span></label>
                 <input type="text" id="contact" class="form-control" placeholder="請輸入聯絡人姓名">
             </div>
@@ -664,7 +664,9 @@
                 document.getElementById('reqTaxId').style.display = 'none';
                 document.getElementById('reqAddress').style.display = 'none';
                 document.getElementById('groupTaxId').style.display = 'none';
+                document.getElementById('groupContact').style.display = 'none';
                 document.getElementById('taxId').value = '';
+                document.getElementById('contact').value = '';
             } else {
                 // 公司客戶
                 document.getElementById('labelShortName').innerHTML = '公司名稱 <span class="required">*</span>';
@@ -677,6 +679,7 @@
                 document.getElementById('reqTaxId').style.display = 'inline';
                 document.getElementById('reqAddress').style.display = 'inline';
                 document.getElementById('groupTaxId').style.display = 'block';
+                document.getElementById('groupContact').style.display = 'block';
             }
             
             updateSubmitButton();
