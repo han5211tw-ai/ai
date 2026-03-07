@@ -1,22 +1,13 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>員工主檔管理 | 電腦舖營運系統</title>
-    <link rel="stylesheet" href="shared/global-background.css">
-    <script src="shared/global-background.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #e2e8f0;
-            min-height: 100vh;
-        }
-        
-        .header {
+{% extends "base.html" %}
+
+{% block title %}員工主檔管理 | 電腦舖營運系統{% endblock %}
+
+{% block page_title %}員工主檔管理 | 首頁{% endblock %}
+
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0 auto; padding: 20px; }
+.header {
             background: rgba(0, 0, 0, 0.3);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 20px;
@@ -45,7 +36,7 @@
         }
         
         .container {
-            max-width: 1400px;
+            
             margin: 0 auto;
             padding: 30px;
         }
@@ -63,7 +54,7 @@
             display: flex;
             gap: 10px;
             flex: 1;
-            max-width: 500px;
+            
         }
         
         .search-box input {
@@ -210,7 +201,7 @@
             border-radius: 16px;
             padding: 30px;
             width: 90%;
-            max-width: 600px;
+            
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -307,7 +298,7 @@
             z-index: 2000;
             opacity: 0;
             transition: opacity 0.3s;
-            max-width: 400px;
+            
         }
         
         .toast.show {
@@ -333,13 +324,15 @@
             }
             
             .search-box {
-                max-width: 100%;
+                
             }
         }
-    </style>
-</head>
-<body>
-    <div class="header">
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="header">
         <h1>👥 員工主檔管理</h1>
         <div class="nav-links">
             <a href="admin.html">← 返回 Admin Center</a>
@@ -809,5 +802,323 @@
             });
         });
     </script>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 全局狀態
+        let currentPage = 1;
+        let currentKeyword = '';
+        let totalPages = 1;
+        const limit = 50;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStaffList();
+            
+            // 表單提交事件
+            document.getElementById('staffForm').addEventListener('submit', handleFormSubmit);
+            document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
+        });
+        
+        // 載入員工列表
+        async function loadStaffList() {
+            try {
+                const offset = (currentPage - 1) * limit;
+                const response = await fetch(`/api/admin/staff/list?keyword=${encodeURIComponent(currentKeyword)}&limit=${limit}&offset=${offset}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderStaffTable(data.items);
+                    totalPages = Math.ceil(data.total / limit);
+                    updatePagination();
+                } else {
+                    showToast(data.message || '載入失敗', 'error');
+                }
+            } catch (error) {
+                console.error('Load staff error:', error);
+                showToast('載入失敗', 'error');
+            }
+        }
+        
+        // 渲諵表格
+        function renderStaffTable(items) {
+            const tbody = document.getElementById('staffTableBody');
+            
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">沒有資料</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = items.map(item => `
+                <tr>
+                    <td><strong>${item.staff_id}</strong></td>
+                    <td>${item.name}</td>
+                    <td>${item.title || '-'}</td>
+                    <td>${item.department}</td>
+                    <td>${item.store || '-'}</td>
+                    <td><span class="role-badge">${item.role}</span></td>
+                    <td>
+                        <span class="status-badge ${item.is_active ? 'status-active' : 'status-inactive'}">
+                            ${item.is_active ? '啟用' : '停用'}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editStaff('${item.staff_id}')">編輯</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openResetPassword('${item.staff_id}', '${item.name}')">重設密碼</button>
+                        ${item.is_active ? 
+                            `<button class="btn btn-danger btn-sm" onclick="toggleStaff('${item.staff_id}', 0)">停用</button>` :
+                            `<button class="btn btn-primary btn-sm" onclick="toggleStaff('${item.staff_id}', 1)">啟用</button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 更新分頁
+        function updatePagination() {
+            document.getElementById('pageInfo').textContent = `第 ${currentPage} 頁 / 共 ${totalPages} 頁`;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        }
+        
+        // 換頁
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                loadStaffList();
+            }
+        }
+        
+        // 搜尋
+        function searchStaff() {
+            currentKeyword = document.getElementById('searchInput').value.trim();
+            currentPage = 1;
+            loadStaffList();
+        }
+        
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                searchStaff();
+            }
+        }
+        
+        // 開啟新增彈窗
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增員工';
+            document.getElementById('staffForm').reset();
+            document.getElementById('editStaffId').value = '';
+            document.getElementById('staffId').disabled = false;
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('staffModal').classList.add('active');
+        }
+        
+        // 開啟編輯彈窗
+        async function editStaff(staffId) {
+            try {
+                const response = await fetch(`/api/admin/staff/row?staff_id=${staffId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const item = data.item;
+                    document.getElementById('modalTitle').textContent = '編輯員工';
+                    document.getElementById('editStaffId').value = item.staff_id;
+                    document.getElementById('staffId').value = item.staff_id;
+                    document.getElementById('staffId').disabled = true;
+                    document.getElementById('staffName').value = item.name;
+                    document.getElementById('staffTitle').value = item.title || '';
+                    document.getElementById('staffOrgType').value = item.org_type || 'STAFF';
+                    document.getElementById('staffDepartment').value = item.department || '';
+                    document.getElementById('staffStore').value = item.store || '';
+                    document.getElementById('staffRole').value = item.role || 'staff';
+                    document.getElementById('staffPhone').value = item.phone || '';
+                    document.getElementById('passwordGroup').style.display = 'none';
+                    document.getElementById('staffModal').classList.add('active');
+                } else {
+                    showToast(data.message || '載入失敗', 'error');
+                }
+            } catch (error) {
+                console.error('Edit staff error:', error);
+                showToast('載入失敗', 'error');
+            }
+        }
+        
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('staffModal').classList.remove('active');
+        }
+        
+        // 表單提交
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const staffId = document.getElementById('staffId').value.trim();
+            const isEdit = document.getElementById('editStaffId').value !== '';
+            
+            const formData = {
+                staff_id: staffId,
+                name: document.getElementById('staffName').value.trim(),
+                title: document.getElementById('staffTitle').value.trim(),
+                org_type: document.getElementById('staffOrgType').value,
+                department: document.getElementById('staffDepartment').value,
+                store: document.getElementById('staffStore').value || null,
+                role: document.getElementById('staffRole').value,
+                phone: document.getElementById('staffPhone').value.trim()
+            };
+            
+            if (!isEdit) {
+                formData.password = document.getElementById('staffPassword').value.trim();
+            }
+            
+            try {
+                const url = isEdit ? '/api/admin/staff/update' : '/api/admin/staff/create';
+                if (isEdit) {
+                    formData.staff_id = document.getElementById('editStaffId').value;
+                }
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(isEdit ? '更新成功' : '新增成功', 'success');
+                    closeModal();
+                    loadStaffList();
+                } else {
+                    showToast(data.message || '操作失敗', 'error');
+                }
+            } catch (error) {
+                console.error('Submit error:', error);
+                showToast('操作失敗', 'error');
+            }
+        }
+        
+        // 啟用/停用
+        async function toggleStaff(staffId, isActive) {
+            if (!confirm(`確定要${isActive ? '啟用' : '停用'}該員工嗎？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/staff/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ staff_id: staffId, is_active: isActive })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(isActive ? '已啟用' : '已停用', 'success');
+                    loadStaffList();
+                } else {
+                    showToast(data.message || '操作失敗', 'error');
+                }
+            } catch (error) {
+                console.error('Toggle error:', error);
+                showToast('操作失敗', 'error');
+            }
+        }
+        
+        // 開啟重設密碼彈窗
+        function openResetPassword(staffId, staffName) {
+            document.getElementById('resetStaffId').value = staffId;
+            document.getElementById('resetStaffName').textContent = staffName;
+            document.getElementById('newPassword').value = '';
+            document.getElementById('passwordModal').classList.add('active');
+        }
+        
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+        }
+        
+        // 重設密碼提交
+        async function handlePasswordSubmit(event) {
+            event.preventDefault();
+            
+            const staffId = document.getElementById('resetStaffId').value;
+            const newPassword = document.getElementById('newPassword').value.trim();
+            
+            if (!/^\d{4}$/.test(newPassword)) {
+                showToast('密碼必須為4位數字', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/staff/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ staff_id: staffId, new_password: newPassword })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('密碼重設成功', 'success');
+                    closePasswordModal();
+                } else {
+                    showToast(data.message || '重設失敗', 'error');
+                }
+            } catch (error) {
+                console.error('Reset password error:', error);
+                showToast('重設失敗', 'error');
+            }
+        }
+        
+        // 同步舊表
+        async function syncFromStaffPassword() {
+            if (!confirm('確定要從 staff_password 同步資料到 staff 表嗎？\n這會更新所有員工的密碼欄位。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/staff/sync-from-staff-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`同步完成，${data.synced} 位員工已更新`, 'success');
+                    if (data.unmatched && data.unmatched.length > 0) {
+                        console.warn('未對應的員工:', data.unmatched);
+                    }
+                    loadStaffList();
+                } else {
+                    showToast(data.message || '同步失敗', 'error');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                showToast('同步失敗', 'error');
+            }
+        }
+        
+        // Toast 提示
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 點擊背景關閉彈窗
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 #!/opt/homebrew/bin/python3
-from flask import Flask, jsonify, send_from_directory, request, render_template
+from flask import Flask, jsonify, send_from_directory, request, render_template, abort
 from health_check import get_health_status
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -38,7 +38,7 @@ from observability import (
 )
 
 app = Flask(__name__, 
-    template_folder='/Users/aiserver/.openclaw/workspace/dashboard-site/templates',
+    template_folder='/Users/aiserver/.openclaw/workspace/dashboard-site',
     static_folder='/Users/aiserver/.openclaw/workspace/dashboard-site'
 )
 CORS(app)
@@ -718,10 +718,21 @@ generate_analysis()
 def index():
     return render_template('index.html')
 
-# 模板頁面路由
+# 模板頁面路由（支援 .html 和無副檔名）
 @app.route('/<path:page>.html')
+def render_page_html(page):
+    """渲染模板頁面（.html 版本）"""
+    try:
+        return render_template(f'{page}.html')
+    except:
+        return send_from_directory(STATIC_DIR, f'{page}.html')
+
+@app.route('/<path:page>')
 def render_page(page):
-    """渲染模板頁面"""
+    """渲染模板頁面（無副檔名版本）"""
+    # 排除 API 路徑和靜態檔案
+    if page.startswith('api/') or page.startswith('static/'):
+        abort(404)
     try:
         return render_template(f'{page}.html')
     except:

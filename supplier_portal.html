@@ -1,51 +1,14 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>廠商專區 - 電腦舖營運系統</title>
-    <link rel="stylesheet" href="shared/auth_ui.css?v=2">
-    <script src="shared/auth_ui.js?v=2"></script>
-    <script>
-        // 頁面載入時自動檢查登入
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.requireLogin) {
-                window.requireLogin({
-                    minRole: 'staff',
-                    title: '🔐 廠商專區登入',
-                    subtitle: '請輸入密碼驗證身份'
-                }).then(function(user) {
-                    console.log('[Supplier] Login success:', user);
-                    // 顯示使用者名稱
-                    const userName = user.name || user.user || '';
-                    document.getElementById('userDisplay').textContent = userName;
-                }).catch(function(err) {
-                    console.error('[Supplier] Login failed:', err);
-                    // 權限不足時導回首頁
-                    setTimeout(function() {
-                        window.location.href = 'index.html';
-                    }, 1500);
-                });
-            }
-        });
-    </script>
+{% extends "base.html" %}
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #fef9f3 0%, #fdf6ed 50%, #fcf3e6 100%);
-            min-height: 100vh;
-            color: #4a4a4a;
-        }
-        
-        .container {
-            max-width: 95%;
+{% block title %}廠商專區 - 電腦舖營運系統{% endblock %}
+
+{% block page_title %}廠商專區營運系統{% endblock %}
+
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0 auto; padding: 20px; }
+.container {
+            width: 100%;
             margin: 0 auto;
             padding: 20px 40px;
         }
@@ -182,10 +145,12 @@
             font-size: 0.85em;
             color: #888;
         }
-    </style>
-</head>
-<body>
-    <div class="container">
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="container">
         <div class="header-row">
             <h1>🏭 廠商專區</h1>
             <div class="user-info">
@@ -223,5 +188,31 @@
             </a>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 頁面載入時自動檢查登入
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.requireLogin) {
+                window.requireLogin({
+                    minRole: 'staff',
+                    title: '🔐 廠商專區登入',
+                    subtitle: '請輸入密碼驗證身份'
+                }).then(function(user) {
+                    console.log('[Supplier] Login success:', user);
+                    // 顯示使用者名稱
+                    const userName = user.name || user.user || '';
+                    document.getElementById('userDisplay').textContent = userName;
+                }).catch(function(err) {
+                    console.error('[Supplier] Login failed:', err);
+                    // 權限不足時導回首頁
+                    setTimeout(function() {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                });
+            }
+        });
+</script>
+{% endblock %}
