@@ -444,7 +444,7 @@
                 <input type="text" id="contact" class="form-control" placeholder="請輸入聯絡人姓名">
             </div>
 
-            <div class="form-group" id="groupTaxId">
+            <div class="form-group" id="groupTaxId" style="display:none;">
                 <label>統一編號 <span class="required" id="reqTaxId" style="display:none;">*</span></label>
                     <input type="text" id="taxId" class="form-control" placeholder="請輸入統一編號（8碼）" maxlength="8">
             </div>
@@ -663,6 +663,8 @@
                 document.getElementById('reqContact').style.display = 'none';
                 document.getElementById('reqTaxId').style.display = 'none';
                 document.getElementById('reqAddress').style.display = 'none';
+                document.getElementById('groupTaxId').style.display = 'none';
+                document.getElementById('taxId').value = '';
             } else {
                 // 公司客戶
                 document.getElementById('labelShortName').innerHTML = '公司名稱 <span class="required">*</span>';
@@ -674,6 +676,7 @@
                 document.getElementById('reqContact').style.display = 'inline';
                 document.getElementById('reqTaxId').style.display = 'inline';
                 document.getElementById('reqAddress').style.display = 'inline';
+                document.getElementById('groupTaxId').style.display = 'block';
             }
             
             updateSubmitButton();
