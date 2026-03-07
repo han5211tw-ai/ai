@@ -708,6 +708,20 @@
             }
         }
 
+        // 付款方式代碼轉中文
+        function getPaymentTypeName(code) {
+            const map = {
+                'C': '現金',
+                'M': '月結',
+                'T': '匯款',
+                '現金': '現金',
+                '支票': '支票',
+                '匯款': '匯款',
+                '月結': '月結'
+            };
+            return map[code] || code || '-';
+        }
+
         // 渲染表格
         function renderCustomerTable(customers) {
             const tbody = document.getElementById('customerTableBody');
@@ -722,7 +736,7 @@
                     <td>${c.short_name}</td>
                     <td>${c.mobile || '-'}</td>
                     <td>${c.phone1 || '-'}</td>
-                    <td>${c.payment_type || '-'}</td>
+                    <td>${getPaymentTypeName(c.payment_type)}</td>
                 </tr>
             `).join('');
         }
@@ -776,10 +790,10 @@
                         <label>付款方式</label>
                         <select id="modal_paymentType" class="form-control" disabled>
                             <option value="">請選擇</option>
-                            <option value="現金" ${customer.payment_type === '現金' ? 'selected' : ''}>現金</option>
+                            <option value="C" ${customer.payment_type === 'C' || customer.payment_type === '現金' ? 'selected' : ''}>現金</option>
+                            <option value="M" ${customer.payment_type === 'M' || customer.payment_type === '月結' ? 'selected' : ''}>月結</option>
+                            <option value="T" ${customer.payment_type === 'T' || customer.payment_type === '匯款' ? 'selected' : ''}>匯款</option>
                             <option value="支票" ${customer.payment_type === '支票' ? 'selected' : ''}>支票</option>
-                            <option value="匯款" ${customer.payment_type === '匯款' ? 'selected' : ''}>匯款</option>
-                            <option value="月結" ${customer.payment_type === '月結' ? 'selected' : ''}>月結</option>
                         </select>
                     </div>
                 </div>
