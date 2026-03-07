@@ -7889,8 +7889,11 @@ def create_sales_order():
     salesperson = data.get('salesperson', '')
     salesperson_id = data.get('salesperson_id', '')
     items = data.get('items', [])
+    payment_method = data.get('payment_method', '')
+    due_date = data.get('due_date')
+    total_amount = data.get('total_amount', 0)
     
-    if not all([sales_order_no, date, customer_id, items]):
+    if not all([sales_order_no, date, customer_id, items, payment_method]):
         return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
     
     # 檢查利潤
@@ -7926,6 +7929,47 @@ def create_sales_order():
                 item.get('profit', 0),
                 item.get('margin', 0),
                 invoice_no
+            ))
+        
+        # 寫入 finance_ledger 財務帳款表
+        # 判斷是否為月結
+        is_monthly = (payment_method == '月結')
+        
+        if is_monthly:
+            # 月結：產生應收帳款，未結清
+            cursor.execute("""
+                INSERT INTO finance_ledger 
+                (record_type, target_id, target_name, reference_doc, total_amount, 
+                 status, payment_method, due_date, cleared_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+            """, (
+                'AR',  # 應收帳款
+                customer_id,
+                customer_name,
+                sales_order_no,
+                total_amount,
+                'UNPAID',  # 未結清
+                None,  # 尚未付款
+                due_date,
+                None  # 尚未結清
+            ))
+        else:
+            # 現金/匯款/刷卡/支票：直接結清
+            cursor.execute("""
+                INSERT INTO finance_ledger 
+                (record_type, target_id, target_name, reference_doc, total_amount, 
+                 status, payment_method, due_date, cleared_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
+            """, (
+                'AR',  # 應收帳款
+                customer_id,
+                customer_name,
+                sales_order_no,
+                total_amount,
+                'PAID',  # 已結清
+                payment_method,
+                None,  # 無到期日
+                None
             ))
         
         conn.commit()
