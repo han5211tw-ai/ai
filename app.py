@@ -7892,6 +7892,8 @@ def create_sales_order():
     payment_method = data.get('payment_method', '')
     due_date = data.get('due_date')
     total_amount = data.get('total_amount', 0)
+    source_doc_no = data.get('source_doc_no', '')  # 來源訂單號
+    deposit_amount = data.get('deposit_amount', 0)  # 已收訂金
     
     if not all([sales_order_no, date, customer_id, items, payment_method]):
         return jsonify({'success': False, 'message': '缺少必填欄位'}), 400
@@ -7931,12 +7933,15 @@ def create_sales_order():
                 invoice_no
             ))
         
+        # 計算尾款（總金額 - 訂金）
+        balance_amount = total_amount - deposit_amount
+        
         # 寫入 finance_ledger 財務帳款表
         # 判斷是否為月結
         is_monthly = (payment_method == '月結')
         
         if is_monthly:
-            # 月結：產生應收帳款，未結清
+            # 月結：產生應收帳款（只針對尾款），未結清
             cursor.execute("""
                 INSERT INTO finance_ledger 
                 (record_type, target_id, target_name, reference_doc, total_amount, 
@@ -7947,14 +7952,14 @@ def create_sales_order():
                 customer_id,
                 customer_name,
                 sales_order_no,
-                total_amount,
+                balance_amount,  # 只記錄尾款
                 'UNPAID',  # 未結清
                 None,  # 尚未付款
                 due_date,
                 None  # 尚未結清
             ))
         else:
-            # 現金/匯款/刷卡/支票：直接結清
+            # 現金/匯款/刷卡/支票：直接結清（只針對尾款）
             cursor.execute("""
                 INSERT INTO finance_ledger 
                 (record_type, target_id, target_name, reference_doc, total_amount, 
@@ -7965,12 +7970,20 @@ def create_sales_order():
                 customer_id,
                 customer_name,
                 sales_order_no,
-                total_amount,
+                balance_amount,  # 只記錄尾款
                 'PAID',  # 已結清
                 payment_method,
                 None,  # 無到期日
                 None
             ))
+        
+        # 如果有來源訂單，更新訂單狀態為已結案
+        if source_doc_no:
+            cursor.execute("""
+                UPDATE sales_documents 
+                SET status = 'CLOSED', updated_at = datetime('now', 'localtime')
+                WHERE doc_no = ?
+            """, (source_doc_no,))
         
         conn.commit()
         return jsonify({'success': True, 'message': f'銷貨單 {sales_order_no} 建立成功'})
