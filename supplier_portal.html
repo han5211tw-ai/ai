@@ -195,23 +195,6 @@
 <script>
 // 頁面載入時自動檢查登入
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.requireLogin) {
-                window.requireLogin({
-                    minRole: 'staff',
-                    title: '🔐 廠商專區登入',
-                    subtitle: '請輸入密碼驗證身份'
-                }).then(function(user) {
-                    console.log('[Supplier] Login success:', user);
-                    // 顯示使用者名稱
-                    const userName = user.name || user.user || '';
-                    document.getElementById('userDisplay').textContent = userName;
-                }).catch(function(err) {
-                    console.error('[Supplier] Login failed:', err);
-                    // 權限不足時導回首頁
-                    setTimeout(function() {
-                        window.location.href = 'index.html';
-                    }, 1500);
-                });
             }
         });
 </script>

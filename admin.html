@@ -645,11 +645,6 @@
             console.log('[Admin] Initializing with shared auth...');
             
             try {
-                const user = await requireLogin({
-                    minRole: 'boss',
-                    title: '🔐 資料管理中心',
-                    subtitle: '僅限授權管理員訪問'
-                });
                 
                 console.log('[Admin] Login success:', user);
                 currentAdmin = user;

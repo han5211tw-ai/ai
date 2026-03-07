@@ -31,22 +31,6 @@
 
         // 頁面載入時自動檢查登入
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.requireLogin) {
-                window.requireLogin({
-                    minRole: 'accountant',
-                    title: '🔐 會計專區登入',
-                    subtitle: '請輸入密碼驗證身份'
-                }).then(function(user) {
-                    console.log('[Accountant] Login success:', user);
-                    // 登入成功後顯示使用者名稱
-                    displayUserName();
-                }).catch(function(err) {
-                    console.error('[Accountant] Login failed:', err);
-                    // 權限不足時導回首頁
-                    setTimeout(function() {
-                        window.location.href = 'index.html';
-                    }, 1500);
-                });
             }
         });
     </script>
