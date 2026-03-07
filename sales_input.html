@@ -514,9 +514,30 @@
             </div>
         </div>
 
-        <!-- 提交按 -->
-        <div style="text-align: center;">
-            <button id="submitBtn" class="btn-submit" onclick="submitForm()">💾 儲存銷貨單</button>
+        <!-- 付款方式與提交 -->
+        <div class="card">
+            <h2>💳 付款資訊</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>付款方式 <span class="required">*</span></label>
+                    <select id="paymentMethod" class="form-control" onchange="onPaymentMethodChange()">
+                        <option value="">請選擇付款方式</option>
+                        <option value="現金">💵 現金</option>
+                        <option value="匯款">🏦 匯款</option>
+                        <option value="刷卡">💳 刷卡</option>
+                        <option value="支票">📄 支票</option>
+                        <option value="月結">📅 月結</option>
+                    </select>
+                </div>
+                <div class="form-group" id="dueDateGroup" style="display:none;">
+                    <label>應收款日 <span class="required">*</span></label>
+                    <input type="date" id="dueDate" class="form-control">
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="submitBtn" class="btn-submit" onclick="submitForm()">💾 儲存銷貨單</button>
+            </div>
         </div>
 
         <!-- 資料列表區塊 -->
