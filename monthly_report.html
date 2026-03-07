@@ -99,13 +99,13 @@
 {% block content %}
 <div class="container">
 <div class="container">
-        <h1>📊 月會報告</h1>
+        
         <div class="subtitle" id="reportPeriod">載入中...</div>
         <div class="update-info" id="updateInfo">資料更新時間：載入中...</div>
 
         <!-- 總覽區塊 -->
         <div class="section">
-            <h2 class="section-title">總覽</h2>
+            
             <div class="stats-grid" id="overviewStats">
                 <div class="loading">載入中...</div>
             </div>
@@ -113,7 +113,7 @@
 
         <!-- 部門業績 -->
         <div class="section">
-            <h2 class="section-title">部門業績</h2>
+            
             <div class="card">
                 <div class="chart-container">
                     <canvas id="departmentChart"></canvas>
@@ -124,7 +124,7 @@
 
         <!-- 門市業績 -->
         <div class="section">
-            <h2 class="section-title">門市業績</h2>
+            
             <div class="card">
                 <div class="chart-container">
                     <canvas id="storeChart"></canvas>
@@ -135,7 +135,7 @@
 
         <!-- 個人業績 -->
         <div class="section">
-            <h2 class="section-title">個人業績 Top 10</h2>
+            
             <div class="card">
                 <div class="chart-container">
                     <canvas id="personalChart"></canvas>
@@ -146,7 +146,7 @@
 
         <!-- 業務服務統計 -->
         <div class="section">
-            <h2 class="section-title">業務服務統計</h2>
+            
             <div class="card">
                 <div class="stats-grid" id="serviceStats">
                     <div class="loading">載入中...</div>
@@ -157,7 +157,7 @@
 
         <!-- 綜合分析 -->
         <div class="section">
-            <h2 class="section-title">綜合分析與建議</h2>
+            
             <div class="card">
                 <div id="analysisContent">
                     <div class="loading">載入中...</div>
@@ -456,18 +456,18 @@
                 const top3Contribution = totalRevenue > 0 ? (top3Revenue / totalRevenue * 100).toFixed(1) : 0;
                 
                 const html = `
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">📈 本月關鍵指標</h3>
+                    
                     <div style="margin-bottom: 20px;">
                         <p>• 本月總營業額：<strong>${formatMoney(totalRevenue)}</strong></p>
                         <p>• 平均達成率：<strong style="color: ${getAchievementColor(avgAchievement)}">${avgAchievement}%</strong></p>
                         <p>• Top 3 業務員貢獻占比：<strong>${top3Contribution}%</strong></p>
                     </div>
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">🏆 表現亮點</h3>
+                    
                     <div style="margin-bottom: 20px;">
                         <p>• 最佳部門：<strong>${bestDept?.name || '-'}</strong>（達成率 ${((bestDept?.achievement_rate || 0) * 100).toFixed(1)}%）</p>
                         ${worstDept && worstDept.name !== bestDept?.name ? `<p>• 待加強部門：<strong>${worstDept.name}</strong>（達成率 ${((worstDept.achievement_rate || 0) * 100).toFixed(1)}%）</p>` : ''}
                     </div>
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">💡 營運建議</h3>
+                    
                     <div>
                         ${avgAchievement < 80 ? '<p>• 整體達成率低於 80%，建議檢討目標設定或加強業務推動</p>' : ''}
                         ${top3Contribution > 50 ? '<p>• Top 3 業務員貢獻超過 50%，建議關注其他業務員培訓</p>' : ''}

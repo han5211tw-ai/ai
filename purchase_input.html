@@ -440,7 +440,7 @@
 
     <div class="container">
         <div class="header-row">
-            <h1>📦 進貨輸入</h1>
+            
             <div class="user-info">
                 <span id="userDisplay" class="user-name"></span>
                 <button onclick="window.authLogout && window.authLogout()" class="btn-logout">登出</button>
@@ -454,7 +454,7 @@
 
         <!-- 單據資訊 -->
         <div class="card">
-            <h2>📝 單據資訊</h2>
+            
             <div class="form-row">
                 <div class="form-group">
                     <label>單號</label>
@@ -502,7 +502,7 @@
 
         <!-- 產品明細 -->
         <div class="card">
-            <h2>📋 產品明細</h2>
+            
             <table id="itemsTable">
                 <thead>
                     <tr>
@@ -540,7 +540,7 @@
 
         <!-- 資料列表區塊 -->
         <div class="data-section">
-            <h3>📜 進貨單列表</h3>
+            
             <div class="data-filters">
                 <input type="text" id="searchInput" placeholder="搜尋單號、廠商名稱..." onkeyup="if(event.key==='Enter')searchPurchases()">
                 <button onclick="searchPurchases()">🔍 搜尋</button>
@@ -571,7 +571,7 @@
     <!-- 檢視彈窗 -->
     <div class="modal-overlay" id="viewModal">
         <div class="modal">
-            <h3>📋 進貨單詳情</h3>
+            
             <div id="modalContent"></div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal()">關閉</button>
@@ -717,7 +717,7 @@
 
                 if (data.success && data.items && data.items.length > 0) {
                     suggestions.innerHTML = data.items.map(p =>
-                        `<div class="suggestion-item" onclick="selectProduct(${rowIndex}, '${p.product_code}', '${p.item_name.replace(/'/g, "\\'")}')">${p.item_name} (${p.product_code})</div>`
+                        `<div class="suggestion-item" onclick="selectProduct(${rowIndex}, '${p.product_code}', '${p.item_name.replace(/'/g, "\'")}')">${p.item_name} (${p.product_code})</div>`
                     ).join('');
                     suggestions.style.display = 'block';
                 } else {
@@ -1005,7 +1005,7 @@
                     </div>
                 </div>
                 <div class="items-list">
-                    <h4>📦 產品明細</h4>
+                    
                     ${itemsHtml}
                     <div class="item-row" style="margin-top: 10px; padding-top: 10px; border-top: 2px solid rgba(0, 212, 255, 0.3); font-weight: bold;">
                         <span>總計</span>

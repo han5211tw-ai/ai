@@ -337,7 +337,7 @@
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <h1>👑 老闆專屬控制台</h1>
+            
             <div style="display: flex; align-items: center; gap: 15px;">
                 <span id="userDisplay" style="color: #ffd700; font-size: 0.95em;"></span>
                 <button onclick="window.authLogout && window.authLogout()" style="padding: 6px 12px; background: rgba(244,67,54,0.2); border: 1px solid rgba(244,67,54,0.5); color: #f44336; border-radius: 4px; cursor: pointer; font-size: 0.85em;">登出</button>
@@ -389,7 +389,7 @@
 
         <!-- 整體營收 -->
         <div class="card">
-            <h2>💰 整體營收總覽（2026 Q1）</h2>
+            
             <div class="stats-row">
                 <div class="stat-box">
                     <div class="stat-label">本季總營收</div>
@@ -422,7 +422,7 @@
         <div class="two-col">
             <!-- 部門業績 -->
             <div class="card">
-                <h2>🏢 部門業績</h2>
+                
                 <div id="deptTable">
                     <div class="loading">載入中...</div>
                 </div>
@@ -430,7 +430,7 @@
 
             <!-- 門市業績 -->
             <div class="card">
-                <h2>🏬 門市業績</h2>
+                
                 <div id="storeTable">
                     <div class="loading">載入中...</div>
                 </div>
@@ -439,7 +439,7 @@
 
         <!-- 採購需求表 -->
         <div class="card">
-            <h2>🛒 待處理請購需求</h2>
+            
             <div id="needsTable">
                 <div class="loading">載入中...</div>
             </div>
@@ -776,7 +776,9 @@
 
         // 取消需求（老闆專屬）
         async function cancelNeed(id, btn) {
-            if (!confirm('確定要取消此需求嗎？\n\n注意：取消後將無法復原。')) {
+            if (!confirm('確定要取消此需求嗎？
+
+注意：取消後將無法復原。')) {
                 return;
             }
 
