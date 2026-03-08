@@ -101,6 +101,24 @@
     background: rgba(244, 67, 54, 0.3);
 }
 
+/* 儲存按鈕 - 標準樣式 */
+.btn-save {
+    padding: 6px 10px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-save:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
 /* 狀態標籤 */
 .status {
     display: inline-block;
@@ -242,15 +260,18 @@
                                     }
                                 </td>
                                 <td>
-                                    <input type="text" id="remark-${item.id}" value="${item.remark || ''}" placeholder="輸入備註...">
+                                    <div style="display:flex;gap:5px;">
+                                        <input type="text" id="remark-${item.id}" value="${item.remark || ''}" placeholder="輸入備註..." style="flex:1;">
+                                        <button type="button" class="btn btn-save" onclick="saveRemark(${item.id})">💾 儲存</button>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="status status-${item.status === '待處理' ? 'pending' : item.status === '已調撥' ? 'arrived' : 'completed'}">${item.status}</span>
                                 </td>
                                 <td>
                                     ${item.status === '待處理'
-                                        ? `<button class="btn btn-success" onclick="transferNeed(${item.id}, this)">已調撥</button>
-                                           <button class="btn btn-danger" onclick="cancelNeed(${item.id}, this)">取消</button>`
+                                        ? `<button type="button" class="btn btn-primary" onclick="transferNeed(${item.id}, this)">✓ 已調撥</button>
+                                           <button type="button" class="btn btn-danger" onclick="cancelNeed(${item.id}, this)">✕ 取消</button>`
                                         : ''
                                     }
                                 </td>
@@ -358,10 +379,49 @@
     loadNeeds();
     loadMonthlyRoster();
 
-    // 每 1 小時自動重新整理
+    // 每 5 分鐘自動重新載入資料（不整頁刷新）
     setInterval(() => {
-        location.reload();
-    }, 3600000);
+        loadNeeds();
+        loadMonthlyRoster();
+        document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
+    }, 300000);
+
+    // 儲存備註
+    async function saveRemark(id) {
+        const input = document.getElementById(`remark-${id}`);
+        const btn = input.nextElementSibling;
+        const remark = input.value.trim();
+
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        try {
+            const response = await fetch('/api/needs/remark', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, remark: remark })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                btn.textContent = '✓';
+                setTimeout(() => {
+                    btn.textContent = '💾';
+                    btn.disabled = false;
+                }, 1000);
+            } else {
+                alert('儲存失敗：' + (result.message || '未知錯誤'));
+                btn.textContent = '💾';
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error('儲存備註失敗:', error);
+            alert('儲存失敗，請稍後再試');
+            btn.textContent = '💾';
+            btn.disabled = false;
+        }
+    }
 
     // 載入所有人的當月班表
     async function loadMonthlyRoster() {
@@ -375,15 +435,24 @@
             const daysInMonth = new Date(year, month, 0).getDate();
 
             const stores = ['豐原', '潭子', '大雅'];
+            const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+            const endDate = `${year}-${String(month).padStart(2, '0')}-${daysInMonth}`;
+
+            // 並行載入三個門市的班表
+            const promises = stores.map(store => 
+                fetch(`/api/roster/range?store=${encodeURIComponent(store)}&start=${startDate}&end=${endDate}`)
+                    .then(r => r.json())
+                    .then(data => ({ store, data }))
+                    .catch(error => {
+                        console.error(`載入 ${store} 班表失敗:`, error);
+                        return { store, data: { success: false } };
+                    })
+            );
+
+            const results = await Promise.all(promises);
             let allStaffRoster = {};
 
-            for (const store of stores) {
-                const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-                const endDate = `${year}-${String(month).padStart(2, '0')}-${daysInMonth}`;
-
-                const response = await fetch(`/api/roster/range?store=${encodeURIComponent(store)}&start=${startDate}&end=${endDate}`);
-                const data = await response.json();
-
+            results.forEach(({ store, data }) => {
                 if (data.success && data.roster) {
                     data.roster.forEach(record => {
                         if (!allStaffRoster[record.staff_name]) {
@@ -395,7 +464,7 @@
                         allStaffRoster[record.staff_name].shifts[record.date] = record.shift_code;
                     });
                 }
-            }
+            });
 
             if (Object.keys(allStaffRoster).length === 0) {
                 container.innerHTML = '<div class="empty-state">暫無班表資料</div>';
@@ -437,24 +506,28 @@
                     let shiftColor = '#8892b0';
                     let shiftBg = '';
 
+                    // 與班表查詢頁面統一的顏色規則
                     if (shift === '早班' || shift === '早') {
-                        shiftColor = '#ff9800';
-                        shiftBg = 'background:rgba(255,152,0,0.2);';
+                        shiftColor = '#4caf50';  // 綠色
+                        shiftBg = 'background:rgba(76,175,80,0.15);';
                     } else if (shift === '中班' || shift === '中') {
-                        shiftColor = '#4caf50';
-                        shiftBg = 'background:rgba(76,175,80,0.2);';
+                        shiftColor = '#4caf50';  // 綠色（與早班相同）
+                        shiftBg = 'background:rgba(76,175,80,0.15);';
                     } else if (shift === '晚班' || shift === '晚') {
-                        shiftColor = '#9c27b0';
-                        shiftBg = 'background:rgba(156,39,176,0.2);';
+                        shiftColor = '#2196f3';  // 藍色
+                        shiftBg = 'background:rgba(33,150,243,0.15);';
                     } else if (shift === '全班' || shift === '全') {
-                        shiftColor = '#00d4ff';
-                        shiftBg = 'background:rgba(0,212,255,0.2);';
+                        shiftColor = '#ff9800';  // 橙色
+                        shiftBg = 'background:rgba(255,152,0,0.15);';
                     } else if (shift === '值班' || shift === '值') {
-                        shiftColor = '#e91e63';
-                        shiftBg = 'background:rgba(233,30,99,0.2);';
-                    } else if (shift === '休假' || shift === '休' || shift === '特休' || shift === '特') {
-                        shiftColor = '#00d4ff';
-                        shiftBg = 'background:rgba(0,212,255,0.1);';
+                        shiftColor = '#9c27b0';  // 紫色
+                        shiftBg = 'background:rgba(156,39,176,0.15);';
+                    } else if (shift === '休假' || shift === '休') {
+                        shiftColor = '#64748b';  // 灰色
+                        shiftBg = 'background:rgba(100,116,139,0.1);';
+                    } else if (shift === '特休' || shift === '特') {
+                        shiftColor = '#00bcd4';  // 青色
+                        shiftBg = 'background:rgba(0,188,212,0.15);';
                     }
 
                     const weekday = new Date(year, month - 1, day).getDay();
