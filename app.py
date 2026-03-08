@@ -37,10 +37,11 @@ from observability import (
     record_api_metrics, get_debug_sql, is_workday, get_weekday_name
 )
 
-app = Flask(__name__, 
+app = Flask(__name__,
     template_folder='/Users/aiserver/.openclaw/workspace/dashboard-site',
     static_folder='/Users/aiserver/.openclaw/workspace/dashboard-site'
 )
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 CORS(app)
 
 DB_PATH = '/Users/aiserver/srv/db/company.db'
@@ -2179,34 +2180,28 @@ def verify_password():
         record_failed_login(client_ip)
         return jsonify({'success': False, 'message': '密碼格式錯誤'})
 
-    # 查詢資料庫驗證密碼（同時檢查 staff.is_active=1）
+    # 查詢資料庫驗證密碼（統一使用 staff 資料表）
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT sp.name, sp.department, sp.title, s.is_active
-        FROM staff_passwords sp
-        JOIN staff s ON sp.name = s.name
-        WHERE sp.password = ?
+        SELECT name, department, title, is_active, store
+        FROM staff
+        WHERE password = ? AND is_active = 1
     ''', (password,))
     row = cursor.fetchone()
     conn.close()
 
     if row:
-        # 檢查員工是否已停用
-        if not row['is_active']:
-            record_failed_login(client_ip)
-            return jsonify({
-                'success': False,
-                'message': '⚠️ 此帳號已被停用，請聯繫管理員。'
-            }), 403
-
         # 步驟 2：登入成功，重置失敗記錄
         reset_login_attempts(client_ip)
 
+        # 使用 store 作為顯示單位（如「大雅門市」），如果沒有則使用 department
+        display_unit = row['store'] if row['store'] else row['department']
+        
         return jsonify({
             'success': True,
             'name': row['name'],
-            'department': row['department'],
+            'department': display_unit,
             'title': row['title']
         })
     else:
@@ -2591,18 +2586,19 @@ def create_needs_batch():
 
     if request_key in recent_submissions:
         last_submit_time = recent_submissions[request_key]
-        if (current_time - last_submit_time).total_seconds() < 5:
+        if (current_time - last_submit_time).total_seconds() < 3:
             # 記錄重複提交事件
             log_event(
                 event_type='NEEDS_SUBMIT',
                 source='api:/api/needs/batch',
                 actor=requester,
                 status='FAIL',
-                summary='重複提交被拒絕',
+                summary='重複提交被拒絕（3秒內）',
                 trace_id=trace_id,
                 details={'department': department, 'item_count': len(items), 'reason': 'duplicate_request'}
             )
-            return jsonify({'success': False, 'message': '請勿重複提交，請稍候 5 秒後再試'}), 429
+            # 回傳 200 + 明確訊息，讓前端顯示黃色警告而非紅色錯誤
+            return jsonify({'success': False, 'message': '資料已存在（3秒內重複提交），請確認後再試'}), 200
 
     # 記錄本次提交時間
     recent_submissions[request_key] = current_time
@@ -2940,7 +2936,7 @@ def create_needs_batch():
         conn.commit()
         conn.close()
 
-        # 發送 Telegram 通知
+        # 發送 Telegram 通知（背景執行，不阻塞回應）
         try:
             item_count = len(items)
             total_quantity = sum(int(item.get('quantity', 1)) for item in items)
@@ -2961,11 +2957,13 @@ def create_needs_batch():
 📤 調撥來源：{transfer_from or '未指定'}
 
 請至系統查看詳情"""
-                # 調撥發送到會計個人
-                send_telegram_notification(telegram_msg, TELEGRAM_ACCOUNTANT_CHAT_ID,
-                                           notification_type='調撥需求',
-                                           related_record_id=response_data.get('need_id'),
-                                           related_record_type='needs')
+                # 調撥發送到會計個人（背景執行）
+                import threading
+                threading.Thread(
+                    target=send_telegram_notification,
+                    args=(telegram_msg, TELEGRAM_ACCOUNTANT_CHAT_ID, '調撥需求', None, 'needs'),
+                    daemon=True
+                ).start()
             else:
                 telegram_msg = f"""🛒 <b>新採購需求通知</b>
 
@@ -2976,13 +2974,15 @@ def create_needs_batch():
 🔢 數量：{total_quantity} 個
 
 請至系統查看詳情"""
-                # 請購發送到老闆個人
-                send_telegram_notification(telegram_msg, TELEGRAM_CHAT_ID,
-                                           notification_type='請購需求',
-                                           related_record_id=response_data.get('need_id'),
-                                           related_record_type='needs')
+                # 請購發送到老闆個人（背景執行）
+                import threading
+                threading.Thread(
+                    target=send_telegram_notification,
+                    args=(telegram_msg, TELEGRAM_CHAT_ID, '請購需求', None, 'needs'),
+                    daemon=True
+                ).start()
         except Exception as e:
-            print(f"Telegram 通知發送失敗: {e}")
+            print(f"Telegram 通知背景執行緒啟動失敗: {e}")
 
         return jsonify(response_data)
 
@@ -3884,6 +3884,32 @@ def create_service_record():
     conn.close()
 
     return jsonify({'success': True, 'count': inserted_count})
+
+
+# API: 取得最近服務紀錄
+@app.route('/api/service-records/recent')
+def get_recent_service_records():
+    """取得最近服務紀錄"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT id, date, customer_code, customer_name, service_item,
+                   salesperson, store, is_new_customer
+            FROM service_records
+            ORDER BY date DESC, id DESC
+            LIMIT 20
+        """)
+
+        records = [dict(row) for row in cursor.fetchall()]
+        return jsonify({'success': True, 'records': records})
+
+    except Exception as e:
+        print(f"[ServiceRecord] 載入失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
 
 
 # API: 外勤服務紀錄 - 刪除
@@ -8566,7 +8592,177 @@ def convert_sales_document():
 
 
 # ============================================
+# Boss 待請購清單 API
+
+@app.route('/api/boss/pending-needs')
+def boss_pending_needs():
+    """回傳待請購清單 - 暫時移除權限驗證，改由前端控制"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 查詢待請購的 needs（未取消、未完成的請購單）
+        cursor.execute("""
+            SELECT
+                n.id,
+                n.date as invoice_no,
+                n.product_code,
+                n.item_name as product_name,
+                n.quantity,
+                n.purpose,
+                n.remark as notes,
+                n.requester,
+                n.created_at,
+                n.department,
+                n.customer_code
+            FROM needs n
+            WHERE n.cancelled_at IS NULL
+              AND n.status = '待處理'
+              AND n.request_type = '請購'
+            ORDER BY n.created_at ASC
+        """)
+        
+        needs = []
+        for row in cursor.fetchall():
+            need = dict(row)
+
+            # 查詢客戶資料（如果 customer_code 存在）
+            if need.get('customer_code'):
+                cursor.execute("""
+                    SELECT short_name as customer_name
+                    FROM customers
+                    WHERE customer_id = ? OR short_name = ?
+                    LIMIT 1
+                """, (need['customer_code'], need['customer_code']))
+                customer = cursor.fetchone()
+                if customer:
+                    need['customer_name'] = customer['customer_name']
+
+            # 查詢最後一次進貨資訊
+            if need.get('product_code'):
+                cursor.execute("""
+                    SELECT
+                        p.supplier_name as vendor_name,
+                        p.price as last_price
+                    FROM purchase_history p
+                    WHERE p.product_code = ?
+                    ORDER BY p.date DESC
+                    LIMIT 1
+                """, (need['product_code'],))
+
+                last_purchase = cursor.fetchone()
+                if last_purchase:
+                    need['last_vendor'] = last_purchase['vendor_name']
+                    need['last_price'] = last_purchase['last_price']
+                else:
+                    need['last_vendor'] = None
+                    need['last_price'] = None
+
+            needs.append(need)
+        
+        # 計算統計數據
+        stats = {
+            'pending_count': len(needs),
+            'total_amount': sum(n.get('last_price', 0) * n.get('quantity', 0) 
+                               for n in needs if n.get('last_price')),
+            'product_count': len(set(n.get('product_code') for n in needs if n.get('product_code'))),
+            'oldest_days': None
+        }
+        
+        # 計算最久的天數
+        if needs:
+            oldest_date = min(n['created_at'] for n in needs if n.get('created_at'))
+            if oldest_date:
+                from datetime import datetime
+                oldest = datetime.strptime(oldest_date, '%Y-%m-%d %H:%M:%S')
+                stats['oldest_days'] = (datetime.now() - oldest).days
+        
+        return jsonify({
+            'success': True,
+            'needs': needs,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        print(f"[Boss] 載入待請購清單失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/boss/needs/<int:need_id>/status', methods=['POST'])
+def boss_update_need_status(need_id):
+    """更新請購單狀態"""
+    data = request.get_json()
+    status = data.get('status')  # 'purchased' 或 'cancelled'
+    
+    if status not in ['purchased', 'cancelled']:
+        return jsonify({'success': False, 'message': '無效的狀態'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        if status == 'purchased':
+            # 標記為已採購
+            cursor.execute("""
+                UPDATE needs
+                SET arrived_at = datetime('now', 'localtime'),
+                    status = '已採購'
+                WHERE id = ?
+            """, (need_id,))
+        else:
+            # 標記為已取消
+            cursor.execute("""
+                UPDATE needs 
+                SET cancelled_at = datetime('now', 'localtime'),
+                    status = '已取消'
+                WHERE id = ?
+            """, (need_id,))
+        
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            return jsonify({'success': True, 'message': '更新成功'})
+        else:
+            return jsonify({'success': False, 'message': '找不到該筆資料'}), 404
+            
+    except Exception as e:
+        print(f"[Boss] 更新請購狀態失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
+# ============================================
 # 靜態檔案路由（必須放在所有 API 路由之後）
+@app.route('/api/boss/needs/<int:need_id>/notes', methods=['POST'])
+def boss_update_need_notes(need_id):
+    """更新請購單備註"""
+    data = request.get_json()
+    notes = data.get('notes', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE needs
+            SET remark = ?
+            WHERE id = ?
+        """, (notes, need_id))
+
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            return jsonify({'success': True, 'message': '備註已儲存'})
+        else:
+            return jsonify({'success': False, 'message': '找不到該筆資料'}), 404
+
+    except Exception as e:
+        print(f"[Boss] 儲存備註失敗: {e}")
+        return jsonify({'success': False, 'message': '系統錯誤'}), 500
+    finally:
+        conn.close()
+
 # ============================================
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -8579,4 +8775,14 @@ def static_files(path):
     # 檢查是否為 API 路徑（不應該發生，因為 API 路由優先）
     if path.startswith('api/'):
         return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
+    
+    # 如果是 .html 檔案，使用模板渲染
+    if path.endswith('.html') or '.' not in path:
+        template_name = path if path.endswith('.html') else f'{path}.html'
+        try:
+            return render_template(template_name)
+        except:
+            # 如果模板不存在，fallback 到靜態檔案
+            pass
+    
     return send_from_directory(STATIC_DIR, path)

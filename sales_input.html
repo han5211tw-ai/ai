@@ -124,25 +124,32 @@
     position: absolute;
     top: 100%;
     left: 0;
-    right: 0;
-    background: rgba(30, 30, 50, 0.95);
+    min-width: 100%;
+    width: max-content;
+    background: rgba(30, 30, 50, 0.98);
     border: 1px solid rgba(0, 212, 255, 0.3);
     border-radius: var(--radius-md);
-    max-height: 200px;
+    max-height: 280px;
     overflow-y: auto;
     z-index: 1000;
     display: none;
     margin-top: 5px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .suggestion-item {
-    padding: 10px 15px;
+    padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid var(--color-border-default);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    min-width: 280px;
 }
 
 .suggestion-item:hover {
-    background: rgba(0, 212, 255, 0.1);
+    background: rgba(0, 212, 255, 0.15);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
 }
 
 /* 利潤顯示 */
@@ -281,40 +288,34 @@
         <!-- 銷貨單表單 -->
         <div class="form-section">
             <div class="section-title">📝 銷貨單資訊</div>
-            <div class="form-row">
-                <div class="form-group">
+            <div class="form-row" style="gap: 24px;">
+                <div class="form-group" style="flex: 1.2;">
                     <label>銷貨單號</label>
                     <input type="text" id="salesOrderNo" class="form-control" readonly>
                     <input type="hidden" id="storeCode">
                     <input type="hidden" id="department">
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="flex: 1.5;">
                     <label>發票號碼</label>
                     <input type="text" id="invoiceNo" class="form-control" placeholder="請輸入發票號碼">
                 </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
+                <div class="form-group" style="flex: 1;">
                     <label>日期</label>
                     <input type="date" id="salesDate" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: var(--color-text-secondary); cursor: not-allowed;">
                 </div>
-                <div class="form-group">
+            </div>
+
+            <div class="form-row" style="gap: 24px; margin-top: 20px;">
+                <div class="form-group" style="flex: 1;">
                     <label>業務員</label>
                     <input type="text" id="salesperson" class="form-control" readonly>
                     <input type="hidden" id="salespersonId">
                 </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>客戶編號</label>
-                    <input type="text" id="customerId" class="form-control" readonly placeholder="自動帶入">
-                </div>
-                <div class="form-group">
+                <div class="form-group" style="flex: 2.7;">
                     <label>客戶 <span class="required">*</span></label>
                     <div class="search-wrapper">
                         <input type="text" id="customerSearch" class="form-control" placeholder="搜尋客戶名稱或手機" oninput="searchCustomers(this)">
+                        <input type="hidden" id="customerId">
                         <input type="hidden" id="customerName">
                         <div id="customerSuggestions" class="suggestions"></div>
                     </div>
@@ -454,49 +455,64 @@ let currentUser = null;
 
         // 頁面載入時檢查權限
         document.addEventListener('DOMContentLoaded', async function() {
-            if (window.checkAuth) {
-                const authResult = await window.checkAuth({ minRole: 'staff' });
-                if (!authResult.success) {
-                    window.location.href = 'index.html';
-                    return;
+            // 無論如何都先初始化3列產品明細
+            initDefaultRows();
+            
+            // 延遲執行權限檢查，確保 window.checkAuth 已載入
+            setTimeout(async function() {
+                console.log('setTimeout callback executed');
+                if (window.checkAuth) {
+                    console.log('window.checkAuth exists, calling it...');
+                    const authResult = await window.checkAuth({ minRole: 'staff' });
+                    console.log('authResult:', authResult);
+                    if (!authResult.success) {
+                        console.log('Auth failed, redirecting...');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    currentUser = authResult;
+                    const userTitle = authResult.title || '';
+                    console.log('userTitle:', userTitle);
+                    
+                    // 老闆和會計可以查看成本、編輯全部資料
+                    canEdit = (userTitle === '老闆' || userTitle.includes('會計'));
+                    canViewCost = canEdit;
+                    console.log('canViewCost set to:', canViewCost);
+                    
+                    // 安全地設定元素
+                    const userDisplay = document.getElementById('userDisplay');
+                    console.log('userDisplay element:', userDisplay);
+                    if (userDisplay) userDisplay.textContent = authResult.name || '';
+                    document.getElementById('salesperson').value = authResult.name || '';
+                    document.getElementById('salespersonId').value = authResult.staff_code || '';
+                    
+                    // 設定單位代號
+                    const dept = authResult.department || '';
+                    const storeCode = getStoreCode(dept);
+                    document.getElementById('storeCode').value = storeCode;
+                    document.getElementById('department').value = dept;
+                    
+                    // 顯示/隱藏成本欄位
+                    console.log('Calling updateCostColumnsVisibility...');
+                    updateCostColumnsVisibility();
+                    console.log('updateCostColumnsVisibility called');
+                    
+                    // 產生銷貨單號
+                    try {
+                        await generateSalesOrderNo();
+                    } catch (e) {
+                        console.error('generateSalesOrderNo error:', e);
+                    }
+
+                    // 設定日期為今天且不可修改
+                    document.getElementById('salesDate').value = new Date().toISOString().slice(0, 10);
+                } else {
+                    console.log('window.checkAuth does not exist');
                 }
-                
-                currentUser = authResult;
-                const userTitle = authResult.title || '';
-                
-                // 老闆和會計可以查看成本、編輯全部資料
-                canEdit = (userTitle === '老闆' || userTitle.includes('會計'));
-                canViewCost = canEdit;
-                
-                document.getElementById('userDisplay').textContent = authResult.name || '';
-                document.getElementById('salesperson').value = authResult.name || '';
-                document.getElementById('salespersonId').value = authResult.staff_code || '';
-                
-                // 設定單位代號
-                const dept = authResult.department || '';
-                const storeCode = getStoreCode(dept);
-                document.getElementById('storeCode').value = storeCode;
-                document.getElementById('department').value = dept;
-                
-                // 顯示/隱藏成本欄位
-                if (canViewCost) {
-                    document.querySelectorAll('.hidden-cost').forEach(el => {
-                        el.style.display = 'table-cell';
-                    });
-                }
-                
-                // 產生銷貨單號
-                await generateSalesOrderNo();
 
-                // 設定日期為今天且不可修改
-                document.getElementById('salesDate').value = new Date().toISOString().slice(0, 10);
-
-                // 初始化預設3列（在 canViewCost 設定後）
-                console.log('Initializing rows, canViewCost:', canViewCost);
-                initDefaultRows();
-            }
-
-            loadSalesList();
+                loadSalesList();
+            }, 100);
         });
 
         // 確保在 DOM 載入後初始化（備用機制）
@@ -547,6 +563,28 @@ let currentUser = null;
             }
         }
 
+        // 更新成本欄位顯示狀態
+        function updateCostColumnsVisibility() {
+            const showCost = (typeof canViewCost !== 'undefined' && canViewCost);
+            console.log('updateCostColumnsVisibility called, showCost:', showCost);
+            // 更新表頭
+            const thElements = document.querySelectorAll('th.hidden-cost');
+            console.log('Found th.hidden-cost elements:', thElements.length);
+            thElements.forEach(el => {
+                el.style.display = showCost ? 'table-cell' : 'none';
+            });
+            // 更新所有資料列的隱藏欄位
+            const rows = document.querySelectorAll('#itemsBody tr');
+            console.log('Found rows:', rows.length);
+            rows.forEach((row, index) => {
+                const tdElements = row.querySelectorAll('td.hidden-cost');
+                console.log('Row', index, 'found td.hidden-cost:', tdElements.length);
+                tdElements.forEach(el => {
+                    el.style.display = showCost ? 'table-cell' : 'none';
+                });
+            });
+        }
+
         // 新增列
         function addRow() {
             const tbody = document.getElementById('itemsBody');
@@ -569,7 +607,7 @@ let currentUser = null;
                         <div class="suggestions"></div>
                     </div>
                 </td>
-                <td><input type="number" class="form-control quantity" placeholder="數量" min="1" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="form-control quantity" placeholder="數量" min="1" value="1" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="form-control price" placeholder="單價" min="0" onchange="calculateRow(this)"></td>
                 <td class="amount-display amount">0</td>
                 <td class="hidden-cost" style="display:${showCost}"><span class="cost">-</span></td>
@@ -871,7 +909,9 @@ let currentUser = null;
                 
                 if (canViewCost) {
                     const profitText = row.querySelector('.profit').textContent.replace(/,/g, '');
-                    if (parseInt(profitText) <= 0) {
+                    const profitValue = parseInt(profitText);
+                    console.log('Row profit check:', profitText, '->', profitValue, '<= 0?', profitValue <= 0);
+                    if (!isNaN(profitValue) && profitValue <= 0) {
                         hasNegativeProfit = true;
                     }
                 }
@@ -937,20 +977,25 @@ let currentUser = null;
         async function searchCustomers(input) {
             const keyword = input.value.trim();
             const suggestions = document.getElementById('customerSuggestions');
-            
+
             if (keyword.length < 2) {
                 suggestions.style.display = 'none';
                 return;
             }
-            
+
             try {
-                const response = await fetch(`/api/customer/search?keyword=${encodeURIComponent(keyword)}`);
+                const response = await fetch(`/api/customer/search?q=${encodeURIComponent(keyword)}`);
                 const data = await response.json();
-                
-                if (data.success && data.customers.length > 0) {
-                    suggestions.innerHTML = data.customers.map(c => 
-                        `<div class="suggestion-item" onclick="selectCustomer('${c.customer_id}', '${c.short_name.replace(/'/g, "\\'")}')">${c.short_name} (${c.customer_id})</div>`
-                    ).join('');
+
+                if (data.found && data.customers && data.customers.length > 0) {
+                    suggestions.innerHTML = data.customers.map(c => {
+                        const mobile = c.mobile ? c.mobile : (c.phone1 ? c.phone1 : '');
+                        const contactInfo = mobile ? `📱 ${mobile}` : '';
+                        return `<div class="suggestion-item" onclick="selectCustomer('${c.customer_id}', '${c.short_name.replace(/'/g, "\\'")}')">
+                            <div style="font-weight:500;">${c.short_name}</div>
+                            <div style="font-size:0.85em;color:#8892b0;margin-top:2px;">${c.customer_id} ${contactInfo}</div>
+                        </div>`;
+                    }).join('');
                     suggestions.style.display = 'block';
                 } else {
                     suggestions.style.display = 'none';
