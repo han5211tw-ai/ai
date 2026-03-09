@@ -29,18 +29,31 @@
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 15px;
+    font-size: 0.95em;
+    table-layout: auto;
 }
 
 .items-table th,
 .items-table td {
-    padding: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     text-align: left;
 }
 
 .items-table th {
-    background: rgba(0, 212, 255, 0.1);
-    color: #00d4ff;
+    background: rgba(15, 23, 42, 0.8);
+    color: #94a3b8;
+    font-size: 0.9em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    white-space: nowrap;
+}
+
+.items-table td {
+    color: #e2e8f0;
+    vertical-align: middle;
 }
 
 .items-table td {
@@ -66,16 +79,18 @@
     border-color: #00d4ff;
 }
 
-/* 按鈕樣式 */
+/* 按鈕樣式 - 與老闆頁面一致 */
 .btn {
-    padding: 8px 16px;
+    padding: 6px 16px;
     border: none;
     border-radius: 6px;
     background: linear-gradient(135deg, #00d4ff, #7b2cbf);
     color: #fff;
     cursor: pointer;
     transition: transform 0.2s;
-    font-size: 0.85em;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .btn:hover {
@@ -92,31 +107,13 @@
 }
 
 .btn-danger {
-    background: rgba(244, 67, 54, 0.2);
-    border: 1px solid rgba(244, 67, 54, 0.5);
-    color: #f44336;
+    background: linear-gradient(135deg, #ff6b6b, #c92a2a);
+    color: white;
 }
 
 .btn-danger:hover {
-    background: rgba(244, 67, 54, 0.3);
-}
-
-/* 儲存按鈕 - 標準樣式 */
-.btn-save {
-    padding: 6px 10px;
-    font-size: 0.85em;
-    white-space: nowrap;
-    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-    border: none;
-    border-radius: 6px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-save:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 }
 
 /* 狀態標籤 */
@@ -236,7 +233,7 @@
                             <th>調撥來源</th>
                             <th>需求部門</th>
                             <th>填表人員</th>
-                            <th>庫存狀況</th>
+                            <th style="width: 120px;">庫存狀況</th>
                             <th>備註</th>
                             <th>狀態</th>
                             <th>操作</th>
@@ -262,7 +259,7 @@
                                 <td>
                                     <div style="display:flex;gap:5px;">
                                         <input type="text" id="remark-${item.id}" value="${item.remark || ''}" placeholder="輸入備註..." style="flex:1;">
-                                        <button type="button" class="btn btn-save" onclick="saveRemark(${item.id})">💾 儲存</button>
+                                        <button type="button" class="btn btn-save" onclick="saveRemark(${item.id})">儲存</button>
                                     </div>
                                 </td>
                                 <td>
@@ -270,8 +267,8 @@
                                 </td>
                                 <td>
                                     ${item.status === '待處理'
-                                        ? `<button type="button" class="btn btn-primary" onclick="transferNeed(${item.id}, this)">✓ 已調撥</button>
-                                           <button type="button" class="btn btn-danger" onclick="cancelNeed(${item.id}, this)">✕ 取消</button>`
+                                        ? `<button type="button" class="btn btn-primary" onclick="transferNeed(${item.id}, this)">已調撥</button>
+                                           <button type="button" class="btn btn-danger" onclick="cancelNeed(${item.id}, this)">取消</button>`
                                         : ''
                                     }
                                 </td>

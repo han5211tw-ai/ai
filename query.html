@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}查詢 - 電腦舖{% endblock %}
+{% block title %}查詢{% endblock %}
 {% block page_title %}查詢{% endblock %}
 
 {% block styles %}
@@ -47,46 +47,11 @@
     font-size: 0.95em;
 }
 
-/* 導航連結 */
-.nav {
-    display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-}
 
-.nav a {
-    color: var(--color-text-secondary);
-    text-decoration: none;
-    padding: 10px 20px;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-}
-
-.nav a:hover {
-    color: var(--color-accent-cyan);
-    border-color: var(--color-accent-cyan);
-}
-
-/* 頁面標題 */
-.subtitle {
-    text-align: left;
-    color: var(--color-text-secondary);
-    margin-bottom: 20px;
-    font-size: 0.9em;
-}
 </style>
 {% endblock %}
 
 {% block content %}
-<p class="subtitle">Query Center</p>
-
-<div class="nav">
-    <a href="index.html">🏠 首頁</a>
-</div>
-
 <div class="query-grid">
     <a href="customer_search.html" class="query-card" target="_blank">
         <div class="query-icon">👤</div>

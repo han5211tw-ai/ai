@@ -9,8 +9,8 @@
     <title>{% block title %}電腦舖營運系統{% endblock %}</title>
     
     <!-- 全域樣式 (加入版本號避免快取) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='shared/global.css') }}?v=20260309c">
-    <link rel="stylesheet" href="{{ url_for('static', filename='shared/auth_ui.css') }}?v=20260309c">
+    <link rel="stylesheet" href="{{ url_for('static', filename='shared/global.css') }}?v=20260309f">
+    <link rel="stylesheet" href="{{ url_for('static', filename='shared/auth_ui.css') }}?v=20260309f">
     
     <!-- Sidebar 摺疊選單樣式 -->
     <style>
@@ -258,7 +258,9 @@
         .sidebar-user-section .btn-logout:hover {
             background: rgba(244, 67, 54, 0.2);
         }
-        
+
+        /* 共用按鈕樣式已定義在 global.css */
+
         .user-profile {
             display: flex;
             align-items: center;
@@ -414,9 +416,9 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="logo">
+                <div class="logo" id="siteLogo">
                     <span>🖥️</span>
-                    <span>電腦舖</span>
+                    <span>電腦舖營運系統</span>
                 </div>
             </div>
 
@@ -533,7 +535,7 @@
                 icon: '🛠️',
                 items: [
                     { id: 'supervision', icon: '⭐', label: '督導評分表', route: '/supervision_score', roles: ['老闆', '門市部主管'] },
-                    { id: 'service-record', icon: '🚗', label: '外勤服務表', route: '/service_record', roles: ['老闆', '業務人員', '業務部主管', '門市部主管'] },
+                    { id: 'service-record', icon: '🚗', label: '外勤服務表', route: '/service_record', roles: ['老闆', '業務人員', '業務部主管'] },
                     { id: 'roster', icon: '📅', label: '班表查詢', route: '/roster', roles: ['老闆', '會計', '門市工程師', '業務人員', '業務部主管', '門市部主管'] }
                 ]
             },

@@ -2,7 +2,7 @@
 
 {% block title %}待建檔中心 - 電腦舖營運系統{% endblock %}
 
-{% block page_title %}待建檔中心營運系統{% endblock %}
+{% block page_title %}待建檔中心{% endblock %}
 
 {% block content %}
 <style>
@@ -19,9 +19,7 @@
             text-align: center;
             font-size: 2em;
             margin-bottom: 10px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #fff;
         }
         .subtitle {
             text-align: center;
@@ -153,10 +151,17 @@
             border-radius: 8px;
             color: #fff;
             display: none;
+            z-index: 9999;
+            max-width: 400px;
+            word-wrap: break-word;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            height: auto;
+            min-height: 50px;
+            line-height: 1.5;
         }
-        .toast.show { display: block; }
-        .toast.success { background: rgba(76,175,80,0.9); }
-        .toast.error { background: rgba(244,67,54,0.9); }
+        .toast.show { display: inline-block; }
+        .toast.success { background: rgba(76,175,80,0.95); }
+        .toast.error { background: rgba(244,67,54,0.95); }
     </style>
     <div class="container">
         
@@ -164,15 +169,15 @@
         
         <div class="stats-grid">
             <div class="stat-card">
-                
+                <h3>👤 客戶待處理</h3>
                 <div class="number" id="customerPending">-</div>
             </div>
             <div class="stat-card">
-                
+                <h3>📦 商品待處理</h3>
                 <div class="number" id="productPending">-</div>
             </div>
             <div class="stat-card">
-                
+                <h3>✅ 今日已解析</h3>
                 <div class="number" id="todayResolved">-</div>
             </div>
         </div>

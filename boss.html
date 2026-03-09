@@ -2,7 +2,7 @@
 {% import "macros.html" as ui %}
 
 {% block title %}待請購清單 - 電腦舖營運系統{% endblock %}
-{% block page_title %}📋 待請購清單{% endblock %}
+{% block page_title %}📋 老闆專區{% endblock %}
 
 {% block styles %}
 <style>
@@ -227,22 +227,26 @@
     .notes-input-wrapper {
         display: flex;
         gap: 8px;
-        align-items: flex-start;
+        align-items: center;
     }
 
     .notes-input {
         flex: 1;
         min-width: 200px;
         max-width: 300px;
-        min-height: 36px;
+        height: 30px;
+        min-height: 30px;
+        max-height: 30px;
         background: rgba(0, 0, 0, 0.3);
         border: 1px solid rgba(255, 255, 255, 0.2);
         color: #e2e8f0;
-        padding: 8px;
+        padding: 0 8px;
         border-radius: 6px;
-        resize: vertical;
-        font-size: 0.9em;
+        resize: none;
+        font-size: 12px;
+        line-height: 30px;
         font-family: inherit;
+        box-sizing: border-box;
     }
 
     .notes-input:focus {
@@ -251,18 +255,10 @@
         box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
     }
 
-    /* 儲存按鈕 - 標準樣式 */
+    /* 儲存按鈕 - 使用 global.css 的 .btn 樣式，只定義顏色 */
     .btn-save {
-        padding: 8px 12px;
-        font-size: 0.85em;
-        white-space: nowrap;
         background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-        border: none;
-        border-radius: 6px;
         color: white;
-        cursor: pointer;
-        transition: all 0.2s;
-        flex-shrink: 0;
     }
 
     .btn-save:hover {
@@ -317,17 +313,45 @@
         border: 1px solid rgba(244, 67, 54, 0.3);
     }
 
-    /* 操作按鈕 */
+    /* 操作按鈕容器 */
     .action-btns {
         display: flex;
         gap: 8px;
         flex-wrap: nowrap;
+        align-items: center;
     }
 
+    /* 強制覆蓋按鈕樣式 */
     .action-btns .btn {
-        padding: 8px 14px;
-        font-size: 0.9em;
-        white-space: nowrap;
+        padding: 6px 16px !important;
+        font-size: 12px !important;
+        line-height: 1 !important;
+        height: auto !important;
+        min-height: 28px !important;
+        max-height: 28px !important;
+        white-space: nowrap !important;
+    }
+
+    .action-btns .btn-primary {
+        background: linear-gradient(135deg, #00d4ff, #7b2cbf) !important;
+        color: white !important;
+    }
+
+    .action-btns .btn-danger {
+        background: linear-gradient(135deg, #ff6b6b, #c92a2a) !important;
+        color: white !important;
+    }
+
+    /* 儲存按鈕 - 強制大小與操作按鈕一致 */
+    .btn-save {
+        padding: 0 16px !important;
+        font-size: 12px !important;
+        line-height: 30px !important;
+        height: 30px !important;
+        min-height: 30px !important;
+        max-height: 30px !important;
+        white-space: nowrap !important;
+        box-sizing: border-box !important;
     }
 
     /* 空狀態 */
@@ -572,14 +596,17 @@
                             <td class="notes-cell">
                                 <div class="notes-input-wrapper">
                                     <textarea class="notes-input" id="notes-${need.id}" rows="1" placeholder="輸入備註...">${escapeHtml(need.notes || '')}</textarea>
-                                    <button type="button" class="btn btn-save" onclick="saveNotes(${need.id})">💾 儲存</button>
+                                    <button type="button" class="btn btn-save" onclick="saveNotes(${need.id})">儲存</button>
                                 </div>
-                                <div class="notes-saved" id="saved-${need.id}">✓ 已儲存</div>
+                                <div class="notes-saved" id="saved-${need.id}">已儲存</div>
                             </td>
                             <td>
                                 <div class="action-btns">
-                                    <button type="button" class="btn btn-primary" onclick="updateNeedStatus(${need.id}, 'purchased')">✓ 已採購</button>
-                                    <button type="button" class="btn btn-danger" onclick="updateNeedStatus(${need.id}, 'cancelled')">✕ 取消</button>
+                                    ${need.status === '已採購'
+                                        ? ''
+                                        : `<button type="button" class="btn btn-primary" onclick="updateNeedStatus(${need.id}, 'purchased')">已採購</button>
+                                           <button type="button" class="btn btn-danger" onclick="updateNeedStatus(${need.id}, 'cancelled')">取消</button>`
+                                    }
                                 </div>
                             </td>
                         </tr>
@@ -696,7 +723,12 @@
 
             const data = await response.json();
             if (data.success) {
-                showToast(status === 'purchased' ? '已標記為已採購' : '已取消該筆請購', 'success');
+                const toastMessages = {
+                    'purchased': '已標記為已採購',
+                    'arrived': '已標記為已到貨，該筆請購已從清單移除',
+                    'cancelled': '已取消該筆請購'
+                };
+                showToast(toastMessages[status] || '狀態已更新', 'success');
                 loadPendingNeeds();
             } else {
                 showToast('更新失敗：' + (data.message || '未知錯誤'), 'error');
