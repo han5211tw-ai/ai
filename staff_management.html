@@ -1,48 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}員工管理 - 電腦舖營運系統{% endblock %}
+{% block title %}員工管理{% endblock %}
 
-{% block page_title %}員工管理營運系統{% endblock %}
+{% block page_title %}員工管理{% endblock %}
 
 {% block styles %}
 <style>
-.container { width: 100%; margin: 0 auto; padding: 20px; }
-.container {  margin: 0 auto; padding: 20px 40px; }
-        h1 {
-            text-align: left;
-            font-size: 1.2em;
-            margin-bottom: 5px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .subtitle {
-            text-align: left;
-            color: #8892b0;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-        }
-        .nav {
-            display: flex;
-            justify-content: flex-start;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .nav a {
-            color: #8892b0;
-            text-decoration: none;
-            padding: 10px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        .nav a:hover {
-            color: #00d4ff;
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
-        }
+.container { 
+    width: 100%; 
+    margin: 0; 
+    padding: 0; 
+}
         .btn {
             padding: 10px 20px;
             border: none;
@@ -209,15 +177,6 @@
 
 {% block content %}
 <div class="container">
-<div class="container">
-        
-        <div class="subtitle">管理員工資料、部門與門市分配</div>
-        
-        <div class="nav">
-            <a href="/">🏠 首頁</a>
-            <a href="/admin.html">⚙️ 資料管理中心</a>
-        </div>
-
         <div id="messageBox" class="message"></div>
 
         <!-- 員工列表 -->
@@ -250,7 +209,7 @@
     <!-- 新增/編輯員工彈窗 -->
     <div id="staffModal" class="modal-overlay">
         <div class="modal">
-            
+            <h3 id="modalTitle" style="margin-bottom: 20px; color: #00d4ff;">新增員工</h3>
             
             <!-- 系統員工編號（唯讀）- 只在編輯時顯示 -->
             <div class="form-group" id="systemIdGroup" style="display:none;">
@@ -451,7 +410,7 @@
 
         // 編輯員工
         function editStaff(id) {
-            const staff = staffData.find(s => s.id === id);
+            const staff = staffData.find(s => s.id == id);
             if (!staff) return;
 
             editingId = id;
@@ -688,7 +647,7 @@ let staffData = [];
 
         // 編輯員工
         function editStaff(id) {
-            const staff = staffData.find(s => s.id === id);
+            const staff = staffData.find(s => s.id == id);
             if (!staff) return;
 
             editingId = id;

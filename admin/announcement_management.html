@@ -1,308 +1,516 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>系統公告管理 - 電腦舖營運系統</title>
-    <link rel="stylesheet" href="../shared/global-background.css">
-    <script src="../shared/global-background.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            min-height: 100vh;
-            color: #fff;
+{% extends "base.html" %}
+
+{% block title %}系統公告管理 - 電腦舖營運系統{% endblock %}
+{% block page_title %}📢 系統公告管理{% endblock %}
+
+{% block styles %}
+<style>
+    /* 統計卡片 */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        background: var(--card-bg, rgba(30, 41, 59, 0.8));
+        border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .stat-icon { font-size: 1.8em; margin-bottom: 8px; }
+    .stat-value { font-size: 1.6em; font-weight: 600; color: #38bdf8; margin-bottom: 4px; }
+    .stat-label { color: #94a3b8; font-size: 0.85em; }
+
+    /* 區塊卡片 */
+    .section-card {
+        background: var(--card-bg, rgba(30, 41, 59, 0.8));
+        border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .section-title {
+        font-size: 1.1em;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #fff;
+    }
+
+    /* 表單樣式 */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-group label {
+        display: block;
+        color: #94a3b8;
+        margin-bottom: 6px;
+        font-size: 0.9em;
+    }
+
+    .input-field, .textarea-field, select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.6);
+        color: #fff;
+        font-size: 0.95em;
+        transition: all 0.2s;
+    }
+
+    .input-field:focus, .textarea-field:focus, select:focus {
+        outline: none;
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+    }
+
+    select option {
+        background: #1e293b;
+        color: #fff;
+    }
+
+    .textarea-field {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    /* 複選框 */
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #38bdf8;
+    }
+
+    .checkbox-group label {
+        margin-bottom: 0;
+        cursor: pointer;
+    }
+
+    /* 按鈕 */
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #38bdf8, #7c3aed);
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
+        background: #22c55e;
+        color: #fff;
+    }
+
+    .btn-success:hover {
+        background: #16a34a;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #ff6b6b, #c92a2a);
+        color: #fff;
+    }
+
+    .btn-danger:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: rgba(148, 163, 184, 0.2);
+        color: #94a3b8;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(148, 163, 184, 0.3);
+        color: #fff;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.85em;
+    }
+
+    /* 表格樣式 */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+    }
+
+    .data-table th {
+        background: rgba(15, 23, 42, 0.8);
+        padding: 12px;
+        text-align: left;
+        color: #94a3b8;
+        font-weight: 500;
+        font-size: 0.85em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .data-table td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        color: #e2e8f0;
+        vertical-align: middle;
+    }
+
+    .data-table tr:hover td {
+        background: rgba(56, 189, 248, 0.05);
+    }
+
+    /* 等級標籤 */
+    .level-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.8em;
+        font-weight: 500;
+    }
+
+    .level-info { 
+        background: rgba(56, 189, 248, 0.15); 
+        color: #38bdf8; 
+        border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .level-warning { 
+        background: rgba(251, 191, 36, 0.15); 
+        color: #fbbf24; 
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .level-urgent { 
+        background: rgba(239, 68, 68, 0.15); 
+        color: #ef4444; 
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* 狀態 */
+    .status-active { color: #22c55e; }
+    .status-inactive { color: #94a3b8; }
+
+    /* 置頂標記 */
+    .pinned-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        color: #000;
+        font-size: 0.75em;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    /* 內容預覽 */
+    .content-preview {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #94a3b8;
+    }
+
+    /* 操作按鈕區 */
+    .action-btns {
+        display: flex;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+
+    /* 彈窗 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal {
+        background: rgba(30, 41, 59, 0.98);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 16px;
+        padding: 24px;
+        width: 100%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal h3 {
+        color: #38bdf8;
+        margin-bottom: 20px;
+        font-size: 1.2em;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Toast 訊息 */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 3000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .toast {
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.9em;
+        animation: slideIn 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .toast.success {
+        background: rgba(34, 197, 94, 0.9);
+        border: 1px solid #22c55e;
+    }
+
+    .toast.error {
+        background: rgba(239, 68, 68, 0.9);
+        border: 1px solid #ef4444;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px 40px; }
-        h1 {
-            text-align: left;
-            font-size: 1.2em;
-            margin-bottom: 5px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        to {
+            transform: translateX(0);
+            opacity: 1;
         }
-        .subtitle {
-            text-align: left;
-            color: #8892b0;
-            margin-bottom: 20px;
-            font-size: 0.9em;
+    }
+
+    /* 空狀態 */
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+    }
+
+    .empty-icon {
+        font-size: 3em;
+        margin-bottom: 12px;
+    }
+
+    /* 載入中 */
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+    }
+
+    /* 搜尋與篩選 */
+    .filter-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .filter-bar input, .filter-bar select {
+        width: auto;
+        min-width: 150px;
+    }
+
+    /* 響應式 */
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
         }
-        .nav {
-            display: flex;
-            justify-content: flex-start;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
         }
-        .nav a {
-            color: #8892b0;
-            text-decoration: none;
-            padding: 10px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        .nav a:hover {
-            color: #00d4ff;
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95em;
-            transition: all 0.3s;
-        }
-        .btn-primary {
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-        .btn-success {
-            background: #4caf50;
-            color: #fff;
-        }
-        .btn-success:hover {
-            background: #45a049;
-        }
-        .btn-danger {
-            background: #f44336;
-            color: #fff;
-        }
-        .btn-danger:hover {
-            background: #da190b;
-        }
-        .btn-warning {
-            background: #ff9800;
-            color: #fff;
-        }
-        .btn-warning:hover {
-            background: #f57c00;
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
-        }
-        .card h2 {
-            color: #00d4ff;
-            font-size: 1.3em;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        th {
-            color: #00d4ff;
-            font-weight: 600;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        td { color: #ccd6f6; }
-        tr:hover { background: rgba(255, 255, 255, 0.03); }
-        .input-field, .textarea-field, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-            font-size: 1em;
-        }
-        .input-field:focus, .textarea-field:focus, select:focus {
-            outline: none;
-            border-color: #00d4ff;
-        }
-        select option {
-            background: #1a1a2e;
-            color: #fff;
-        }
-        .textarea-field {
-            min-height: 100px;
-            resize: vertical;
-        }
-        .level-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
+
+        .data-table {
             font-size: 0.85em;
         }
-        .level-info { background: rgba(0, 212, 255, 0.2); color: #00d4ff; }
-        .level-warning { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
-        .level-urgent { background: rgba(244, 67, 54, 0.2); color: #f44336; }
-        .status-active { color: #4caf50; }
-        .status-inactive { color: #f44336; }
-        .pinned-icon { color: #ffd700; margin-left: 5px; }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
+
+        .data-table th, .data-table td {
+            padding: 8px;
         }
-        .modal-overlay.active {
-            display: flex;
+
+        .content-preview {
+            max-width: 150px;
         }
-        .modal {
-            background: rgba(17, 24, 39, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 30px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
+
+        .action-btns {
+            flex-direction: column;
         }
-        .modal h3 {
-            color: #00d4ff;
-            margin-bottom: 20px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            color: #8892b0;
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-        }
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 30px;
-        }
-        .message {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .message.success {
-            background: rgba(76, 175, 80, 0.1);
-            border: 1px solid #4caf50;
-            color: #4caf50;
-            display: block;
-        }
-        .message.error {
-            background: rgba(244, 67, 54, 0.1);
-            border: 1px solid #f44336;
-            color: #f44336;
-            display: block;
-        }
-        @media (max-width: 768px) {
-            .container { padding: 20px; }
-            h1 { font-size: 1.8em; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>📢 系統公告管理</h1>
-        <div class="subtitle">管理系統公告、通知與提醒</div>
-        
-        <div class="nav">
-            <a href="/">🏠 首頁</a>
-            <a href="/admin.html">⚙️ 資料管理中心</a>
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Toast 容器 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 統計卡片 -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📢</div>
+        <div class="stat-value" id="statTotal">-</div>
+        <div class="stat-label">生效中公告</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📌</div>
+        <div class="stat-value" id="statPinned">-</div>
+        <div class="stat-label">置頂</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🔴</div>
+        <div class="stat-value" id="statUrgent">-</div>
+        <div class="stat-label">緊急</div>
+    </div>
+</div>
+
+<!-- 新增公告 -->
+<div class="section-card">
+    <div class="section-header">
+        <div class="section-title">➕ 新增公告</div>
+    </div>
+    <div class="form-grid">
+        <div class="form-group">
+            <label>標題 <span style="color:#ef4444">*</span></label>
+            <input type="text" id="newTitle" class="input-field" placeholder="輸入公告標題">
         </div>
-
-        <div id="messageBox" class="message"></div>
-
-        <!-- 新增公告 -->
-        <div class="card">
-            <h2>➕ 新增公告</h2>
-            <div class="form-group">
-                <label>標題</label>
-                <input type="text" id="newTitle" class="input-field" placeholder="輸入公告標題">
-            </div>
-            <div class="form-group">
-                <label>內容</label>
-                <textarea id="newContent" class="textarea-field" placeholder="輸入公告內容"></textarea>
-            </div>
-            <div class="form-group">
-                <label>等級</label>
-                <select id="newLevel">
-                    <option value="info">🔵 一般資訊 (info)</option>
-                    <option value="warning">🟡 警告提醒 (warning)</option>
-                    <option value="urgent">🔴 重要緊急 (urgent)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>到期時間（選填）</label>
-                <input type="datetime-local" id="newExpires" class="input-field">
-            </div>
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="newPinned">
-                    <label for="newPinned">置頂公告</label>
-                </div>
-            </div>
-            <button class="btn btn-success" onclick="createAnnouncement()">發布公告</button>
+        <div class="form-group">
+            <label>等級</label>
+            <select id="newLevel">
+                <option value="info">🔵 一般資訊</option>
+                <option value="warning">🟡 警告提醒</option>
+                <option value="urgent">🔴 重要緊急</option>
+            </select>
         </div>
-
-        <!-- 公告列表 -->
-        <div class="card">
-            <h2>📋 公告列表</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>等級</th>
-                        <th>標題</th>
-                        <th>置頂</th>
-                        <th>建立時間</th>
-                        <th>到期時間</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="announcementTable">
-                    <tr><td colspan="6" class="loading">載入中...</td></tr>
-                </tbody>
-            </table>
+        <div class="form-group">
+            <label>到期時間（選填）</label>
+            <input type="datetime-local" id="newExpires" class="input-field">
+        </div>
+        <div class="form-group">
+            <label>&nbsp;</label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="newPinned">
+                <label for="newPinned">📌 置頂公告</label>
+            </div>
+        </div>
+        <div class="form-group full-width">
+            <label>內容 <span style="color:#ef4444">*</span></label>
+            <textarea id="newContent" class="textarea-field" placeholder="輸入公告內容..."></textarea>
+        </div>
+        <div class="form-group full-width">
+            <button class="btn btn-primary" onclick="createAnnouncement()">發布公告</button>
         </div>
     </div>
+</div>
 
-    <!-- 編輯公告彈窗 -->
-    <div id="editModal" class="modal-overlay">
-        <div class="modal">
-            <h3>編輯公告</h3>
-            <input type="hidden" id="editId">
+<!-- 公告列表 -->
+<div class="section-card">
+    <div class="section-header">
+        <div class="section-title">📋 公告列表</div>
+    </div>
+    <div class="filter-bar">
+        <input type="text" id="searchInput" class="input-field" placeholder="🔍 搜尋標題或內容..." oninput="filterAnnouncements()">
+        <select id="filterLevel" class="input-field" onchange="filterAnnouncements()">
+            <option value="">全部等級</option>
+            <option value="info">🔵 一般資訊</option>
+            <option value="warning">🟡 警告提醒</option>
+            <option value="urgent">🔴 重要緊急</option>
+        </select>
+    </div>
+    <div id="tableContainer">
+        <div class="loading">載入中...</div>
+    </div>
+</div>
+
+<!-- 編輯公告彈窗（使用共用 Modal 系統）-->
+<div id="editModal" class="modal-overlay" onclick="closeModalOnBackdrop(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="color: #38bdf8; margin: 0;">✏️ 編輯公告</h3>
+            <span class="permission-tip edit" style="color: #22c55e; font-size: 0.85em;">✏️ 您可以編輯此公告</span>
+        </header>
+        <input type="hidden" id="editId">
+        <div class="form-grid">
             <div class="form-group">
-                <label>標題</label>
+                <label>標題 <span style="color:#ef4444">*</span></label>
                 <input type="text" id="editTitle" class="input-field">
-            </div>
-            <div class="form-group">
-                <label>內容</label>
-                <textarea id="editContent" class="textarea-field"></textarea>
             </div>
             <div class="form-group">
                 <label>等級</label>
@@ -317,199 +525,366 @@
                 <input type="datetime-local" id="editExpires" class="input-field">
             </div>
             <div class="form-group">
+                <label>&nbsp;</label>
                 <div class="checkbox-group">
                     <input type="checkbox" id="editPinned">
-                    <label for="editPinned">置頂公告</label>
+                    <label for="editPinned">📌 置頂公告</label>
                 </div>
             </div>
-            <div class="modal-actions">
-                <button class="btn" onclick="closeModal()">取消</button>
-                <button class="btn btn-success" onclick="saveEdit()">儲存</button>
+            <div class="form-group full-width">
+                <label>內容 <span style="color:#ef4444">*</span></label>
+                <textarea id="editContent" class="textarea-field"></textarea>
             </div>
         </div>
+        <div class="modal-actions" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <button class="btn btn-secondary" onclick="closeModal()">關閉</button>
+            <button class="btn btn-primary" id="editSaveBtn" onclick="saveEdit()">儲存</button>
+        </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        // 顯示訊息
-        function showMessage(text, type) {
-            const box = document.getElementById('messageBox');
-            box.textContent = text;
-            box.className = 'message ' + type;
-            setTimeout(() => { box.className = 'message'; }, 5000);
-        }
+{% block scripts %}
+<script>
+    // 全域資料
+    let allAnnouncements = [];
+    let filteredAnnouncements = [];
 
-        // 載入啟用的公告（不包含已停用）
-        async function loadAllAnnouncements() {
-            try {
-                const res = await fetch('/api/system/announcements/all');
-                const data = await res.json();
+    // Toast 訊息
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
 
-                if (data.success) {
-                    // 只顯示啟用的公告
-                    const activeItems = (data.items || []).filter(item => item.is_active);
-                    renderTable(activeItems);
-                } else {
-                    showMessage('載入失敗：' + data.error, 'error');
-                }
-            } catch (e) {
-                console.error('載入公告失敗:', e);
-                showMessage('載入失敗', 'error');
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // 更新統計（只計算生效中的）
+    function updateStats(items) {
+        const activeItems = items.filter(i => i.is_active);
+        const total = activeItems.length;
+        const pinned = activeItems.filter(i => i.is_pinned).length;
+        const urgent = activeItems.filter(i => i.level === 'urgent').length;
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statPinned').textContent = pinned;
+        document.getElementById('statUrgent').textContent = urgent;
+    }
+
+    // 載入所有公告
+    async function loadAllAnnouncements() {
+        try {
+            const res = await fetch('/api/system/announcements/all');
+            const data = await res.json();
+
+            if (data.success) {
+                allAnnouncements = data.items || [];
+                // 預設只顯示生效中的
+                filterAnnouncements();
+                updateStats(allAnnouncements);
+            } else {
+                showToast('載入失敗：' + (data.error || '未知錯誤'), 'error');
             }
+        } catch (e) {
+            console.error('載入公告失敗:', e);
+            showToast('載入失敗，請檢查網路連線', 'error');
         }
+    }
 
-        // 渲染表格
-        function renderTable(items) {
-            const tbody = document.getElementById('announcementTable');
+    // 篩選公告
+    function filterAnnouncements() {
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        const level = document.getElementById('filterLevel').value;
+
+        filteredAnnouncements = allAnnouncements.filter(item => {
+            // 只顯示生效中的公告
+            if (!item.is_active) return false;
             
-            if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8892b0;">暫無公告</td></tr>';
-                return;
-            }
-            
-            const levelLabels = {
-                'info': '<span class="level-badge level-info">一般</span>',
-                'warning': '<span class="level-badge level-warning">警告</span>',
-                'urgent': '<span class="level-badge level-urgent">緊急</span>'
-            };
-            
-            tbody.innerHTML = items.map(item => `
-                <tr>
-                    <td>${levelLabels[item.level] || item.level}</td>
-                    <td>${item.title}</td>
-                    <td>${item.is_pinned ? '⭐' : ''}</td>
-                    <td>${new Date(item.created_at).toLocaleString('zh-TW')}</td>
-                    <td>${item.expires_at ? new Date(item.expires_at).toLocaleString('zh-TW') : '無'}</td>
-                    <td>
-                        <button class="btn btn-primary" onclick="editAnnouncement(${item.id})" style="padding:5px 10px;font-size:0.85em;">編輯</button>
-                        <button class="btn btn-danger" onclick="deleteAnnouncement(${item.id})" style="padding:5px 10px;font-size:0.85em;margin-left:5px;">刪除</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+            const matchKeyword = !keyword || 
+                item.title.toLowerCase().includes(keyword) || 
+                item.content.toLowerCase().includes(keyword);
+            const matchLevel = !level || item.level === level;
 
-        // 新增公告
-        async function createAnnouncement() {
-            const title = document.getElementById('newTitle').value.trim();
-            const content = document.getElementById('newContent').value.trim();
-            const level = document.getElementById('newLevel').value;
-            const expires = document.getElementById('newExpires').value;
-            const pinned = document.getElementById('newPinned').checked;
-            
-            if (!title || !content) {
-                showMessage('請填寫標題和內容', 'error');
-                return;
-            }
-            
-            try {
-                const res = await fetch('/api/system/announcements', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title, content, level,
-                        expires_at: expires || null,
-                        is_pinned: pinned
-                    })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    showMessage('公告發布成功', 'success');
-                    document.getElementById('newTitle').value = '';
-                    document.getElementById('newContent').value = '';
-                    document.getElementById('newExpires').value = '';
-                    document.getElementById('newPinned').checked = false;
-                    loadAllAnnouncements();
-                } else {
-                    showMessage('發布失敗：' + data.error, 'error');
-                }
-            } catch (e) {
-                console.error('發布失敗:', e);
-                showMessage('發布失敗', 'error');
-            }
-        }
-
-        // 編輯公告
-        async function editAnnouncement(id) {
-            // 從表格中找到該筆資料
-            const row = document.querySelector(`button[onclick="editAnnouncement(${id})"]`).closest('tr');
-            const cells = row.querySelectorAll('td');
-
-            document.getElementById('editId').value = id;
-            document.getElementById('editTitle').value = cells[1].textContent;
-            // 內容需要另外載入
-            document.getElementById('editLevel').value = cells[0].textContent.includes('一般') ? 'info' :
-                                                          cells[0].textContent.includes('警告') ? 'warning' : 'urgent';
-            document.getElementById('editPinned').checked = cells[2].textContent === '⭐';
-
-            document.getElementById('editModal').classList.add('active');
-        }
-
-        // 關閉彈窗
-        function closeModal() {
-            document.getElementById('editModal').classList.remove('active');
-        }
-
-        // 儲存編輯
-        async function saveEdit() {
-            const id = document.getElementById('editId').value;
-            const title = document.getElementById('editTitle').value.trim();
-            const content = document.getElementById('editContent').value.trim();
-            const level = document.getElementById('editLevel').value;
-            const expires = document.getElementById('editExpires').value;
-            const pinned = document.getElementById('editPinned').checked;
-
-            try {
-                const res = await fetch(`/api/system/announcements/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title, content, level,
-                        is_active: true,
-                        expires_at: expires || null,
-                        is_pinned: pinned
-                    })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    showMessage('更新成功', 'success');
-                    closeModal();
-                    loadAllAnnouncements();
-                } else {
-                    showMessage('更新失敗：' + data.error, 'error');
-                }
-            } catch (e) {
-                console.error('更新失敗:', e);
-                showMessage('更新失敗', 'error');
-            }
-        }
-
-        // 刪除公告（軟刪除）
-        async function deleteAnnouncement(id) {
-            if (!confirm('確定要刪除這則公告嗎？')) return;
-            
-            try {
-                const res = await fetch(`/api/system/announcements/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                
-                if (data.success) {
-                    showMessage('刪除成功', 'success');
-                    loadAllAnnouncements();
-                } else {
-                    showMessage('刪除失敗：' + data.error, 'error');
-                }
-            } catch (e) {
-                console.error('刪除失敗:', e);
-                showMessage('刪除失敗', 'error');
-            }
-        }
-
-        // 頁面載入
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAllAnnouncements();
+            return matchKeyword && matchLevel;
         });
-    </script>
-</body>
-</html>
+
+        renderTable();
+    }
+
+    // 渲染表格
+    function renderTable() {
+        const container = document.getElementById('tableContainer');
+
+        if (filteredAnnouncements.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <div>沒有符合的公告</div>
+                </div>
+            `;
+            return;
+        }
+
+        const levelLabels = {
+            'info': '<span class="level-badge level-info">🔵 一般</span>',
+            'warning': '<span class="level-badge level-warning">🟡 警告</span>',
+            'urgent': '<span class="level-badge level-urgent">🔴 緊急</span>'
+        };
+
+        container.innerHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>等級</th>
+                        <th>標題</th>
+                        <th>內容預覽</th>
+                        <th>置頂</th>
+                        <th>建立時間</th>
+                        <th>到期時間</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filteredAnnouncements.map(item => `
+                        <tr>
+                            <td>${levelLabels[item.level] || item.level}</td>
+                            <td><strong>${escapeHtml(item.title)}</strong></td>
+                            <td><div class="content-preview" title="${escapeHtml(item.content)}">${escapeHtml(item.content)}</div></td>
+                            <td>${item.is_pinned ? '<span class="pinned-badge">📌 置頂</span>' : ''}</td>
+                            <td>${formatDate(item.created_at)}</td>
+                            <td>${item.expires_at ? formatDate(item.expires_at) : '無期限'}</td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn btn-primary btn-sm" onclick="editAnnouncement(${item.id})">編輯</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${item.id})">刪除</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // HTML 跳脫
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 格式化日期
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // 新增公告
+    async function createAnnouncement() {
+        const title = document.getElementById('newTitle').value.trim();
+        const content = document.getElementById('newContent').value.trim();
+        const level = document.getElementById('newLevel').value;
+        const expires = document.getElementById('newExpires').value;
+        const pinned = document.getElementById('newPinned').checked;
+
+        if (!title || !content) {
+            showToast('請填寫標題和內容', 'error');
+            return;
+        }
+
+        // 按鈕載入狀態
+        const submitBtn = document.querySelector('.section-card:first-of-type .btn-primary');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '發布中...';
+        submitBtn.disabled = true;
+
+        try {
+            const res = await fetch('/api/system/announcements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title, content, level,
+                    expires_at: expires || null,
+                    is_pinned: pinned
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                showToast('公告發布成功');
+                // 清空表單
+                document.getElementById('newTitle').value = '';
+                document.getElementById('newContent').value = '';
+                document.getElementById('newExpires').value = '';
+                document.getElementById('newPinned').checked = false;
+                document.getElementById('newLevel').value = 'info';
+                // 重新載入
+                loadAllAnnouncements();
+            } else {
+                showToast('發布失敗：' + (data.error || '未知錯誤'), 'error');
+            }
+        } catch (e) {
+            console.error('發布失敗:', e);
+            showToast('發布失敗，請檢查網路連線', 'error');
+        } finally {
+            // 恢復按鈕狀態
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    }
+
+    // 編輯公告 - 開啟彈窗
+    function editAnnouncement(id) {
+        const item = allAnnouncements.find(a => a.id === id);
+        if (!item) {
+            showToast('找不到該公告', 'error');
+            return;
+        }
+
+        document.getElementById('editId').value = id;
+        document.getElementById('editTitle').value = item.title;
+        document.getElementById('editContent').value = item.content;
+        document.getElementById('editLevel').value = item.level;
+        document.getElementById('editPinned').checked = item.is_pinned;
+
+        // 設定到期時間（如果有）
+        if (item.expires_at) {
+            const date = new Date(item.expires_at);
+            const formatted = date.toISOString().slice(0, 16);
+            document.getElementById('editExpires').value = formatted;
+        } else {
+            document.getElementById('editExpires').value = '';
+        }
+
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    // 關閉彈窗
+    function closeModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
+    // 點擊背景關閉
+    function closeModalOnBackdrop(event) {
+        if (event.target === event.currentTarget) {
+            closeModal();
+        }
+    }
+
+    // 儲存編輯
+    async function saveEdit() {
+        const id = parseInt(document.getElementById('editId').value);
+        const title = document.getElementById('editTitle').value.trim();
+        const content = document.getElementById('editContent').value.trim();
+        const level = document.getElementById('editLevel').value;
+        const expires = document.getElementById('editExpires').value;
+        const pinned = document.getElementById('editPinned').checked;
+
+        if (!title || !content) {
+            showToast('請填寫標題和內容', 'error');
+            return;
+        }
+
+        // 儲存按鈕載入狀態
+        const saveBtn = document.getElementById('editSaveBtn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '儲存中...';
+        saveBtn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/system/announcements/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title, content, level,
+                    is_pinned: pinned,
+                    expires_at: expires || null
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                showToast('更新成功');
+                closeModal();
+                loadAllAnnouncements();
+            } else {
+                showToast('更新失敗：' + (data.error || '未知錯誤'), 'error');
+            }
+        } catch (e) {
+            console.error('更新失敗:', e);
+            showToast('更新失敗，請檢查網路連線', 'error');
+        } finally {
+            // 恢復按鈕狀態
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    }
+
+    // 刪除公告（軟刪除）
+    async function deleteAnnouncement(id) {
+        if (!confirm('確定要刪除這則公告嗎？')) return;
+
+        // 找到按鈕並設為載入狀態
+        const deleteBtn = document.querySelector(`button[onclick="deleteAnnouncement(${id})"]`);
+        if (deleteBtn) {
+            deleteBtn.innerHTML = '處理中...';
+            deleteBtn.disabled = true;
+        }
+
+        try {
+            const res = await fetch(`/api/system/announcements/${id}`, { 
+                method: 'DELETE' 
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showToast('刪除成功');
+                await loadAllAnnouncements();
+            } else {
+                showToast('刪除失敗：' + (data.error || '未知錯誤'), 'error');
+                // 恢復按鈕狀態
+                if (deleteBtn) {
+                    deleteBtn.innerHTML = '刪除';
+                    deleteBtn.disabled = false;
+                }
+            }
+        } catch (e) {
+            console.error('刪除失敗:', e);
+            showToast('刪除失敗，請檢查網路連線', 'error');
+            // 恢復按鈕狀態
+            if (deleteBtn) {
+                deleteBtn.innerHTML = '刪除';
+                deleteBtn.disabled = false;
+            }
+        }
+    }
+
+    // 頁面載入
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAllAnnouncements();
+    });
+
+    // ESC 關閉彈窗
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}

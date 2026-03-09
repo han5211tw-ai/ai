@@ -2,7 +2,7 @@
 
 {% block title %}電腦舖營運系統{% endblock %}
 
-{% block page_title %}🖥️ 電腦舖營運系統{% endblock %}
+{% block page_title %}🖥️ 首頁{% endblock %}
 
 {% block styles %}
 <style>
@@ -235,7 +235,7 @@
 {% endblock %}
 
 {% block content %}
-<p class="subtitle">Operations System V1.4.2</p>
+<p class="subtitle">Operations System V2.0</p>
 
 <!-- 系統公告欄 -->
 <div class="section-title">📢 系統公告</div>
@@ -253,34 +253,6 @@
         <div class="btn-icon">🔍</div>
         <div class="btn-title">查詢</div>
     </a>
-</div>
-
-<div class="section-title">📊 資訊分析</div>
-<div class="btn-grid four-items">
-    <a href="department.html" class="btn-card">
-        <div class="btn-icon">🏢</div>
-        <div class="btn-title">部門</div>
-    </a>
-    <a href="store.html" class="btn-card">
-        <div class="btn-icon">🏬</div>
-        <div class="btn-title">門市</div>
-    </a>
-    <a href="business.html" class="btn-card">
-        <div class="btn-icon">💼</div>
-        <div class="btn-title">業務</div>
-    </a>
-    <a href="personal.html" class="btn-card">
-        <div class="btn-icon">🧑‍💼</div>
-        <div class="btn-title">個人</div>
-    </a>
-</div>
-
-<!-- 採購需求表 -->
-<div class="chart-section" style="margin-top: 40px;">
-    <div class="section-title">🛒 待處理需求清單</div>
-    <div id="needsTable">
-        <div style="color: #8892b0; text-align: center; padding: 40px;">載入中...</div>
-    </div>
 </div>
 
 <div class="stats-row">
@@ -301,6 +273,14 @@
         <div class="stat-value" id="maxRevenue">
             <div class="loading">載入中...</div>
         </div>
+    </div>
+</div>
+
+<!-- 採購需求表 -->
+<div class="chart-section">
+    <div class="section-title">🛒 待處理需求清單</div>
+    <div id="needsTable">
+        <div style="color: #8892b0; text-align: center; padding: 40px;">載入中...</div>
     </div>
 </div>
 
@@ -482,23 +462,28 @@
 
             const currentUser = getCurrentUser();
             const userDept = currentUser ? currentUser.department : '';
+            
+            // 除錯訊息
+            console.log('[Index] Current user:', currentUser);
+            console.log('[Index] User department:', userDept);
+            console.log('[Index] Active items:', activeItems);
 
             const html = `
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="text-align:center">項次</th>
-                            <th style="text-align:center">日期</th>
+                            <th style="text-align:center; width: 50px;">項次</th>
+                            <th style="text-align:center; width: 90px;">日期</th>
                             <th style="text-align:left">產品編號</th>
                             <th style="text-align:left">產品名稱</th>
-                            <th style="text-align:center">數量</th>
-                            <th style="text-align:center">需求類型</th>
+                            <th style="text-align:center; width: 60px;">數量</th>
+                            <th style="text-align:center; width: 100px;">需求類型</th>
                             <th style="text-align:center">需求用途</th>
-                            <th style="text-align:center">需求單位</th>
-                            <th style="text-align:center">填表人員</th>
-                            <th style="text-align:center">狀態</th>
-                            <th style="text-align:left">備註</th>
-                            <th style="text-align:center">操作</th>
+                            <th style="text-align:center; width: 90px;">需求單位</th>
+                            <th style="text-align:center; width: 90px;">填表人員</th>
+                            <th style="text-align:center; width: 80px;">狀態</th>
+                            <th style="text-align:left; width: 180px;">備註</th>
+                            <th style="text-align:center; width: 80px;">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -506,10 +491,12 @@
                             const status = item.status || '待處理';
                             const statusClass = status === '待處理' ? 'status-pending' : 'status-arrived';
                             const canArrive = (status === '已採購' || status === '已調撥') && item.department === userDept;
+                            // 除錯：顯示每筆資料的比較結果
+                            console.log(`[Index] Item ${idx}: dept=${item.department}, userDept=${userDept}, canArrive=${canArrive}`);
                             return `
                             <tr>
                                 <td style="text-align:center">${idx + 1}</td>
-                                <td style="text-align:center">${item.date || '-'}</td>
+                                <td style="text-align:center;font-size:0.85em">${item.date || '-'}</td>
                                 <td style="font-size:0.85em;word-break:break-all;${item.product_code && item.product_code.startsWith('TEMP') ? 'color:#f44336;font-weight:bold;' : ''}">${item.product_code || '-'}</td>
                                 <td style="text-align:left;word-break:break-word">${item.display_name || item.item_name}</td>
                                 <td style="text-align:center">${item.quantity}</td>
@@ -517,7 +504,7 @@
                                 <td style="text-align:center">${item.purpose === '客戶' ? '客戶: ' + (item.customer_code ? (item.customer_code.startsWith('TEMP') ? '<span style="color:#f44336;font-weight:bold;">' + item.customer_code + '</span>' : item.customer_code) : '-') + (item.customer_name ? ' ' + item.customer_name : '') : '備貨'}</td>
                                 <td style="text-align:center">${item.department || '-'}</td>
                                 <td style="text-align:center">${item.requester || '-'}</td>
-                                <td style="text-align:center"><span class="status ${statusClass}">${status}</span></td>
+                                <td style="text-align:center;"><span class="status ${statusClass}">${status}</span></td>
                                 <td style="${item.remark && (item.remark.includes('缺货') || item.remark.includes('缺貨')) ? 'color: #ff4444; font-weight: bold;' : ''}">${item.remark || ''}</td>
                                 <td style="text-align:center">${canArrive ? `<button type="button" class="btn btn-arrived" onclick="markArrived(${item.id})">✓ 已到貨</button>` : '-'}</td>
                             </tr>

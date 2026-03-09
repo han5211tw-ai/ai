@@ -652,12 +652,17 @@ async function submitForm(){
         }
         if(items.length===0){showToast('請至少填寫一筆產品','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
         
+        // 如果是莊圍迪，使用代送門市作為 department
+        const submitDepartment = (currentUser.name==='莊圍迪' && document.getElementById('supervisorStoreSelect').value) 
+            ? document.getElementById('supervisorStoreSelect').value 
+            : currentUser.department;
+        
         const fullItems=items.map(item=>({
             ...item,
             date:date,
             request_type:requestType,
             purpose:purpose,
-            department:currentUser.department,
+            department:submitDepartment,
             requester:currentUser.name,
             transfer_from:transferFrom,
             customer_code:customerCode,

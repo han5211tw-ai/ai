@@ -1,4 +1,9 @@
 #!/opt/homebrew/bin/python3
+# 禁用 macOS 系統代理檢測，避免背景執行緒崩潰
+import os
+os.environ['NO_PROXY'] = '*'
+os.environ['no_proxy'] = '*'
+
 from flask import Flask, jsonify, send_from_directory, request, render_template, abort
 from health_check import get_health_status
 from flask_cors import CORS
@@ -6,7 +11,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from functools import wraps
 import sqlite3
-import os
 import json
 import uuid
 import time
@@ -2195,8 +2199,8 @@ def verify_password():
         # 步驟 2：登入成功，重置失敗記錄
         reset_login_attempts(client_ip)
 
-        # 使用 store 作為顯示單位（如「大雅門市」），如果沒有則使用 department
-        display_unit = row['store'] if row['store'] else row['department']
+        # 使用 store 作為顯示單位（如「大雅門市」），如果沒有或為'-'則使用 department
+        display_unit = row['store'] if row['store'] and row['store'] != '-' else row['department']
         
         return jsonify({
             'success': True,
@@ -3895,7 +3899,7 @@ def get_recent_service_records():
 
     try:
         cursor.execute("""
-            SELECT id, date, customer_code, customer_name, service_item,
+            SELECT id, date, customer_code, customer_name, service_item, service_type,
                    salesperson, store, is_new_customer
             FROM service_records
             ORDER BY date DESC, id DESC
@@ -3912,18 +3916,69 @@ def get_recent_service_records():
         conn.close()
 
 
-# API: 外勤服務紀錄 - 刪除
+# API: 外勤服務紀錄 - 刪除（只能刪除自己30天內的紀錄）
 @app.route('/api/service-records/<int:record_id>', methods=['DELETE'])
 def delete_service_record(record_id):
+    data = request.get_json() or {}
+    user_name = data.get('user_name', '')
+    
     conn = get_db_connection()
     cursor = conn.cursor()
-
+    
+    # 檢查紀錄是否存在且屬於該使用者且在30天內
+    cursor.execute("""
+        SELECT id, salesperson, date FROM service_records 
+        WHERE id = ? AND salesperson = ? 
+        AND date >= date('now', '-30 days')
+    """, (record_id, user_name))
+    
+    record = cursor.fetchone()
+    if not record:
+        conn.close()
+        return jsonify({'success': False, 'message': '只能刪除自己30天內的紀錄'}), 403
+    
     cursor.execute("DELETE FROM service_records WHERE id = ?", (record_id,))
-
     conn.commit()
     conn.close()
+    
+    return jsonify({'success': True, 'message': '紀錄已刪除'})
 
-    return jsonify({'success': True})
+
+# API: 外勤服務紀錄 - 修改（只能修改自己30天內的紀錄）
+@app.route('/api/service-records/<int:record_id>', methods=['PUT'])
+def update_service_record(record_id):
+    data = request.get_json() or {}
+    user_name = data.get('user_name', '')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 檢查紀錄是否存在且屬於該使用者且在30天內
+    cursor.execute("""
+        SELECT id, salesperson, date FROM service_records 
+        WHERE id = ? AND salesperson = ? 
+        AND date >= date('now', '-30 days')
+    """, (record_id, user_name))
+    
+    record = cursor.fetchone()
+    if not record:
+        conn.close()
+        return jsonify({'success': False, 'message': '只能修改自己30天內的紀錄'}), 403
+    
+    # 更新欄位
+    service_item = data.get('service_item', '')
+    service_type = data.get('service_type', '')
+    
+    cursor.execute("""
+        UPDATE service_records 
+        SET service_item = ?, service_type = ?, updated_at = datetime('now', 'localtime')
+        WHERE id = ?
+    """, (service_item, service_type, record_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': '紀錄已更新'})
 
 
 # API: 建立客戶待建檔
@@ -4617,12 +4672,13 @@ def get_staging_records():
              WHERE n.cancelled_at IS NULL
                AND sr.status != 'resolved'
             ) as product_pending,
-            -- Product resolved (staging.status = 'resolved')
+            -- Product resolved today (staging.status = 'resolved' and updated today)
             (SELECT COUNT(DISTINCT sr.id)
              FROM needs n
              JOIN staging_records sr ON sr.temp_product_id = n.product_staging_id
              WHERE n.cancelled_at IS NULL
                AND sr.status = 'resolved'
+               AND DATE(sr.updated_at) = DATE('now', 'localtime')
             ) as product_resolved,
             -- Customer pending (staging.status != 'resolved')
             (SELECT COUNT(DISTINCT sr.id)
@@ -4631,12 +4687,13 @@ def get_staging_records():
              WHERE n.cancelled_at IS NULL
                AND sr.status != 'resolved'
             ) as customer_pending,
-            -- Customer resolved (staging.status = 'resolved')
+            -- Customer resolved today (staging.status = 'resolved' and updated today)
             (SELECT COUNT(DISTINCT sr.id)
              FROM needs n
              JOIN staging_records sr ON sr.temp_customer_id = n.customer_staging_id
              WHERE n.cancelled_at IS NULL
                AND sr.status = 'resolved'
+               AND DATE(sr.updated_at) = DATE('now', 'localtime')
             ) as customer_resolved
     """)
 
@@ -8601,7 +8658,7 @@ def boss_pending_needs():
     cursor = conn.cursor()
     
     try:
-        # 查詢待請購的 needs（未取消、未完成的請購單）
+        # 查詢待請購的 needs（未取消、未完成的請購單，包含待處理和已採購）
         cursor.execute("""
             SELECT
                 n.id,
@@ -8614,12 +8671,18 @@ def boss_pending_needs():
                 n.requester,
                 n.created_at,
                 n.department,
-                n.customer_code
+                n.customer_code,
+                n.status
             FROM needs n
             WHERE n.cancelled_at IS NULL
-              AND n.status = '待處理'
+              AND n.status IN ('待處理', '已採購')
               AND n.request_type = '請購'
-            ORDER BY n.created_at ASC
+            ORDER BY 
+                CASE n.status 
+                    WHEN '待處理' THEN 1 
+                    WHEN '已採購' THEN 2 
+                END,
+                n.created_at ASC
         """)
         
         needs = []
@@ -8693,9 +8756,9 @@ def boss_pending_needs():
 def boss_update_need_status(need_id):
     """更新請購單狀態"""
     data = request.get_json()
-    status = data.get('status')  # 'purchased' 或 'cancelled'
+    status = data.get('status')  # 'purchased', 'arrived' 或 'cancelled'
     
-    if status not in ['purchased', 'cancelled']:
+    if status not in ['purchased', 'arrived', 'cancelled']:
         return jsonify({'success': False, 'message': '無效的狀態'}), 400
     
     conn = get_db_connection()
@@ -8708,6 +8771,13 @@ def boss_update_need_status(need_id):
                 UPDATE needs
                 SET arrived_at = datetime('now', 'localtime'),
                     status = '已採購'
+                WHERE id = ?
+            """, (need_id,))
+        elif status == 'arrived':
+            # 標記為已到貨（完成）
+            cursor.execute("""
+                UPDATE needs
+                SET status = '已完成'
                 WHERE id = ?
             """, (need_id,))
         else:
