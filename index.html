@@ -6,6 +6,32 @@
 
 {% block styles %}
 <style>
+    /* Floating Particles - 調整版（減少數量、更柔和） */
+    .particles {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+    }
+    
+    .particle {
+        position: absolute;
+        width: 2px; height: 2px;
+        background: rgba(0, 212, 255, 0.5);
+        border-radius: 50%;
+        opacity: 0.3;
+        box-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+        animation: float-particle 20s infinite ease-in-out;
+    }
+    
+    @keyframes float-particle {
+        0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0.15; }
+        25% { transform: translate(20px, -80px) scale(1); opacity: 0.4; }
+        50% { transform: translate(-15px, -160px) scale(0.8); opacity: 0.25; }
+        75% { transform: translate(25px, -120px) scale(0.9); opacity: 0.35; }
+    }
+    
     .subtitle {
         color: #8892b0;
         margin-bottom: 20px;
@@ -50,7 +76,7 @@
         }
     }
     .btn-card {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 12px;
         padding: 15px 10px;
@@ -63,7 +89,7 @@
         text-align: center;
     }
     .btn-card:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.3);
         border-color: #00d4ff;
         transform: translateY(-5px);
         box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
@@ -74,7 +100,7 @@
     
     /* 公告欄樣式 */
     .announcement-board {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 16px;
         padding: 20px;
@@ -85,7 +111,7 @@
         margin-bottom: 12px;
         border-radius: 12px;
         border-left: 4px solid;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.3);
     }
     .announcement-item:last-child {
         margin-bottom: 0;
@@ -136,7 +162,7 @@
     }
     
     .chart-section {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 16px;
         padding: 30px;
@@ -154,7 +180,7 @@
         margin-bottom: 40px;
     }
     .stat-box {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 12px;
         padding: 25px;
@@ -213,6 +239,7 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 0.9em;
+        background: rgba(0, 0, 0, 0.2);
     }
     .data-table th, .data-table td {
         padding: 12px;
@@ -235,6 +262,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- 動態背景 - 光點 -->
+<div class="particles" id="particles"></div>
+
 <p class="subtitle">Operations System V2.0</p>
 
 <!-- 系統公告欄 -->
@@ -590,6 +620,89 @@
             document.getElementById('announcementBoard').innerHTML = '<div style="color: #8892b0; text-align: center;">載入失敗</div>';
         }
     }
+
+    // 載入逾期收貨提醒
+    async function loadOverdueArrival() {
+        try {
+            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            if (!user.name) return;
+
+            const res = await fetch('/api/needs/overdue-arrival?requester=' + encodeURIComponent(user.name));
+            const data = await res.json();
+
+            if (!data.success || data.count === 0) {
+                document.getElementById('overdueArrivalSection').style.display = 'none';
+                return;
+            }
+
+            const section = document.getElementById('overdueArrivalSection');
+            const content = document.getElementById('overdueArrivalContent');
+
+            let html = `<p style="color: #e2e8f0; margin-bottom: 15px;">親愛的 ${user.name}，您有以下需求待確認收貨：</p>`;
+            html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
+
+            data.items.forEach(item => {
+                const typeLabel = item.request_type === '調撥' ? '調撥' : '採購';
+                const sourceLabel = item.request_type === '調撥' 
+                    ? (item.transfer_from || '-')
+                    : (item.vendor_name || '-');
+                const actionDate = item.action_date ? item.action_date.substring(5, 10) : '-';
+                const overdueDays = Math.floor(item.overdue_days || 0);
+
+                html += `
+                    <div style="background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border-left: 3px solid #ff9800;">
+                        📦 ${item.item_name}（${typeLabel}｜${sourceLabel}｜${actionDate}｜已過 ${overdueDays} 天）
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            html += `<p style="color: #94a3b8; margin-top: 15px; font-size: 0.9em;">請至首頁「待處理需求清單」確認收貨並結案。</p>`;
+            html += `<div style="text-align: right; margin-top: 15px;">
+                <button onclick="document.getElementById('overdueArrivalSection').style.display='none'" 
+                        style="padding: 8px 20px; background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid rgba(255,152,0,0.4); border-radius: 6px; cursor: pointer;">
+                    我知道了
+                </button>
+            </div>`;
+
+            content.innerHTML = html;
+            section.style.display = 'block';
+        } catch (e) {
+            console.error('載入逾期提醒失敗:', e);
+        }
+    }
+
+    // 頁面載入時執行
+    loadOverdueArrival();
+
+    // 生成漂浮光點（減少數量：15個）
+    function createParticles() {
+        const container = document.getElementById('particles');
+        if (!container) return;
+        
+        const particleCount = 15; // 減少數量
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            // 隨機位置
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            
+            // 隨機延遲（讓光點不同時開始動畫）
+            particle.style.animationDelay = (Math.random() * 20) + 's';
+            
+            // 隨機大小（稍微變化）
+            const size = 2 + Math.random() * 2;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            
+            container.appendChild(particle);
+        }
+    }
+    
+    createParticles();
 
     // 每 1 小時自動重新整理
     setInterval(() => {

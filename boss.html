@@ -6,6 +6,32 @@
 
 {% block styles %}
 <style>
+    /* Floating Particles - 調整版 */
+    .particles {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+    }
+    
+    .particle {
+        position: absolute;
+        width: 2px; height: 2px;
+        background: rgba(0, 212, 255, 0.5);
+        border-radius: 50%;
+        opacity: 0.3;
+        box-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+        animation: float-particle 20s infinite ease-in-out;
+    }
+    
+    @keyframes float-particle {
+        0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0.15; }
+        25% { transform: translate(20px, -80px) scale(1); opacity: 0.4; }
+        50% { transform: translate(-15px, -160px) scale(0.8); opacity: 0.25; }
+        75% { transform: translate(25px, -120px) scale(0.9); opacity: 0.35; }
+    }
+
     /* 統計卡片 */
     .stats-grid {
         display: grid;
@@ -15,8 +41,8 @@
     }
 
     .stat-card {
-        background: var(--card-bg, rgba(30, 41, 59, 0.8));
-        border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 12px;
         padding: 20px;
         text-align: center;
@@ -28,8 +54,8 @@
 
     /* 區塊卡片 */
     .section-card {
-        background: var(--card-bg, rgba(30, 41, 59, 0.8));
-        border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 12px;
         padding: 24px;
         margin-bottom: 24px;
@@ -72,14 +98,15 @@
         border-collapse: collapse;
         font-size: 0.95em;
         table-layout: auto;
+        background: rgba(0, 0, 0, 0.2);
     }
 
     .data-table th {
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(0, 212, 255, 0.1);
         padding: 10px 12px;
         text-align: left;
-        color: #94a3b8;
-        font-weight: 500;
+        color: #00d4ff;
+        font-weight: 600;
         font-size: 0.9em;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -90,12 +117,12 @@
     .data-table td {
         padding: 10px 12px;
         border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-        color: #e2e8f0;
+        color: #ccd6f6;
         vertical-align: middle;
     }
 
-    .data-table tr:hover td {
-        background: rgba(56, 189, 248, 0.05);
+    .data-table tr:hover {
+        background: rgba(255, 255, 255, 0.03);
     }
 
     /* 項次 */
@@ -243,6 +270,7 @@
         padding: 0 8px;
         border-radius: 6px;
         resize: none;
+        overflow: hidden;
         font-size: 12px;
         line-height: 30px;
         font-family: inherit;
@@ -446,6 +474,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- 動態背景 - 光點 -->
+<div class="particles" id="particles"></div>
+
 <!-- 統計卡片 -->
 <div class="stats-grid">
     <div class="stat-card">
@@ -802,5 +833,24 @@
             };
         }
     });
+
+    // 生成漂浮光點（15個）
+    function createParticles(){
+        const container=document.getElementById('particles');
+        if(!container)return;
+        const particleCount=15;
+        for(let i=0;i<particleCount;i++){
+            const particle=document.createElement('div');
+            particle.className='particle';
+            particle.style.left=Math.random()*100+'%';
+            particle.style.top=Math.random()*100+'%';
+            particle.style.animationDelay=(Math.random()*20)+'s';
+            const size=2+Math.random()*2;
+            particle.style.width=size+'px';
+            particle.style.height=size+'px';
+            container.appendChild(particle);
+        }
+    }
+    createParticles();
 </script>
 {% endblock %}
