@@ -6,32 +6,6 @@
 
 {% block styles %}
 <style>
-    /* Floating Particles - 調整版（減少數量、更柔和） */
-    .particles {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        pointer-events: none;
-        z-index: 0;
-        overflow: hidden;
-    }
-    
-    .particle {
-        position: absolute;
-        width: 2px; height: 2px;
-        background: rgba(0, 212, 255, 0.5);
-        border-radius: 50%;
-        opacity: 0.3;
-        box-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
-        animation: float-particle 20s infinite ease-in-out;
-    }
-    
-    @keyframes float-particle {
-        0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0.15; }
-        25% { transform: translate(20px, -80px) scale(1); opacity: 0.4; }
-        50% { transform: translate(-15px, -160px) scale(0.8); opacity: 0.25; }
-        75% { transform: translate(25px, -120px) scale(0.9); opacity: 0.35; }
-    }
-    
     .subtitle {
         color: #8892b0;
         margin-bottom: 20px;
@@ -97,7 +71,7 @@
     .btn-icon { font-size: 2em; margin-bottom: 10px; }
     .btn-title { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; color: #fff; }
     .btn-desc { font-size: 0.9em; color: #8892b0; }
-    
+
     /* 公告欄樣式 */
     .announcement-board {
         background: rgba(0, 0, 0, 0.2);
@@ -160,7 +134,7 @@
         border-radius: 10px;
         margin-left: 8px;
     }
-    
+
     .chart-section {
         background: rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -217,7 +191,7 @@
         background: rgba(33, 150, 243, 0.2);
         color: #2196f3;
     }
-    
+
     /* 已到貨按鈕 - 標準樣式（藍紫色漸層） */
     .btn-arrived {
         padding: 5px 10px;
@@ -230,7 +204,7 @@
         cursor: pointer;
         transition: all 0.2s;
     }
-    
+
     .btn-arrived:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
@@ -262,9 +236,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- 動態背景 - 光點 -->
-<div class="particles" id="particles"></div>
-
 <p class="subtitle">Operations System V2.0</p>
 
 <!-- 系統公告欄 -->
@@ -373,7 +344,7 @@
         try {
             const response = await fetch('/api/sales/daily');
             const salesData = await response.json();
-            
+
             const ctx = document.getElementById('salesChart').getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
@@ -500,7 +471,7 @@
 
             const currentUser = getCurrentUser();
             const userDept = currentUser ? currentUser.department : '';
-            
+
             // 除錯訊息
             console.log('[Index] Current user:', currentUser);
             console.log('[Index] User department:', userDept);
@@ -597,13 +568,13 @@
                 board.innerHTML = '<div style="color: #8892b0; text-align: center;">暫無公告</div>';
                 return;
             }
-            
+
             const levelIcons = {
                 'info': '🔵',
                 'warning': '🟡',
                 'urgent': '🔴'
             };
-            
+
             board.innerHTML = data.items.map(item => `
                 <div class="announcement-item ${item.level} ${item.is_pinned ? 'pinned' : ''}">
                     <div class="announcement-title">
@@ -643,7 +614,7 @@
 
             data.items.forEach(item => {
                 const typeLabel = item.request_type === '調撥' ? '調撥' : '採購';
-                const sourceLabel = item.request_type === '調撥' 
+                const sourceLabel = item.request_type === '調撥'
                     ? (item.transfer_from || '-')
                     : (item.vendor_name || '-');
                 const actionDate = item.action_date ? item.action_date.substring(5, 10) : '-';
@@ -659,7 +630,7 @@
             html += '</div>';
             html += `<p style="color: #94a3b8; margin-top: 15px; font-size: 0.9em;">請至首頁「待處理需求清單」確認收貨並結案。</p>`;
             html += `<div style="text-align: right; margin-top: 15px;">
-                <button onclick="document.getElementById('overdueArrivalSection').style.display='none'" 
+                <button onclick="document.getElementById('overdueArrivalSection').style.display='none'"
                         style="padding: 8px 20px; background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid rgba(255,152,0,0.4); border-radius: 6px; cursor: pointer;">
                     我知道了
                 </button>
@@ -679,29 +650,29 @@
     function createParticles() {
         const container = document.getElementById('particles');
         if (!container) return;
-        
+
         const particleCount = 15; // 減少數量
-        
+
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.className = 'particle';
-            
+
             // 隨機位置
             particle.style.left = Math.random() * 100 + '%';
             particle.style.top = Math.random() * 100 + '%';
-            
+
             // 隨機延遲（讓光點不同時開始動畫）
             particle.style.animationDelay = (Math.random() * 20) + 's';
-            
+
             // 隨機大小（稍微變化）
             const size = 2 + Math.random() * 2;
             particle.style.width = size + 'px';
             particle.style.height = size + 'px';
-            
+
             container.appendChild(particle);
         }
     }
-    
+
     createParticles();
 
     // 每 1 小時自動重新整理

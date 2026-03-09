@@ -407,8 +407,138 @@
     </style>
     
     {% block styles %}{% endblock %}
+    
+    <!-- 自定義游標樣式 -->
+    <style>
+        /* 隱藏預設游標 */
+        * {
+            cursor: none !important;
+        }
+        
+        /* 游標核心點 */
+        .cursor-dot {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 8px;
+            background: #00d4ff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99999;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background 0.2s;
+            box-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 30px #00d4ff;
+        }
+        
+        /* 游標外圈 */
+        .cursor-ring {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(0, 212, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99998;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, border-color 0.3s, border-width 0.3s;
+        }
+        
+        /* 懸停可點擊元素時 */
+        .cursor-hover .cursor-dot {
+            width: 12px;
+            height: 12px;
+            background: #7b2cbf;
+            box-shadow: 0 0 15px #7b2cbf, 0 0 30px #7b2cbf, 0 0 45px #7b2cbf;
+        }
+        
+        .cursor-hover .cursor-ring {
+            width: 60px;
+            height: 60px;
+            border-color: rgba(123, 44, 191, 0.6);
+            border-width: 3px;
+        }
+        
+        /* 點擊動畫 */
+        .cursor-click .cursor-dot {
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+        
+        .cursor-click .cursor-ring {
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+        
+        /* 輸入文字時 */
+        .cursor-text .cursor-dot {
+            width: 2px;
+            height: 20px;
+            border-radius: 0;
+            background: #00d4ff;
+        }
+        
+        .cursor-text .cursor-ring {
+            opacity: 0;
+        }
+        
+        /* 禁用狀態 */
+        .cursor-disabled .cursor-dot {
+            background: #f44336;
+            box-shadow: 0 0 10px #f44336;
+        }
+        
+        .cursor-disabled .cursor-ring {
+            border-color: rgba(244, 67, 54, 0.5);
+            width: 30px;
+            height: 30px;
+        }
+        
+        /* 手機版禁用自定義游標 */
+        @media (pointer: coarse) {
+            * {
+                cursor: auto !important;
+            }
+            .cursor-dot, .cursor-ring {
+                display: none !important;
+            }
+        }
+        
+        /* 全域動態背景 - 光點 */
+        .particles {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: rgba(0, 212, 255, 0.5);
+            border-radius: 50%;
+            opacity: 0.3;
+            box-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+            animation: float-particle 20s infinite ease-in-out;
+        }
+        
+        @keyframes float-particle {
+            0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0.15; }
+            25% { transform: translate(20px, -80px) scale(1); opacity: 0.4; }
+            50% { transform: translate(-15px, -160px) scale(0.8); opacity: 0.25; }
+            75% { transform: translate(25px, -120px) scale(0.9); opacity: 0.35; }
+        }
+    </style>
 </head>
 <body>
+    <!-- 自定義游標 -->
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+    
+    <!-- 全域動態背景 - 光點 -->
+    <div class="particles" id="particles"></div>
+    
     <!-- App Shell -->
     <div class="app-shell">
         <!-- Sidebar -->
@@ -851,5 +981,119 @@
     </script>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- 全域動態背景 JavaScript -->
+    <script>
+        // 生成漂浮光點（15個）
+        (function() {
+            const container = document.getElementById('particles');
+            if (!container) return;
+            
+            const particleCount = 15;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = (Math.random() * 20) + 's';
+                const size = 2 + Math.random() * 2;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                container.appendChild(particle);
+            }
+        })();
+    </script>
+    
+    <!-- 自定義游標 JavaScript -->
+    <script>
+        // 自定義游標邏輯
+        (function() {
+            // 檢查是否為觸控裝置
+            if (window.matchMedia('(pointer: coarse)').matches) {
+                return; // 手機/平板不啟用
+            }
+            
+            const dot = document.getElementById('cursorDot');
+            const ring = document.getElementById('cursorRing');
+            
+            if (!dot || !ring) return;
+            
+            let mouseX = 0, mouseY = 0;
+            let ringX = 0, ringY = 0;
+            
+            // 滑鼠移動
+            document.addEventListener('mousemove', function(e) {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                // 核心點立即跟隨
+                dot.style.left = mouseX + 'px';
+                dot.style.top = mouseY + 'px';
+            }, { passive: true });
+            
+            // 外圈延遲跟隨（平滑效果）
+            function animateRing() {
+                ringX += (mouseX - ringX) * 0.15;
+                ringY += (mouseY - ringY) * 0.15;
+                
+                ring.style.left = ringX + 'px';
+                ring.style.top = ringY + 'px';
+                
+                requestAnimationFrame(animateRing);
+            }
+            animateRing();
+            
+            // 懸停可點擊元素
+            const clickables = 'a, button, [role="button"], input, select, textarea, .btn, .btn-card, .clickable';
+            document.querySelectorAll(clickables).forEach(function(el) {
+                el.addEventListener('mouseenter', function() {
+                    document.body.classList.add('cursor-hover');
+                });
+                el.addEventListener('mouseleave', function() {
+                    document.body.classList.remove('cursor-hover');
+                });
+            });
+            
+            // 懸停文字輸入框
+            document.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(function(el) {
+                el.addEventListener('mouseenter', function() {
+                    document.body.classList.add('cursor-text');
+                });
+                el.addEventListener('mouseleave', function() {
+                    document.body.classList.remove('cursor-text');
+                });
+            });
+            
+            // 懸停禁用元素
+            document.querySelectorAll('[disabled], .disabled').forEach(function(el) {
+                el.addEventListener('mouseenter', function() {
+                    document.body.classList.add('cursor-disabled');
+                });
+                el.addEventListener('mouseleave', function() {
+                    document.body.classList.remove('cursor-disabled');
+                });
+            });
+            
+            // 點擊效果
+            document.addEventListener('mousedown', function() {
+                document.body.classList.add('cursor-click');
+            });
+            document.addEventListener('mouseup', function() {
+                document.body.classList.remove('cursor-click');
+            });
+            
+            // 動態新增的元素監聽（使用事件委派）
+            document.addEventListener('mouseover', function(e) {
+                if (e.target.matches && e.target.matches(clickables)) {
+                    document.body.classList.add('cursor-hover');
+                }
+            });
+            document.addEventListener('mouseout', function(e) {
+                if (e.target.matches && e.target.matches(clickables)) {
+                    document.body.classList.remove('cursor-hover');
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
