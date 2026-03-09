@@ -8856,3 +8856,74 @@ def static_files(path):
             pass
     
     return send_from_directory(STATIC_DIR, path)
+
+
+# ============================================
+# API: 逾期收貨提醒 - 檢查使用者待確認收貨的需求
+# ============================================
+@app.route('/api/needs/overdue-arrival', methods=['GET'])
+def get_overdue_arrival_needs():
+    """
+    取得指定使用者逾期未收貨的需求
+    - 調撥：已調撥且超過 3 天未收貨
+    - 請購：已採購且超過 5 天未收貨
+    """
+    requester = request.args.get('requester', '')
+    
+    if not requester:
+        return jsonify({'success': False, 'message': '缺少 requester 參數'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 調撥類：已調撥且超過 3 天
+        cursor.execute("""
+            SELECT id, item_name, quantity, request_type, transfer_from, 
+                   processed_at as action_date, status,
+                   julianday('now', 'localtime') - julianday(processed_at) as overdue_days
+            FROM needs
+            WHERE requester = ?
+              AND request_type = '調撥'
+              AND status = '已調撥'
+              AND processed_at IS NOT NULL
+              AND julianday('now', 'localtime') - julianday(processed_at) >= 3
+              AND cancelled_at IS NULL
+            ORDER BY processed_at ASC
+        """, (requester,))
+        
+        transfer_needs = [dict(row) for row in cursor.fetchall()]
+        
+        # 請購類：已採購且超過 5 天
+        cursor.execute("""
+            SELECT id, item_name, quantity, request_type, vendor_name,
+                   processed_at as action_date, status,
+                   julianday('now', 'localtime') - julianday(processed_at) as overdue_days
+            FROM needs
+            WHERE requester = ?
+              AND request_type = '請購'
+              AND status = '已採購'
+              AND processed_at IS NOT NULL
+              AND julianday('now', 'localtime') - julianday(processed_at) >= 5
+              AND cancelled_at IS NULL
+            ORDER BY processed_at ASC
+        """, (requester,))
+        
+        purchase_needs = [dict(row) for row in cursor.fetchall()]
+        
+        # 合併結果
+        all_needs = transfer_needs + purchase_needs
+        
+        return jsonify({
+            'success': True,
+            'items': all_needs,
+            'count': len(all_needs),
+            'transfer_count': len(transfer_needs),
+            'purchase_count': len(purchase_needs)
+        })
+        
+    except Exception as e:
+        print(f"[OverdueArrival] 查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
