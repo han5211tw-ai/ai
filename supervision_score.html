@@ -424,14 +424,30 @@
     };
     
     let currentUser = null;
-    
+
+    // 從 localStorage 取得登入使用者資訊
+    function initCurrentUser() {
+        const storedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+        if (storedUser) {
+            try {
+                currentUser = JSON.parse(storedUser);
+            } catch (e) {
+                console.error('Failed to parse currentUser:', e);
+                currentUser = null;
+            }
+        }
+    }
+
+    // 頁面載入時初始化使用者
+    initCurrentUser();
+
     // 檢查是否為主管或督導權限
     function hasSupervisorPermission(user) {
         if (!user || !user.title) return false;
         const title = user.title.toLowerCase();
         return title.includes('主管') || title.includes('督導') || title.includes('老闆') || title.includes('管理員');
     }
-    
+
     // 設定日期預設為今天
     document.getElementById('scoreDate').value = new Date().toISOString().split('T')[0];
     
@@ -532,23 +548,24 @@
             return;
         }
         
-        if (!currentUser) {
-            showToast('請先登入', 'error');
-            return;
-        }
-        
         const total = Object.values(scores).reduce((a, b) => a + b, 0);
         
+        // 確保所有分數都是數字（處理舊資料可能是字串的情況）
+        const numericScores = {};
+        Object.keys(scores).forEach(key => {
+            numericScores[key] = parseInt(scores[key]) || 0;
+        });
+
         const data = {
             store_name: store,
             date: date,
-            ...scores,
+            ...numericScores,
             total_score: total,
             // 把問題描述/建議對應到既有評分欄位（DB 沒有獨立 issues/suggestions 欄位）
-            problem_grasp: document.getElementById('issues').value || scores.problem_grasp || 0,
-            follow_up: document.getElementById('suggestions').value || scores.follow_up || 0,
-            evaluator: currentUser.name,
-            evaluator_title: currentUser.title || ''
+            problem_grasp: document.getElementById('issues').value || numericScores.problem_grasp || 0,
+            follow_up: document.getElementById('suggestions').value || numericScores.follow_up || 0,
+            evaluator: currentUser ? currentUser.name : '',
+            evaluator_title: currentUser ? (currentUser.title || '') : ''
         };
         
         try {
