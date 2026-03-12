@@ -1,8 +1,8 @@
 import multiprocessing
 import os
 
-# Worker 數量（減少為 2 以避免記憶體不足）
-workers = 2
+# Worker 數量
+workers = 4
 worker_class = "sync"
 
 # 綁定
