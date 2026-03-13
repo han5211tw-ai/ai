@@ -961,6 +961,12 @@
                     if (window.onLoginSuccess) {
                         window.onLoginSuccess(user);
                     }
+                    
+                    // 登入成功後，如果不是在首頁，則轉跳至首頁
+                    if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+                        console.log('[Base] Redirecting to home page');
+                        window.location.href = '/';
+                    }
                 }).catch(function(err) {
                     console.error('[Base] Login failed:', err);
                 });
