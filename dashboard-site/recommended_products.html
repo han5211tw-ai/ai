@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}推薦備貨商品 - 電腦舖營運系統{% endblock %}
+{% block page_title %}📦 推薦備貨商品{% endblock %}
+
+{% block content %}
+<!-- 說明區塊 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 16px 24px; margin-bottom: 24px;">
+    <p style="color: #94a3b8; margin: 0;">
+        💡 請選擇需要備貨的商品與數量，系統將自動建立備貨需求單。數量從「最小備貨量」開始計算。
+    </p>
+</div>
+
+<!-- 分類標籤 -->
+<div id="categoryTabs" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;">
+    <button onclick="filterByCategory('')" class="category-tab active" data-category="">
+        全部
+    </button>
+</div>
+
+<!-- 商品列表 -->
+<div id="productsList">
+    <div style="text-align: center; padding: 40px; color: #64748b;">載入中...</div>
+</div>
+
+<!-- 底部送出區塊 -->
+<div id="submitSection" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(148, 163, 184, 0.2); padding: 16px 24px; display: none; z-index: 100;">
+    <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+        <div style="color: #94a3b8;">
+            已選 <span id="selectedCount" style="color: #38bdf8; font-weight: 500;">0</span> 項商品，
+            共 <span id="selectedTotal" style="color: #38bdf8; font-weight: 500;">0</span> 件
+        </div>
+        <button onclick="submitOrder()" style="padding: 12px 32px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500;">
+            送出備貨需求
+        </button>
+    </div>
+</div>
+
+<!-- 送出確認 Modal -->
+<div id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+        <h3 style="color: #38bdf8; margin-bottom: 20px;">確認備貨需求</h3>
+        <div id="confirmList" style="margin-bottom: 20px;">
+            <!-- 動態填入 -->
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeConfirmModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; cursor: pointer;">取消</button>
+            <button onclick="confirmSubmit()" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">確認送出</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.category-tab {
+    padding: 8px 20px;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 20px;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.category-tab:hover {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+.category-tab.active {
+    background: linear-gradient(135deg, #38bdf8, #7c3aed);
+    border-color: transparent;
+    color: #fff;
+}
+.quantity-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(0,0,0,0.3);
+    color: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.quantity-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+.quantity-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.quantity-input {
+    width: 50px;
+    height: 32px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(0,0,0,0.3);
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let categories = [];
+let products = [];
+let selectedQuantities = {};  // { productId: quantity }
+let currentCategory = '';
+
+// 頁面初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadCategories();
+    loadProducts();
+});
+
+// 載入分類
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/recommended-categories');
+        const data = await response.json();
+        if (data.success) {
+            categories = data.categories;
+            renderCategoryTabs();
+        }
+    } catch (e) {
+        console.error('載入分類失敗:', e);
+    }
+}
+
+// 渲染分類標籤
+function renderCategoryTabs() {
+    const container = document.getElementById('categoryTabs');
+    const tabsHtml = categories.map(c => `
+        <button onclick="filterByCategory(${c.id})" class="category-tab" data-category="${c.id}">
+            ${c.name}
+        </button>
+    `).join('');
+    
+    container.innerHTML = `
+        <button onclick="filterByCategory('')" class="category-tab active" data-category="">
+            全部
+        </button>
+        ${tabsHtml}
+    `;
+}
+
+// 依分類篩選
+function filterByCategory(categoryId) {
+    currentCategory = categoryId;
+    
+    // 更新標籤樣式
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.category === String(categoryId)) {
+            tab.classList.add('active');
+        }
+    });
+    
+    renderProducts();
+}
+
+// 載入商品
+async function loadProducts() {
+    try {
+        const response = await fetch('/api/recommended-products');
+        const data = await response.json();
+        if (data.success) {
+            products = data.products;
+            renderProducts();
+        }
+    } catch (e) {
+        console.error('載入商品失敗:', e);
+        document.getElementById('productsList').innerHTML = 
+            '<div style="text-align: center; padding: 40px; color: #f87171;">載入失敗，請重新整理頁面</div>';
+    }
+}
+
+// 渲染商品
+function renderProducts() {
+    const container = document.getElementById('productsList');
+    
+    // 篩選商品
+    let filtered = products;
+    if (currentCategory) {
+        filtered = products.filter(p => p.category_id === currentCategory);
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">此分類尚無商品</div>';
+        return;
+    }
+    
+    // 依分類分組
+    const grouped = {};
+    filtered.forEach(p => {
+        const catName = p.category_name || '未分類';
+        if (!grouped[catName]) grouped[catName] = [];
+        grouped[catName].push(p);
+    });
+    
+    container.innerHTML = Object.entries(grouped).map(([catName, items]) => `
+        <div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <h3 style="color: #00d4ff; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid rgba(0, 212, 255, 0.3);">${catName}</h3>
+            <div style="display: grid; gap: 16px;">
+                ${items.map(p => {
+                    const currentQty = selectedQuantities[p.id] || 0;
+                    return `
+                    <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; ${currentQty > 0 ? 'border-color: rgba(56, 189, 248, 0.4);' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="font-weight: 500; color: #fff; margin-bottom: 4px;">${p.model_no}</div>
+                                <div style="color: #94a3b8; margin-bottom: 8px;">${p.name}</div>
+                                ${p.description ? `<div style="color: #64748b; font-size: 0.9em; margin-bottom: 8px;">${p.description}</div>` : ''}
+                                ${p.external_link ? `<a href="${p.external_link}" target="_blank" style="color: #38bdf8; font-size: 0.85em; text-decoration: none;">🔗 查看規格</a>` : ''}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="text-align: right;">
+                                    <div style="color: #fbbf24; font-size: 0.85em; margin-bottom: 4px;">最小 ${p.min_stock} 件</div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <button class="quantity-btn" onclick="changeQuantity(${p.id}, ${p.min_stock}, -1)" ${currentQty <= 0 ? 'disabled' : ''}>−</button>
+                                        <input type="text" class="quantity-input" value="${currentQty}" readonly>
+                                        <button class="quantity-btn" onclick="changeQuantity(${p.id}, ${p.min_stock}, 1)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `).join('');
+    
+    updateSubmitSection();
+}
+
+// 變更數量
+function changeQuantity(productId, minStock, delta) {
+    const currentQty = selectedQuantities[productId] || 0;
+    let newQty = currentQty + (delta * minStock);
+    
+    if (newQty < 0) newQty = 0;
+    if (newQty > 0 && newQty < minStock) newQty = minStock;  // 不能低於最小備貨量
+    
+    if (newQty === 0) {
+        delete selectedQuantities[productId];
+    } else {
+        selectedQuantities[productId] = newQty;
+    }
+    
+    renderProducts();
+}
+
+// 更新底部送出區塊
+function updateSubmitSection() {
+    const section = document.getElementById('submitSection');
+    const selectedItems = Object.keys(selectedQuantities).length;
+    const totalQty = Object.values(selectedQuantities).reduce((sum, q) => sum + q, 0);
+    
+    document.getElementById('selectedCount').textContent = selectedItems;
+    document.getElementById('selectedTotal').textContent = totalQty;
+    
+    section.style.display = selectedItems > 0 ? 'block' : 'none';
+}
+
+// 送出訂單
+function submitOrder() {
+    const selectedItems = Object.entries(selectedQuantities).map(([id, qty]) => {
+        const product = products.find(p => p.id === parseInt(id));
+        return { product, qty };
+    });
+    
+    const confirmList = document.getElementById('confirmList');
+    confirmList.innerHTML = selectedItems.map(({ product, qty }) => `
+        <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div>
+                <div style="color: #fff; font-weight: 500;">${product.model_no}</div>
+                <div style="color: #94a3b8; font-size: 0.9em;">${product.name}</div>
+            </div>
+            <div style="color: #38bdf8; font-weight: 500;">${qty} 件</div>
+        </div>
+    `).join('');
+    
+    document.getElementById('confirmModal').style.display = 'flex';
+}
+
+// 關閉確認 Modal
+function closeConfirmModal() {
+    document.getElementById('confirmModal').style.display = 'none';
+}
+
+// 確認送出
+async function confirmSubmit() {
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    const items = Object.entries(selectedQuantities).map(([id, qty]) => ({
+        product_id: parseInt(id),
+        quantity: qty
+    }));
+    
+    try {
+        const response = await fetch('/api/recommended-products/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: items,
+                requester: user.name || '未知使用者'
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert(`成功建立 ${data.needs.length} 筆備貨需求單`);
+            selectedQuantities = {};
+            renderProducts();
+            closeConfirmModal();
+        } else {
+            alert(data.message || '送出失敗');
+        }
+    } catch (e) {
+        console.error('送出失敗:', e);
+        alert('送出失敗，請稍後再試');
+    }
+}
+
+// 點擊 Modal 外部關閉
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirmModal();
+});
+</script>
+{% endblock %}
