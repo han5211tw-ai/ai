@@ -211,18 +211,18 @@ function renderProducts() {
                     <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; ${currentQty > 0 ? 'border-color: rgba(56, 189, 248, 0.4);' : ''}">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
                             <div style="flex: 1; min-width: 200px;">
-                                <div style="font-weight: 500; color: #fff; margin-bottom: 4px;">${p.model_no} <span style="font-size: 12px; color: #64748b;">(編號)</span></div>
-                                <div style="color: #94a3b8; margin-bottom: 8px;">${p.name}</div>
+                                <div style="font-weight: 500; color: #fff; margin-bottom: 4px;">${p.item_name}</div>
+                                ${p.product_code ? `<div style="color: #64748b; font-size: 0.85em; margin-bottom: 4px;">編號: ${p.product_code}</div>` : ''}
                                 ${p.description ? `<div style="color: #64748b; font-size: 0.9em; margin-bottom: 8px;">${p.description}</div>` : ''}
                                 ${p.external_link ? `<a href="${p.external_link}" target="_blank" style="color: #38bdf8; font-size: 0.85em; text-decoration: none;">🔗 查看規格</a>` : ''}
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div style="text-align: right;">
-                                    <div style="color: #fbbf24; font-size: 0.85em; margin-bottom: 4px;">最小 ${p.min_stock} 件</div>
+                                    <div style="color: #fbbf24; font-size: 0.85em; margin-bottom: 4px;">最小 ${p.quantity || p.min_stock || 1} 件</div>
                                     <div style="display: flex; align-items: center; gap: 8px;">
-                                        <button class="quantity-btn" onclick="changeQuantity(${p.id}, ${p.min_stock}, -1)" ${currentQty <= 0 ? 'disabled' : ''}>−</button>
+                                        <button class="quantity-btn" onclick="changeQuantity(${p.id}, ${p.quantity || p.min_stock || 1}, -1)" ${currentQty <= 0 ? 'disabled' : ''}>−</button>
                                         <input type="text" class="quantity-input" value="${currentQty}" readonly>
-                                        <button class="quantity-btn" onclick="changeQuantity(${p.id}, ${p.min_stock}, 1)">+</button>
+                                        <button class="quantity-btn" onclick="changeQuantity(${p.id}, ${p.quantity || p.min_stock || 1}, 1)">+</button>
                                     </div>
                                 </div>
                             </div>
@@ -277,8 +277,8 @@ function submitOrder() {
     confirmList.innerHTML = selectedItems.map(({ product, qty }) => `
         <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div>
-                <div style="color: #fff; font-weight: 500;">${product.model_no}</div>
-                <div style="color: #94a3b8; font-size: 0.9em;">${product.name}</div>
+                <div style="color: #fff; font-weight: 500;">${product.item_name}</div>
+                ${product.product_code ? `<div style="color: #64748b; font-size: 0.85em;">編號: ${product.product_code}</div>` : ''}
             </div>
             <div style="color: #38bdf8; font-weight: 500;">${qty} 件</div>
         </div>
@@ -307,7 +307,8 @@ async function confirmSubmit() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 items: items,
-                requester: user.name || '未知使用者'
+                requester: user.name || '未知使用者',
+                department: user.department || ''
             })
         });
         

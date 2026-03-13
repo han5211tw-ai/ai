@@ -63,19 +63,19 @@
         </div>
         
         <div style="margin-bottom: 16px; position: relative;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品搜尋 *</label>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">從產品主檔搜尋</label>
             <input type="text" id="productSearch" placeholder="輸入產品名稱搜尋..." oninput="searchProductRealtime(this)" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
             <div id="productSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
         </div>
         
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品編號 *</label>
-            <input type="text" id="productModelNo" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">項目名稱 *（對應需求表 item_name）</label>
+            <input type="text" id="productItemName" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品名稱 *</label>
-            <input type="text" id="productName" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品編號（對應需求表 product_code）</label>
+            <input type="text" id="productCode" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px;">
@@ -89,8 +89,8 @@
         </div>
         
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">最小備貨量 *</label>
-            <input type="number" id="productMinStock" min="1" value="1" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">最小備貨量 *（對應 quantity）</label>
+            <input type="number" id="productQuantity" min="1" value="1" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 20px;">
@@ -276,14 +276,13 @@ function renderProducts() {
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                                    <span style="font-weight: 500; color: #fff;">${p.model_no}</span>
-                                    <span style="font-size: 12px; color: #64748b;">(編號)</span>
+                                    <span style="font-weight: 500; color: #fff;">${p.item_name}</span>
                                     ${p.is_active ? '' : '<span style="font-size: 12px; color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 2px 8px; border-radius: 4px;">已下架</span>'}
                                 </div>
-                                <div style="color: #94a3b8; margin-bottom: 6px;">${p.name}</div>
-                                ${p.description ? `<div style="color: #64748b; font-size: 0.9em; margin-bottom: 6px;">${p.description}</div>` : ''}
+                                ${p.product_code ? `<div style="color: #64748b; font-size: 0.85em; margin-bottom: 4px;">編號: ${p.product_code}</div>` : ''}
+                                ${p.description ? `<div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 6px;">${p.description}</div>` : ''}
                                 ${p.external_link ? `<a href="${p.external_link}" target="_blank" style="color: #38bdf8; font-size: 0.85em;">🔗 查看規格</a>` : ''}
-                                <div style="margin-top: 8px; color: #fbbf24; font-size: 0.9em;">最小備貨量: ${p.min_stock}</div>
+                                <div style="margin-top: 8px; color: #fbbf24; font-size: 0.9em;">最小備貨量: ${p.min_stock || p.quantity}</div>
                             </div>
                             <div style="display: flex; gap: 8px;">
                                 <button onclick="editProduct(${p.id})" style="padding: 6px 12px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; cursor: pointer; font-size: 12px;">編輯</button>
@@ -306,20 +305,21 @@ function showProductModal(productId = null) {
         const product = products.find(p => p.id === productId);
         if (product) {
             document.getElementById('productCategory').value = product.category_id || '';
-            document.getElementById('productModelNo').value = product.model_no;
-            document.getElementById('productName').value = product.name;
+            document.getElementById('productItemName').value = product.item_name || '';
+            document.getElementById('productCode').value = product.product_code || '';
             document.getElementById('productLink').value = product.external_link || '';
             document.getElementById('productDesc').value = product.description || '';
-            document.getElementById('productMinStock').value = product.min_stock;
+            document.getElementById('productQuantity').value = product.quantity || product.min_stock || 1;
             document.getElementById('productActive').checked = product.is_active === 1;
         }
     } else {
         document.getElementById('productCategory').value = '';
-        document.getElementById('productModelNo').value = '';
-        document.getElementById('productName').value = '';
+        document.getElementById('productSearch').value = '';
+        document.getElementById('productItemName').value = '';
+        document.getElementById('productCode').value = '';
         document.getElementById('productLink').value = '';
         document.getElementById('productDesc').value = '';
-        document.getElementById('productMinStock').value = 1;
+        document.getElementById('productQuantity').value = 1;
         document.getElementById('productActive').checked = true;
     }
     
@@ -335,15 +335,15 @@ function closeProductModal() {
 async function saveProduct() {
     const id = document.getElementById('productId').value;
     const categoryId = document.getElementById('productCategory').value;
-    const modelNo = document.getElementById('productModelNo').value.trim();
-    const name = document.getElementById('productName').value.trim();
+    const itemName = document.getElementById('productItemName').value.trim();
+    const productCode = document.getElementById('productCode').value.trim();
     const externalLink = document.getElementById('productLink').value.trim();
     const description = document.getElementById('productDesc').value.trim();
-    const minStock = parseInt(document.getElementById('productMinStock').value) || 1;
+    const quantity = parseInt(document.getElementById('productQuantity').value) || 1;
     const isActive = document.getElementById('productActive').checked ? 1 : 0;
     
-    if (!modelNo || !name) {
-        alert('請輸入型號和名稱');
+    if (!itemName) {
+        alert('請輸入項目名稱');
         return;
     }
     
@@ -356,11 +356,11 @@ async function saveProduct() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 category_id: categoryId || null,
-                model_no: modelNo,
-                name: name,
+                item_name: itemName,
+                product_code: productCode,
                 external_link: externalLink,
                 description: description,
-                min_stock: minStock,
+                quantity: quantity,
                 is_active: isActive
             })
         });
@@ -434,8 +434,8 @@ async function searchProductRealtime(input) {
 // 選擇產品
 function selectProduct(productCode, productName) {
     document.getElementById('productSearch').value = productName;
-    document.getElementById('productModelNo').value = productCode;
-    document.getElementById('productName').value = productName;
+    document.getElementById('productItemName').value = productName;
+    document.getElementById('productCode').value = productCode;
     document.getElementById('productSuggestions').style.display = 'none';
 }
 
