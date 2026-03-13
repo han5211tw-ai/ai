@@ -194,6 +194,15 @@
         loadRecentRecords();
     });
 
+    // 登入成功後的回調（由 base.html 觸發）
+    window.onLoginSuccess = function(user) {
+        console.log('[ServiceRecord] Login success, user:', user);
+        if (user && user.name) {
+            document.getElementById('salesperson').value = user.name;
+        }
+        loadRecentRecords();
+    };
+
     // 處理服務類型變更
     function handleServiceTypeChange() {
         const serviceType = document.getElementById('serviceType').value;

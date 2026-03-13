@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}推薦備貨商品管理 - 電腦舖營運系統{% endblock %}
+{% block page_title %}📦 推薦備貨商品管理{% endblock %}
+
+{% block content %}
+<!-- 分類管理區塊 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: #38bdf8;">🏷️ 商品分類</h3>
+        <button onclick="showCategoryModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">+ 新增分類</button>
+    </div>
+    <div id="categoriesList" style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <span style="color: #64748b;">載入中...</span>
+    </div>
+</div>
+
+<!-- 商品管理區塊 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <h3 style="color: #38bdf8;">📋 商品清單</h3>
+        <div style="display: flex; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 6px; color: #94a3b8; cursor: pointer;">
+                <input type="checkbox" id="showInactive" onchange="loadProducts()">
+                <span>顯示已下架</span>
+            </label>
+            <button onclick="showProductModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">+ 新增商品</button>
+        </div>
+    </div>
+    
+    <div id="productsList">
+        <div style="text-align: center; padding: 40px; color: #64748b;">載入中...</div>
+    </div>
+</div>
+
+<!-- 分類 Modal -->
+<div id="categoryModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px;">
+        <h3 style="color: #38bdf8; margin-bottom: 20px;" id="categoryModalTitle">新增分類</h3>
+        <input type="hidden" id="categoryId">
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">分類名稱 *</label>
+            <input type="text" id="categoryName" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeCategoryModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; cursor: pointer;">取消</button>
+            <button onclick="saveCategory()" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">儲存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 商品 Modal -->
+<div id="productModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <h3 style="color: #38bdf8; margin-bottom: 20px;" id="productModalTitle">新增商品</h3>
+        <input type="hidden" id="productId">
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">分類</label>
+            <select id="productCategory" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+                <option value="">未分類</option>
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品編號</label>
+            <input type="text" id="productCode" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 16px; position: relative;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品名稱 *（可手動輸入或搜尋帶入）</label>
+            <input type="text" id="productItemName" placeholder="輸入產品名稱，或輸入關鍵字搜尋..." oninput="searchProductRealtime(this)" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <div id="productSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">外部連結</label>
+            <input type="text" id="productLink" placeholder="https://..." style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">說明</label>
+            <textarea id="productDesc" rows="3" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; resize: vertical;"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">最小備貨量 *（對應 quantity）</label>
+            <input type="number" id="productQuantity" min="1" value="1" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; color: #94a3b8; cursor: pointer;">
+                <input type="checkbox" id="productActive" checked>
+                <span>上架中</span>
+            </label>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeProductModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; cursor: pointer;">取消</button>
+            <button onclick="saveProduct()" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">儲存</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let categories = [];
+let products = [];
+
+// 頁面初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadCategories();
+    loadProducts();
+});
+
+// 載入分類
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/recommended-categories');
+        const data = await response.json();
+        if (data.success) {
+            categories = data.categories;
+            renderCategories();
+            updateCategorySelect();
+        }
+    } catch (e) {
+        console.error('載入分類失敗:', e);
+    }
+}
+
+// 渲染分類
+function renderCategories() {
+    const container = document.getElementById('categoriesList');
+    if (categories.length === 0) {
+        container.innerHTML = '<span style="color: #64748b;">尚無分類</span>';
+        return;
+    }
+    
+    container.innerHTML = categories.map(c => `
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 20px;">
+            <span>${c.name}</span>
+            <button onclick="editCategory(${c.id})" style="background: none; border: none; color: #38bdf8; cursor: pointer; padding: 0;">✏️</button>
+            <button onclick="deleteCategory(${c.id})" style="background: none; border: none; color: #f87171; cursor: pointer; padding: 0;">🗑️</button>
+        </div>
+    `).join('');
+}
+
+// 更新分類選單
+function updateCategorySelect() {
+    const select = document.getElementById('productCategory');
+    select.innerHTML = '<option value="">未分類</option>' + 
+        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+// 顯示分類 Modal
+function showCategoryModal(categoryId = null) {
+    document.getElementById('categoryId').value = categoryId || '';
+    document.getElementById('categoryName').value = '';
+    document.getElementById('categoryModalTitle').textContent = categoryId ? '編輯分類' : '新增分類';
+    
+    if (categoryId) {
+        const category = categories.find(c => c.id === categoryId);
+        if (category) {
+            document.getElementById('categoryName').value = category.name;
+        }
+    }
+    
+    document.getElementById('categoryModal').style.display = 'flex';
+}
+
+// 關閉分類 Modal
+function closeCategoryModal() {
+    document.getElementById('categoryModal').style.display = 'none';
+}
+
+// 儲存分類
+async function saveCategory() {
+    const id = document.getElementById('categoryId').value;
+    const name = document.getElementById('categoryName').value.trim();
+    
+    if (!name) {
+        alert('請輸入分類名稱');
+        return;
+    }
+    
+    try {
+        const url = id ? `/api/recommended-categories/${id}` : '/api/recommended-categories';
+        const method = id ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            closeCategoryModal();
+            loadCategories();
+        } else {
+            alert(data.message || '儲存失敗');
+        }
+    } catch (e) {
+        console.error('儲存分類失敗:', e);
+        alert('儲存失敗');
+    }
+}
+
+// 編輯分類
+function editCategory(id) {
+    showCategoryModal(id);
+}
+
+// 刪除分類
+async function deleteCategory(id) {
+    if (!confirm('確定要刪除此分類嗎？')) return;
+    
+    try {
+        const response = await fetch(`/api/recommended-categories/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) {
+            loadCategories();
+            loadProducts();
+        } else {
+            alert(data.message || '刪除失敗');
+        }
+    } catch (e) {
+        console.error('刪除分類失敗:', e);
+        alert('刪除失敗');
+    }
+}
+
+// 載入商品
+async function loadProducts() {
+    const showInactive = document.getElementById('showInactive').checked;
+    try {
+        const response = await fetch(`/api/recommended-products?show_inactive=${showInactive ? 1 : 0}`);
+        const data = await response.json();
+        if (data.success) {
+            products = data.products;
+            renderProducts();
+        }
+    } catch (e) {
+        console.error('載入商品失敗:', e);
+    }
+}
+
+// 渲染商品
+function renderProducts() {
+    const container = document.getElementById('productsList');
+    if (products.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">尚無商品</div>';
+        return;
+    }
+    
+    // 依分類分組
+    const grouped = {};
+    products.forEach(p => {
+        const catName = p.category_name || '未分類';
+        if (!grouped[catName]) grouped[catName] = [];
+        grouped[catName].push(p);
+    });
+    
+    container.innerHTML = Object.entries(grouped).map(([catName, items]) => `
+        <div style="margin-bottom: 24px;">
+            <h4 style="color: #00d4ff; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0, 212, 255, 0.3);">${catName}</h4>
+            <div style="display: grid; gap: 12px;">
+                ${items.map(p => `
+                    <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; ${p.is_active ? '' : 'opacity: 0.5;'}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                                    <span style="font-weight: 500; color: #fff;">${p.item_name}</span>
+                                    ${p.is_active ? '' : '<span style="font-size: 12px; color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 2px 8px; border-radius: 4px;">已下架</span>'}
+                                </div>
+                                ${p.product_code ? `<div style="color: #64748b; font-size: 0.85em; margin-bottom: 4px;">編號: ${p.product_code}</div>` : ''}
+                                ${p.description ? `<div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 6px;">${p.description}</div>` : ''}
+                                ${p.external_link ? `<a href="${p.external_link}" target="_blank" style="color: #38bdf8; font-size: 0.85em;">🔗 查看規格</a>` : ''}
+                                <div style="margin-top: 8px; color: #fbbf24; font-size: 0.9em;">最小備貨量: ${p.min_stock || p.quantity}</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="editProduct(${p.id})" style="padding: 6px 12px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; cursor: pointer; font-size: 12px;">編輯</button>
+                                <button onclick="deleteProduct(${p.id})" style="padding: 6px 12px; background: rgba(248, 113, 113, 0.2); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); border-radius: 4px; cursor: pointer; font-size: 12px;">刪除</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+// 顯示商品 Modal
+function showProductModal(productId = null) {
+    document.getElementById('productId').value = productId || '';
+    document.getElementById('productModalTitle').textContent = productId ? '編輯商品' : '新增商品';
+    
+    if (productId) {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            document.getElementById('productCategory').value = product.category_id || '';
+            document.getElementById('productItemName').value = product.item_name || '';
+            document.getElementById('productCode').value = product.product_code || '';
+            document.getElementById('productLink').value = product.external_link || '';
+            document.getElementById('productDesc').value = product.description || '';
+            document.getElementById('productQuantity').value = product.quantity || product.min_stock || 1;
+            document.getElementById('productActive').checked = product.is_active === 1;
+        }
+    } else {
+        document.getElementById('productCategory').value = '';
+        document.getElementById('productItemName').value = '';
+        document.getElementById('productCode').value = '';
+        document.getElementById('productLink').value = '';
+        document.getElementById('productDesc').value = '';
+        document.getElementById('productQuantity').value = 1;
+        document.getElementById('productActive').checked = true;
+    }
+    
+    document.getElementById('productModal').style.display = 'flex';
+}
+
+// 關閉商品 Modal
+function closeProductModal() {
+    document.getElementById('productModal').style.display = 'none';
+}
+
+// 儲存商品
+async function saveProduct() {
+    const id = document.getElementById('productId').value;
+    const categoryId = document.getElementById('productCategory').value;
+    const itemName = document.getElementById('productItemName').value.trim();
+    const productCode = document.getElementById('productCode').value.trim();
+    const externalLink = document.getElementById('productLink').value.trim();
+    const description = document.getElementById('productDesc').value.trim();
+    const quantity = parseInt(document.getElementById('productQuantity').value) || 1;
+    const isActive = document.getElementById('productActive').checked ? 1 : 0;
+    
+    if (!itemName) {
+        alert('請輸入項目名稱');
+        return;
+    }
+    
+    try {
+        const url = id ? `/api/recommended-products/${id}` : '/api/recommended-products';
+        const method = id ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                category_id: categoryId || null,
+                item_name: itemName,
+                product_code: productCode,
+                external_link: externalLink,
+                description: description,
+                quantity: quantity,
+                is_active: isActive
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            closeProductModal();
+            loadProducts();
+        } else {
+            alert(data.message || '儲存失敗');
+        }
+    } catch (e) {
+        console.error('儲存商品失敗:', e);
+        alert('儲存失敗');
+    }
+}
+
+// 編輯商品
+function editProduct(id) {
+    showProductModal(id);
+}
+
+// 刪除商品
+async function deleteProduct(id) {
+    if (!confirm('確定要刪除此商品嗎？')) return;
+    
+    try {
+        const response = await fetch(`/api/recommended-products/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) {
+            loadProducts();
+        } else {
+            alert(data.message || '刪除失敗');
+        }
+    } catch (e) {
+        console.error('刪除商品失敗:', e);
+        alert('刪除失敗');
+    }
+}
+
+// 即時搜尋產品
+async function searchProductRealtime(input) {
+    const keyword = input.value.trim();
+    const suggestions = document.getElementById('productSuggestions');
+
+    if (keyword.length < 2) {
+        suggestions.style.display = 'none';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/product-master/search?keyword=' + encodeURIComponent(keyword));
+        const data = await response.json();
+
+        if (data.items && data.items.length > 0) {
+            suggestions.innerHTML = data.items.map(p => {
+                return `<div onclick="selectProduct('${p.product_code.replace(/'/g, "\\'")}', '${p.product_name.replace(/'/g, "\\'")}')" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); min-width: 280px;">
+                    <div style="font-weight:500; color: #fff;">${p.product_name}</div>
+                    <div style="font-size:0.85em; color: #64748b; margin-top: 2px;">${p.product_code}</div>
+                </div>`;
+            }).join('');
+            suggestions.style.display = 'block';
+        } else {
+            suggestions.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('搜尋產品失敗:', error);
+    }
+}
+
+// 選擇產品
+function selectProduct(productCode, productName) {
+    document.getElementById('productItemName').value = productName;
+    document.getElementById('productCode').value = productCode;
+    document.getElementById('productSuggestions').style.display = 'none';
+}
+
+// 點擊外部關閉產品建議下拉選單
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#productItemName') && !e.target.closest('#productSuggestions')) {
+        document.getElementById('productSuggestions').style.display = 'none';
+    }
+});
+
+// 點擊 Modal 外部關閉
+document.getElementById('categoryModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCategoryModal();
+});
+document.getElementById('productModal').addEventListener('click', function(e) {
+    if (e.target === this) closeProductModal();
+});
+</script>
+{% endblock %}
