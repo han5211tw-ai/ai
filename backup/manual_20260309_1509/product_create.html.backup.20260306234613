@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>產品建檔 - 電腦舖營運系統</title>
+    <link rel="stylesheet" href="shared/auth_ui.css">
+    <script src="shared/auth_ui.js"></script>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px 40px; }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        h1 {
+            font-size: 1.2em;
+            margin-bottom: 0;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .user-name {
+            color: #00d4ff;
+            font-size: 0.95em;
+        }
+        .btn-logout {
+            padding: 6px 12px;
+            background: rgba(244,67,54,0.2);
+            border: 1px solid rgba(244,67,54,0.5);
+            color: #f44336;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        .subtitle {
+            text-align: left;
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover {
+            color: #00d4ff;
+            border-color: #00d4ff;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #8892b0;
+            font-size: 0.9em;
+        }
+        .form-group label .required {
+            color: #f44336;
+            margin-left: 4px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        .form-control:read-only {
+            background: rgba(255, 255, 255, 0.05);
+            color: #8892b0;
+            cursor: not-allowed;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .search-wrapper {
+            position: relative;
+        }
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .suggestion-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+        .btn-submit:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.success { background: #4caf50; }
+        .toast.error { background: #f44336; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // 頁面載入時檢查權限（只有老闆跟會計可以進入）
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (window.checkAuth) {
+                const authResult = await window.checkAuth({ minRole: 'staff' });
+                if (!authResult.success) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                // 檢查是否為老闆或會計
+                const userTitle = authResult.title || '';
+                if (userTitle !== '老闆' && !userTitle.includes('會計')) {
+                    alert('⚠️ 只有老闆跟會計可以進入產品建檔頁面');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                // 顯示使用者姓名
+                document.getElementById('userDisplay').textContent = authResult.name || '';
+                document.getElementById('createdBy').value = authResult.name || '';
+            }
+        });
+    </script>
+
+    <div class="container">
+        <div class="header-row">
+            <h1>📦 產品建檔</h1>
+            <div class="user-info">
+                <span id="userDisplay" class="user-name"></span>
+                <button onclick="window.authLogout && window.authLogout()" class="btn-logout">登出</button>
+            </div>
+        </div>
+        <p class="subtitle">Product Registration</p>
+
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+            <a href="boss.html">👑 控制台</a>
+        </div>
+
+        <div class="card">
+            <h2>📋 基本資訊</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>建檔人員</label>
+                    <input type="text" id="createdBy" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label>產品編號 <span class="required">*</span></label>
+                    <input type="text" id="productCode" class="form-control" placeholder="請輸入產品編號">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>產品名稱 <span class="required">*</span></label>
+                <input type="text" id="productName" class="form-control" placeholder="請輸入產品名稱">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>分類</label>
+                    <select id="category" class="form-control">
+                        <option value="">請選擇分類</option>
+                        <option value="BA">BA - 電池</option>
+                        <option value="BS">BS - 轉接盒、切換器</option>
+                        <option value="CA">CA - 機殼</option>
+                        <option value="CO">CO - 散熱冷卻器</option>
+                        <option value="CP">CP - 處理器</option>
+                        <option value="DT">DT - 監視器、電話</option>
+                        <option value="HD">HD - 傳統內接式硬碟</option>
+                        <option value="IN">IN - 墨水、碳粉</option>
+                        <option value="KB">KB - 鍵盤</option>
+                        <option value="LC">LC - 螢幕</option>
+                        <option value="MB">MB - 主機板</option>
+                        <option value="MI">MI - 耳機麥克風</option>
+                        <option value="MP">MP - 滑鼠+鼠墊</option>
+                        <option value="NA">NA - 網路儲存伺服器</option>
+                        <option value="NB">NB - 筆記型電腦</option>
+                        <option value="OD">OD - 光碟機</option>
+                        <option value="OT">OT - 其他</option>
+                        <option value="PA">PA - 紙類</option>
+                        <option value="PO">PO - 電源供應器、不斷電系</option>
+                        <option value="PR">PR - 印表機</option>
+                        <option value="PS">PS - 桌上型電腦+伺服器</option>
+                        <option value="RA">RA - 記憶體</option>
+                        <option value="SD">SD - 固態硬碟</option>
+                        <option value="SE">SE - 服務項目</option>
+                        <option value="SO">SO - 軟體</option>
+                        <option value="SP">SP - 喇叭</option>
+                        <option value="US">US - 外接儲存裝置</option>
+                        <option value="VG">VG - 顯示卡</option>
+                        <option value="WA">WA - 網路設備</option>
+                        <option value="WI">WI - 各式線材</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>單位</label>
+                    <input type="text" id="unit" class="form-control" placeholder="例如：個、組、台">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>廠商 <span class="required">*</span></label>
+                <div class="search-wrapper">
+                    <input type="text" id="supplierSearch" class="form-control" placeholder="輸入廠商名稱搜尋..." autocomplete="off" oninput="searchSuppliers(this)">
+                    <div id="supplierSuggestions" class="suggestions"></div>
+                    <input type="hidden" id="supplierName">
+                </div>
+            </div>
+
+            <button class="btn-submit" onclick="submitForm()">✓ 建立產品資料</button>
+        </div>
+    </div>
+
+    <script>
+        // 搜尋廠商
+        async function searchSuppliers(input) {
+            const keyword = input.value.trim();
+            const suggestions = document.getElementById('supplierSuggestions');
+
+            if (keyword.length < 1) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/suppliers/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await response.json();
+
+                if (data.success && data.suppliers && data.suppliers.length > 0) {
+                    suggestions.innerHTML = data.suppliers.map(s =>
+                        `<div class="suggestion-item" onclick="selectSupplier('${s.supplier_name.replace(/'/g, "\\'")}')">${s.supplier_name}</div>`
+                    ).join('');
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('搜尋廠商失敗:', error);
+            }
+        }
+
+        // 選擇廠商
+        function selectSupplier(name) {
+            document.getElementById('supplierSearch').value = name;
+            document.getElementById('supplierName').value = name;
+            document.getElementById('supplierSuggestions').style.display = 'none';
+        }
+
+        // 點擊外部關閉建議
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrapper')) {
+                document.getElementById('supplierSuggestions').style.display = 'none';
+            }
+        });
+
+        async function submitForm() {
+            const productCode = document.getElementById('productCode').value.trim();
+            const productName = document.getElementById('productName').value.trim();
+            const category = document.getElementById('category').value;
+            const unit = document.getElementById('unit').value.trim() || '個';
+            const supplierName = document.getElementById('supplierName').value || document.getElementById('supplierSearch').value;
+            const createdBy = document.getElementById('createdBy').value;
+
+            if (!productCode || !productName || !supplierName) {
+                showToast('請填寫必填欄位（產品編號、產品名稱、廠商）', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/product/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_code: productCode,
+                        product_name: productName,
+                        category: category,
+                        unit: unit,
+                        supplier_name: supplierName,
+                        created_by: createdBy
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('產品建立成功！', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(data.message || '建立失敗', 'error');
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

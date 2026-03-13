@@ -1,0 +1,725 @@
+{% extends "base.html" %}
+
+{% block title %}外勤服務紀錄 - 電腦舖{% endblock %}
+{% block page_title %}🚗 外勤服務紀錄{% endblock %}
+
+{% block content %}
+<!-- 服務紀錄表單 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="margin-bottom: 20px; color: #38bdf8;">📝 新增服務紀錄</h3>
+
+    <!-- 基本資訊 -->
+    <div style="margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務日期 *</label>
+                <input type="date" id="serviceDate" required max="" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; height: 40px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務時間</label>
+                <input type="time" id="serviceTime" max="" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; height: 40px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">業務人員</label>
+                <input type="text" id="salesperson" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #64748b; box-sizing: border-box; height: 40px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- 服務項目 -->
+    <div style="margin-bottom: 20px;">
+        <h4 style="color: #94a3b8; font-size: 0.9em; margin-bottom: 12px;">服務資訊</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 12px;">
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務類型 *</label>
+                <select id="serviceType" onchange="handleServiceTypeChange()" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                    <option value="">請選擇</option>
+                    <option value="門市支援">門市支援</option>
+                    <option value="現場維修">現場維修</option>
+                    <option value="設備問題">設備問題</option>
+                    <option value="交機">交機</option>
+                    <option value="網通設定">網通設定</option>
+                    <option value="施工">施工</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            <!-- 門市選擇（只在服務類型=門市支援時顯示） -->
+            <div id="storeSection" style="display: none;">
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">門市 *</label>
+                <select id="store" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                    <option value="">請選擇</option>
+                    <option value="大雅門市">大雅門市</option>
+                    <option value="豐原門市">豐原門市</option>
+                    <option value="潭子門市">潭子門市</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務內容 *</label>
+            <textarea id="serviceContent" rows="3" placeholder="請描述服務內容" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; resize: vertical;"></textarea>
+        </div>
+    </div>
+
+    <!-- 客戶資訊（非門市支援時顯示） -->
+    <div id="customerSection" style="margin-bottom: 20px;">
+        <h4 style="color: #94a3b8; font-size: 0.9em; margin-bottom: 12px;">客戶資訊</h4>
+        
+        <!-- 客戶來源 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 12px;">
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶來源</label>
+                <select id="customerSource" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                    <option value="業務聯絡">業務聯絡</option>
+                    <option value="門市轉介">門市轉介</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">合約客戶</label>
+                <select id="isContract" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                    <option value="否">否</option>
+                    <option value="是">是</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 客戶搜尋 -->
+        <div style="position: relative; margin-bottom: 12px;">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="customerSearch" placeholder="輸入客戶姓名或手機搜尋..." oninput="searchCustomerRealtime(this)" style="flex: 1; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                <button type="button" onclick="searchCustomer()" style="padding: 10px 16px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">🔍 搜尋</button>
+                <button type="button" onclick="showNewCustomerForm()" style="padding: 10px 16px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; cursor: pointer;">+ 新客戶</button>
+            </div>
+            <!-- 即時搜尋下拉選單 -->
+            <div id="customerSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
+        </div>
+
+        <!-- 客戶編號與名稱（搜尋後自動帶入） -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 12px;">
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶編號</label>
+                <input type="text" id="customerCode" placeholder="搜尋後自動帶入" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶名稱</label>
+                <input type="text" id="customerName" placeholder="搜尋後自動帶入" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b;">
+            </div>
+        </div>
+
+        <!-- 搜尋結果 -->
+        <div id="customerResult" style="display: none; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 12px; margin-top: 10px;">
+            <div id="customerInfo"></div>
+        </div>
+
+        <!-- 新客戶表單 -->
+        <div id="newCustomerForm" style="display: none; background: rgba(251, 191, 36, 0.05); border: 1px dashed rgba(251, 191, 36, 0.3); border-radius: 8px; padding: 16px; margin-top: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                <div>
+                    <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶姓名 *</label>
+                    <input type="text" id="newCustomerName" placeholder="輸入客戶姓名" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">手機號碼 *</label>
+                    <input type="text" id="newCustomerMobile" placeholder="09xxxxxxxx" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <button type="button" onclick="confirmNewCustomer()" style="padding: 10px 16px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; cursor: pointer; margin-right: 8px;">✓ 確認新客戶</button>
+                <button type="button" onclick="hideNewCustomerForm()" style="padding: 10px 16px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">取消</button>
+            </div>
+        </div>
+
+        <!-- 隱藏欄位 -->
+        <input type="hidden" id="customerCode">
+        <input type="hidden" id="customerName">
+        <input type="hidden" id="isNewCustomer" value="false">
+    </div>
+
+    <!-- 提交按 -->
+    <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button type="button" onclick="resetForm()" style="padding: 10px 20px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">↺ 重置</button>
+        <button type="button" onclick="submitForm()" style="padding: 10px 20px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; cursor: pointer;">✓ 提交送出</button>
+    </div>
+</div>
+
+<!-- 服務紀錄列表 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <h3>📋 最近服務紀錄</h3>
+        <button type="button" onclick="loadRecentRecords()" style="padding: 8px 16px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">🔄 重新整理</button>
+    </div>
+    <div id="recordsList">
+        <div style="text-align: center; padding: 40px; color: #64748b;">載入中...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const currentTime = `${hours}:${minutes}`;
+        
+        // 設定今天日期並限制不能選未來
+        const dateInput = document.getElementById('serviceDate');
+        dateInput.value = today;
+        dateInput.max = today; // 限制日期不能選未來
+        
+        // 設定現在時間並限制不能選未來
+        const timeInput = document.getElementById('serviceTime');
+        timeInput.value = currentTime;
+        timeInput.max = currentTime;
+        
+        // 日期變更時更新時間限制
+        dateInput.addEventListener('change', function() {
+            const selectedDate = this.value;
+            if (selectedDate === today) {
+                // 今天：限制時間不能超過現在
+                timeInput.max = currentTime;
+            } else {
+                // 過去日期：時間無限制（00:00-23:59）
+                timeInput.max = '';
+            }
+        });
+        
+        // 設定業務人員為登入者
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (user.name) {
+            document.getElementById('salesperson').value = user.name;
+        }
+        
+        loadRecentRecords();
+    });
+
+    // 登入成功後的回調（由 base.html 觸發）
+    window.onLoginSuccess = function(user) {
+        console.log('[ServiceRecord] Login success, user:', user);
+        if (user && user.name) {
+            document.getElementById('salesperson').value = user.name;
+        }
+        loadRecentRecords();
+    };
+
+    // 處理服務類型變更
+    function handleServiceTypeChange() {
+        const serviceType = document.getElementById('serviceType').value;
+        const storeSection = document.getElementById('storeSection');
+        const customerSection = document.getElementById('customerSection');
+        
+        if (serviceType === '門市支援') {
+            // 顯示門市，隱藏客戶
+            storeSection.style.display = 'block';
+            document.getElementById('store').required = true;
+            customerSection.style.display = 'none';
+        } else if (serviceType) {
+            // 顯示客戶，隱藏門市
+            storeSection.style.display = 'none';
+            document.getElementById('store').required = false;
+            document.getElementById('store').value = '';
+            customerSection.style.display = 'block';
+        } else {
+            // 預設狀態
+            storeSection.style.display = 'none';
+            customerSection.style.display = 'block';
+        }
+    }
+
+    // 產生臨時客戶編號
+    function generateTempCustomerId(mobile) {
+        let hash = 0;
+        for (let i = 0; i < mobile.length; i++) {
+            hash = ((hash << 5) - hash) + mobile.charCodeAt(i);
+        }
+        hash = hash & 0xFFFFFFFF;
+        return 'TEMP-C-' + Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+    }
+
+    // 正規化手機號碼
+    function normalizeMobile(input) {
+        let cleaned = input.replace(/[^0-9]/g, '');
+        if (cleaned.startsWith('886') && cleaned.length >= 10) {
+            cleaned = '0' + cleaned.substring(3);
+        } else if (!cleaned.startsWith('0') && cleaned.length === 9) {
+            cleaned = '0' + cleaned;
+        }
+        return cleaned;
+    }
+
+    // 驗證手機格式
+    function validateMobile(mobile) {
+        return /^09\d{8}$/.test(mobile);
+    }
+
+    // 即時搜尋客戶
+    async function searchCustomerRealtime(input) {
+        const keyword = input.value.trim();
+        const suggestions = document.getElementById('customerSuggestions');
+
+        if (keyword.length < 2) {
+            suggestions.style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/customers/search?keyword=' + encodeURIComponent(keyword));
+            const data = await response.json();
+
+            if (data.items && data.items.length > 0) {
+                suggestions.innerHTML = data.items.map(c => {
+                    const mobile = c.mobile ? c.mobile : (c.phone1 ? c.phone1 : '');
+                    const contactInfo = mobile ? `📱 ${mobile}` : '';
+                    return `<div onclick="selectCustomer('${c.customer_id || c.short_name}', '${c.short_name.replace(/'/g, "\\'")}')" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); min-width: 280px;">
+                        <div style="font-weight:500; color: #fff;">${c.short_name}</div>
+                        <div style="font-size:0.85em; color: #64748b; margin-top: 2px;">${c.customer_id || ''} ${contactInfo}</div>
+                    </div>`;
+                }).join('');
+                suggestions.style.display = 'block';
+            } else {
+                suggestions.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('搜尋客戶失敗:', error);
+        }
+    }
+
+    // 選擇客戶
+    function selectCustomer(id, name) {
+        document.getElementById('customerSearch').value = name;
+        document.getElementById('customerCode').value = id;
+        document.getElementById('customerName').value = name;
+        document.getElementById('isNewCustomer').value = 'false';
+        document.getElementById('customerSuggestions').style.display = 'none';
+
+        const resultDiv = document.getElementById('customerResult');
+        const infoDiv = document.getElementById('customerInfo');
+        infoDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${name}</strong>
+                    <span style="color: #64748b; margin-left: 10px;">${id}</span>
+                </div>
+                <span style="background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 4px 10px; border-radius: 4px; font-size: 0.85em;">既有客戶</span>
+            </div>
+        `;
+        resultDiv.style.display = 'block';
+        resultDiv.style.background = 'rgba(56, 189, 248, 0.1)';
+        resultDiv.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+    }
+
+    // 搜尋客戶
+    async function searchCustomer() {
+        const keyword = document.getElementById('customerSearch').value.trim();
+        if (!keyword) return;
+
+        try {
+            const response = await fetch('/api/customers/search?keyword=' + encodeURIComponent(keyword));
+            const data = await response.json();
+
+            const resultDiv = document.getElementById('customerResult');
+            const infoDiv = document.getElementById('customerInfo');
+
+            if (data.items && data.items.length > 0) {
+                const customer = data.items[0];
+                selectCustomer(customer.customer_id || customer.short_name, customer.short_name);
+            } else {
+                infoDiv.innerHTML = '<div style="color: #fbbf24;">⚠️ 找不到客戶，請點「+ 新客戶」建立</div>';
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = 'rgba(251, 191, 36, 0.1)';
+                resultDiv.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+            }
+        } catch (error) {
+            console.error('搜尋客戶失敗:', error);
+        }
+    }
+
+    // 顯示新客戶表單
+    function showNewCustomerForm() {
+        document.getElementById('newCustomerForm').style.display = 'block';
+        document.getElementById('customerResult').style.display = 'none';
+    }
+
+    // 隱藏新客戶表單
+    function hideNewCustomerForm() {
+        document.getElementById('newCustomerForm').style.display = 'none';
+        document.getElementById('newCustomerName').value = '';
+        document.getElementById('newCustomerMobile').value = '';
+    }
+
+    // 確認新客戶
+    function confirmNewCustomer() {
+        const name = document.getElementById('newCustomerName').value.trim();
+        const mobileInput = document.getElementById('newCustomerMobile').value.trim();
+
+        if (!name) {
+            alert('請輸入客戶姓名');
+            return;
+        }
+
+        const mobile = normalizeMobile(mobileInput);
+        if (!validateMobile(mobile)) {
+            alert('請輸入正確的手機號碼（09xxxxxxxx）');
+            return;
+        }
+
+        const tempId = generateTempCustomerId(mobile);
+        document.getElementById('customerCode').value = tempId;
+        document.getElementById('customerName').value = name;
+        document.getElementById('isNewCustomer').value = 'true';
+
+        const resultDiv = document.getElementById('customerResult');
+        const infoDiv = document.getElementById('customerInfo');
+        infoDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${name}</strong>
+                    <span style="color: #fbbf24; margin-left: 10px;">${tempId}</span>
+                    <span style="color: #64748b; margin-left: 10px;">${mobile}</span>
+                </div>
+                <span style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; padding: 4px 10px; border-radius: 4px; font-size: 0.85em;">新客戶</span>
+            </div>
+        `;
+        resultDiv.style.display = 'block';
+        resultDiv.style.background = 'rgba(251, 191, 36, 0.1)';
+        resultDiv.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+
+        hideNewCustomerForm();
+    }
+
+    // 提交表單
+    async function submitForm() {
+        const serviceType = document.getElementById('serviceType').value;
+        const serviceContent = document.getElementById('serviceContent').value.trim();
+        const store = document.getElementById('store').value;
+        const customerCode = document.getElementById('customerCode').value;
+        const customerName = document.getElementById('customerName').value;
+
+        // 驗證
+        if (!serviceType) {
+            alert('請選擇服務類型');
+            return;
+        }
+        if (serviceType === '門市支援') {
+            if (!store) {
+                alert('請選擇門市');
+                return;
+            }
+        } else {
+            if (!customerCode || !customerName) {
+                alert('請先選擇或建立客戶');
+                return;
+            }
+        }
+        if (!serviceContent) {
+            alert('請輸入服務內容');
+            return;
+        }
+
+        // 如果是新客戶，取得手機號碼
+        let customerMobile = '';
+        if (document.getElementById('isNewCustomer').value === 'true') {
+            customerMobile = document.getElementById('newCustomerMobile').value.trim();
+        }
+        
+        // 組合日期和時間
+        const serviceDate = document.getElementById('serviceDate').value;
+        const serviceTime = document.getElementById('serviceTime').value || '00:00';
+        const dateTime = `${serviceDate} ${serviceTime}`;
+        
+        const record = {
+            date: dateTime,
+            customer_code: serviceType === '門市支援' ? '' : customerCode,
+            customer_name: serviceType === '門市支援' ? '' : customerName,
+            customer_source: serviceType === '門市支援' ? '' : document.getElementById('customerSource').value,
+            is_contract: serviceType === '門市支援' ? false : document.getElementById('isContract').value === '是',
+            store: serviceType === '門市支援' ? store : '',
+            salesperson: document.getElementById('salesperson').value,
+            service_type: serviceType,
+            service_item: serviceContent,
+            is_new_customer: serviceType === '門市支援' ? false : document.getElementById('isNewCustomer').value === 'true',
+            customer_mobile: customerMobile
+        };
+
+        // API 期望 records 陣列格式
+        const data = { records: [record] };
+        
+        // 除錯訊息 - 檢查所有欄位
+        console.log('=== 表單欄位檢查 ===');
+        console.log('服務日期:', document.getElementById('serviceDate').value);
+        console.log('服務時間:', document.getElementById('serviceTime').value);
+        console.log('組合日期時間:', dateTime);
+        console.log('業務人員:', document.getElementById('salesperson').value);
+        console.log('服務類型:', serviceType);
+        console.log('門市:', store);
+        console.log('客戶編號:', customerCode);
+        console.log('客戶名稱:', customerName);
+        console.log('客戶來源:', document.getElementById('customerSource').value);
+        console.log('合約客戶:', document.getElementById('isContract').value);
+        console.log('服務內容:', serviceContent);
+        console.log('是否新客戶:', document.getElementById('isNewCustomer').value);
+        console.log('新手機:', customerMobile);
+        console.log('=== 提交資料 ===', data);
+
+        try {
+            const response = await fetch('/api/service-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            console.log('API 回應:', result);
+            if (result.success) {
+                alert('服務紀錄已儲存');
+                resetForm();
+                loadRecentRecords();
+            } else {
+                alert('儲存失敗：' + result.message);
+            }
+        } catch (error) {
+            console.error('提交失敗:', error);
+            alert('儲存失敗，請檢查網路連線');
+        }
+    }
+
+    // 重置表單
+    function resetForm() {
+        document.getElementById('serviceType').value = '';
+        document.getElementById('serviceContent').value = '';
+        document.getElementById('store').value = '';
+        document.getElementById('storeSection').style.display = 'none';
+        document.getElementById('customerSection').style.display = 'block';
+        document.getElementById('customerCode').value = '';
+        document.getElementById('customerName').value = '';
+        document.getElementById('isNewCustomer').value = 'false';
+        document.getElementById('customerSearch').value = '';
+        document.getElementById('customerResult').style.display = 'none';
+        document.getElementById('newCustomerForm').style.display = 'none';
+        document.getElementById('newCustomerName').value = '';
+        document.getElementById('newCustomerMobile').value = '';
+        document.getElementById('customerSuggestions').style.display = 'none';
+        // 重置時間為現在
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const currentTime = `${hours}:${minutes}`;
+        const timeInput = document.getElementById('serviceTime');
+        timeInput.value = currentTime;
+        timeInput.max = currentTime;
+        // 重置日期為今天並限制不能選未來
+        const dateInput = document.getElementById('serviceDate');
+        dateInput.value = today;
+        dateInput.max = today;
+        // 重置服務類型相關顯示
+        handleServiceTypeChange();
+    }
+
+    // 編輯服務紀錄 - 開啟彈窗
+    function editServiceRecord(id, serviceType, serviceItem) {
+        // 建立彈窗 HTML
+        const modalHtml = `
+            <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+                <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+                    <h3 style="color: #38bdf8; margin-bottom: 20px;">✏️ 編輯服務紀錄</h3>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務類型</label>
+                        <select id="editServiceType" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                            <option value="門市支援" ${serviceType === '門市支援' ? 'selected' : ''}>門市支援</option>
+                            <option value="現場維修" ${serviceType === '現場維修' ? 'selected' : ''}>現場維修</option>
+                            <option value="設備問題" ${serviceType === '設備問題' ? 'selected' : ''}>設備問題</option>
+                            <option value="交機" ${serviceType === '交機' ? 'selected' : ''}>交機</option>
+                            <option value="網通設定" ${serviceType === '網通設定' ? 'selected' : ''}>網通設定</option>
+                            <option value="施工" ${serviceType === '施工' ? 'selected' : ''}>施工</option>
+                            <option value="其他" ${serviceType === '其他' ? 'selected' : ''}>其他</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務內容</label>
+                        <textarea id="editServiceItem" rows="4" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; resize: vertical;">${serviceItem}</textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <button type="button" onclick="closeEditModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; cursor: pointer;">關閉</button>
+                        <button type="button" onclick="saveEditServiceRecord(${id})" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">儲存</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 移除舊的彈窗（如果有）
+        const oldModal = document.getElementById('editModal');
+        if (oldModal) oldModal.remove();
+        
+        // 插入新彈窗
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // 顯示彈窗
+        const modal = document.getElementById('editModal');
+        modal.style.display = 'flex';
+        
+        // ESC 關閉
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeEditModal();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+        
+        // 點擊背景關閉
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeEditModal();
+                document.removeEventListener('keydown', escHandler);
+            }
+        });
+    }
+    
+    // 關閉編輯彈窗
+    function closeEditModal() {
+        const modal = document.getElementById('editModal');
+        if (modal) modal.remove();
+    }
+    
+    // 儲存編輯
+    async function saveEditServiceRecord(id) {
+        const newServiceType = document.getElementById('editServiceType').value;
+        const newServiceItem = document.getElementById('editServiceItem').value.trim();
+        
+        if (!newServiceItem) {
+            alert('請輸入服務內容');
+            return;
+        }
+        
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        try {
+            const response = await fetch(`/api/service-records/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_name: user.name,
+                    service_type: newServiceType,
+                    service_item: newServiceItem
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                closeEditModal();
+                alert('紀錄已更新');
+                loadRecentRecords();
+            } else {
+                alert('更新失敗：' + result.message);
+            }
+        } catch (error) {
+            console.error('更新失敗:', error);
+            alert('更新失敗，請檢查網路連線');
+        }
+    }
+    
+    // 刪除服務紀錄
+    async function deleteServiceRecord(id) {
+        if (!confirm('確定要刪除這筆紀錄嗎？')) return;
+        
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        try {
+            const response = await fetch(`/api/service-records/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_name: user.name })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert('紀錄已刪除');
+                loadRecentRecords();
+            } else {
+                alert('刪除失敗：' + result.message);
+            }
+        } catch (error) {
+            console.error('刪除失敗:', error);
+            alert('刪除失敗，請檢查網路連線');
+        }
+    }
+
+    // 載入最近紀錄
+    // 點擊外部關閉客戶建議下拉選單
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#customerSearch') && !e.target.closest('#customerSuggestions')) {
+            document.getElementById('customerSuggestions').style.display = 'none';
+        }
+    });
+
+    async function loadRecentRecords() {
+        try {
+            const response = await fetch('/api/service-records/recent');
+            const data = await response.json();
+
+            const container = document.getElementById('recordsList');
+            if (!data.records || data.records.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">暫無服務紀錄</div>';
+                return;
+            }
+
+            // 取得目前登入使用者名稱
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const currentUserName = currentUser.name || '';
+            
+            // 計算30天前的日期
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const html = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">日期時間</th>
+                            <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">客戶</th>
+                            <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">服務類型</th>
+                            <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">服務內容</th>
+                            <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">業務</th>
+                            <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">門市</th>
+                            <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.records.map(r => {
+                            // 檢查是否可以編輯/刪除（自己且30天內）
+                            const recordDate = new Date(r.date);
+                            const canEdit = r.salesperson === currentUserName && recordDate >= thirtyDaysAgo;
+                            // 格式化日期時間顯示
+                            const dateTimeStr = r.date || '-';
+                            return `
+                            <tr data-id="${r.id}">
+                                <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">${dateTimeStr}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    ${r.customer_name || '-'}
+                                    ${r.is_new_customer ? '<span style="color: #fbbf24; font-size: 0.85em;">(新)</span>' : ''}
+                                </td>
+                                <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">${r.service_type || '-'}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">${r.service_item || '-'}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">${r.salesperson || '-'}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">${r.store || '-'}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    ${canEdit ? `
+                                        <button type="button" onclick="editServiceRecord(${r.id}, '${(r.service_type || '').replace(/'/g, "\\'")}', '${(r.service_item || '').replace(/'/g, "\\'")}')" style="padding: 4px 10px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 5px;">編輯</button>
+                                        <button type="button" onclick="deleteServiceRecord(${r.id})" style="padding: 4px 10px; background: linear-gradient(135deg, #ff6b6b, #c92a2a); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">刪除</button>
+                                    ` : '-'}
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('載入紀錄失敗:', error);
+            document.getElementById('recordsList').innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">載入失敗</div>';
+        }
+    }
+</script>
+{% endblock %}

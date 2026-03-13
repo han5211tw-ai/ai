@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.log
+*.err
+*.db-shm
+*.db-wal
+.DS_Store
+.git

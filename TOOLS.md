@@ -37,7 +37,48 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 ### API Keys
 
-- Brave Search: `BSAz6EsFkdHLmy3W8UthuxKpCBTdoU5` — 已設定於 gateway 環境變數
+- Brave Search: `BSAkRFXkBoZ3j1lnCsAVA7wXJpCZu9z` — 設定於環境變數 `export BRAVE_API_KEY="..."
+
+### TTS (sherpa-onnx)
+
+**類型:** 本地離線文字轉語音（免費，無需 API key）
+**模型:** vits-melo-tts-zh_en（中文+英文，支援中英混合）
+**路徑:** `~/.openclaw/tools/sherpa-onnx-tts/`
+
+**環境變數設定:**
+```bash
+export SHERPA_ONNX_RUNTIME_DIR="$HOME/.openclaw/tools/sherpa-onnx-tts/runtime"
+export SHERPA_ONNX_MODEL_DIR="$HOME/.openclaw/tools/sherpa-onnx-tts/vits-melo-tts-zh_en"
+```
+
+**使用方法:**
+```bash
+$SHERPA_ONNX_RUNTIME_DIR/bin/sherpa-onnx-offline-tts \
+  --vits-model="$SHERPA_ONNX_MODEL_DIR/model.onnx" \
+  --vits-lexicon="$SHERPA_ONNX_MODEL_DIR/lexicon.txt" \
+  --vits-tokens="$SHERPA_ONNX_MODEL_DIR/tokens.txt" \
+  --output-filename="output.wav" "要轉換的文字"
+```
+
+**測試結果:** ✅ 2026-03-11 安裝成功，支援中文與英文混合朗讀
+
+---
+
+### Yvonne 專用 Email
+
+**用途:** 郵件收發、通知發送、郵件整理任務
+**信箱:** `ai@computershop.cc`
+**類型:** Gmail 體系（Google Workspace）
+**應用程式密碼:** `wegc emle glvo vjhq`
+
+**使用方式:**
+- IMAP/SMTP 協定
+- 應用程式密碼用於第三方郵件客戶端（如 himalaya、Python smtplib）
+- 一般密碼登入 Gmail 網頁版
+
+**注意事項:**
+- 應用程式密碼僅顯示一次，已記錄於此
+- 用於自動化郵件任務時請使用應用程式密碼而非一般密碼
 
 ### Company Database (唯讀)
 
@@ -61,6 +102,7 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 ### 資料查詢習慣
 
 - **產品名稱**：一律顯示完整名稱（如「微軟 OFFICE 2024 家用盒裝版」），不可簡化，避免誤會
+- **資料呈現**：查詢結果一律使用 Markdown 表格呈現，清晰易讀
 
 ---
 

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電腦舖營運系統 - SaaS 版 (測試)</title>
+    
+    <!-- 全域樣式 -->
+    <link rel="stylesheet" href="shared/global.css">
+    <link rel="stylesheet" href="shared/auth_ui.css?v=3">
+    
+    <style>
+        /* App Shell 基礎樣式 */
+        .app-shell {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-header {
+            height: 60px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 0;
+            overflow-y: auto;
+        }
+        
+        .nav-section {
+            margin-bottom: 24px;
+        }
+        
+        .nav-section-title {
+            padding: 8px 24px;
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            margin: 2px 8px;
+            border-radius: 8px;
+            color: #8892b0;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        
+        .nav-item.active {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            border-left-color: #00d4ff;
+        }
+        
+        .sidebar-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            color: #fff;
+        }
+        
+        .user-role {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0a0a0a;
+            overflow: hidden;
+        }
+        
+        .top-header {
+            height: 60px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .content-workspace {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Test Panel */
+        .test-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            z-index: 9999;
+            max-width: 300px;
+        }
+        
+        .test-panel h4 {
+            color: #00d4ff;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .test-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .test-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+        
+        .test-results {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+        }
+        
+        .test-pass {
+            color: #4caf50;
+        }
+        
+        .test-fail {
+            color: #f44336;
+        }
+        
+        .test-info {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span>🖥️</span>
+                    <span>電腦舖</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be injected by JS -->
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">👤</div>
+                    <div>
+                        <div class="user-name">測試使用者</div>
+                        <div class="user-role">業務員</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1 class="page-title" id="pageTitle">App Shell 測試</h1>
+                <div>
+                    <button onclick="runAllTests()" style="padding: 8px 16px; background: #00d4ff; border: none; border-radius: 6px; color: #000; cursor: pointer;">執行全部測試</button>
+                </div>
+            </header>
+            <div class="content-workspace" id="contentWorkspace">
+                <div style="padding: 40px; text-align: center;">
+                    <h2>🧪 App Shell 測試頁面</h2>
+                    <p style="color: #8892b0; margin-top: 16px;">請點擊右下角的測試按鈕或執行全部測試</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Role Switcher Panel -->
+    <div class="test-panel">
+        <h4>👤 角色切換</h4>
+        <button class="test-btn" onclick="switchRole('boss')" style="background: rgba(0, 212, 255, 0.3); border-color: #00d4ff;">👑 老闆視角</button>
+        <button class="test-btn" onclick="switchRole('accountant')" style="background: rgba(123, 44, 191, 0.3); border-color: #7b2cbf;">🧮 會計視角</button>
+        <button class="test-btn" onclick="switchRole('storeManager')" style="background: rgba(255, 152, 0, 0.3); border-color: #ff9800;">🏪 門市主管視角</button>
+        <button class="test-btn" onclick="switchRole('salesManager')" style="background: rgba(33, 150, 243, 0.3); border-color: #2196f3;">📊 業務主管視角</button>
+        <button class="test-btn" onclick="switchRole('staff')" style="background: rgba(76, 175, 80, 0.3); border-color: #4caf50;">👔 業務視角</button>
+        <button class="test-btn" onclick="switchRole('engineer')" style="background: rgba(156, 39, 176, 0.3); border-color: #9c27b0;">🔧 工程師視角</button>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <div id="currentRole" style="color: #00d4ff; font-weight: bold;">目前角色：業務</div>
+            <div id="rolePermissions" style="color: #8892b0; font-size: 11px; margin-top: 4px;">可見：首頁、報價作業、銷貨輸入、單據查詢、需求作業、排班管理、庫存查詢、客戶查詢、客戶建檔、業務業績、個人業績、服務數據</div>
+        </div>
+    </div>
+
+    <!-- Test Panel -->
+    <div class="test-panel" style="bottom: 240px;">
+        <h4>🔧 快速測試</h4>
+        <button class="test-btn" onclick="testSidebarNavigation()">測試 Sidebar 導航</button>
+        <button class="test-btn" onclick="testSplitView()">測試 Split View</button>
+        <button class="test-btn" onclick="testModalSystem()">測試 Modal 系統</button>
+        <button class="test-btn" onclick="testPermissionControl()">測試權限控制</button>
+        <button class="test-btn" onclick="testResponsiveLayout()">測試響應式佈局</button>
+        <div class="test-results" id="testResults"></div>
+    </div>
+
+    <!-- Load Components -->
+    <script src="shared/auth_ui.js?v=3"></script>
+    <script src="shared/sidebar-nav.js"></script>
+    <script src="shared/split-view.js"></script>
+    <script src="shared/modal-system.js"></script>
+    
+    <script>
+        // Current role state
+        let currentNav = null;
+        let currentRole = 'staff';
+
+        const roleConfigs = {
+            boss: {
+                name: '黃柏翰',
+                title: '老闆',
+                display: '👑 老闆',
+                permissions: '全部功能（所有選單項目都可見）'
+            },
+            accountant: {
+                name: '會計',
+                title: '會計',
+                display: '🧮 會計',
+                permissions: '單據作業、庫存查詢、客戶查詢、所有報表、待調撥清單（不含客戶建檔、資料管理）'
+            },
+            staff: {
+                name: '業務員',
+                title: '業務人員',
+                display: '👔 業務',
+                permissions: '首頁、報價作業、銷貨輸入、單據查詢、需求作業、排班管理、庫存查詢、客戶查詢、客戶建檔、業務業績、個人業績、服務數據'
+            },
+            engineer: {
+                name: '工程師',
+                title: '工程師',
+                display: '🔧 工程師',
+                permissions: '首頁、報價作業、銷貨輸入、單據查詢、需求作業、排班管理、庫存查詢、客戶查詢、客戶建檔、門市業績、個人業績'
+            },
+            storeManager: {
+                name: '門市部主管',
+                title: '門市部主管',
+                display: '🏪 門市主管',
+                permissions: '全部功能（不含業務業績報表）'
+            },
+            salesManager: {
+                name: '業務部主管',
+                title: '業務部主管',
+                display: '📊 業務主管',
+                permissions: '全部功能（不含門市業績報表）'
+            }
+        };
+
+        // Switch role function
+        function switchRole(role) {
+            currentRole = role;
+            const config = roleConfigs[role];
+
+            // Update UI
+            document.getElementById('currentRole').textContent = `目前角色：${config.display}`;
+            document.getElementById('rolePermissions').textContent = `可見：${config.permissions}`;
+            document.querySelector('.user-name').textContent = config.name;
+            document.querySelector('.user-role').textContent = config.title;
+
+            // Re-render navigation
+            const navContainer = document.getElementById('sidebarNav');
+            navContainer.innerHTML = '';
+
+            currentNav = new SidebarNavigation({
+                container: navContainer,
+                currentUser: { name: config.name, title: config.title },
+                onRouteChange: (route) => {
+                    log(`✓ 路由切換: ${route.label}`, 'pass');
+                    document.getElementById('pageTitle').textContent = route.label;
+                }
+            });
+
+            log(`已切換至 ${config.display} 視角`, 'info');
+        }
+
+        // Test Results
+        const testResults = document.getElementById('testResults');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type === 'pass' ? 'test-pass' : type === 'fail' ? 'test-fail' : 'test-info';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            testResults.appendChild(div);
+        }
+
+        // Test 1: Sidebar Navigation
+        function testSidebarNavigation() {
+            log('開始測試 Sidebar Navigation...', 'info');
+
+            try {
+                // Test all three roles
+                ['staff', 'accountant', 'boss'].forEach(role => {
+                    const config = roleConfigs[role];
+                    const nav = new SidebarNavigation({
+                        container: document.createElement('div'),
+                        currentUser: { name: config.name, title: config.title }
+                    });
+                    log(`${config.display}: 導航初始化成功`, 'pass');
+                });
+                
+                log('✓ SidebarNavigation 初始化成功', 'pass');
+                
+                // 模擬點擊
+                setTimeout(() => {
+                    const firstNav = document.querySelector('.nav-item');
+                    if (firstNav) {
+                        firstNav.click();
+                        log('✓ 導航點擊事件正常', 'pass');
+                    }
+                }, 100);
+                
+            } catch (e) {
+                log(`✗ 錯誤: ${e.message}`, 'fail');
+            }
+        }
+        
+        // Test 2: Split View
+        function testSplitView() {
+            log('開始測試 Split View...', 'info');
+            
+            try {
+                const workspace = document.getElementById('contentWorkspace');
+                workspace.innerHTML = '<div id="splitTestContainer" style="width:100%;height:100%;"></div>';
+                
+                const splitView = new SplitViewModule({
+                    container: document.getElementById('splitTestContainer'),
+                    onItemSelect: ({ item }) => {
+                        log(`✓ 項目選擇: ${item?.doc_no || '新增'}`, 'pass');
+                    }
+                });
+                
+                log('✓ SplitViewModule 初始化成功', 'pass');
+                
+                // 渲染測試資料
+                const testData = [
+                    { id: '1', doc_no: 'QU-TEST-001', target_name: '測試客戶A', total_amount: 10000, status: 'DRAFT', created_at: '2026-03-07 10:00', doc_type: 'QUOTE' },
+                    { id: '2', doc_no: 'OD-TEST-002', target_name: '測試客戶B', total_amount: 20000, status: 'CONFIRMED', created_at: '2026-03-07 11:00', doc_type: 'ORDER' },
+                    { id: '3', doc_no: 'SO-TEST-003', target_name: '測試客戶C', total_amount: 30000, status: 'CLOSED', created_at: '2026-03-07 12:00', doc_type: 'SALES' }
+                ];
+                
+                splitView.renderList(testData, { total: 3, page: 1, totalPages: 1 });
+                log('✓ 列表渲染成功', 'pass');
+                
+            } catch (e) {
+                log(`✗ 錯誤: ${e.message}`, 'fail');
+            }
+        }
+        
+        // Test 3: Modal System
+        function testModalSystem() {
+            log('開始測試 Modal System...', 'info');
+            
+            try {
+                const modal = ModalSystem.getInstance();
+                modal.setCurrentUser({ name: '測試員', title: '業務員' });
+                
+                log('✓ ModalSystem 初始化成功', 'pass');
+                
+                // 開啟測試 Modal
+                modal.open({
+                    title: '測試 Modal',
+                    content: '<div style="padding:20px;"><p>這是一個測試彈窗</p><input type="text" class="form-input" placeholder="測試輸入框"></div>',
+                    docType: 'QUOTE',
+                    size: 'medium',
+                    onSave: 'alert("儲存成功")'
+                });
+                
+                log('✓ Modal 開啟成功', 'pass');
+                
+            } catch (e) {
+                log(`✗ 錯誤: ${e.message}`, 'fail');
+            }
+        }
+        
+        // Test 4: Permission Control
+        function testPermissionControl() {
+            log('開始測試權限控制...', 'info');
+            
+            try {
+                const modal = ModalSystem.getInstance();
+                
+                // 測試不同角色的權限
+                const roles = [
+                    { title: '業務員', expected: { QUOTE: true, ORDER: true, SALES: false } },
+                    { title: '老闆', expected: { QUOTE: true, ORDER: true, SALES: true } },
+                    { title: '會計', expected: { QUOTE: true, ORDER: true, SALES: true } }
+                ];
+                
+                roles.forEach(role => {
+                    modal.setCurrentUser({ name: '測試', title: role.title });
+                    
+                    Object.entries(role.expected).forEach(([docType, expected]) => {
+                        const canEdit = modal.canEdit(docType, 'FY-001');
+                        const pass = canEdit === expected;
+                        log(`${role.title} - ${docType}: ${canEdit ? '可編輯' : '唯讀'} ${pass ? '✓' : '✗'}`, pass ? 'pass' : 'fail');
+                    });
+                });
+                
+            } catch (e) {
+                log(`✗ 錯誤: ${e.message}`, 'fail');
+            }
+        }
+        
+        // Test 5: Responsive Layout
+        function testResponsiveLayout() {
+            log('開始測試響應式佈局...', 'info');
+            
+            const widths = [1920, 1366, 1024, 768, 375];
+            
+            widths.forEach(width => {
+                const isMobile = width < 768;
+                log(`寬度 ${width}px: ${isMobile ? '手機版' : '桌面版'} 佈局`, 'info');
+            });
+            
+            log('✓ 響應式斷點檢查完成', 'pass');
+            log('提示: 請手動調整瀏覽器寬度測試實際效果', 'info');
+        }
+        
+        // Run All Tests
+        function runAllTests() {
+            testResults.innerHTML = '';
+            log('=== 開始執行全部測試 ===', 'info');
+            
+            setTimeout(() => testSidebarNavigation(), 100);
+            setTimeout(() => testSplitView(), 1000);
+            setTimeout(() => testModalSystem(), 2000);
+            setTimeout(() => testPermissionControl(), 3500);
+            setTimeout(() => testResponsiveLayout(), 5000);
+            
+            setTimeout(() => {
+                log('=== 全部測試執行完成 ===', 'info');
+            }, 6000);
+        }
+        
+        // Auto-run basic test on load
+        window.addEventListener('load', () => {
+            log('App Shell 測試頁面已載入', 'info');
+            log('組件載入狀態:', 'info');
+            log(`- SidebarNavigation: ${typeof SidebarNavigation !== 'undefined' ? '✓' : '✗'}`, typeof SidebarNavigation !== 'undefined' ? 'pass' : 'fail');
+            log(`- SplitViewModule: ${typeof SplitViewModule !== 'undefined' ? '✓' : '✗'}`, typeof SplitViewModule !== 'undefined' ? 'pass' : 'fail');
+            log(`- ModalSystem: ${typeof ModalSystem !== 'undefined' ? '✓' : '✗'}`, typeof ModalSystem !== 'undefined' ? 'pass' : 'fail');
+
+            // Initialize with boss role by default
+            switchRole('boss');
+        });
+    </script>
+</body>
+</html>

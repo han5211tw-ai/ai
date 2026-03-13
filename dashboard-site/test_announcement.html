@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}公告載入測試{% endblock %}
+
+{% block page_title %}公告載入測試{% endblock %}
+
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0 auto; padding: 20px; }
+.announcement-board {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            color: #fff;
+            min-height: 50px;
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div id="announcementBoard" class="announcement-board">
+        <div class="loading">載入公告中...</div>
+    </div>
+    
+    <script>
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch('/api/system/announcements');
+                const data = await res.json();
+                
+                console.log('API Response:', data);
+                
+                const board = document.getElementById('announcementBoard');
+                
+                if (!data.success) {
+                    board.innerHTML = '<div style="color: #8892b0; text-align: center;">載入失敗</div>';
+                    return;
+                }
+                
+                if (!data.items || data.items.length === 0) {
+                    board.innerHTML = '<div style="color: #8892b0; text-align: center;">暫無公告</div>';
+                    return;
+                }
+                
+                board.innerHTML = data.items.map(item => `
+                    <div>${item.title}</div>
+                `).join('');
+            } catch (e) {
+                console.error('Error:', e);
+                document.getElementById('announcementBoard').innerHTML = '<div style="color: #8892b0; text-align: center;">載入失敗</div>';
+            }
+        }
+        
+        loadAnnouncements();
+    </script>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadAnnouncements() {
+            try {
+                const res = await fetch('/api/system/announcements');
+                const data = await res.json();
+                
+                console.log('API Response:', data);
+                
+                const board = document.getElementById('announcementBoard');
+                
+                if (!data.success) {
+                    board.innerHTML = '<div style="color: #8892b0; text-align: center;">載入失敗</div>';
+                    return;
+                }
+                
+                if (!data.items || data.items.length === 0) {
+                    board.innerHTML = '<div style="color: #8892b0; text-align: center;">暫無公告</div>';
+                    return;
+                }
+                
+                board.innerHTML = data.items.map(item => `
+                    <div>${item.title}</div>
+                `).join('');
+            } catch (e) {
+                console.error('Error:', e);
+                document.getElementById('announcementBoard').innerHTML = '<div style="color: #8892b0; text-align: center;">載入失敗</div>';
+            }
+        }
+        
+        loadAnnouncements();
+</script>
+{% endblock %}

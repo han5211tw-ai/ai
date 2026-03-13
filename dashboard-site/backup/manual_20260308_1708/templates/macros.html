@@ -1,0 +1,288 @@
+{#
+  macros.html - 全站 UI 元件標準庫
+  設計標準來源：quote_input.html
+  版本：20250307-2200
+#}
+
+{# ============================================
+   表單容器元件
+   ============================================ #}
+{% macro form_section(title) %}
+<div class="form-section">
+    {% if title %}
+    <div class="section-title">{{ title }}</div>
+    {% endif %}
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{# ============================================
+   表單列容器
+   ============================================ #}
+{% macro form_row() %}
+<div class="form-row">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{# ============================================
+   文字輸入框
+   參數：id, label, placeholder, value, required, type
+   ============================================ #}
+{% macro input_text(id, label, placeholder='', value='', required=false, type='text') %}
+<div class="form-field">
+    <label for="{{ id }}">{{ label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+    <input type="{{ type }}" id="{{ id }}" name="{{ id }}" placeholder="{{ placeholder }}" value="{{ value }}" {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+{# ============================================
+   下拉選單
+   參數：id, label, options, required, onchange
+   options 格式：[(value, label), ...]
+   ============================================ #}
+{% macro select(id, label, options, required=false, onchange='') %}
+<div class="form-field">
+    <label for="{{ id }}">{{ label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+    <select id="{{ id }}" name="{{ id }}" {% if required %}required{% endif %} {% if onchange %}onchange="{{ onchange }}"{% endif %}>
+        {% for opt_value, opt_label in options %}
+        <option value="{{ opt_value }}">{{ opt_label }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+{# ============================================
+   主要按鈕（漸層色）
+   參數：id, text, onclick, type
+   ============================================ #}
+{% macro button_primary(id, text, onclick='', type='button') %}
+<button type="{{ type }}" id="{{ id }}" class="btn btn-primary" {% if onclick %}onclick="{{ onclick }}"{% endif %}>{{ text }}</button>
+{% endmacro %}
+
+{# ============================================
+   次要按鈕（透明背景）
+   參數：id, text, onclick, type
+   ============================================ #}
+{% macro button_secondary(id, text, onclick='', type='button') %}
+<button type="{{ type }}" id="{{ id }}" class="btn btn-secondary" {% if onclick %}onclick="{{ onclick }}"{% endif %}>{{ text }}</button>
+{% endmacro %}
+
+{# ============================================
+   危險按鈕（紅色）
+   參數：id, text, onclick
+   ============================================ #}
+{% macro button_danger(id, text, onclick='') %}
+<button type="button" id="{{ id }}" class="btn btn-danger" {% if onclick %}onclick="{{ onclick }}"{% endif %}>{{ text }}</button>
+{% endmacro %}
+
+{# ============================================
+   新增按鈕（+ 號）
+   參數：onclick
+   ============================================ #}
+{% macro button_add(onclick) %}
+<button type="button" class="btn btn-add" onclick="{{ onclick }}">+ 新增</button>
+{% endmacro %}
+
+{# ============================================
+   刪除按鈕
+   參數：onclick
+   ============================================ #}
+{% macro button_delete(onclick) %}
+<button type="button" class="btn btn-delete" onclick="{{ onclick }}">刪除</button>
+{% endmacro %}
+
+{# ============================================
+   資料表格
+   參數：headers（表頭列表）
+   ============================================ #}
+{% macro data_table(headers) %}
+<table class="data-table">
+    <thead>
+        <tr>
+            {% for header in headers %}
+            <th>{{ header }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {{ caller() }}
+    </tbody>
+</table>
+{% endmacro %}
+
+{# ============================================
+   資料列表項目
+   ============================================ #}
+{% macro list_item() %}
+<div class="list-item">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{# ============================================
+   總計區塊
+   參數：label, amount_id
+   ============================================ #}
+{% macro total_section(label, amount_id) %}
+<div class="total-section">
+    <span class="total-label">{{ label }}</span>
+    <span class="total-amount" id="{{ amount_id }}">0</span>
+</div>
+{% endmacro %}
+
+{# ============================================
+   搜尋輸入框（帶圖示）
+   參數：id, placeholder, onsearch
+   ============================================ #}
+{% macro input_search(id, placeholder='搜尋...', onsearch='') %}
+<div class="form-field search-field">
+    <input type="text" id="{{ id }}" placeholder="{{ placeholder }}" {% if onsearch %}onkeyup="if(event.key==='Enter'){{ onsearch }}"{% endif %}>
+    <span class="search-icon">🔍</span>
+</div>
+{% endmacro %}
+
+{# ============================================
+   日期選擇器
+   參數：id, label, required
+   ============================================ #}
+{% macro input_date(id, label, required=false) %}
+<div class="form-field">
+    <label for="{{ id }}">{{ label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+    <input type="date" id="{{ id }}" name="{{ id }}" {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+{# ============================================
+   數字輸入框
+   參數：id, label, min, max, value, required
+   ============================================ #}
+{% macro input_number(id, label, min='', max='', value='', required=false) %}
+<div class="form-field">
+    <label for="{{ id }}">{{ label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+    <input type="number" id="{{ id }}" name="{{ id }}" {% if min %}min="{{ min }}"{% endif %} {% if max %}max="{{ max }}"{% endif %} value="{{ value }}" {% if required %}required{% endif %} style="text-align:right">
+</div>
+{% endmacro %}
+
+{# ============================================
+   金額輸入框
+   參數：id, label, required
+   ============================================ #}
+{% macro input_currency(id, label, required=false) %}
+<div class="form-field">
+    <label for="{{ id }}">{{ label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+    <div class="currency-input">
+        <span class="currency-symbol">NT$</span>
+        <input type="number" id="{{ id }}" name="{{ id }}" {% if required %}required{% endif %} style="text-align:right">
+    </div>
+</div>
+{% endmacro %}
+
+{# ============================================
+   多行文字輸入
+   參數：id, label, rows, placeholder, required
+   ============================================ #}
+{% macro textarea(id, label, rows=3, placeholder='', required=false) %}
+<div class="form-field">
+    <label for="{{ id }}">{{ label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+    <textarea id="{{ id }}" name="{{ id }}" rows="{{ rows }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %}></textarea>
+</div>
+{% endmacro %}
+
+{# ============================================
+   核取方塊
+   參數：id, label, checked
+   ============================================ #}
+{% macro checkbox(id, label, checked=false) %}
+<label class="checkbox-label">
+    <input type="checkbox" id="{{ id }}" name="{{ id }}" {% if checked %}checked{% endif %}>
+    <span class="checkmark"></span>
+    {{ label }}
+</label>
+{% endmacro %}
+
+{# ============================================
+   狀態標籤
+   參數：status（pending/completed/cancelled/warning）
+   ============================================ #}
+{% macro status_badge(status) %}
+{% set status_class = {
+    'pending': 'status-pending',
+    '待處理': 'status-pending',
+    'completed': 'status-completed',
+    '已完成': 'status-completed',
+    'cancelled': 'status-cancelled',
+    '已取消': 'status-cancelled',
+    'warning': 'status-warning',
+    'urgent': 'status-urgent'
+} %}
+<span class="status-badge {{ status_class.get(status, 'status-pending') }}">{{ status }}</span>
+{% endmacro %}
+
+{# ============================================
+   分頁控制
+   參數：current_page, total_pages, prev_onclick, next_onclick
+   ============================================ #}
+{% macro pagination(current_page, total_pages, prev_onclick, next_onclick) %}
+<div class="pagination">
+    <button class="btn-page" onclick="{{ prev_onclick }}" {% if current_page <= 1 %}disabled{% endif %}>← 上一頁</button>
+    <span class="page-info">第 {{ current_page }} / {{ total_pages }} 頁</span>
+    <button class="btn-page" onclick="{{ next_onclick }}" {% if current_page >= total_pages %}disabled{% endif %}>下一頁 →</button>
+</div>
+{% endmacro %}
+
+{# ============================================
+   提示訊息 Toast
+   ============================================ #}
+{% macro toast_container() %}
+<div id="toast" class="toast"></div>
+{% endmacro %}
+
+{# ============================================
+   載入中遮罩
+   ============================================ #}
+{% macro loading_overlay(id='loadingOverlay') %}
+<div id="{{ id }}" class="loading-overlay" style="display:none">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">載入中...</div>
+</div>
+{% endmacro %}
+
+{# ============================================
+   空白狀態提示
+   參數：icon, message
+   ============================================ #}
+{% macro empty_state(icon='📭', message='暫無資料') %}
+<div class="empty-state">
+    <div class="empty-icon">{{ icon }}</div>
+    <div class="empty-message">{{ message }}</div>
+</div>
+{% endmacro %}
+
+{# ============================================
+   錯誤訊息顯示
+   參數：message
+   ============================================ #}
+{% macro error_message(message) %}
+<div class="error-message">
+    <span class="error-icon">⚠️</span>
+    {{ message }}
+</div>
+{% endmacro %}
+
+{# ============================================
+   確認對話框（簡易版）
+   參數：title, message, confirm_text, cancel_text
+   ============================================ #}
+{% macro confirm_dialog(title, message, confirm_text='確定', cancel_text='取消') %}
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+        <h3>{{ title }}</h3>
+        <p>{{ message }}</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeConfirmModal()">{{ cancel_text }}</button>
+            <button class="btn btn-primary" id="confirmBtn">{{ confirm_text }}</button>
+        </div>
+    </div>
+</div>
+{% endmacro %}

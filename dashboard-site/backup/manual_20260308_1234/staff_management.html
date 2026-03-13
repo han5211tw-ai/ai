@@ -1,0 +1,835 @@
+{% extends "base.html" %}
+
+{% block title %}員工管理 - 電腦舖營運系統{% endblock %}
+
+{% block page_title %}員工管理營運系統{% endblock %}
+
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0 auto; padding: 20px; }
+.container {  margin: 0 auto; padding: 20px 40px; }
+        h1 {
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            text-align: left;
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover {
+            color: #00d4ff;
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background: #4caf50;
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #45a049;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        td { color: #ccd6f6; }
+        tr:hover { background: rgba(255, 255, 255, 0.03); }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        .status-active { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+        .status-inactive { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .input-field, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1em;
+        }
+        .input-field:focus, select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: #8892b0;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .message {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.success {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            display: block;
+        }
+        .message.error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid #f44336;
+            color: #f44336;
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="container">
+        
+        <div class="subtitle">管理員工資料、部門與門市分配</div>
+        
+        <div class="nav">
+            <a href="/">🏠 首頁</a>
+            <a href="/admin.html">⚙️ 資料管理中心</a>
+        </div>
+
+        <div id="messageBox" class="message"></div>
+
+        <!-- 員工列表 -->
+        <div class="card">
+            
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-success" onclick="showCreateModal()">＋ 新增員工</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>系統編號</th>
+                        <th>對外編號</th>
+                        <th>姓名</th>
+                        <th>部門</th>
+                        <th>門市</th>
+                        <th>職稱</th>
+                        <th>手機</th>
+                        <th>狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTable">
+                    <tr><td colspan="9" style="text-align:center;color:#8892b0;">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 新增/編輯員工彈窗 -->
+    <div id="staffModal" class="modal-overlay">
+        <div class="modal">
+            
+            
+            <!-- 系統員工編號（唯讀）- 只在編輯時顯示 -->
+            <div class="form-group" id="systemIdGroup" style="display:none;">
+                <label>系統員工編號（唯讀）</label>
+                <input type="text" id="staffSystemId" class="input-field" readonly style="background: rgba(255,255,255,0.02); color: #8892b0;">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>對外員工編號 *</label>
+                    <input type="text" id="staffCode" class="input-field" placeholder="例如：EMP001">
+                </div>
+                <div class="form-group">
+                    <label>姓名 *</label>
+                    <input type="text" id="staffName" class="input-field" placeholder="輸入姓名">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>身分證字號</label>
+                    <input type="text" id="staffIdNumber" class="input-field" placeholder="例如：A123456789">
+                </div>
+                <div class="form-group">
+                    <label>手機</label>
+                    <input type="text" id="staffMobile" class="input-field" placeholder="例如：0912345678">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>部門</label>
+                    <select id="staffDept" class="input-field">
+                        <option value="">選擇部門</option>
+                        <option value="總公司">總公司</option>
+                        <option value="門市部">門市部</option>
+                        <option value="業務部">業務部</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>門市</label>
+                    <select id="staffStore" class="input-field">
+                        <option value="">選擇門市</option>
+                        <option value="豐原">豐原</option>
+                        <option value="潭子">潭子</option>
+                        <option value="大雅">大雅</option>
+                        <option value="-">無（總公司/業務部）</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>職稱</label>
+                    <select id="staffRole" class="input-field">
+                        <option value="">選擇職稱</option>
+                        <option value="boss">老闆</option>
+                        <option value="accountant">會計</option>
+                        <option value="manager">主管</option>
+                        <option value="supervisor">督導</option>
+                        <option value="staff">職員</option>
+                        <option value="sales">業務</option>
+                        <option value="engineer">工程師</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>狀態</label>
+                    <select id="staffStatus" class="input-field">
+                        <option value="1">啟用</option>
+                        <option value="0">停用</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>生日</label>
+                    <input type="date" id="staffBirthDate" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>到職日期</label>
+                    <input type="date" id="staffHireDate" class="input-field">
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal()">取消</button>
+                <button class="btn btn-success" onclick="saveStaff()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 變更密碼彈窗 -->
+    <div id="passwordModal" class="modal-overlay">
+        <div class="modal">
+            
+            <div class="form-group">
+                <label>新密碼</label>
+                <input type="password" id="newPassword" class="input-field" placeholder="輸入新密碼（至少4個字符）">
+            </div>
+            <div class="form-group">
+                <label>確認新密碼</label>
+                <input type="password" id="confirmPassword" class="input-field" placeholder="再次輸入新密碼">
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closePasswordModal()">取消</button>
+                <button class="btn btn-success" onclick="savePassword()">儲存密碼</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let staffData = [];
+        let editingId = null;
+
+        // 顯示訊息
+        function showMessage(text, type) {
+            const box = document.getElementById('messageBox');
+            box.textContent = text;
+            box.className = 'message ' + type;
+            setTimeout(() => { box.className = 'message'; }, 5000);
+        }
+
+        // 載入員工資料
+        async function loadStaff() {
+            try {
+                const res = await fetch('/api/staff');
+                const data = await res.json();
+                
+                if (data.success) {
+                    staffData = data.data || [];
+                    console.log('員工資料載入成功:', staffData.length, '筆');
+                    renderTable();
+                } else {
+                    showMessage('載入失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('載入員工資料失敗:', e);
+                showMessage('載入失敗', 'error');
+            }
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('staffTable');
+            
+            if (staffData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#8892b0;">暫無資料</td></tr>';
+                return;
+            }
+            
+            const roleLabels = {
+                'boss': '老闆',
+                'accountant': '會計',
+                'manager': '主管',
+                'supervisor': '督導',
+                'staff': '職員',
+                'sales': '業務',
+                'engineer': '工程師'
+            };
+            
+            tbody.innerHTML = staffData.map(s => `
+                <tr>
+                    <td><small style="color:#8892b0;">${s.id || '-'}</small></td>
+                    <td><strong>${s.staff_code || '-'}</strong></td>
+                    <td>${s.name}</td>
+                    <td>${s.department || '-'}</td>
+                    <td>${s.store || '-'}</td>
+                    <td>${roleLabels[s.role] || s.role || '-'}</td>
+                    <td>${s.mobile || s.phone || '-'}</td>
+                    <td><span class="status-badge ${s.is_active ? 'status-active' : 'status-inactive'}">${s.is_active ? '啟用' : '停用'}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editStaff('${s.id}')" style="padding:5px 10px;font-size:0.85em;">編輯</button>
+                        <button class="btn btn-warning" onclick="showPasswordModal('${s.id}')" style="padding:5px 10px;font-size:0.85em;margin-left:5px;">變更密碼</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 顯示新增彈窗
+        function showCreateModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = '新增員工';
+            document.getElementById('systemIdGroup').style.display = 'none';
+            document.getElementById('staffSystemId').value = '';
+            document.getElementById('staffCode').value = '';
+            document.getElementById('staffName').value = '';
+            document.getElementById('staffIdNumber').value = '';
+            document.getElementById('staffMobile').value = '';
+            document.getElementById('staffDept').value = '';
+            document.getElementById('staffStore').value = '';
+            document.getElementById('staffRole').value = '';
+            document.getElementById('staffStatus').value = '1';
+            document.getElementById('staffBirthDate').value = '';
+            document.getElementById('staffHireDate').value = '';
+            document.getElementById('staffModal').classList.add('active');
+        }
+
+        // 編輯員工
+        function editStaff(id) {
+            const staff = staffData.find(s => s.id === id);
+            if (!staff) return;
+
+            editingId = id;
+            document.getElementById('modalTitle').textContent = '編輯員工';
+            document.getElementById('systemIdGroup').style.display = 'block';
+            document.getElementById('staffSystemId').value = staff.id || '';
+            document.getElementById('staffCode').value = staff.staff_code || '';
+            document.getElementById('staffName').value = staff.name || '';
+            document.getElementById('staffIdNumber').value = staff.id_number || '';
+            document.getElementById('staffMobile').value = staff.mobile || staff.phone || '';
+            document.getElementById('staffDept').value = staff.department || '';
+            document.getElementById('staffStore').value = staff.store || '';
+            document.getElementById('staffRole').value = staff.role || '';
+            document.getElementById('staffStatus').value = staff.is_active ? '1' : '0';
+            document.getElementById('staffBirthDate').value = staff.birth_date || '';
+            document.getElementById('staffHireDate').value = staff.hire_date || '';
+            document.getElementById('staffModal').classList.add('active');
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('staffModal').classList.remove('active');
+        }
+
+        // 儲存員工
+        async function saveStaff() {
+            const code = document.getElementById('staffCode').value.trim();
+            const name = document.getElementById('staffName').value.trim();
+            const dept = document.getElementById('staffDept').value;
+            const store = document.getElementById('staffStore').value;
+            const role = document.getElementById('staffRole').value;
+            const mobile = document.getElementById('staffMobile').value.trim();
+            const birthDate = document.getElementById('staffBirthDate').value;
+            const hireDate = document.getElementById('staffHireDate').value;
+            const status = document.getElementById('staffStatus').value;
+            const idNumber = document.getElementById('staffIdNumber').value.trim();
+            
+            if (!code || !name) {
+                showMessage('請填寫員工編號和姓名', 'error');
+                return;
+            }
+            
+            const payload = {
+                staff_code: code,
+                name: name,
+                department: dept,
+                store: store,
+                role: role,
+                mobile: mobile,
+                birth_date: birthDate || null,
+                hire_date: hireDate || null,
+                is_active: status === '1',
+                id_number: idNumber
+            };
+            
+            try {
+                const url = editingId ? `/api/staff/${editingId}` : '/api/staff';
+                const method = editingId ? 'PUT' : 'POST';
+                
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showMessage(editingId ? '更新成功' : '新增成功', 'success');
+                    closeModal();
+                    loadStaff();
+                } else {
+                    showMessage('儲存失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('儲存失敗:', e);
+                showMessage('儲存失敗', 'error');
+            }
+        }
+
+        // 變更密碼相關變數
+        let passwordChangeId = null;
+
+        // 顯示變更密碼彈窗
+        function showPasswordModal(id) {
+            passwordChangeId = id;
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('passwordModal').classList.add('active');
+        }
+
+        // 關閉密碼彈窗
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+            passwordChangeId = null;
+        }
+
+        // 儲存新密碼
+        async function savePassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!newPassword) {
+                showMessage('請輸入新密碼', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showMessage('兩次輸入的密碼不一致', 'error');
+                return;
+            }
+
+            if (newPassword.length < 4) {
+                showMessage('密碼長度至少需要4個字符', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/staff/${passwordChangeId}/password`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: newPassword })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('密碼變更成功', 'success');
+                    closePasswordModal();
+                } else {
+                    showMessage('密碼變更失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('密碼變更失敗:', e);
+                showMessage('密碼變更失敗', 'error');
+            }
+        }
+
+        // 頁面載入
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStaff();
+        });
+    </script>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let staffData = [];
+        let editingId = null;
+
+        // 顯示訊息
+        function showMessage(text, type) {
+            const box = document.getElementById('messageBox');
+            box.textContent = text;
+            box.className = 'message ' + type;
+            setTimeout(() => { box.className = 'message'; }, 5000);
+        }
+
+        // 載入員工資料
+        async function loadStaff() {
+            try {
+                const res = await fetch('/api/staff');
+                const data = await res.json();
+                
+                if (data.success) {
+                    staffData = data.data || [];
+                    console.log('員工資料載入成功:', staffData.length, '筆');
+                    renderTable();
+                } else {
+                    showMessage('載入失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('載入員工資料失敗:', e);
+                showMessage('載入失敗', 'error');
+            }
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('staffTable');
+            
+            if (staffData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#8892b0;">暫無資料</td></tr>';
+                return;
+            }
+            
+            const roleLabels = {
+                'boss': '老闆',
+                'accountant': '會計',
+                'manager': '主管',
+                'supervisor': '督導',
+                'staff': '職員',
+                'sales': '業務',
+                'engineer': '工程師'
+            };
+            
+            tbody.innerHTML = staffData.map(s => `
+                <tr>
+                    <td><small style="color:#8892b0;">${s.id || '-'}</small></td>
+                    <td><strong>${s.staff_code || '-'}</strong></td>
+                    <td>${s.name}</td>
+                    <td>${s.department || '-'}</td>
+                    <td>${s.store || '-'}</td>
+                    <td>${roleLabels[s.role] || s.role || '-'}</td>
+                    <td>${s.mobile || s.phone || '-'}</td>
+                    <td><span class="status-badge ${s.is_active ? 'status-active' : 'status-inactive'}">${s.is_active ? '啟用' : '停用'}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editStaff('${s.id}')" style="padding:5px 10px;font-size:0.85em;">編輯</button>
+                        <button class="btn btn-warning" onclick="showPasswordModal('${s.id}')" style="padding:5px 10px;font-size:0.85em;margin-left:5px;">變更密碼</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 顯示新增彈窗
+        function showCreateModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = '新增員工';
+            document.getElementById('systemIdGroup').style.display = 'none';
+            document.getElementById('staffSystemId').value = '';
+            document.getElementById('staffCode').value = '';
+            document.getElementById('staffName').value = '';
+            document.getElementById('staffIdNumber').value = '';
+            document.getElementById('staffMobile').value = '';
+            document.getElementById('staffDept').value = '';
+            document.getElementById('staffStore').value = '';
+            document.getElementById('staffRole').value = '';
+            document.getElementById('staffStatus').value = '1';
+            document.getElementById('staffBirthDate').value = '';
+            document.getElementById('staffHireDate').value = '';
+            document.getElementById('staffModal').classList.add('active');
+        }
+
+        // 編輯員工
+        function editStaff(id) {
+            const staff = staffData.find(s => s.id === id);
+            if (!staff) return;
+
+            editingId = id;
+            document.getElementById('modalTitle').textContent = '編輯員工';
+            document.getElementById('systemIdGroup').style.display = 'block';
+            document.getElementById('staffSystemId').value = staff.id || '';
+            document.getElementById('staffCode').value = staff.staff_code || '';
+            document.getElementById('staffName').value = staff.name || '';
+            document.getElementById('staffIdNumber').value = staff.id_number || '';
+            document.getElementById('staffMobile').value = staff.mobile || staff.phone || '';
+            document.getElementById('staffDept').value = staff.department || '';
+            document.getElementById('staffStore').value = staff.store || '';
+            document.getElementById('staffRole').value = staff.role || '';
+            document.getElementById('staffStatus').value = staff.is_active ? '1' : '0';
+            document.getElementById('staffBirthDate').value = staff.birth_date || '';
+            document.getElementById('staffHireDate').value = staff.hire_date || '';
+            document.getElementById('staffModal').classList.add('active');
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('staffModal').classList.remove('active');
+        }
+
+        // 儲存員工
+        async function saveStaff() {
+            const code = document.getElementById('staffCode').value.trim();
+            const name = document.getElementById('staffName').value.trim();
+            const dept = document.getElementById('staffDept').value;
+            const store = document.getElementById('staffStore').value;
+            const role = document.getElementById('staffRole').value;
+            const mobile = document.getElementById('staffMobile').value.trim();
+            const birthDate = document.getElementById('staffBirthDate').value;
+            const hireDate = document.getElementById('staffHireDate').value;
+            const status = document.getElementById('staffStatus').value;
+            const idNumber = document.getElementById('staffIdNumber').value.trim();
+            
+            if (!code || !name) {
+                showMessage('請填寫員工編號和姓名', 'error');
+                return;
+            }
+            
+            const payload = {
+                staff_code: code,
+                name: name,
+                department: dept,
+                store: store,
+                role: role,
+                mobile: mobile,
+                birth_date: birthDate || null,
+                hire_date: hireDate || null,
+                is_active: status === '1',
+                id_number: idNumber
+            };
+            
+            try {
+                const url = editingId ? `/api/staff/${editingId}` : '/api/staff';
+                const method = editingId ? 'PUT' : 'POST';
+                
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showMessage(editingId ? '更新成功' : '新增成功', 'success');
+                    closeModal();
+                    loadStaff();
+                } else {
+                    showMessage('儲存失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('儲存失敗:', e);
+                showMessage('儲存失敗', 'error');
+            }
+        }
+
+        // 變更密碼相關變數
+        let passwordChangeId = null;
+
+        // 顯示變更密碼彈窗
+        function showPasswordModal(id) {
+            passwordChangeId = id;
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('passwordModal').classList.add('active');
+        }
+
+        // 關閉密碼彈窗
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+            passwordChangeId = null;
+        }
+
+        // 儲存新密碼
+        async function savePassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!newPassword) {
+                showMessage('請輸入新密碼', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showMessage('兩次輸入的密碼不一致', 'error');
+                return;
+            }
+
+            if (newPassword.length < 4) {
+                showMessage('密碼長度至少需要4個字符', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/staff/${passwordChangeId}/password`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: newPassword })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('密碼變更成功', 'success');
+                    closePasswordModal();
+                } else {
+                    showMessage('密碼變更失敗：' + data.error, 'error');
+                }
+            } catch (e) {
+                console.error('密碼變更失敗:', e);
+                showMessage('密碼變更失敗', 'error');
+            }
+        }
+
+        // 頁面載入
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStaff();
+        });
+</script>
+{% endblock %}

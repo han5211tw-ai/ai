@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}客戶搜尋系統 - 電腦舖{% endblock %}
+
+{% block page_title %}客戶搜尋系統{% endblock %}
+
+{% block content %}
+<!-- 原始內容開始 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客戶搜尋系統 - 電腦舖</title>
+    <link rel="stylesheet" href="shared/global-background.css">
+    <script src="shared/global-background.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px 40px;
+        }
+        .container {  margin: 0 auto; }
+        h1 {
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: left;
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover {
+            color: #00d4ff;
+            border-color: #00d4ff;
+        }
+        .search-box {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 20px 25px;
+            font-size: 1.2em;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            outline: none;
+        }
+        .search-input::placeholder { color: #8892b0; }
+        .search-input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+        .search-btn {
+            padding: 20px 40px;
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .search-btn:hover { transform: translateY(-2px); }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover, .nav a.active, .nav span.active {
+            color: #00d4ff;
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
+        }
+        .result-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .result-card.show { display: block; }
+        .customer-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .info-item { text-align: center; }
+        .info-label {
+            color: #8892b0;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+        .info-value {
+            font-size: 1.3em;
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        .purchase-history h3 {
+            color: #ffc107;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+        }
+        td { color: #ccd6f6; }
+        .no-result {
+            text-align: center;
+            padding: 60px;
+            color: #8892b0;
+            font-size: 1.2em;
+            display: none;
+        }
+        .no-result.show { display: block; }
+        .customer-list-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .customer-list-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #00d4ff;
+        }
+        .customer-list-name {
+            font-size: 1.1em;
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        .customer-list-id {
+            color: #8892b0;
+            font-size: 0.9em;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #00d4ff;
+            font-size: 1.1em;
+            display: none;
+        }
+        .loading.show { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <p class="subtitle">輸入客戶姓名或手機號碼，快速查詢客戶資料與消費紀錄</p>
+
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+            <a href="query.html" target="_blank">🔍 查詢中心</a>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" 
+                   placeholder="請輸入客戶姓名或手機號碼..." 
+                   onkeypress="if(event.key==='Enter') searchCustomer()">
+            <button class="search-btn" onclick="searchCustomer()">搜尋</button>
+        </div>
+        <p style="text-align: center; color: #00d4ff; margin-bottom: 30px; font-size: 0.95em;" id="customerCount">載入中...</p>
+        
+        <div class="loading" id="loading">搜尋中...</div>
+        
+        <div class="no-result" id="noResult">找不到符合的客戶資料</div>
+        
+        <!-- 多筆結果列表 -->
+        <div class="result-card" id="customerListCard">
+            
+            <div id="customerList"></div>
+        </div>
+
+        <div class="result-card" id="resultCard">
+            <div class="customer-info">
+                <div class="info-item">
+                    <div class="info-label">客戶編號</div>
+                    <div class="info-value" id="customerId">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">客戶姓名</div>
+                    <div class="info-value" id="customerName">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">聯絡電話</div>
+                    <div class="info-value" id="customerPhone">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">消費總額</div>
+                    <div class="info-value" id="totalSpent">-</div>
+                </div>
+            </div>
+
+            <div class="purchase-history">
+                
+                <div id="purchaseTable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>產品編號</th>
+                                <th>產品名稱</th>
+                                <th>數量</th>
+                                <th>金額</th>
+                                <th>業務員</th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchaseBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 頁面載入時獲取客戶總數
+        async function loadCustomerCount() {
+            try {
+                const response = await fetch('/api/customer/count');
+                const data = await response.json();
+                document.getElementById('customerCount').textContent = `目前 ${data.count.toLocaleString()} 位客戶`;
+            } catch (error) {
+                console.error('載入客戶數量失敗:', error);
+                document.getElementById('customerCount').textContent = '目前 21,556 位客戶';
+            }
+        }
+        
+        // 頁面載入時執行
+        loadCustomerCount();
+        
+        async function searchCustomer() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword || keyword.length < 2) {
+                alert('請至少輸入 2 個字');
+                return;
+            }
+
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('resultCard').classList.remove('show');
+            document.getElementById('customerListCard').classList.remove('show');
+            document.getElementById('noResult').classList.remove('show');
+
+            try {
+                const response = await fetch('/api/customer/search?q=' + encodeURIComponent(keyword));
+                const data = await response.json();
+
+                document.getElementById('loading').classList.remove('show');
+
+                if (!data.found) {
+                    document.getElementById('noResult').classList.add('show');
+                    return;
+                }
+
+                // 多筆結果，顯示列表讓用戶選擇
+                if (data.multiple) {
+                    document.getElementById('resultCount').textContent = data.count;
+                    const listDiv = document.getElementById('customerList');
+                    listDiv.innerHTML = '';
+
+                    data.customers.forEach(c => {
+                        const item = document.createElement('div');
+                        item.className = 'customer-list-item';
+                        item.innerHTML = `
+                            <div>
+                                <span class="customer-list-name">${c.short_name}</span>
+                                <span class="customer-list-id"> (${c.customer_id})</span>
+                            </div>
+                            <div style="color: #8892b0; font-size: 0.9em;">
+                                ${c.mobile || c.phone1 || '無電話'}
+                            </div>
+                        `;
+                        item.onclick = () => loadCustomerDetail(c.customer_id);
+                        listDiv.appendChild(item);
+                    });
+
+                    document.getElementById('customerListCard').classList.add('show');
+                } else {
+                    // 單一結果，直接顯示
+                    displayCustomerDetail(data);
+                }
+            } catch (error) {
+                console.error('搜尋失敗:', error);
+                document.getElementById('loading').classList.remove('show');
+                alert('搜尋失敗，請稍後再試');
+            }
+        }
+
+        async function loadCustomerDetail(customerId) {
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('customerListCard').classList.remove('show');
+
+            try {
+                const response = await fetch('/api/customer/detail/' + encodeURIComponent(customerId));
+                const data = await response.json();
+
+                document.getElementById('loading').classList.remove('show');
+
+                if (data.found) {
+                    displayCustomerDetail(data);
+                } else {
+                    alert('無法載入客戶資料');
+                }
+            } catch (error) {
+                console.error('載入失敗:', error);
+                document.getElementById('loading').classList.remove('show');
+                alert('載入失敗，請稍後再試');
+            }
+        }
+
+        function displayCustomerDetail(data) {
+            document.getElementById('customerId').textContent = data.customer.customer_id || '-';
+            document.getElementById('customerName').textContent = data.customer.short_name || '-';
+            document.getElementById('customerPhone').textContent = data.customer.mobile || data.customer.phone1 || '-';
+            document.getElementById('totalSpent').textContent = 'NT$ ' + (data.total_spent || 0).toLocaleString();
+
+            const tbody = document.getElementById('purchaseBody');
+            tbody.innerHTML = '';
+
+            if (data.purchases && data.purchases.length > 0) {
+                data.purchases.forEach(p => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${p.date || '-'}</td>
+                            <td>${p.product_code || '-'}</td>
+                            <td>${p.product_name || '-'}</td>
+                            <td>${p.quantity || 0}</td>
+                            <td>NT$ ${(p.amount || 0).toLocaleString()}</td>
+                            <td>${p.salesperson || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8892b0;">暫無消費紀錄</td></tr>';
+            }
+
+            document.getElementById('resultCard').classList.add('show');
+        }
+    </script>
+</html>
+
+<!-- 原始內容結束 -->
+{% endblock %}

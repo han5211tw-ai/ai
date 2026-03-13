@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}會計專區 - 電腦舖{% endblock %}
+{% block page_title %}會計專區{% endblock %}
+
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0; padding: 0; }
+
+/* 區塊樣式 */
+.section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    color: #00d4ff;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+/* 表格樣式 */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+.items-table th,
+.items-table td {
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
+}
+
+.items-table th {
+    background: rgba(0, 212, 255, 0.1);
+    color: #00d4ff;
+}
+
+.items-table td {
+    color: var(--color-text-primary);
+}
+
+.items-table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* 輸入框樣式 */
+.items-table input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.items-table input:focus {
+    outline: none;
+    border-color: #00d4ff;
+}
+
+/* 按鈕樣式 */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.2s;
+    font-size: 0.85em;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.btn-danger {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    color: #f44336;
+}
+
+.btn-danger:hover {
+    background: rgba(244, 67, 54, 0.3);
+}
+
+/* 狀態標籤 */
+.status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.status-pending {
+    background: rgba(255, 152, 0, 0.15);
+    color: #ff9800;
+}
+
+.status-arrived {
+    background: rgba(0, 212, 255, 0.15);
+    color: #00d4ff;
+}
+
+.status-completed {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+}
+
+.status-cancelled {
+    background: rgba(244, 67, 54, 0.15);
+    color: #f44336;
+}
+
+/* 庫存標籤 */
+.stock-warehouse {
+    display: inline-block;
+    background: rgba(0, 212, 255, 0.1);
+    color: #00d4ff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin: 2px;
+    font-size: 0.8em;
+}
+
+/* 載入與空狀態 */
+.loading {
+    color: #8892b0;
+    text-align: center;
+    padding: 40px;
+}
+
+.empty-state {
+    text-align: center;
+    color: #8892b0;
+    padding: 40px;
+}
+
+/* 更新時間 */
+.update-time {
+    text-align: center;
+    color: #8892b0;
+    margin-top: 20px;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 待處理調撥需求 -->
+    <div class="section">
+        <div class="section-title">🚚 待處理調撥需求</div>
+        <div id="needsTable">
+            <div class="loading">載入中...</div>
+        </div>
+    </div>
+
+    <!-- 所有人的當月班表 -->
+    <div class="section">
+        <div class="section-title">📅 所有人的當月班表</div>
+        <div id="monthlyRosterTable">
+            <div class="loading">載入中...</div>
+        </div>
+    </div>
+
+    <div class="update-time">
+        資料即時從資料庫讀取 | 最後更新：<span id="updateTime">--</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 取得當前使用者資訊
+    function getCurrentUser() {
+        const data = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+        return data ? JSON.parse(data) : null;
+    }
+
+    // 載入需求表（只顯示調撥且未處理的項目）
+    async function loadNeeds() {
+        try {
+            const response = await fetch('/api/needs/latest?type=' + encodeURIComponent('調撥'));
+            const data = await response.json();
+
+            if (!data.items || data.items.length === 0) {
+                document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無調撥需求</div>';
+                return;
+            }
+
+            const html = `
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>項次</th>
+                            <th>日期</th>
+                            <th>產品編號</th>
+                            <th>產品名稱</th>
+                            <th>數量</th>
+                            <th>調撥來源</th>
+                            <th>需求部門</th>
+                            <th>填表人員</th>
+                            <th>庫存狀況</th>
+                            <th>備註</th>
+                            <th>狀態</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.items.map((item, idx) => `
+                            <tr data-id="${item.id}">
+                                <td>${idx + 1}</td>
+                                <td>${item.date || '-'}</td>
+                                <td style="${item.product_code && item.product_code.startsWith('TEMP') ? 'color:#f44336;font-weight:bold;' : ''}">${item.product_code || '-'}</td>
+                                <td>${item.display_name || item.item_name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${item.transfer_from || '-'}</td>
+                                <td>${item.department || '-'}</td>
+                                <td>${item.requester || '-'}</td>
+                                <td>
+                                    ${item.stock_warehouses && item.stock_warehouses.length > 0
+                                        ? item.stock_warehouses.map(sw => `<span class="stock-warehouse">${sw.warehouse}: ${sw.qty}</span>`).join('')
+                                        : '-'
+                                    }
+                                </td>
+                                <td>
+                                    <input type="text" id="remark-${item.id}" value="${item.remark || ''}" placeholder="輸入備註...">
+                                </td>
+                                <td>
+                                    <span class="status status-${item.status === '待處理' ? 'pending' : item.status === '已調撥' ? 'arrived' : 'completed'}">${item.status}</span>
+                                </td>
+                                <td>
+                                    ${item.status === '待處理'
+                                        ? `<button class="btn btn-success" onclick="transferNeed(${item.id}, this)">已調撥</button>
+                                           <button class="btn btn-danger" onclick="cancelNeed(${item.id}, this)">取消</button>`
+                                        : ''
+                                    }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('needsTable').innerHTML = html;
+        } catch (error) {
+            console.error('載入需求表失敗:', error);
+            document.getElementById('needsTable').innerHTML = '<div class="empty-state">需求資料載入失敗</div>';
+        }
+    }
+
+    // 標記需求為已調撥
+    async function transferNeed(id, btn) {
+        if (!confirm('確定要標記此需求為已調撥嗎？')) {
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '處理中...';
+
+        const currentUser = getCurrentUser();
+
+        try {
+            const response = await fetch('/api/needs/transfer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, requester: currentUser ? currentUser.name : '' })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const row = btn.closest('tr');
+                const statusCell = row.cells[row.cells.length - 2];
+                statusCell.innerHTML = '<span class="status status-arrived">已調撥</span>';
+                btn.outerHTML = '<span style="color:#4caf50;">✓ 已調撥</span>';
+            } else {
+                alert('標記失敗：' + (result.message || '未知錯誤'));
+                btn.disabled = false;
+                btn.textContent = '已調撥';
+            }
+        } catch (error) {
+            console.error('標記失敗:', error);
+            alert('標記失敗，請稍後再試');
+            btn.disabled = false;
+            btn.textContent = '已調撥';
+        }
+    }
+
+    // 取消需求
+    async function cancelNeed(id, btn) {
+        if (!confirm('確定要取消此需求嗎？')) {
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '處理中...';
+
+        const currentUser = getCurrentUser();
+
+        try {
+            const response = await fetch('/api/needs/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, is_accountant: true, requester: currentUser ? currentUser.name : '' })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const row = btn.closest('tr');
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                    const rows = document.querySelectorAll('#needsTable tbody tr');
+                    rows.forEach((r, idx) => {
+                        r.cells[0].textContent = idx + 1;
+                    });
+                    if (rows.length === 0) {
+                        document.getElementById('needsTable').innerHTML = '<div class="empty-state">暫無需求資料</div>';
+                    }
+                }, 300);
+            } else {
+                alert('取消失敗：' + (result.message || '未知錯誤'));
+                btn.disabled = false;
+                btn.textContent = '取消';
+            }
+        } catch (error) {
+            console.error('取消需求失敗:', error);
+            alert('取消失敗，請稍後再試');
+            btn.disabled = false;
+            btn.textContent = '取消';
+        }
+    }
+
+    // 更新時間
+    document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
+
+    // 載入資料
+    loadNeeds();
+    loadMonthlyRoster();
+
+    // 每 1 小時自動重新整理
+    setInterval(() => {
+        location.reload();
+    }, 3600000);
+
+    // 載入所有人的當月班表
+    async function loadMonthlyRoster() {
+        const container = document.getElementById('monthlyRosterTable');
+        container.innerHTML = '<div class="loading">載入中...</div>';
+
+        try {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            const stores = ['豐原', '潭子', '大雅'];
+            let allStaffRoster = {};
+
+            for (const store of stores) {
+                const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+                const endDate = `${year}-${String(month).padStart(2, '0')}-${daysInMonth}`;
+
+                const response = await fetch(`/api/roster/range?store=${encodeURIComponent(store)}&start=${startDate}&end=${endDate}`);
+                const data = await response.json();
+
+                if (data.success && data.roster) {
+                    data.roster.forEach(record => {
+                        if (!allStaffRoster[record.staff_name]) {
+                            allStaffRoster[record.staff_name] = {
+                                store: store,
+                                shifts: {}
+                            };
+                        }
+                        allStaffRoster[record.staff_name].shifts[record.date] = record.shift_code;
+                    });
+                }
+            }
+
+            if (Object.keys(allStaffRoster).length === 0) {
+                container.innerHTML = '<div class="empty-state">暫無班表資料</div>';
+                return;
+            }
+
+            let html = '<table class="items-table">';
+            html += '<thead><tr>';
+            html += '<th>人員</th>';
+            html += '<th>門市</th>';
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const weekday = new Date(year, month - 1, day).getDay();
+                const weekdayName = ['日', '一', '二', '三', '四', '五', '六'][weekday];
+                const isWeekend = weekday === 0 || weekday === 6;
+                const bgStyle = isWeekend ? 'background:rgba(244,67,54,0.1);' : '';
+                html += `<th style="text-align:center;${bgStyle}">${day}<br>${weekdayName}</th>`;
+            }
+
+            html += '</tr></thead><tbody>';
+
+            const sortedStaff = Object.entries(allStaffRoster).sort((a, b) => {
+                const storeOrder = { '豐原': 1, '潭子': 2, '大雅': 3 };
+                const orderA = storeOrder[a[1].store] || 99;
+                const orderB = storeOrder[b[1].store] || 99;
+                if (orderA !== orderB) return orderA - orderB;
+                return a[0].localeCompare(b[0]);
+            });
+
+            sortedStaff.forEach(([name, data]) => {
+                html += '<tr>';
+                html += `<td>${name}</td>`;
+                html += `<td>${data.store}</td>`;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const shift = data.shifts[dateStr] || '';
+
+                    let shiftColor = '#8892b0';
+                    let shiftBg = '';
+
+                    if (shift === '早班' || shift === '早') {
+                        shiftColor = '#ff9800';
+                        shiftBg = 'background:rgba(255,152,0,0.2);';
+                    } else if (shift === '中班' || shift === '中') {
+                        shiftColor = '#4caf50';
+                        shiftBg = 'background:rgba(76,175,80,0.2);';
+                    } else if (shift === '晚班' || shift === '晚') {
+                        shiftColor = '#9c27b0';
+                        shiftBg = 'background:rgba(156,39,176,0.2);';
+                    } else if (shift === '全班' || shift === '全') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'background:rgba(0,212,255,0.2);';
+                    } else if (shift === '值班' || shift === '值') {
+                        shiftColor = '#e91e63';
+                        shiftBg = 'background:rgba(233,30,99,0.2);';
+                    } else if (shift === '休假' || shift === '休' || shift === '特休' || shift === '特') {
+                        shiftColor = '#00d4ff';
+                        shiftBg = 'background:rgba(0,212,255,0.1);';
+                    }
+
+                    const weekday = new Date(year, month - 1, day).getDay();
+                    const isWeekend = weekday === 0 || weekday === 6;
+                    const weekendBg = isWeekend ? 'background:rgba(244,67,54,0.05);' : '';
+
+                    html += `<td style="text-align:center;color:${shiftColor};${shiftBg}${weekendBg}">${shift || '-'}</td>`;
+                }
+
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+        } catch (error) {
+            console.error('載入班表失敗:', error);
+            container.innerHTML = '<div class="empty-state">班表資料載入失敗</div>';
+        }
+    }
+</script>
+{% endblock %}
