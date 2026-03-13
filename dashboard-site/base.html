@@ -677,6 +677,16 @@
                 ]
             },
             {
+                id: 'bonus',
+                title: '銷售獎金',
+                icon: '💰',
+                items: [
+                    { id: 'bonus-rules', icon: '📝', label: '獎金規則管理', route: '/admin/bonus_rules', roles: ['老闆', '會計'] },
+                    { id: 'bonus-report', icon: '📊', label: '獎金報表', route: '/admin/bonus_report', roles: ['老闆', '會計'] },
+                    { id: 'bonus-personal', icon: '💵', label: '我的獎金', route: '/bonus_personal', roles: ['老闆', '會計'] }
+                ]
+            },
+            {
                 id: 'system',
                 title: '系統管理',
                 icon: '⚙️',
