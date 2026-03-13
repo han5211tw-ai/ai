@@ -4522,7 +4522,7 @@ def search_product_master():
 
     cursor.execute("""
         SELECT product_code, product_name, category
-        FROM product_master
+        FROM products
         WHERE product_code LIKE ?
            OR product_name LIKE ?
         ORDER BY

@@ -63,19 +63,19 @@
         </div>
         
         <div style="margin-bottom: 16px; position: relative;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">從產品主檔搜尋</label>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">從產品主檔搜尋 *</label>
             <input type="text" id="productSearch" placeholder="輸入產品名稱搜尋..." oninput="searchProductRealtime(this)" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
             <div id="productSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
         </div>
         
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">項目名稱 *（對應需求表 item_name）</label>
-            <input type="text" id="productItemName" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品編號</label>
+            <input type="text" id="productCode" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品編號（對應需求表 product_code）</label>
-            <input type="text" id="productCode" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品名稱 *（對應需求表 item_name）</label>
+            <input type="text" id="productItemName" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px;">
