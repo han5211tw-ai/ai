@@ -62,14 +62,20 @@
             </select>
         </div>
         
+        <div style="margin-bottom: 16px; position: relative;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品搜尋 *</label>
+            <input type="text" id="productSearch" placeholder="輸入產品名稱搜尋..." oninput="searchProductRealtime(this)" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <div id="productSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
+        </div>
+        
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品型號 *</label>
-            <input type="text" id="productModelNo" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品編號 *</label>
+            <input type="text" id="productModelNo" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品名稱 *</label>
-            <input type="text" id="productName" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <input type="text" id="productName" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px;">
@@ -271,6 +277,7 @@ function renderProducts() {
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
                                     <span style="font-weight: 500; color: #fff;">${p.model_no}</span>
+                                    <span style="font-size: 12px; color: #64748b;">(編號)</span>
                                     ${p.is_active ? '' : '<span style="font-size: 12px; color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 2px 8px; border-radius: 4px;">已下架</span>'}
                                 </div>
                                 <div style="color: #94a3b8; margin-bottom: 6px;">${p.name}</div>
@@ -393,6 +400,51 @@ async function deleteProduct(id) {
         alert('刪除失敗');
     }
 }
+
+// 即時搜尋產品
+async function searchProductRealtime(input) {
+    const keyword = input.value.trim();
+    const suggestions = document.getElementById('productSuggestions');
+
+    if (keyword.length < 2) {
+        suggestions.style.display = 'none';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/product-master/search?keyword=' + encodeURIComponent(keyword));
+        const data = await response.json();
+
+        if (data.items && data.items.length > 0) {
+            suggestions.innerHTML = data.items.map(p => {
+                return `<div onclick="selectProduct('${p.product_code.replace(/'/g, "\\'")}', '${p.product_name.replace(/'/g, "\\'")}')" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); min-width: 280px;">
+                    <div style="font-weight:500; color: #fff;">${p.product_name}</div>
+                    <div style="font-size:0.85em; color: #64748b; margin-top: 2px;">${p.product_code}</div>
+                </div>`;
+            }).join('');
+            suggestions.style.display = 'block';
+        } else {
+            suggestions.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('搜尋產品失敗:', error);
+    }
+}
+
+// 選擇產品
+function selectProduct(productCode, productName) {
+    document.getElementById('productSearch').value = productName;
+    document.getElementById('productModelNo').value = productCode;
+    document.getElementById('productName').value = productName;
+    document.getElementById('productSuggestions').style.display = 'none';
+}
+
+// 點擊外部關閉產品建議下拉選單
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#productSearch') && !e.target.closest('#productSuggestions')) {
+        document.getElementById('productSuggestions').style.display = 'none';
+    }
+});
 
 // 點擊 Modal 外部關閉
 document.getElementById('categoryModal').addEventListener('click', function(e) {

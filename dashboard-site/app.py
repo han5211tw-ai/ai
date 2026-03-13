@@ -9038,7 +9038,9 @@ def get_recommended_products():
     cursor = conn.cursor()
     try:
         query = '''
-            SELECT p.*, c.name as category_name
+            SELECT p.id, p.category_id, p.product_code as model_no, p.name, 
+                   p.external_link, p.description, p.min_stock, p.is_active, 
+                   p.sort_order, p.created_at, c.name as category_name
             FROM recommended_products p
             LEFT JOIN recommended_categories c ON p.category_id = c.id
             WHERE 1=1
@@ -9069,24 +9071,24 @@ def create_recommended_product():
     """新增推薦商品"""
     data = request.get_json()
     
-    model_no = data.get('model_no', '').strip()
+    product_code = data.get('model_no', '').strip()
     name = data.get('name', '').strip()
     category_id = data.get('category_id')
     external_link = data.get('external_link', '').strip()
     description = data.get('description', '').strip()
     min_stock = data.get('min_stock', 1)
     
-    if not model_no or not name:
-        return jsonify({'success': False, 'message': '型號和名稱不能為空'}), 400
+    if not product_code or not name:
+        return jsonify({'success': False, 'message': '編號和名稱不能為空'}), 400
     
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute('''
             INSERT INTO recommended_products 
-            (category_id, model_no, name, external_link, description, min_stock, sort_order)
+            (category_id, product_code, name, external_link, description, min_stock, sort_order)
             VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM recommended_products))
-        ''', (category_id, model_no, name, external_link, description, min_stock))
+        ''', (category_id, product_code, name, external_link, description, min_stock))
         conn.commit()
         return jsonify({'success': True, 'id': cursor.lastrowid, 'message': '商品新增成功'})
     except Exception as e:
@@ -9101,7 +9103,7 @@ def update_recommended_product(product_id):
     """更新推薦商品"""
     data = request.get_json()
     
-    model_no = data.get('model_no', '').strip()
+    product_code = data.get('model_no', '').strip()
     name = data.get('name', '').strip()
     category_id = data.get('category_id')
     external_link = data.get('external_link', '').strip()
@@ -9109,18 +9111,18 @@ def update_recommended_product(product_id):
     min_stock = data.get('min_stock', 1)
     is_active = data.get('is_active', 1)
     
-    if not model_no or not name:
-        return jsonify({'success': False, 'message': '型號和名稱不能為空'}), 400
+    if not product_code or not name:
+        return jsonify({'success': False, 'message': '編號和名稱不能為空'}), 400
     
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute('''
             UPDATE recommended_products 
-            SET category_id = ?, model_no = ?, name = ?, external_link = ?, 
+            SET category_id = ?, product_code = ?, name = ?, external_link = ?, 
                 description = ?, min_stock = ?, is_active = ?
             WHERE id = ?
-        ''', (category_id, model_no, name, external_link, description, min_stock, is_active, product_id))
+        ''', (category_id, product_code, name, external_link, description, min_stock, is_active, product_id))
         conn.commit()
         if cursor.rowcount == 0:
             return jsonify({'success': False, 'message': '商品不存在'}), 404
@@ -9173,7 +9175,7 @@ def create_order_from_recommended():
             
             # 取得商品資訊
             cursor.execute('''
-                SELECT model_no, name, min_stock 
+                SELECT product_code, name, min_stock 
                 FROM recommended_products 
                 WHERE id = ? AND is_active = 1
             ''', (product_id,))
@@ -9184,7 +9186,7 @@ def create_order_from_recommended():
             
             # 建立備貨需求
             need_no = f"REC-{datetime.now().strftime('%Y%m%d%H%M%S')}-{product_id}"
-            item_name = f"{product['model_no']} {product['name']}"
+            item_name = f"{product['product_code']} {product['name']}"
             
             cursor.execute('''
                 INSERT INTO needs (need_no, requester, item_name, quantity, request_type, status, source, created_at)

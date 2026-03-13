@@ -211,7 +211,7 @@ function renderProducts() {
                     <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; ${currentQty > 0 ? 'border-color: rgba(56, 189, 248, 0.4);' : ''}">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
                             <div style="flex: 1; min-width: 200px;">
-                                <div style="font-weight: 500; color: #fff; margin-bottom: 4px;">${p.model_no}</div>
+                                <div style="font-weight: 500; color: #fff; margin-bottom: 4px;">${p.model_no} <span style="font-size: 12px; color: #64748b;">(編號)</span></div>
                                 <div style="color: #94a3b8; margin-bottom: 8px;">${p.name}</div>
                                 ${p.description ? `<div style="color: #64748b; font-size: 0.9em; margin-bottom: 8px;">${p.description}</div>` : ''}
                                 ${p.external_link ? `<a href="${p.external_link}" target="_blank" style="color: #38bdf8; font-size: 0.85em; text-decoration: none;">🔗 查看規格</a>` : ''}
