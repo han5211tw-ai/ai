@@ -369,7 +369,8 @@
                     return;
                 }
                 
-                // 有權限，直接返回
+                // 有權限，直接返回（標記為已登入狀態）
+                authData._justLoggedIn = false;
                 resolve(authData);
                 return;
             }
@@ -386,6 +387,8 @@
                     return;
                 }
                 
+                // 標記為剛登入
+                data._justLoggedIn = true;
                 resolve(data);
             };
             

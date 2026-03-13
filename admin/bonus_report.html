@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}銷售獎金報表 - 電腦舖營運系統{% endblock %}
+{% block page_title %}📊 銷售獎金報表{% endblock %}
+
+{% block content %}
+<!-- 計算控制區塊 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #38bdf8; margin-bottom: 16px;">🧮 獎金計算</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">開始日期</label>
+            <input type="date" id="calcStartDate" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">結束日期</label>
+            <input type="date" id="calcEndDate" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+        </div>
+        <button onclick="calculateBonus()" style="padding: 10px 24px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+            🚀 開始計算
+        </button>
+    </div>
+</div>
+
+<!-- 查詢條件 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #38bdf8; margin-bottom: 16px;">🔍 查詢條件</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">週期起日</label>
+            <input type="date" id="filterStartDate" onchange="loadResults()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">週期迄日</label>
+            <input type="date" id="filterEndDate" onchange="loadResults()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">狀態</label>
+            <select id="filterStatus" onchange="loadResults()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                <option value="">全部</option>
+                <option value="pending">待確認</option>
+                <option value="confirmed">已確認</option>
+            </select>
+        </div>
+        <button onclick="exportReport()" style="padding: 10px 20px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 6px; cursor: pointer;">
+            📥 匯出報表
+        </button>
+    </div>
+</div>
+
+<!-- 統計摘要 -->
+<div id="summarySection" style="display: none; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #38bdf8; margin-bottom: 16px;">📈 統計摘要</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總筆數</div>
+            <div id="totalCount" style="color: #fff; font-size: 24px; font-weight: 500;">0</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總銷售額</div>
+            <div id="totalSales" style="color: #38bdf8; font-size: 24px; font-weight: 500;">NT$ 0</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總獎金</div>
+            <div id="totalBonus" style="color: #fbbf24; font-size: 24px; font-weight: 500;">NT$ 0</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">待確認</div>
+            <div id="pendingCount" style="color: #f87171; font-size: 24px; font-weight: 500;">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- 結果列表 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <h3 style="color: #38bdf8;">📋 獎金明細</h3>
+        <button onclick="batchConfirm()" style="padding: 8px 16px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+            ✓ 批次確認
+        </button>
+    </div>
+    
+    <div id="resultsList">
+        <div style="text-align: center; padding: 40px; color: #64748b;">請選擇查詢條件或執行計算</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let results = [];
+let selectedIds = [];
+
+// 頁面初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 預設本週日期
+    const today = new Date();
+    const monday = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+    const sunday = new Date(today.setDate(monday.getDate() + 6));
+    
+    document.getElementById('calcStartDate').value = monday.toISOString().split('T')[0];
+    document.getElementById('calcEndDate').value = sunday.toISOString().split('T')[0];
+    document.getElementById('filterStartDate').value = monday.toISOString().split('T')[0];
+    document.getElementById('filterEndDate').value = sunday.toISOString().split('T')[0];
+    
+    loadResults();
+});
+
+// 計算獎金
+async function calculateBonus() {
+    const startDate = document.getElementById('calcStartDate').value;
+    const endDate = document.getElementById('calcEndDate').value;
+    
+    if (!startDate || !endDate) {
+        alert('請選擇計算週期');
+        return;
+    }
+    
+    if (!confirm(`確定要計算 ${startDate} ~ ${endDate} 的獎金嗎？`)) return;
+    
+    try {
+        const response = await fetch('/api/bonus-calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ period_start: startDate, period_end: endDate })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            // 更新查詢日期並重新載入
+            document.getElementById('filterStartDate').value = startDate;
+            document.getElementById('filterEndDate').value = endDate;
+            loadResults();
+        } else {
+            alert(data.message || '計算失敗');
+        }
+    } catch (e) {
+        console.error('計算獎金失敗:', e);
+        alert('計算失敗');
+    }
+}
+
+// 載入計算結果
+async function loadResults() {
+    const startDate = document.getElementById('filterStartDate').value;
+    const endDate = document.getElementById('filterEndDate').value;
+    const status = document.getElementById('filterStatus').value;
+    
+    try {
+        let url = '/api/bonus-results?';
+        if (startDate) url += `period_start=${startDate}&`;
+        if (endDate) url += `period_end=${endDate}&`;
+        if (status) url += `status=${status}&`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.success) {
+            results = data.results;
+            selectedIds = [];
+            renderResults();
+            updateSummary();
+        }
+    } catch (e) {
+        console.error('載入結果失敗:', e);
+    }
+}
+
+// 渲染結果列表
+function renderResults() {
+    const container = document.getElementById('resultsList');
+    if (results.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">無符合條件的獎金記錄</div>';
+        document.getElementById('summarySection').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('summarySection').style.display = 'block';
+    
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: center; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <input type="checkbox" onchange="toggleSelectAll(this)">
+                    </th>
+                    <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">業務員</th>
+                    <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">產品</th>
+                    <th style="text-align: right; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">數量</th>
+                    <th style="text-align: right; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">銷售額</th>
+                    <th style="text-align: right; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">獎金</th>
+                    <th style="text-align: center; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">狀態</th>
+                    <th style="text-align: center; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${results.map(r => `
+                    <tr>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            <input type="checkbox" value="${r.id}" ${r.status !== 'pending' ? 'disabled' : ''} 
+                                   ${selectedIds.includes(r.id) ? 'checked' : ''} 
+                                   onchange="toggleSelect(${r.id})">
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="color: #fff;">${r.salesperson_name}</div>
+                            <div style="color: #64748b; font-size: 0.85em;">${r.salesperson_id}</div>
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="color: #fff;">${r.product_name}</div>
+                            <div style="color: #64748b; font-size: 0.85em;">${r.product_code}</div>
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #94a3b8;">
+                            ${r.sales_quantity}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #38bdf8;">
+                            NT$ ${r.sales_amount.toLocaleString()}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #fbbf24; font-weight: 500;">
+                            NT$ ${r.bonus_amount.toLocaleString()}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            ${r.status === 'pending' ? 
+                                '<span style="color: #fbbf24; font-size: 0.85em;">🟡 待確認</span>' : 
+                                '<span style="color: #22c55e; font-size: 0.85em;">🟢 已確認</span>'}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            ${r.status === 'pending' ? 
+                                `<button onclick="confirmResult(${r.id})" style="padding: 4px 10px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 4px; cursor: pointer; font-size: 12px;">確認</button>` : 
+                                '<span style="color: #64748b; font-size: 0.85em;">-</span>'}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+// 更新統計摘要
+function updateSummary() {
+    const totalCount = results.length;
+    const totalSales = results.reduce((sum, r) => sum + r.sales_amount, 0);
+    const totalBonus = results.reduce((sum, r) => sum + r.bonus_amount, 0);
+    const pendingCount = results.filter(r => r.status === 'pending').length;
+    
+    document.getElementById('totalCount').textContent = totalCount;
+    document.getElementById('totalSales').textContent = 'NT$ ' + totalSales.toLocaleString();
+    document.getElementById('totalBonus').textContent = 'NT$ ' + totalBonus.toLocaleString();
+    document.getElementById('pendingCount').textContent = pendingCount;
+}
+
+// 切換選擇
+function toggleSelect(id) {
+    if (selectedIds.includes(id)) {
+        selectedIds = selectedIds.filter(i => i !== id);
+    } else {
+        selectedIds.push(id);
+    }
+}
+
+// 全選/取消全選
+function toggleSelectAll(checkbox) {
+    if (checkbox.checked) {
+        selectedIds = results.filter(r => r.status === 'pending').map(r => r.id);
+    } else {
+        selectedIds = [];
+    }
+    renderResults();
+}
+
+// 確認單筆
+async function confirmResult(id) {
+    if (!confirm('確定要確認這筆獎金嗎？')) return;
+    
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    try {
+        const response = await fetch(`/api/bonus-results/${id}/confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirmed_by: user.name })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            loadResults();
+        } else {
+            alert(data.message || '確認失敗');
+        }
+    } catch (e) {
+        console.error('確認失敗:', e);
+        alert('確認失敗');
+    }
+}
+
+// 批次確認
+async function batchConfirm() {
+    if (selectedIds.length === 0) {
+        alert('請先選擇要確認的記錄');
+        return;
+    }
+    
+    if (!confirm(`確定要確認選擇的 ${selectedIds.length} 筆獎金嗎？`)) return;
+    
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    try {
+        const response = await fetch('/api/bonus-results/batch-confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ result_ids: selectedIds, confirmed_by: user.name })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            selectedIds = [];
+            loadResults();
+        } else {
+            alert(data.message || '批次確認失敗');
+        }
+    } catch (e) {
+        console.error('批次確認失敗:', e);
+        alert('批次確認失敗');
+    }
+}
+
+// 匯出報表
+function exportReport() {
+    if (results.length === 0) {
+        alert('無資料可匯出');
+        return;
+    }
+    
+    // CSV 標題
+    let csv = '業務員編號,業務員名稱,產品編號,產品名稱,數量,銷售額,獎金,狀態\n';
+    
+    // CSV 內容
+    results.forEach(r => {
+        csv += `${r.salesperson_id},${r.salesperson_name},${r.product_code},${r.product_name},${r.sales_quantity},${r.sales_amount},${r.bonus_amount},${r.status}\n`;
+    });
+    
+    // 下載
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `獎金報表_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+}
+</script>
+{% endblock %}
