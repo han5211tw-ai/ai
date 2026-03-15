@@ -359,29 +359,30 @@
         let currentPurchase = null;
 
         // 頁面載入時檢查權限（只有老闆跟會計可以進入）
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (window.checkAuth) {
-                const authResult = await window.checkAuth({ minRole: 'staff' });
-                if (!authResult.success) {
-                    window.location.href = 'index.html';
-                    return;
-                }
-                // 檢查是否為老闆或會計
-                const userTitle = authResult.title || '';
-                if (userTitle !== '老闆' && !userTitle.includes('會計')) {
-                    alert('⚠️ 只有老闆跟會計可以進入進貨頁面');
-                    window.location.href = 'index.html';
-                    return;
-                }
-                // 儲存使用者資訊並顯示
-                currentUser = authResult;
-                canEdit = true;
-                document.getElementById('userDisplay').textContent = authResult.user || '';
-                // 填入操作人員編號（從 staff_passwords 表取得）
-                await loadOperatorCode(authResult.user);
+        window.onLoginSuccess = async function(user) {
+            console.log('[Purchase] Login success:', user);
+            // 檢查是否為老闆或會計
+            const userTitle = user.title || '';
+            if (userTitle !== '老闆' && !userTitle.includes('會計')) {
+                alert('⚠️ 只有老闆跟會計可以進入進貨頁面');
+                window.location.href = '/';
+                return;
             }
+            // 儲存使用者資訊並顯示
+            currentUser = user;
+            canEdit = true;
+            document.getElementById('userDisplay').textContent = user.name || '';
+            // 填入操作人員編號（從 staff_passwords 表取得）
+            await loadOperatorCode(user.name);
+            // 載入進貨單列表
             loadPurchaseList();
-        });
+        };
+        
+        // 如果已經登入，直接載入
+        if (localStorage.getItem('currentUser')) {
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            window.onLoginSuccess(user);
+        }
     </script>
 
     <div class="container">
