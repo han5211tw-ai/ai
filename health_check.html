@@ -214,12 +214,12 @@ async function loadHealthData() {
 }
 
 function renderHealthData() {
-    updateStatusCard('system-card', healthData.system.status);
-    updateStatusCard('database-card', healthData.database.status);
-    updateStatusCard('import-card', healthData.import_status.status);
-    updateStatusCard('data-card', healthData.data_freshness.status);
-    updateStatusCard('api-card', healthData.api.status);
-    updateStatusCard('overall-card', healthData.overall_status);
+    updateStatusCard('system-card', healthData.system?.status || 'green');
+    updateStatusCard('database-card', healthData.database?.status || 'green');
+    updateStatusCard('import-card', healthData.ingest_status || 'green');
+    updateStatusCard('data-card', healthData.freshness_status || 'green');
+    updateStatusCard('api-card', healthData.api?.status || 'green');
+    updateStatusCard('overall-card', healthData.overall_status || 'green');
     createDetailsPanels();
 }
 
@@ -458,7 +458,10 @@ async function runAllScripts() {
     }
 }
 
-loadHealthData();
-setInterval(loadHealthData, 60000);
+// 等待登入成功後再載入資料
+window.onLoginSuccess = function(user) {
+    loadHealthData();
+    setInterval(loadHealthData, 60000);
+};
 </script>
 {% endblock %}
