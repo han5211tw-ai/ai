@@ -2026,6 +2026,13 @@ def admin_health_check():
     result = get_overall_health()
     return jsonify(result)
 
+# 頁面: 系統健康檢查（使用統一模板）
+@app.route('/admin/health')
+@require_admin
+def admin_health_page():
+    """系統健康檢查頁面 - 使用統一模板"""
+    return render_template('health_check.html')
+
 # API: 查詢指定客戶詳細資料
 @app.route('/api/customer/detail/<customer_id>')
 def get_customer_detail(customer_id):
