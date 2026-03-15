@@ -371,7 +371,6 @@
             // 儲存使用者資訊並顯示
             currentUser = user;
             canEdit = true;
-            document.getElementById('userDisplay').textContent = user.name || '';
             // 填入操作人員編號（從 staff_passwords 表取得）
             await loadOperatorCode(user.name);
             // 載入進貨單列表
@@ -833,19 +832,28 @@
 
         // 載入進貨單列表
         async function loadPurchaseList(page = 1, search = '') {
+            console.log('[Purchase] loadPurchaseList called, page:', page);
             currentPage = page;
             try {
                 const url = `/api/purchases/list?page=${page}&limit=50&search=${encodeURIComponent(search)}`;
+                console.log('[Purchase] Fetching URL:', url);
                 const response = await fetch(url);
+                console.log('[Purchase] Response status:', response.status);
                 const data = await response.json();
+                console.log('[Purchase] Response data:', data);
 
                 if (data.success) {
+                    console.log('[Purchase] Rendering', data.purchases.length, 'purchases');
                     renderPurchaseTable(data.purchases);
                     totalPages = data.total_pages;
                     updatePagination(data.page, data.total_pages, data.total);
+                } else {
+                    console.error('[Purchase] API returned error:', data);
+                    document.getElementById('purchaseTableBody').innerHTML = 
+                        '<tr><td colspan="6" style="text-align:center;color:var(--color-status-error);padding:30px;">載入失敗: ' + (data.message || '未知錯誤') + '</td></tr>';
                 }
             } catch (error) {
-                console.error('載入進貨單列表失敗:', error);
+                console.error('[Purchase] 載入進貨單列表失敗:', error);
                 document.getElementById('purchaseTableBody').innerHTML = 
                     '<tr><td colspan="6" style="text-align:center;color:var(--color-status-error);padding:30px;">載入失敗</td></tr>';
             }
