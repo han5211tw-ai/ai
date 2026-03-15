@@ -198,14 +198,15 @@
             </a>
         </div>
 
+        <div class="section-title">⭐ 五星好評統計</div>
         <div class="stats-grid" id="reviewStats">
             <div class="stat-card">
-                
+
             </div>
         </div>
 
         <div class="card">
-            
+            <h2>📊 門市業績總表</h2>
             <div id="storeTable">
                 <div class="loading">載入中...</div>
             </div>
@@ -213,13 +214,13 @@
 
         <div class="chart-row">
             <div class="card">
-                
+                <h2>🎯 門市達成率</h2>
                 <div class="chart-container">
                     <canvas id="achievementChart"></canvas>
                 </div>
             </div>
             <div class="card">
-                
+                <h2>💰 門市毛利率</h2>
                 <div class="chart-container">
                     <canvas id="marginChart"></canvas>
                 </div>
@@ -259,7 +260,7 @@
                 // 填充五星好評統計
                 const reviewHtml = reviewData.map(store => `
                     <div class="stat-card">
-                        
+                        <h3>${store.store_name || store.name || '門市'}</h3>
                         <div class="number">${store.reviews}</div>
                         <div class="stars">${'⭐'.repeat(store.reviews > 0 ? 5 : 0)}</div>
                     </div>
