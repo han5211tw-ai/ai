@@ -2031,7 +2031,7 @@ def admin_health_check():
 @require_admin
 def admin_health_page():
     """系統健康檢查頁面 - 使用統一模板"""
-    return render_template('health_check.html')
+    return render_template('health_check.html', current_user={'title': '老闆'})
 
 # API: 查詢指定客戶詳細資料
 @app.route('/api/customer/detail/<customer_id>')
