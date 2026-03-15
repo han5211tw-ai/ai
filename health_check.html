@@ -262,33 +262,42 @@ function createDetailsPanels() {
     }
     const dbPanel = createPanel('database', '資料庫狀態與監控', dbPanelItems);
     
-    const importChecks = healthData.import_status.checks || {};
+    // 匯入狀態 - 使用 observability API 格式
+    const ingest = healthData.ingest || {};
     const importItems = [
-        { label: '檢查日期', value: healthData.import_status.weekday_name + ' (' + healthData.import_status.expected_data_date + ')' },
-        { label: '整體狀態', value: getStatusText(healthData.import_status.status), status: healthData.import_status.status }
+        { label: '檢查日期', value: healthData.weekday_name + ' (' + healthData.import_status?.expected_data_date + ')' },
+        { label: '整體狀態', value: getStatusText(healthData.ingest_status), status: healthData.ingest_status }
     ];
-    if (importChecks.sales) importItems.push({ label: '銷貨資料', value: importChecks.sales.count + ' 筆', status: importChecks.sales.status === 'ok' ? 'green' : (importChecks.sales.status === 'error' ? 'red' : 'yellow'), message: importChecks.sales.message });
-    if (importChecks.purchase) importItems.push({ label: '進貨資料', value: importChecks.purchase.count + ' 筆', status: importChecks.purchase.status === 'ok' ? 'green' : (importChecks.purchase.status === 'error' ? 'red' : 'yellow'), message: importChecks.purchase.message });
-    if (importChecks.customer) importItems.push({ label: '客戶資料', value: importChecks.customer.count + ' 筆', status: importChecks.customer.status === 'ok' ? 'green' : (importChecks.customer.status === 'error' ? 'red' : 'yellow'), message: importChecks.customer.message });
-    importItems.push({ label: '綜合訊息', value: healthData.import_status.message });
-    const importPanel = createPanelV2('import', '匯入任務狀態 (v2)', importItems);
+    if (ingest.sales) importItems.push({ label: '銷貨資料', value: ingest.sales.yesterday_count + ' 筆', status: ingest.sales.status === 'OK' ? 'green' : 'yellow', message: ingest.sales.message || 'Latest: ' + ingest.sales.latest_date });
+    if (ingest.purchase) importItems.push({ label: '進貨資料', value: ingest.purchase.yesterday_count + ' 筆', status: ingest.purchase.status === 'OK' ? 'green' : 'yellow', message: ingest.purchase.message || 'Latest: ' + ingest.purchase.latest_date });
+    if (ingest.customers) importItems.push({ label: '客戶資料', value: ingest.customers.yesterday_count + ' 筆', status: ingest.customers.status === 'OK' ? 'green' : 'yellow', message: ingest.customers.message || 'Latest: ' + ingest.customers.latest_date });
+    if (ingest.inventory) importItems.push({ label: '庫存資料', value: ingest.inventory.yesterday_count + ' 筆', status: ingest.inventory.status === 'OK' ? 'green' : 'yellow', message: ingest.inventory.message || 'Latest: ' + ingest.inventory.latest_date });
+    const importPanel = createPanelV2('import', '匯入任務狀態', importItems);
     
-    const freshnessChecks = healthData.data_freshness.checks || {};
+    // 資料新鮮度 - 使用 observability API 格式
+    const freshness = healthData.freshness || [];
     const dataItems = [
-        { label: '檢查日期', value: healthData.data_freshness.weekday_name + ' (' + healthData.data_freshness.today + ')' },
-        { label: '預期資料日期', value: healthData.data_freshness.expected_data_date },
-        { label: '整體狀態', value: getStatusText(healthData.data_freshness.status), status: healthData.data_freshness.status }
+        { label: '檢查日期', value: healthData.weekday_name + ' (' + healthData.check_date + ')' },
+        { label: '整體狀態', value: getStatusText(healthData.freshness_status), status: healthData.freshness_status }
     ];
-    if (freshnessChecks.sales) dataItems.push({ label: '銷貨資料', value: healthData.data_freshness.latest_sales_date, status: freshnessChecks.sales.status === 'ok' ? 'green' : (freshnessChecks.sales.status === 'error' ? 'red' : 'yellow'), message: freshnessChecks.sales.message });
-    if (freshnessChecks.purchase) dataItems.push({ label: '進貨資料', value: healthData.data_freshness.latest_purchase_date, status: freshnessChecks.purchase.status === 'ok' ? 'green' : (freshnessChecks.purchase.status === 'error' ? 'red' : 'yellow'), message: freshnessChecks.purchase.message });
-    if (freshnessChecks.customer) dataItems.push({ label: '客戶資料', value: healthData.data_freshness.latest_customer_date, status: freshnessChecks.customer.status === 'ok' ? 'green' : (freshnessChecks.customer.status === 'error' ? 'red' : 'yellow'), message: freshnessChecks.customer.message });
-    dataItems.push({ label: '最新庫存日期', value: healthData.data_freshness.latest_inventory_date }, { label: '綜合訊息', value: healthData.data_freshness.message });
-    const dataPanel = createPanelV2('data', '資料新鮮度 (v2)', dataItems);
+    freshness.forEach(f => {
+        const status = f.status === 'OK' ? 'green' : (f.status === 'WARN' ? 'yellow' : 'red');
+        dataItems.push({ label: f.data_source, value: f.latest_business_date || '無資料', status: status, message: 'Row count: ' + (f.row_count || 0).toLocaleString() });
+    });
+    const dataPanel = createPanelV2('data', '資料新鮮度', dataItems);
     
-    const apiPanel = createPanel('api', 'API 狀態', [
-        { label: '平均響應時間', value: healthData.api.avg_response_time_ms_1h + ' ms' },
-        { label: '錯誤率', value: healthData.api.error_rate_percent_1h + '%', status: healthData.api.error_rate_percent_1h > 3 ? 'red' : (healthData.api.error_rate_percent_1h > 1 ? 'yellow' : 'green') }
-    ]);
+    // API 狀態
+    const apiPerf = healthData.api_performance || [];
+    const apiItems = [{ label: 'API 狀態', value: healthData.api?.status === 'green' ? '正常' : '異常', status: healthData.api?.status || 'green' }];
+    if (apiPerf.length > 0) {
+        apiItems.push({ label: 'API 效能記錄', value: apiPerf.length + ' 筆' });
+        apiPerf.slice(0, 5).forEach(p => {
+            apiItems.push({ label: '  ' + p.endpoint, value: Math.round(p.avg_duration_ms) + 'ms' });
+        });
+    } else {
+        apiItems.push({ label: 'API 效能', value: '暫無資料' });
+    }
+    const apiPanel = createPanel('api', 'API 狀態', apiItems);
     
     const scriptsList = [
         { name: '庫存模組', time: '10:30' }, { name: '進貨模組', time: '10:35' },
