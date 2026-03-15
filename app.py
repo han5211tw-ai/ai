@@ -735,8 +735,8 @@ def render_page_html(page):
 @app.route('/<path:page>')
 def render_page(page):
     """渲染模板頁面（無副檔名版本）"""
-    # 排除 API 路徑和靜態檔案
-    if page.startswith('api/') or page.startswith('static/'):
+    # 排除 API、admin 和靜態檔案路徑
+    if page.startswith('api/') or page.startswith('static/') or page.startswith('admin/'):
         abort(404)
     try:
         return render_template(f'{page}.html')
