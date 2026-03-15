@@ -198,7 +198,10 @@ let currentOpenPanel = null;
 
 async function loadHealthData() {
     try {
-        const response = await fetch('/api/v1/admin/health');
+        // 從 localStorage 取得目前使用者
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const adminParam = user.name ? `?admin=${encodeURIComponent(user.name)}` : '';
+        const response = await fetch('/api/v1/admin/health' + adminParam);
         if (!response.ok) throw new Error('API 回傳錯誤: ' + response.status);
         healthData = await response.json();
         renderHealthData();
@@ -214,21 +217,33 @@ async function loadHealthData() {
 }
 
 function renderHealthData() {
-    updateStatusCard('system-card', healthData.system?.status || 'green');
-    updateStatusCard('database-card', healthData.database?.status || 'green');
+    console.log('[Health] renderHealthData called, healthData:', healthData);
+    if (!healthData) {
+        console.error('[Health] healthData is null!');
+        return;
+    }
+    updateStatusCard('system-card', healthData.system && healthData.system.status ? healthData.system.status : 'green');
+    updateStatusCard('database-card', healthData.database && healthData.database.status ? healthData.database.status : 'green');
     updateStatusCard('import-card', healthData.ingest_status || 'green');
     updateStatusCard('data-card', healthData.freshness_status || 'green');
-    updateStatusCard('api-card', healthData.api?.status || 'green');
+    updateStatusCard('api-card', healthData.api && healthData.api.status ? healthData.api.status : 'green');
     updateStatusCard('overall-card', healthData.overall_status || 'green');
     createDetailsPanels();
 }
 
 function updateStatusCard(cardId, status) {
+    console.log('[Health] updateStatusCard:', cardId, status);
     const card = document.getElementById(cardId);
+    if (!card) {
+        console.error('[Health] Card not found:', cardId);
+        return;
+    }
     card.classList.remove('green', 'yellow', 'red');
     card.classList.add(status);
     const icon = card.querySelector('.status-icon');
-    icon.textContent = status === 'green' ? '✓' : (status === 'yellow' ? '!' : '✕');
+    if (icon) {
+        icon.textContent = status === 'green' ? '✓' : (status === 'yellow' ? '!' : '✕');
+    }
 }
 
 function createDetailsPanels() {
@@ -395,7 +410,8 @@ async function runSingleScript(index, scriptName) {
     statusEl.textContent = '執行中';
     runCard.classList.add('running');
     try {
-        const response = await fetch('/api/v1/admin/run-script', {
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const response = await fetch('/api/v1/admin/run-script?admin=' + encodeURIComponent(user.name || ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ script_name: scriptName })
@@ -430,7 +446,8 @@ async function runAllScripts() {
     document.querySelectorAll('.run-script-btn').forEach(el => el.disabled = true);
     const scripts = ['庫存模組', '進貨模組', '銷貨模組', '客戶模組', '評論模組', '班表模組', '績效模組', '業績計算', '督導評分表', '出勤服務記錄', '需求表模組', 'AI 業績分析', '數據備份'];
     try {
-        const response = await fetch('/api/v1/admin/run-scripts', {
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const response = await fetch('/api/v1/admin/run-scripts?admin=' + encodeURIComponent(user.name || ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -460,8 +477,16 @@ async function runAllScripts() {
 
 // 等待登入成功後再載入資料
 window.onLoginSuccess = function(user) {
+    console.log('[Health] onLoginSuccess called, user:', user);
     loadHealthData();
     setInterval(loadHealthData, 60000);
 };
+
+// 如果已經登入（頁面重新整理時），直接載入
+if (localStorage.getItem('currentUser')) {
+    console.log('[Health] User already logged in, loading data...');
+    loadHealthData();
+    setInterval(loadHealthData, 60000);
+}
 </script>
 {% endblock %}
