@@ -2146,6 +2146,16 @@ def admin_recommended_products_page():
     """推薦備貨商品管理頁面"""
     return render_template('admin/recommended_products.html')
 
+@app.route('/admin/bonus_rules')
+def admin_bonus_rules_page():
+    """獎金規則管理頁面"""
+    return render_template('admin/bonus_rules.html')
+
+@app.route('/admin/bonus_report')
+def admin_bonus_report_page():
+    """獎金報表頁面"""
+    return render_template('admin/bonus_report.html')
+
 # API: 查詢指定客戶詳細資料
 @app.route('/api/customer/detail/<customer_id>')
 def get_customer_detail(customer_id):

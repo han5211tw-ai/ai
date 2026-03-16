@@ -13,6 +13,7 @@
 | 10:45 | 客戶模組 | `customer_parser.py` | |
 | 10:50 | 評論模組（舊） | `feedback_parser.py` | OneDrive 匯入，4/1 後改用 `google_reviews_parser.py` |
 | **00:00** | **Google 評論抓取** | `google_reviews_parser.py` | **4/1 起：讀取 Gmail 通知信** |
+| **12:00** | **微星庫存週報** | `msi_inventory_report.py` | **每週一中午：匯出微星庫存 CSV** |
 | 10:55 | 班表模組 | `roster_parser.py` | |
 | 11:00 | 績效模組 | `performance_parser.py` | V7：目標表 + sales_history |
 | 11:05 | 業績計算 | `calculate_performance.py` | |

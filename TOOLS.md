@@ -123,4 +123,40 @@ cd /Users/aiserver/.openclaw/workspace/dashboard-site
 
 ---
 
+### 通知機器人 (Telegram Bot)
+
+**正式名稱:** 通知機器人  
+**用途:** 需求表通知、微星庫存週報、系統告警  
+**Bot Token:** `8623161623:AAGWlwGjp0Vf3bzpiVgLltQFbcGFY4kpFxo`  
+**Chat ID:** `8545239755` (Alan)
+
+**使用方式:**
+```python
+import requests
+
+TELEGRAM_BOT_TOKEN = "8623161623:AAGWlwGjp0Vf3bzpiVgLltQFbcGFY4kpFxo"
+TELEGRAM_CHAT_ID = "8545239755"
+
+def send_telegram_message(message, file_path=None):
+    if file_path:
+        # 傳送檔案
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
+        with open(file_path, 'rb') as f:
+            files = {'document': f}
+            data = {'chat_id': TELEGRAM_CHAT_ID, 'caption': message}
+            response = requests.post(url, files=files, data=data)
+    else:
+        # 傳送文字
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {'chat_id': TELEGRAM_CHAT_ID, 'text': message}
+        response = requests.post(url, data=data)
+    return response
+```
+
+**相關腳本:**
+- `msi_inventory_report.py` - 微星庫存週報
+- `app.py` - 需求表通知 (調撥/請購)
+
+---
+
 Add whatever helps you do your job. This is your cheat sheet.
