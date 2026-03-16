@@ -1,6 +1,8 @@
-# 看板系統
+# ERP 營運系統
 
-## Dashboard 網站
+## 系統概述
+
+**正名**: ERP 營運系統（原名 Dashboard 營運系統）
 
 - **URL**: http://localhost:3000
 - **技術**: Flask + HTML/JavaScript

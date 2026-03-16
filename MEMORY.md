@@ -7,7 +7,7 @@ _主索引檔案 - 快速查找與關鍵規則_
 |------|----------|----------|
 | **系統架構** | [memory/system-architecture.md](memory/system-architecture.md) | 主機環境、目錄結構、核心檔案 |
 | **資料來源** | [memory/data-sources.md](memory/data-sources.md) | OneDrive 資料夾、檔案格式 |
-| **看板系統** | [memory/dashboard-system.md](memory/dashboard-system.md) | Dashboard 網站、API、頁面結構 |
+| **ERP 營運系統** | [memory/dashboard-system.md](memory/dashboard-system.md) | ERP 營運系統（原 Dashboard）、API、頁面結構 |
 | **Parser 系統** | [memory/parser-system.md](memory/parser-system.md) | 所有 Parser 腳本、功能說明 |
 | **資料庫** | [memory/database-schema.md](memory/database-schema.md) | 資料表結構、欄位定義 |
 | **排程任務** | [memory/cron-schedule.md](memory/cron-schedule.md) | Cron 時間表、自動化流程 |
