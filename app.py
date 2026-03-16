@@ -1210,15 +1210,123 @@ def get_store_performance():
 
     return jsonify(result)
 
-# API: 門市五星好評
+# API: 門市五星好評（相容舊版 store_reviews，4/1 後改用 google_reviews_stats）
 @app.route('/api/store/reviews')
 def get_store_reviews():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT store_name, review_count FROM store_reviews")
+
+    # 檢查是否有 google_reviews_stats 表（4/1 新系統）
+    cursor.execute("""
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name='google_reviews_stats'
+    """)
+    has_new_table = cursor.fetchone()
+
+    if has_new_table:
+        # 使用新系統資料
+        cursor.execute("""
+            SELECT store_name, five_star as review_count
+            FROM google_reviews_stats
+            ORDER BY store_name
+        """)
+    else:
+        # 使用舊系統資料
+        cursor.execute("SELECT store_name, review_count FROM store_reviews")
+
     rows = cursor.fetchall()
     conn.close()
     return jsonify([{'store': row['store_name'], 'reviews': row['review_count']} for row in rows])
+
+
+# API: Google 評論詳細資料（支援篩選星等）
+@app.route('/api/google-reviews')
+def get_google_reviews():
+    """取得 Google 評論列表"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 檢查資料表是否存在
+    cursor.execute("""
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name='google_reviews'
+    """)
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify([])
+
+    # 支援篩選參數
+    store = request.args.get('store')  # 豐原/潭子/大雅
+    min_stars = request.args.get('min_stars', type=int)  # 最低星等
+    limit = request.args.get('limit', 50, type=int)
+
+    query = """
+        SELECT store_name, reviewer_name, review_date, star_rating,
+               review_snippet, email_received_at
+        FROM google_reviews
+        WHERE 1=1
+    """
+    params = []
+
+    if store:
+        query += " AND store_name = ?"
+        params.append(store)
+    if min_stars:
+        query += " AND star_rating >= ?"
+        params.append(min_stars)
+
+    query += " ORDER BY email_received_at DESC LIMIT ?"
+    params.append(limit)
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+
+    return jsonify([{
+        'store': row['store_name'],
+        'reviewer': row['reviewer_name'],
+        'date': row['review_date'],
+        'stars': row['star_rating'],
+        'snippet': row['review_snippet'],
+        'received_at': row['email_received_at']
+    } for row in rows])
+
+
+# API: Google 評論統計
+@app.route('/api/google-reviews/stats')
+def get_google_reviews_stats():
+    """取得各門市評論統計"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 檢查資料表是否存在
+    cursor.execute("""
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name='google_reviews_stats'
+    """)
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify([])
+
+    cursor.execute("""
+        SELECT store_name, five_star, four_star, three_star,
+               two_star, one_star, total_reviews, avg_rating
+        FROM google_reviews_stats
+        ORDER BY store_name
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    return jsonify([{
+        'store': row['store_name'],
+        'five_star': row['five_star'],
+        'four_star': row['four_star'],
+        'three_star': row['three_star'],
+        'two_star': row['two_star'],
+        'one_star': row['one_star'],
+        'total': row['total_reviews'],
+        'avg_rating': round(row['avg_rating'], 2) if row['avg_rating'] else 0
+    } for row in rows])
 
 # API: 門市督導評分（最近30天）
 @app.route('/api/store/supervision')
@@ -2032,6 +2140,26 @@ def admin_health_check():
 def admin_health_page():
     """系統健康檢查頁面 - 使用統一模板"""
     return render_template('health_check.html')
+
+@app.route('/admin/recommended_products')
+def admin_recommended_products_page():
+    """推薦備貨商品管理頁面"""
+    return render_template('admin/recommended_products.html')
+
+@app.route('/admin/bonus_rules')
+def admin_bonus_rules_page():
+    """獎金規則管理頁面"""
+    return render_template('admin/bonus_rules.html')
+
+@app.route('/admin/bonus_report')
+def admin_bonus_report_page():
+    """獎金報表頁面"""
+    return render_template('admin/bonus_report.html')
+
+@app.route('/admin/announcement_management')
+def admin_announcement_management_page():
+    """系統公告管理頁面"""
+    return render_template('admin/announcement_management.html')
 
 # API: 查詢指定客戶詳細資料
 @app.route('/api/customer/detail/<customer_id>')
