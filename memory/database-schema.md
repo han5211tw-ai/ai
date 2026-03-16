@@ -90,6 +90,76 @@
 | salesperson | TEXT | 業務員 |
 | is_contract | BOOLEAN | 是否合約客戶 |
 
+### recommended_products (推薦備貨商品)
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| id | INTEGER | 主鍵 |
+| category_id | INTEGER | 分類 ID |
+| product_code | TEXT | 產品編號 |
+| item_name | TEXT | 產品名稱 |
+| quantity | INTEGER | 最小備貨量 |
+| requester | TEXT | 預設填表人 |
+| department | TEXT | 預設部門 |
+
+### bonus_rules (銷售獎金規則)
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| id | INTEGER | 主鍵 |
+| product_code | TEXT | 產品編號 |
+| item_name | TEXT | 產品名稱 |
+| start_date | DATE | 開始日期 |
+| end_date | DATE | 結束日期 |
+| bonus_type | TEXT | 類型 (fixed/percentage) |
+| bonus_value | REAL | 獎金數值 |
+| min_quantity | INTEGER | 最小數量門檻 |
+| applicable_to | TEXT | 適用對象 (all/specific) |
+
+### bonus_results (獎金計算結果)
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| id | INTEGER | 主鍵 |
+| rule_id | INTEGER | 規則 ID |
+| salesperson | TEXT | 業務員 |
+| sale_date | DATE | 銷售日期 |
+| product_code | TEXT | 產品編號 |
+| quantity | INTEGER | 數量 |
+| revenue | REAL | 銷售額 |
+| bonus_amount | REAL | 獎金金額 |
+| is_confirmed | BOOLEAN | 是否已確認 |
+
+### notification_logs (通知發送記錄)
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| id | INTEGER | 主鍵 |
+| type | TEXT | 通知類型 |
+| recipient | TEXT | 收件人 |
+| message_preview | TEXT | 訊息預覽 |
+| status | TEXT | 狀態 (success/failed) |
+| error_message | TEXT | 錯誤訊息 |
+| related_record | TEXT | 關聯記錄 |
+| created_at | DATETIME | 建立時間 |
+
+### system_announcements (系統公告)
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| id | INTEGER | 主鍵 |
+| title | TEXT | 標題 |
+| content | TEXT | 內容 |
+| level | TEXT | 等級 (info/warning/urgent) |
+| is_active | INTEGER | 是否生效 |
+| is_pinned | INTEGER | 是否置頂 |
+| created_by | TEXT | 建立者 |
+| created_at | DATETIME | 建立時間 |
+| expires_at | DATETIME | 過期時間 |
+
+## 2026-03-05 更新
+
+### needs 表格擴充（需求表流程優化）
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| processed_at | DATETIME | 處理時間 |
+| arrived_at | DATETIME | 到貨時間 |
+
 ## 資料庫路徑
 
 ```

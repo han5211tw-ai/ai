@@ -52,15 +52,24 @@
 - 優先用產品編號，沒有則用產品名稱
 - 只刪除「待處理」狀態的資料
 
+## 2026-03-08 更新
+
+### sales_parser_v22.py
+- **修正**: `lstrip('-','.')` 語法錯誤（改為 `lstrip('-')`）
+- **修正**: SQLite 查詢回傳格式（加入 `conn.row_factory = sqlite3.Row`）
+- **狀態**: 正式上線，每日 10:40 自動執行
+
 ## 常用指令
 
 ```bash
 # 手動執行 Parser
 cd /Users/aiserver/srv/parser
 python3 inventory_parser.py
-python3 sales_parser_v19.py
+python3 sales_parser_v22.py
 python3 performance_parser.py
 python3 needs_parser.py
+python3 google_reviews_parser.py  # 測試用
+python3 msi_inventory_report.py   # 手動觸發微星週報
 ```
 
 ## 日誌檔案

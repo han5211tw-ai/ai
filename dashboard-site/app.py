@@ -2156,6 +2156,11 @@ def admin_bonus_report_page():
     """獎金報表頁面"""
     return render_template('admin/bonus_report.html')
 
+@app.route('/admin/announcement_management')
+def admin_announcement_management_page():
+    """系統公告管理頁面"""
+    return render_template('admin/announcement_management.html')
+
 # API: 查詢指定客戶詳細資料
 @app.route('/api/customer/detail/<customer_id>')
 def get_customer_detail(customer_id):

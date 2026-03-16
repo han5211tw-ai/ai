@@ -2,7 +2,8 @@
 
 ## 系統概述
 
-**正名**: ERP 營運系統（原名 Dashboard 營運系統）
+**系統正名**: ERP 營運系統（原名 Dashboard 營運系統）
+**正名日期**: 2026-03-16
 
 - **URL**: http://localhost:3000
 - **技術**: Flask + HTML/JavaScript
@@ -21,6 +22,7 @@
 | 門市主管控制台 | 門市專用 | `/Store_Manager.html` |
 | 會計專區 | 會計專用看板 | `/Accountants.html` |
 | 客戶查詢 | 客戶資料查詢 | `/customer_search.html` |
+| 公告管理 | 系統公告管理 | `/admin/announcement_management.html` |
 
 ## API 列表
 
@@ -41,6 +43,7 @@
 | `/api/analysis/<type>` | AI 分析（department/store/personal）| analysis_results |
 | `/api/needs/latest` | 最新需求表（待處理）| needs |
 | `/api/service-records/summary` | 業務服務記錄統計 | service_records |
+| `/api/system/announcements` | 系統公告管理 | system_announcements |
 | `/api/customer/detail/<id>` | 客戶詳細資料 | customers + sales_history |
 | `/api/health` | 系統健康檢查 | 多資料表 |
 
@@ -91,6 +94,56 @@
 | 豐原門市 | `#ff9800` | 橘色 |
 | 潭子門市 | `#9c27b0` | 紫色 |
 | 大雅門市 | `#4caf50` | 綠色 |
+
+---
+
+## 2026-03-04 至 2026-03-16 更新摘要
+
+### 3/4 - 系統架構 V3 & 登入組件 v2.0
+- **System Architecture V3**: 霓虹主題、貝茲爾曲線、動態粒子背景
+- **登入組件 v2.0**: 玻璃擬態、霓虹光暈、旋轉圓環、盾牌圖示
+- **全域背景**: 19 個頁面統一背景風格
+- **員工管理**: 新增員工管理頁面與 API
+- **系統公告**: 新增公告管理與首頁公告欄
+
+### 3/5 - 需求表流程優化 & 監控機制
+- **需求表四階段流程**: 待處理 → 已採購 → 已調撥 → 已完成
+- **權限密碼認證**: 老闆/會計獨立密碼驗證
+- **系統監控**: 通知記錄表、內建監控、外部監控 (launchd)
+- **Telegram 通知**: 調整調撥通知改為發給會計個人
+
+### 3/8 - 銷貨系統修正 & RWD 選單
+- **銷貨輸入頁面**: 三欄佈局、客戶搜尋加強、預設數量 1
+- **外勤服務紀錄**: 客戶即時搜尋、編輯/刪除自己 30 天內紀錄
+- **權限系統修復**: 成本欄位顯示、利潤警告修正
+
+### 3/9 - 公告管理重構 & 逾期提醒
+- **公告管理**: 繼承 base.html、統計卡片、搜尋篩選
+- **逾期收貨提醒**: 調撥 3 天/請購 5 天未收貨提醒
+- **Telegram 崩潰修復**: macOS 代理檢測問題解決
+- **登入流程**: `onLoginSuccess` 回調機制
+
+### 3/10 - 督導評分修復
+- **評分存檔**: 分數欄位強制轉數字、登入資訊正確載入
+
+### 3/11 - Email 設定 & TTS
+- **Yvonne 專用 Email**: `ai@computershop.cc`
+- **中文 TTS**: sherpa-onnx (vits-melo-tts-zh_en)
+
+### 3/12 - 電腦舖官網部署
+- **官網**: Port 8000 (Flask + Gunicorn)
+- **Cloudflare Tunnel**: `www.computershop.shop`
+
+### 3/13 - 推薦備貨 & 銷售獎金
+- **推薦備貨商品**: 後台管理、前台選購、一鍵送需求
+- **銷售獎金計算**: 規則管理、自動計算、報表匯出
+
+### 3/16 - Google 評論 & 系統正名 & 公告管理修復
+- **Google 商家五星評論**: 郵件解析自動記錄 (待 4/1 啟動)
+- **微星庫存週報**: 每週一自動發送 CSV 到 Telegram
+- **系統正名**: Dashboard → ERP 營運系統
+- **公告管理修復**: 新增 Flask 路由、修復發布功能、優化顯示速度
+- **GitHub Deploy Key**: 設定完成，首次 Push 成功
 
 ---
 

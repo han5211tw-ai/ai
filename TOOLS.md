@@ -159,4 +159,18 @@ def send_telegram_message(message, file_path=None):
 
 ---
 
+### GitHub Deploy Key
+
+**Repo:** `https://github.com/han5211tw-ai/ai.git`  
+**Key 位置:** `~/.ssh/github_deploy_key` (ed25519)  
+**設定日期:** 2026-03-16
+
+**Push 指令:**
+```bash
+cd /Users/aiserver/.openclaw/workspace
+GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push origin main
+```
+
+---
+
 Add whatever helps you do your job. This is your cheat sheet.

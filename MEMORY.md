@@ -7,7 +7,7 @@ _主索引檔案 - 快速查找與關鍵規則_
 |------|----------|----------|
 | **系統架構** | [memory/system-architecture.md](memory/system-architecture.md) | 主機環境、目錄結構、核心檔案 |
 | **資料來源** | [memory/data-sources.md](memory/data-sources.md) | OneDrive 資料夾、檔案格式 |
-| **ERP 營運系統** | [memory/dashboard-system.md](memory/dashboard-system.md) | ERP 營運系統（原 Dashboard）、API、頁面結構 |
+| **ERP 營運系統** | [memory/ERP-system.md](memory/ERP-system.md) | ERP 營運系統（原 Dashboard）、API、頁面結構 |
 | **Parser 系統** | [memory/parser-system.md](memory/parser-system.md) | 所有 Parser 腳本、功能說明 |
 | **資料庫** | [memory/database-schema.md](memory/database-schema.md) | 資料表結構、欄位定義 |
 | **排程任務** | [memory/cron-schedule.md](memory/cron-schedule.md) | Cron 時間表、自動化流程 |
@@ -50,8 +50,15 @@ _主索引檔案 - 快速查找與關鍵規則_
 | **2026-03-01** | **`memory/2026-03-01.md`** | **Admin Dashboard 完整功能上線** - 10個資料頁面、查看修復、UI調整、健康檢查修復 |
 | 2026-03-02 | `memory/2026-03-02.md` | 待建檔中心與 A2 稽核排除已取消 needs |
 | **2026-03-03** | **`memory/2026-03-03.md`** | **登入介面統一化、產品主檔合併、主管權限修正** |
+| **2026-03-04** | **`memory/2026-03-04.md`** | **系統架構 V3、登入組件 v2.0、員工管理、系統公告** |
+| 2026-03-05 | `memory/2026-03-05.md` | 需求表四階段流程、監控機制、權限密碼認證 |
 | **2026-03-08** | **`memory/2026-03-08.md`** | **RWD 響應式選單、權限系統修復** |
-| **2026-03-16** | **`memory/2026-03-16.md`** | **Google 商家五星評論自動化系統** - 郵件解析、資料表、API、頁面更新，4/1 上線 |
+| 2026-03-09 | `memory/2026-03-09.md` | 公告管理重構、逾期收貨提醒、Telegram 崩潰修復 |
+| 2026-03-10 | `memory/2026-03-10.md` | 督導評分存檔修復 |
+| 2026-03-11 | `memory/2026-03-11.md` | Yvonne 專用 Email、中文 TTS 安裝 |
+| 2026-03-12 | `memory/2026-03-12.md` | 電腦舖官網部署 (Port 8000) |
+| **2026-03-13** | **`memory/2026-03-13.md`** | **推薦備貨商品、銷售獎金計算功能** |
+| **2026-03-16** | **`memory/2026-03-16.md`** | **Google 商家五星評論自動化、微星庫存週報、系統正名 ERP** |
 | 持續更新 | `memory/2026-MM-DD.md` | 每日工作記錄 |
 
 ---
