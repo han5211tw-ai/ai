@@ -475,7 +475,7 @@
             <textarea id="newContent" class="textarea-field" placeholder="輸入公告內容..."></textarea>
         </div>
         <div class="form-group full-width">
-            <button class="btn btn-primary" onclick="createAnnouncement()">發布公告</button>
+            <button type="button" class="btn btn-primary" id="submitAnnouncementBtn">發布公告</button>
         </div>
     </div>
 </div>
@@ -695,46 +695,102 @@
 
     // 新增公告
     async function createAnnouncement() {
-        const title = document.getElementById('newTitle').value.trim();
-        const content = document.getElementById('newContent').value.trim();
-        const level = document.getElementById('newLevel').value;
-        const expires = document.getElementById('newExpires').value;
-        const pinned = document.getElementById('newPinned').checked;
+        console.log('createAnnouncement called');
+        
+        const titleEl = document.getElementById('newTitle');
+        const contentEl = document.getElementById('newContent');
+        const levelEl = document.getElementById('newLevel');
+        const expiresEl = document.getElementById('newExpires');
+        const pinnedEl = document.getElementById('newPinned');
+        
+        if (!titleEl || !contentEl) {
+            console.error('找不到表單元素');
+            showToast('頁面載入錯誤，請重新整理', 'error');
+            return;
+        }
+        
+        const title = titleEl.value.trim();
+        const content = contentEl.value.trim();
+        const level = levelEl ? levelEl.value : 'info';
+        const expires = expiresEl ? expiresEl.value : '';
+        const pinned = pinnedEl ? pinnedEl.checked : false;
+
+        console.log('表單資料:', { title, content, level, expires, pinned });
 
         if (!title || !content) {
             showToast('請填寫標題和內容', 'error');
             return;
         }
 
+        // 取得當前使用者名稱
+        let createdBy = 'admin';
+        try {
+            const userStr = localStorage.getItem('currentUser');
+            console.log('localStorage currentUser:', userStr);
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                if (user && user.name) {
+                    createdBy = user.name;
+                }
+            }
+        } catch (e) {
+            console.log('無法取得使用者資訊，使用預設值:', e);
+        }
+        
+        console.log('created_by:', createdBy);
+
         // 按鈕載入狀態
-        const submitBtn = document.querySelector('.section-card:first-of-type .btn-primary');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '發布中...';
-        submitBtn.disabled = true;
+        const submitBtn = document.getElementById('submitAnnouncementBtn');
+        if (!submitBtn) {
+            console.error('找不到提交按鈕');
+        }
+        const originalText = submitBtn ? submitBtn.innerHTML : '發布公告';
+        if (submitBtn) {
+            submitBtn.innerHTML = '發布中...';
+            submitBtn.disabled = true;
+        }
 
         try {
+            console.log('發送 API 請求...');
             const res = await fetch('/api/system/announcements', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title, content, level,
                     expires_at: expires || null,
-                    is_pinned: pinned
+                    is_pinned: pinned,
+                    created_by: createdBy
                 })
             });
 
+            console.log('API 回應狀態:', res.status);
             const data = await res.json();
+            console.log('API 回應資料:', data);
 
             if (data.success) {
                 showToast('公告發布成功');
                 // 清空表單
-                document.getElementById('newTitle').value = '';
-                document.getElementById('newContent').value = '';
-                document.getElementById('newExpires').value = '';
-                document.getElementById('newPinned').checked = false;
-                document.getElementById('newLevel').value = 'info';
-                // 重新載入
-                loadAllAnnouncements();
+                titleEl.value = '';
+                contentEl.value = '';
+                if (expiresEl) expiresEl.value = '';
+                if (pinnedEl) pinnedEl.checked = false;
+                if (levelEl) levelEl.value = 'info';
+                // 立即將新公告加入列表（不用等 API 載入）
+                const newAnnouncement = {
+                    id: data.id || Date.now(),
+                    title: title,
+                    content: content,
+                    level: level,
+                    is_pinned: pinned,
+                    is_active: true,
+                    created_at: new Date().toISOString(),
+                    expires_at: expires || null
+                };
+                allAnnouncements.unshift(newAnnouncement);
+                filterAnnouncements();
+                updateStats(allAnnouncements);
+                // 背景重新載入確保資料同步
+                setTimeout(() => loadAllAnnouncements(), 100);
             } else {
                 showToast('發布失敗：' + (data.error || '未知錯誤'), 'error');
             }
@@ -743,8 +799,10 @@
             showToast('發布失敗，請檢查網路連線', 'error');
         } finally {
             // 恢復按鈕狀態
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            if (submitBtn) {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
         }
     }
 
@@ -877,6 +935,21 @@
 
     // 頁面載入
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded - 頁面載入完成');
+        
+        // 綁定發布按鈕事件
+        const submitBtn = document.getElementById('submitAnnouncementBtn');
+        if (submitBtn) {
+            console.log('找到發布按鈕，綁定事件');
+            submitBtn.addEventListener('click', function(e) {
+                console.log('發布按鈕被點擊');
+                e.preventDefault();
+                createAnnouncement();
+            });
+        } else {
+            console.error('找不到發布按鈕');
+        }
+        
         loadAllAnnouncements();
     });
 

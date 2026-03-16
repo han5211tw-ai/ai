@@ -198,10 +198,17 @@
             </a>
         </div>
 
-        <div class="section-title">⭐ 五星好評統計</div>
+        <div class="section-title">⭐ 五星好評統計 <span id="reviewPeriod" style="font-size: 0.7em; color: #64748b;"></span></div>
         <div class="stats-grid" id="reviewStats">
             <div class="stat-card">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
 
+        <div class="card" id="recentReviewsCard" style="display: none;">
+            <h2>📝 最近五星評論</h2>
+            <div id="recentReviewsList">
+                <div class="loading">載入中...</div>
             </div>
         </div>
 
@@ -258,14 +265,21 @@
                 });
                 
                 // 填充五星好評統計
-                const reviewHtml = reviewData.map(store => `
+                const storeOrder = ['豐原', '潭子', '大雅'];
+                const reviewHtml = storeOrder.map(name => {
+                    const store = reviewData.find(s => (s.store || '').includes(name));
+                    const count = store ? store.reviews : 0;
+                    return `
                     <div class="stat-card">
-                        <h3>${store.store_name || store.name || '門市'}</h3>
-                        <div class="number">${store.reviews}</div>
-                        <div class="stars">${'⭐'.repeat(store.reviews > 0 ? 5 : 0)}</div>
+                        <h3>${name}店</h3>
+                        <div class="number">${count}</div>
+                        <div class="stars">${'⭐'.repeat(count > 0 ? 5 : 0)}</div>
                     </div>
-                `).join('');
+                `}).join('');
                 document.getElementById('reviewStats').innerHTML = reviewHtml;
+                
+                // 載入最近五星評論（新系統）
+                await loadRecentReviews();
                 
                 // 處理 API 回傳格式（支援陣列或物件）
                 const rawData = Array.isArray(perfData) ? perfData : (perfData.data || []);
@@ -401,6 +415,43 @@
             } catch (error) {
                 console.error('載入門市資料失敗:', error);
                 document.getElementById('storeTable').innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        // 載入最近五星評論
+        async function loadRecentReviews() {
+            try {
+                const response = await fetch('/api/google-reviews?min_stars=5&limit=5');
+                const reviews = await response.json();
+                
+                if (reviews && reviews.length > 0) {
+                    document.getElementById('recentReviewsCard').style.display = 'block';
+                    
+                    const reviewsHtml = reviews.map(r => `
+                        <div class="review-item" style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="color: #00d4ff; font-weight: 600;">${r.store}店</span>
+                                <span style="color: #ffd700;">${'⭐'.repeat(r.stars)}</span>
+                            </div>
+                            <div style="color: #fff; margin-bottom: 4px;">${r.reviewer || '匿名'}</div>
+                            <div style="color: #94a3b8; font-size: 0.9em; line-height: 1.4;">${r.snippet || ''}</div>
+                            <div style="color: #64748b; font-size: 0.8em; margin-top: 4px;">${r.date || ''}</div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('recentReviewsList').innerHTML = reviewsHtml;
+                    
+                    // 顯示統計期間說明
+                    const firstReview = reviews[0];
+                    if (firstReview && firstReview.received_at) {
+                        document.getElementById('reviewPeriod').textContent = '(2026/4起自動統計)';
+                    }
+                } else {
+                    document.getElementById('recentReviewsCard').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('載入最近評論失敗:', error);
+                document.getElementById('recentReviewsCard').style.display = 'none';
             }
         }
 
