@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}業績目標管理 - 電腦舖營運系統{% endblock %}
-{% block page_title %}業績目標管理{% endblock %}
+{% block title %}業績目標輸入 - 電腦舖營運系統{% endblock %}
+{% block page_title %}🎯 業績目標輸入{% endblock %}
 
 {% block styles %}
 <style>
@@ -154,30 +154,6 @@
     font-size: 0.9em;
 }
 
-/* 導航 */
-.nav {
-    display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.nav a {
-    color: var(--color-text-secondary);
-    text-decoration: none;
-    padding: 10px 20px;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-}
-
-.nav a:hover {
-    color: var(--color-accent-cyan);
-    border-color: var(--color-accent-cyan);
-    background: rgba(0, 212, 255, 0.1);
-}
-
 /* 頁面標題 */
 .subtitle {
     text-align: left;
@@ -199,11 +175,11 @@
 {% endblock %}
 
 {% block content %}
-<p class="subtitle">只須輸入個人目標，門市與部門目標自動計算</p>
-
-<div class="nav">
-    <a href="/">🏠 首頁</a>
-    <a href="/admin.html">⚙️ 資料管理中心</a>
+<!-- 說明區塊 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 16px 24px; margin-bottom: 24px;">
+    <p style="color: #94a3b8; margin: 0;">
+        💡 只須輸入個人目標，門市與部門目標自動計算
+    </p>
 </div>
 
 <div id="messageBox" class="message"></div>

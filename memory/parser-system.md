@@ -8,7 +8,8 @@
 | `purchase_parser.py` | 進貨資料匯入 | 10:35 | |
 | `sales_parser_v19.py` | 銷貨資料匯入 | 10:40 | 新格式（逐月匯入） |
 | `customer_parser.py` | 客戶資料匯入 | 10:45 | |
-| `feedback_parser.py` | 五星評論匯入 | 10:50 | |
+| `feedback_parser.py` | 五星評論匯入（舊） | 10:50 | OneDrive 檔案匯入，4/1 後改用 `google_reviews_parser.py` |
+| `google_reviews_parser.py` | Google 商家評論自動抓取 | 00:00（4/1 起） | 讀取 Gmail 通知信，解析寫入資料庫 |
 | `roster_parser.py` | 班表資料匯入 | 10:55 | |
 | `performance_parser.py` | 績效資料匯入 | 11:00 | V7：目標表 + sales_history |
 | `calculate_performance.py` | 業績計算 | 11:05 | |

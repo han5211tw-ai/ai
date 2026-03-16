@@ -412,12 +412,14 @@
                         <th>日期</th>
                         <th>客戶</th>
                         <th>業務員</th>
+                        <th>產品型號</th>
+                        <th>產品名稱</th>
                         <th>品項數</th>
                         <th>總金額</th>
                     </tr>
                 </thead>
                 <tbody id="salesTableBody">
-                    <tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:30px;">載入中...</td></tr>
+                    <tr><td colspan="8" style="text-align:center;color:var(--color-text-secondary);padding:30px;">載入中...</td></tr>
                 </tbody>
             </table>
             <div class="data-pagination">
@@ -1175,20 +1177,29 @@ let currentUser = null;
         function renderSalesTable(sales) {
             const tbody = document.getElementById('salesTableBody');
             if (sales.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:30px;">暫無資料</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--color-text-secondary);padding:30px;">暫無資料</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = sales.map(s => `
+            tbody.innerHTML = sales.map(s => {
+                // 取得第一個品項的產品資訊（如果有的話）
+                const firstItem = s.items && s.items.length > 0 ? s.items[0] : null;
+                const productCode = firstItem ? firstItem.product_code : '-';
+                const productName = firstItem ? firstItem.product_name : '-';
+                const moreItems = s.item_count > 1 ? ` <span style="color:var(--color-text-secondary);font-size:0.85em;">(+${s.item_count - 1})</span>` : '';
+                
+                return `
                 <tr onclick="viewSale('${s.sales_order_no}')">
                     <td>${s.sales_order_no}</td>
                     <td>${s.date}</td>
                     <td>${s.customer_name}</td>
                     <td>${s.salesperson}</td>
+                    <td>${productCode}</td>
+                    <td>${productName}${moreItems}</td>
                     <td>${s.item_count} 項</td>
                     <td>${s.total_amount.toLocaleString()} 元</td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         // 更新分頁
@@ -1234,6 +1245,7 @@ let currentUser = null;
                 const costCol = canViewCost ? `<td>${item.cost.toLocaleString()}</td><td class="${profitClass}">${item.profit.toLocaleString()}</td><td>${(item.margin * 100).toFixed(1)}%</td>` : '';
                 return `
                     <tr>
+                        <td>${item.product_code || '-'}</td>
                         <td>${item.product_name}</td>
                         <td>${item.quantity}</td>
                         <td>${item.price.toLocaleString()}</td>
@@ -1276,6 +1288,7 @@ let currentUser = null;
                     <table style="width:100%;margin-top:10px;">
                         <thead>
                             <tr>
+                                <th>產品型號</th>
                                 <th>產品名稱</th>
                                 <th>數量</th>
                                 <th>單價</th>
@@ -1286,7 +1299,7 @@ let currentUser = null;
                         <tbody>
                             ${itemsHtml}
                             <tr style="border-top:2px solid rgba(0,212,255,0.3);font-weight:bold;">
-                                <td colspan="3">總計</td>
+                                <td colspan="4">總計</td>
                                 <td style="color:var(--color-accent-cyan);">${sale.total_amount.toLocaleString()} 元</td>
                                 ${canViewCost ? `<td colspan="3"></td>` : ''}
                             </tr>

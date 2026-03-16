@@ -106,4 +106,21 @@ $SHERPA_ONNX_RUNTIME_DIR/bin/sherpa-onnx-offline-tts \
 
 ---
 
+### Dashboard 網頁伺服器
+
+**正式環境使用 Gunicorn**，不是 Flask 開發伺服器。
+
+**重啟指令:**
+```bash
+cd /Users/aiserver/.openclaw/workspace/dashboard-site
+./manage_gunicorn.sh restart
+```
+
+**重要提醒:**
+- 修改 `app.py` 後必須重啟 Gunicorn 才能生效
+- 開發時不要誤用 `python3 app.py` 或 Flask 內建伺服器
+- Gunicorn 設定檔: `gunicorn.conf.py`
+
+---
+
 Add whatever helps you do your job. This is your cheat sheet.

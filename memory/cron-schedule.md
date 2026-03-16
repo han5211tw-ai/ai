@@ -11,7 +11,8 @@
 | 10:35 | 進貨模組 | `purchase_parser.py` | |
 | **10:40** | **銷貨模組** | `sales_parser_v19.py` | **更新：新格式** |
 | 10:45 | 客戶模組 | `customer_parser.py` | |
-| 10:50 | 評論模組 | `feedback_parser.py` | |
+| 10:50 | 評論模組（舊） | `feedback_parser.py` | OneDrive 匯入，4/1 後改用 `google_reviews_parser.py` |
+| **00:00** | **Google 評論抓取** | `google_reviews_parser.py` | **4/1 起：讀取 Gmail 通知信** |
 | 10:55 | 班表模組 | `roster_parser.py` | |
 | 11:00 | 績效模組 | `performance_parser.py` | V7：目標表 + sales_history |
 | 11:05 | 業績計算 | `calculate_performance.py` | |
