@@ -139,6 +139,12 @@ cd /Users/aiserver/.openclaw/workspace/dashboard-site
 | 請購 | 通知機器人 | Alan (老闆) | `8545239755` |
 | 調撥 | 通知機器人 | 會計 (黃環馥) | `8203016237` |
 
+### Telegram 群組
+
+| 群組名稱 | Chat ID | 用途 |
+|----------|---------|------|
+| 電腦舖工作群組 | `-5232179482` | 未來同仁加入後的群組通知 |
+
 **使用方式:**
 ```python
 import requests
