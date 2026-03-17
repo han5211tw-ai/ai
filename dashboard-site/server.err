@@ -2785,3 +2785,39 @@ TypeError: The view function for 'create_needs_batch' did not return a valid res
  * Running on http://127.0.0.1:3000
  * Running on http://192.168.1.212:3000
 [33mPress CTRL+C to quit[0m
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    ��敗'}), 500
+    ^
+SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details

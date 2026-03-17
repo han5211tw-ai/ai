@@ -1,0 +1,46 @@
+{
+  "name": "retail-erp-connector",
+  "version": "1.0.0",
+  "description": "零售業 ERP 連接器 - 庫存、銷貨、客戶、業績查詢",
+  "main": "src/index.py",
+  "scripts": {
+    "test": "python3 -m pytest tests/",
+    "lint": "flake8 src/"
+  },
+  "keywords": [
+    "openclaw",
+    "retail",
+    "erp",
+    "inventory",
+    "sales",
+    "customer"
+  ],
+  "author": "電腦舖 (Computer Shop)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/computershop/retail-erp-connector.git"
+  },
+  "bugs": {
+    "url": "https://github.com/computershop/retail-erp-connector/issues"
+  },
+  "homepage": "https://docs.computershop.cc/retail-erp-connector",
+  "dependencies": {
+    "openclaw": ">=1.0.0",
+    "sqlite3": "^5.1.6",
+    "pandas": "^2.0.0",
+    "openpyxl": "^3.1.0"
+  },
+  "devDependencies": {
+    "pytest": "^7.4.0",
+    "flake8": "^6.1.0"
+  },
+  "engines": {
+    "python": ">=3.9"
+  },
+  "clawhub": {
+    "category": "business",
+    "tags": ["retail", "erp", "inventory", "sqlite"],
+    "minOpenClawVersion": "1.0.0"
+  }
+}
