@@ -3485,9 +3485,10 @@ def purchase_need():
         if not user or user['title'] != '老闆':
             return jsonify({'success': False, 'message': '無老闆權限'}), 403
 
-        # 檢查資料是否存在且狀態為待處理
+        # 檢查資料是否存在且狀態為待處理，並取得詳細資訊
         cursor.execute("""
-            SELECT status, request_type FROM needs WHERE id = ?
+            SELECT id, date, item_name, quantity, department, requester, request_type, transfer_from, status 
+            FROM needs WHERE id = ?
         """, (need_id,))
         row = cursor.fetchone()
 
@@ -3506,6 +3507,37 @@ def purchase_need():
         """, (now, need_id))
 
         conn.commit()
+
+        # 發送 Telegram 通知到工作群組（背景執行，不阻塞回應）
+        try:
+            need_date = row['date'] or now[:10]
+            item_name = row['item_name'] or '未知產品'
+            quantity = row['quantity'] or 1
+            department = row['department'] or '未知部門'
+            original_requester = row['requester'] or '未知'
+
+            telegram_msg = f"""✅ <b>已採購通知</b>
+
+📅 日期：{need_date}
+👤 填表人：{original_requester}
+📍 部門：{department}
+📦 產品：{item_name}
+🔢 數量：{quantity} 個
+📌 狀態：已採購
+
+請於到貨後至營運系統首頁結案"""
+
+            # 發送到電腦舖工作群組（背景執行）
+            TELEGRAM_GROUP_CHAT_ID = "-5232179482"
+            import threading
+            threading.Thread(
+                target=send_telegram_notification,
+                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs'),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"已採購 Telegram 通知背景執行緒啟動失敗: {e}")
+
         return jsonify({'success': True})
     except Exception as e:
         print(f"purchase_need 錯誤: {e}")
@@ -3538,9 +3570,10 @@ def transfer_need():
         if not user or (user['title'] != '老闆' and '會計' not in user['title']):
             return jsonify({'success': False, 'message': '無權限執行調撥'}), 403
 
-        # 檢查資料是否存在且狀態為待處理
+        # 檢查資料是否存在且狀態為待處理，並取得詳細資訊
         cursor.execute("""
-            SELECT status, request_type FROM needs WHERE id = ?
+            SELECT id, date, item_name, quantity, department, requester, request_type, transfer_from, status 
+            FROM needs WHERE id = ?
         """, (need_id,))
         row = cursor.fetchone()
 
@@ -3559,6 +3592,39 @@ def transfer_need():
         """, (now, need_id))
 
         conn.commit()
+
+        # 發送 Telegram 通知到工作群組（背景執行，不阻塞回應）
+        try:
+            need_date = row['date'] or now[:10]
+            item_name = row['item_name'] or '未知產品'
+            quantity = row['quantity'] or 1
+            department = row['department'] or '未知部門'
+            original_requester = row['requester'] or '未知'
+            transfer_from = row['transfer_from'] or '未指定'
+
+            telegram_msg = f"""✅ <b>已調撥通知</b>
+
+📅 日期：{need_date}
+👤 填表人：{original_requester}
+📍 部門：{department}
+📦 產品：{item_name}
+🔢 數量：{quantity} 個
+📤 調撥來源：{transfer_from}
+📌 狀態：已調撥
+
+請於到貨後至營運系統首頁結案"""
+
+            # 發送到電腦舖工作群組（背景執行）
+            TELEGRAM_GROUP_CHAT_ID = "-5232179482"
+            import threading
+            threading.Thread(
+                target=send_telegram_notification,
+                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已調撥通知', need_id, 'needs'),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"已調撥 Telegram 通知背景執行緒啟動失敗: {e}")
+
         return jsonify({'success': True})
     except Exception as e:
         print(f"transfer_need 錯誤: {e}")
