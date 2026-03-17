@@ -41,15 +41,19 @@ from observability import (
     record_api_metrics, get_debug_sql, is_workday, get_weekday_name
 )
 
+# 基礎目錄設定（使用相對路徑，支援跨機器部署）
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = Flask(__name__,
-    template_folder='/Users/aiserver/.openclaw/workspace/dashboard-site',
-    static_folder='/Users/aiserver/.openclaw/workspace/dashboard-site'
+    template_folder=BASE_DIR,
+    static_folder=BASE_DIR
 )
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 CORS(app)
 
-DB_PATH = '/Users/aiserver/srv/db/company.db'
-STATIC_DIR = '/Users/aiserver/.openclaw/workspace/dashboard-site'
+# 資料庫路徑（優先使用環境變數，預設為相對路徑）
+DB_PATH = os.environ.get('DB_PATH', os.path.join(BASE_DIR, '..', '..', 'srv', 'db', 'company.db'))
+STATIC_DIR = BASE_DIR
 
 # 共用函數：取得資料庫連線
 def get_db_connection():
@@ -710,8 +714,11 @@ def health_monitor():
 scheduler.add_job(health_monitor, 'interval', minutes=5)
 scheduler.start()
 
-# 啟動時立即執行一次分析
-generate_analysis()
+# 啟動時嘗試執行一次分析（非致命，資料庫未就緒時不影響啟動）
+try:
+    generate_analysis()
+except Exception as e:
+    print(f"[Startup] 啟動時分析失敗（非致命）: {e}")
 
 @app.route('/')
 def index():
