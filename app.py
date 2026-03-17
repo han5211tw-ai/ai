@@ -41,15 +41,19 @@ from observability import (
     record_api_metrics, get_debug_sql, is_workday, get_weekday_name
 )
 
+# 基礎目錄設定（使用相對路徑，支援跨機器部署）
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = Flask(__name__,
-    template_folder='/Users/aiserver/.openclaw/workspace/dashboard-site',
-    static_folder='/Users/aiserver/.openclaw/workspace/dashboard-site'
+    template_folder=BASE_DIR,
+    static_folder=BASE_DIR
 )
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 CORS(app)
 
-DB_PATH = '/Users/aiserver/srv/db/company.db'
-STATIC_DIR = '/Users/aiserver/.openclaw/workspace/dashboard-site'
+# 資料庫路徑（優先使用環境變數，預設為相對路徑）
+DB_PATH = os.environ.get('DB_PATH', os.path.join(BASE_DIR, '..', '..', 'srv', 'db', 'company.db'))
+STATIC_DIR = BASE_DIR
 
 # 共用函數：取得資料庫連線
 def get_db_connection():
@@ -134,12 +138,6 @@ analysis_results = {
     'personal': '',
     'last_update': None
 }
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 
 # ========== 客戶資料同步機制 ==========
 
@@ -716,8 +714,11 @@ def health_monitor():
 scheduler.add_job(health_monitor, 'interval', minutes=5)
 scheduler.start()
 
-# 啟動時立即執行一次分析
-generate_analysis()
+# 啟動時嘗試執行一次分析（非致命，資料庫未就緒時不影響啟動）
+try:
+    generate_analysis()
+except Exception as e:
+    print(f"[Startup] 啟動時分析失敗（非致命）: {e}")
 
 @app.route('/')
 def index():
@@ -3484,9 +3485,10 @@ def purchase_need():
         if not user or user['title'] != '老闆':
             return jsonify({'success': False, 'message': '無老闆權限'}), 403
 
-        # 檢查資料是否存在且狀態為待處理
+        # 檢查資料是否存在且狀態為待處理，並取得詳細資訊
         cursor.execute("""
-            SELECT status, request_type FROM needs WHERE id = ?
+            SELECT id, date, item_name, quantity, department, requester, request_type, transfer_from, status 
+            FROM needs WHERE id = ?
         """, (need_id,))
         row = cursor.fetchone()
 
@@ -3505,6 +3507,37 @@ def purchase_need():
         """, (now, need_id))
 
         conn.commit()
+
+        # 發送 Telegram 通知到工作群組（背景執行，不阻塞回應）
+        try:
+            need_date = row['date'] or now[:10]
+            item_name = row['item_name'] or '未知產品'
+            quantity = row['quantity'] or 1
+            department = row['department'] or '未知部門'
+            original_requester = row['requester'] or '未知'
+
+            telegram_msg = f"""✅ <b>已採購通知</b>
+
+📅 日期：{need_date}
+👤 填表人：{original_requester}
+📍 部門：{department}
+📦 產品：{item_name}
+🔢 數量：{quantity} 個
+📌 狀態：已採購
+
+請於到貨後至營運系統首頁結案"""
+
+            # 發送到電腦舖工作群組（背景執行）
+            TELEGRAM_GROUP_CHAT_ID = "-5232179482"
+            import threading
+            threading.Thread(
+                target=send_telegram_notification,
+                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs'),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"已採購 Telegram 通知背景執行緒啟動失敗: {e}")
+
         return jsonify({'success': True})
     except Exception as e:
         print(f"purchase_need 錯誤: {e}")
@@ -3537,9 +3570,10 @@ def transfer_need():
         if not user or (user['title'] != '老闆' and '會計' not in user['title']):
             return jsonify({'success': False, 'message': '無權限執行調撥'}), 403
 
-        # 檢查資料是否存在且狀態為待處理
+        # 檢查資料是否存在且狀態為待處理，並取得詳細資訊
         cursor.execute("""
-            SELECT status, request_type FROM needs WHERE id = ?
+            SELECT id, date, item_name, quantity, department, requester, request_type, transfer_from, status 
+            FROM needs WHERE id = ?
         """, (need_id,))
         row = cursor.fetchone()
 
@@ -3558,6 +3592,39 @@ def transfer_need():
         """, (now, need_id))
 
         conn.commit()
+
+        # 發送 Telegram 通知到工作群組（背景執行，不阻塞回應）
+        try:
+            need_date = row['date'] or now[:10]
+            item_name = row['item_name'] or '未知產品'
+            quantity = row['quantity'] or 1
+            department = row['department'] or '未知部門'
+            original_requester = row['requester'] or '未知'
+            transfer_from = row['transfer_from'] or '未指定'
+
+            telegram_msg = f"""✅ <b>已調撥通知</b>
+
+📅 日期：{need_date}
+👤 填表人：{original_requester}
+📍 部門：{department}
+📦 產品：{item_name}
+🔢 數量：{quantity} 個
+📤 調撥來源：{transfer_from}
+📌 狀態：已調撥
+
+請於到貨後至營運系統首頁結案"""
+
+            # 發送到電腦舖工作群組（背景執行）
+            TELEGRAM_GROUP_CHAT_ID = "-5232179482"
+            import threading
+            threading.Thread(
+                target=send_telegram_notification,
+                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已調撥通知', need_id, 'needs'),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"已調撥 Telegram 通知背景執行緒啟動失敗: {e}")
+
         return jsonify({'success': True})
     except Exception as e:
         print(f"transfer_need 錯誤: {e}")

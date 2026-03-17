@@ -276,7 +276,7 @@
         <span class="filter-label" style="margin-left: 20px;">倉庫別</span>
         <select id="warehouseFilter" class="filter-select">
             <option value="">全部倉庫</option>
-            <option value="總倉庫">HQ - 總倉庫</option>
+            <option value="總公司倉庫">HQ - 總倉庫</option>
             <option value="豐原門市">FY - 豐原門市</option>
             <option value="大雅門市">DY - 大雅門市</option>
             <option value="潭子門市">TZ - 潭子門市</option>
@@ -418,11 +418,6 @@ function renderSearchResults(products) {
 async function queryByFilter() {
     const category = document.getElementById('categoryFilter').value;
     const warehouse = document.getElementById('warehouseFilter').value;
-    
-    if (!category && !warehouse) {
-        alert('請至少選擇一個條件');
-        return;
-    }
     
     try {
         let url = '/api/inventory/list?';
