@@ -253,4 +253,52 @@ GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push
 
 ---
 
+### ClawdHub CLI (OpenClaw Skill 管理工具)
+
+**用途:** 搜尋、安裝、更新、發布 OpenClaw Agent Skills
+**安裝日期:** 2026-03-17
+**Registry:** https://clawdhub.com
+
+**安裝指令:**
+```bash
+npm i -g clawdhub
+npm i -g undici  # 需要額外安裝相依套件
+```
+
+**常用指令:**
+```bash
+# 搜尋 skill
+clawdhub search "postgres"
+
+# 安裝 skill
+clawdhub install my-skill
+clawdhub install my-skill --version 1.2.3
+
+# 更新 skill
+clawdhub update my-skill
+clawdhub update --all
+
+# 列出已安裝 skill
+clawdhub list
+
+# 發布 skill（需要登入）
+clawdhub login
+clawdhub publish ./my-skill --slug my-skill --name "My Skill" --version 1.0.0
+```
+
+**注意事項:**
+- 預設安裝目錄: `./skills`
+- 發布需要 `clawdhub login` 認證
+- 可透過 `CLAWDHUB_REGISTRY` 環境變數指定其他 registry
+
+**我們的 Skills:**
+| Skill | 路徑 | 狀態 |
+|-------|------|------|
+| retail-erp-connector | `skills/retail-erp-connector/` | 規格完成，待實作 |
+| purchase-request-manager | `skills/purchase-request-manager/` | 規格完成，待實作 |
+| roster-performance-tracker | `skills/roster-performance-tracker/` | 規格完成，待實作 |
+| google-reviews-automation | `skills/google-reviews-automation/` | 規格完成，待實作 |
+
+---
+
 Add whatever helps you do your job. This is your cheat sheet.
