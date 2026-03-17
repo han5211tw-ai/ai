@@ -130,6 +130,15 @@ cd /Users/aiserver/.openclaw/workspace/dashboard-site
 **Bot Token:** `8623161623:AAGWlwGjp0Vf3bzpiVgLltQFbcGFY4kpFxo`  
 **Chat ID:** `8545239755` (Alan)
 
+---
+
+### 需求表通知對象
+
+| 類型 | 通知對象 | Chat ID |
+|------|----------|---------|
+| 請購 | Alan (老闆) + 通知機器人 | `8545239755` |
+| 調撥 | 會計 (黃環馥) | `8203016237` |
+
 **使用方式:**
 ```python
 import requests
