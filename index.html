@@ -12,7 +12,7 @@
         font-size: 0.9em;
     }
     .section-title {
-        color: #00d4ff;
+        color: #FABF13;
         font-size: 1.2em;
         margin-bottom: 20px;
         display: flex;
@@ -64,9 +64,9 @@
     }
     .btn-card:hover {
         background: rgba(0, 0, 0, 0.3);
-        border-color: #00d4ff;
+        border-color: #FABF13;
         transform: translateY(-5px);
-        box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+        box-shadow: 0 10px 40px rgba(250, 191, 19, 0.2);
     }
     .btn-icon { font-size: 2em; margin-bottom: 10px; }
     .btn-title { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; color: #fff; }
@@ -91,8 +91,8 @@
         margin-bottom: 0;
     }
     .announcement-item.info {
-        border-left-color: #00d4ff;
-        background: rgba(0, 212, 255, 0.05);
+        border-left-color: #FABF13;
+        background: rgba(250, 191, 19, 0.05);
     }
     .announcement-item.warning {
         border-left-color: #ffc107;
@@ -127,7 +127,7 @@
         font-size: 0.9em;
     }
     .pinned-badge {
-        background: linear-gradient(90deg, #ffd700, #ff6b35);
+        background: linear-gradient(90deg, #FABF13, #e6a800);
         color: #000;
         font-size: 0.7em;
         padding: 2px 8px;
@@ -164,7 +164,7 @@
     .stat-value {
         font-size: 2em;
         font-weight: bold;
-        color: #00d4ff;
+        color: #FABF13;
     }
     .loading {
         color: #8892b0;
@@ -179,7 +179,7 @@
     }
     .status {
         display: inline-block;
-        padding: 4px 10px;
+        padding: 5px 12px;
         border-radius: 4px;
         font-size: 0.85em;
     }
@@ -188,26 +188,26 @@
         color: #ff9800;
     }
     .status-arrived {
-        background: rgba(33, 150, 243, 0.2);
-        color: #2196f3;
+        background: rgba(250, 191, 19, 0.2);
+        color: #FABF13;
     }
 
     /* 已到貨按鈕 - 標準樣式（藍紫色漸層） */
     .btn-arrived {
-        padding: 5px 10px;
+        padding: 5px 12px;
         font-size: 0.85em;
         white-space: nowrap;
-        background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+        background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
         border: none;
         border-radius: 4px;
-        color: white;
+        color: #231815;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .btn-arrived:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        box-shadow: 0 4px 12px rgba(250, 191, 19, 0.3);
     }
     .data-table {
         width: 100%;
@@ -221,8 +221,8 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .data-table th {
-        background: rgba(0, 212, 255, 0.1);
-        color: #00d4ff;
+        background: rgba(250, 191, 19, 0.1);
+        color: #FABF13;
         font-weight: 600;
     }
     .data-table td { color: #ccd6f6; }
@@ -345,7 +345,7 @@
                         {
                             label: '門市部',
                             data: salesData.map(d => d.store),
-                            backgroundColor: '#00d4ff',
+                            backgroundColor: '#FABF13',
                             borderRadius: 4,
                             borderWidth: 0,
                             stack: 'stack1'
@@ -353,7 +353,7 @@
                         {
                             label: '業務部',
                             data: salesData.map(d => d.business),
-                            backgroundColor: '#ffc107',
+                            backgroundColor: '#00d4ff',
                             borderRadius: 4,
                             borderWidth: 0,
                             stack: 'stack1'
@@ -612,7 +612,7 @@
                 const overdueDays = Math.floor(item.overdue_days || 0);
 
                 html += `
-                    <div style="background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border-left: 3px solid #ff9800;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px 14px; border-radius: 8px; border-left: 3px solid #ff9800;">
                         📦 ${item.item_name}（${typeLabel}｜${sourceLabel}｜${actionDate}｜已過 ${overdueDays} 天）
                     </div>
                 `;
@@ -622,7 +622,7 @@
             html += `<p style="color: #94a3b8; margin-top: 15px; font-size: 0.9em;">請至首頁「待處理需求清單」確認收貨並結案。</p>`;
             html += `<div style="text-align: right; margin-top: 15px;">
                 <button onclick="document.getElementById('overdueArrivalSection').style.display='none'"
-                        style="padding: 8px 20px; background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid rgba(255,152,0,0.4); border-radius: 6px; cursor: pointer;">
+                        style="padding: 10px 20px; background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid rgba(255,152,0,0.4); border-radius: 8px; cursor: pointer;">
                     我知道了
                 </button>
             </div>`;

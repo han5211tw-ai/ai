@@ -14,8 +14,8 @@
     .status-card {
         background: rgba(255, 255, 255, 0.03);
         border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 30px 20px;
+        border-radius: 8px;
+        padding: 12px 28px;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -40,7 +40,7 @@
     .status-name { font-size: 1.1em; font-weight: 600; color: #fff; }
     .overall-card {
         grid-column: 1 / -1;
-        background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(123, 44, 191, 0.1));
+        background: linear-gradient(135deg, rgba(250, 191, 19, 0.1), rgba(123, 44, 191, 0.1));
         border-width: 3px;
     }
     .overall-card .status-icon { width: 80px; height: 80px; font-size: 2em; }
@@ -58,7 +58,7 @@
         to { opacity: 1; transform: translateY(0); }
     }
     .details-title {
-        font-size: 1.2em; color: #00d4ff;
+        font-size: 1.2em; color: #FABF13;
         margin-bottom: 15px; padding-bottom: 10px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
@@ -82,7 +82,7 @@
     .status-badge.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
     .status-badge.non-workday { background: rgba(136, 146, 176, 0.2); color: #8892b0; }
     .business-message { font-size: 0.9em; color: #8892b0; margin-top: 4px; font-style: italic; }
-    .loading { text-align: center; padding: 60px; color: #00d4ff; }
+    .loading { text-align: center; padding: 60px; color: #FABF13; }
     .error {
         text-align: center; padding: 40px; color: #ef4444;
         background: rgba(239, 68, 68, 0.1);
@@ -104,14 +104,14 @@
     .script-item:last-child { border-bottom: none; }
     .script-name { display: flex; align-items: center; gap: 10px; }
     .script-status {
-        font-size: 0.85em; padding: 4px 10px; border-radius: 4px;
+        font-size: 0.85em; padding: 5px 12px; border-radius: 4px;
     }
     .script-status.pending { background: rgba(255, 255, 255, 0.1); color: #8892b0; }
     .script-status.running { background: rgba(234, 179, 8, 0.2); color: #eab308; }
     .script-status.success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
     .script-status.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
     .run-all-btn {
-        display: block; width: 100%; margin-top: 20px; padding: 12px 24px;
+        display: block; width: 100%; margin-top: 20px; padding: 12px 28px;
         background: linear-gradient(135deg, #22c55e, #16a34a);
         border: none; border-radius: 8px; color: #fff;
         font-size: 1em; font-weight: 600; cursor: pointer;
@@ -120,7 +120,7 @@
     .run-all-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); }
     .run-all-btn:disabled { background: #666; cursor: not-allowed; transform: none; box-shadow: none; }
     .run-script-btn {
-        padding: 4px 12px; background: rgba(34, 197, 94, 0.2);
+        padding: 5px 12px; background: rgba(34, 197, 94, 0.2);
         border: 1px solid rgba(34, 197, 94, 0.5); border-radius: 4px;
         color: #22c55e; font-size: 0.8em; cursor: pointer;
         transition: all 0.3s ease; margin-left: 8px;
@@ -360,7 +360,7 @@ function createPanelV2(id, title, items) {
         const messageHtml = item.message ? `<div class="business-message">💡 ${item.message}</div>` : '';
         return `<div class="detail-item"><div><span class="detail-label">${item.label}</span><div>${valueHtml}</div>${messageHtml}</div></div>`;
     }).join('');
-    const versionBadge = healthData.version ? `<span style="float: right; font-size: 0.7em; background: rgba(0,212,255,0.2); color: #00d4ff; padding: 2px 8px; border-radius: 4px;">v${healthData.version}</span>` : '';
+    const versionBadge = healthData.version ? `<span style="float: right; font-size: 0.7em; background: rgba(250,191,19,0.2); color: #FABF13; padding: 10px 14px; border-radius: 8px;">v${healthData.version}</span>` : '';
     return `<div class="details-panel" id="${id}-details"><div class="details-title">${title}${versionBadge}</div>${itemsHtml}</div>`;
 }
 

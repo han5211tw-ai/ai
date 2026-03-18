@@ -5,10 +5,10 @@
 
 {% block content %}
 <!-- 分類管理區塊 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="color: #38bdf8;">🏷️ 商品分類</h3>
-        <button onclick="showCategoryModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">+ 新增分類</button>
+        <h3 style="color: #FABF13;">🏷️ 商品分類</h3>
+        <button onclick="showCategoryModal()" style="padding: 10px 20px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); color: #231815; border: none; border-radius: 8px; cursor: pointer;">+ 新增分類</button>
     </div>
     <div id="categoriesList" style="display: flex; flex-wrap: wrap; gap: 10px;">
         <span style="color: #64748b;">載入中...</span>
@@ -16,15 +16,15 @@
 </div>
 
 <!-- 商品管理區塊 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px;">
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-        <h3 style="color: #38bdf8;">📋 商品清單</h3>
+        <h3 style="color: #FABF13;">📋 商品清單</h3>
         <div style="display: flex; gap: 10px;">
             <label style="display: flex; align-items: center; gap: 6px; color: #94a3b8; cursor: pointer;">
                 <input type="checkbox" id="showInactive" onchange="loadProducts()">
                 <span>顯示已下架</span>
             </label>
-            <button onclick="showProductModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">+ 新增商品</button>
+            <button onclick="showProductModal()" style="padding: 10px 20px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); color: #231815; border: none; border-radius: 8px; cursor: pointer;">+ 新增商品</button>
         </div>
     </div>
     
@@ -35,57 +35,57 @@
 
 <!-- 分類 Modal -->
 <div id="categoryModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
-    <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px;">
-        <h3 style="color: #38bdf8; margin-bottom: 20px;" id="categoryModalTitle">新增分類</h3>
+    <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; width: 100%; max-width: 400px;">
+        <h3 style="color: #FABF13; margin-bottom: 20px;" id="categoryModalTitle">新增分類</h3>
         <input type="hidden" id="categoryId">
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">分類名稱 *</label>
-            <input type="text" id="categoryName" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <input type="text" id="categoryName" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
         </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button onclick="closeCategoryModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; cursor: pointer;">取消</button>
-            <button onclick="saveCategory()" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">儲存</button>
+            <button onclick="closeCategoryModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; cursor: pointer;">取消</button>
+            <button onclick="saveCategory()" style="padding: 10px 20px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); color: #231815; border: none; border-radius: 8px; cursor: pointer;">儲存</button>
         </div>
     </div>
 </div>
 
 <!-- 商品 Modal -->
 <div id="productModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
-    <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
-        <h3 style="color: #38bdf8; margin-bottom: 20px;" id="productModalTitle">新增商品</h3>
+    <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <h3 style="color: #FABF13; margin-bottom: 20px;" id="productModalTitle">新增商品</h3>
         <input type="hidden" id="productId">
         
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">分類</label>
-            <select id="productCategory" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <select id="productCategory" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
                 <option value="">未分類</option>
             </select>
         </div>
         
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品編號</label>
-            <input type="text" id="productCode" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
+            <input type="text" id="productCode" readonly style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.5); color: #64748b; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px; position: relative;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">產品名稱 *（可手動輸入或搜尋帶入）</label>
-            <input type="text" id="productItemName" placeholder="輸入產品名稱，或輸入關鍵字搜尋..." oninput="searchProductRealtime(this)" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
-            <div id="productSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
+            <input type="text" id="productItemName" placeholder="輸入產品名稱，或輸入關鍵字搜尋..." oninput="searchProductRealtime(this)" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <div id="productSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(250, 191, 19, 0.3); border-radius: 8px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
         </div>
         
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">外部連結</label>
-            <input type="text" id="productLink" placeholder="https://..." style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <input type="text" id="productLink" placeholder="https://..." style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">說明</label>
-            <textarea id="productDesc" rows="3" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; resize: vertical;"></textarea>
+            <textarea id="productDesc" rows="3" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; resize: vertical;"></textarea>
         </div>
         
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">最小備貨量 *（對應 quantity）</label>
-            <input type="number" id="productQuantity" min="1" value="1" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
+            <input type="number" id="productQuantity" min="1" value="1" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 20px;">
@@ -96,8 +96,8 @@
         </div>
         
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button onclick="closeProductModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; cursor: pointer;">取消</button>
-            <button onclick="saveProduct()" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">儲存</button>
+            <button onclick="closeProductModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; cursor: pointer;">取消</button>
+            <button onclick="saveProduct()" style="padding: 10px 20px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); color: #231815; border: none; border-radius: 8px; cursor: pointer;">儲存</button>
         </div>
     </div>
 </div>
@@ -138,9 +138,9 @@ function renderCategories() {
     }
     
     container.innerHTML = categories.map(c => `
-        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 20px;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(250, 191, 19, 0.1); border: 1px solid rgba(250, 191, 19, 0.3); border-radius: 8px;">
             <span>${c.name}</span>
-            <button onclick="editCategory(${c.id})" style="background: none; border: none; color: #38bdf8; cursor: pointer; padding: 0;">✏️</button>
+            <button onclick="editCategory(${c.id})" style="background: none; border: none; color: #FABF13; cursor: pointer; padding: 0;">✏️</button>
             <button onclick="deleteCategory(${c.id})" style="background: none; border: none; color: #f87171; cursor: pointer; padding: 0;">🗑️</button>
         </div>
     `).join('');
@@ -264,7 +264,7 @@ function renderProducts() {
     
     container.innerHTML = Object.entries(grouped).map(([catName, items]) => `
         <div style="margin-bottom: 24px;">
-            <h4 style="color: #00d4ff; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0, 212, 255, 0.3);">${catName}</h4>
+            <h4 style="color: #FABF13; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(250, 191, 19, 0.3);">${catName}</h4>
             <div style="display: grid; gap: 12px;">
                 ${items.map(p => `
                     <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; ${p.is_active ? '' : 'opacity: 0.5;'}">
@@ -272,16 +272,16 @@ function renderProducts() {
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
                                     <span style="font-weight: 500; color: #fff;">${p.item_name}</span>
-                                    ${p.is_active ? '' : '<span style="font-size: 12px; color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 2px 8px; border-radius: 4px;">已下架</span>'}
+                                    ${p.is_active ? '' : '<span style="font-size: 16px; color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 10px 14px; border-radius: 8px;">已下架</span>'}
                                 </div>
                                 ${p.product_code ? `<div style="color: #64748b; font-size: 0.85em; margin-bottom: 4px;">編號: ${p.product_code}</div>` : ''}
                                 ${p.description ? `<div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 6px;">${p.description}</div>` : ''}
-                                ${p.external_link ? `<a href="${p.external_link}" target="_blank" style="color: #38bdf8; font-size: 0.85em;">🔗 查看規格</a>` : ''}
+                                ${p.external_link ? `<a href="${p.external_link}" target="_blank" style="color: #FABF13; font-size: 0.85em;">🔗 查看規格</a>` : ''}
                                 <div style="margin-top: 8px; color: #fbbf24; font-size: 0.9em;">最小備貨量: ${p.min_stock || p.quantity}</div>
                             </div>
                             <div style="display: flex; gap: 8px;">
-                                <button onclick="editProduct(${p.id})" style="padding: 6px 12px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; cursor: pointer; font-size: 12px;">編輯</button>
-                                <button onclick="deleteProduct(${p.id})" style="padding: 6px 12px; background: rgba(248, 113, 113, 0.2); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); border-radius: 4px; cursor: pointer; font-size: 12px;">刪除</button>
+                                <button onclick="editProduct(${p.id})" style="padding: 5px 12px; background: rgba(250, 191, 19, 0.2); color: #FABF13; border: 1px solid rgba(250, 191, 19, 0.4); border-radius: 4px; cursor: pointer; font-size: 13px;">編輯</button>
+                                <button onclick="deleteProduct(${p.id})" style="padding: 5px 12px; background: rgba(248, 113, 113, 0.2); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); border-radius: 4px; cursor: pointer; font-size: 13px;">刪除</button>
                             </div>
                         </div>
                     </div>
@@ -411,7 +411,7 @@ async function searchProductRealtime(input) {
 
         if (data.items && data.items.length > 0) {
             suggestions.innerHTML = data.items.map(p => {
-                return `<div onclick="selectProduct('${p.product_code.replace(/'/g, "\\'")}', '${p.product_name.replace(/'/g, "\\'")}')" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); min-width: 280px;">
+                return `<div onclick="selectProduct('${p.product_code.replace(/'/g, "\\'")}', '${p.product_name.replace(/'/g, "\\'")}')" style="padding: 10px 20px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); min-width: 280px;">
                     <div style="font-weight:500; color: #fff;">${p.product_name}</div>
                     <div style="font-size:0.85em; color: #64748b; margin-top: 2px;">${p.product_code}</div>
                 </div>`;

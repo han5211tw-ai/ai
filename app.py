@@ -652,17 +652,19 @@ scheduler.add_job(generate_analysis, 'cron', hour=20, minute=0)
 
 # 添加系統健康監控任務（每5分鐘檢查一次）
 def health_monitor():
-    """系統健康監控 - 檢查關鍵功能"""
+    """系統健康監控 - 檢查關鍵功能（只檢查新失敗記錄，連續3次以上才告警）"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 檢查最近10分鐘的通知失敗
+        # 檢查最近10分鐘內的新失敗記錄（排除已經告警過的）
         cursor.execute("""
             SELECT COUNT(*) as failed_count
             FROM notification_logs
             WHERE status = 'failed'
             AND created_at >= datetime('now', '-10 minutes')
+            AND notification_type != '系統告警'
+            AND notification_type != '系統嚴重告警'
         """)
         failed_count = cursor.fetchone()['failed_count']
 
@@ -672,8 +674,8 @@ def health_monitor():
 
         conn.close()
 
-        # 如果有通知失敗，發送告警
-        if failed_count > 0:
+        # 只有當失敗次數 >= 3 時才發送告警（避免單次網路問題造成干擾）
+        if failed_count >= 3:
             alert_msg = f"""⚠️ <b>系統告警</b>
 
 最近 10 分鐘有 {failed_count} 筆通知發送失敗
@@ -688,6 +690,8 @@ def health_monitor():
                 f"<p>請檢查 Telegram Bot 狀態或網路連線</p>"
             )
             print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，已發送告警")
+        elif failed_count > 0:
+            print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，未達告警門檻（<3）")
         else:
             print(f"[HEALTH MONITOR] 系統健康檢查通過 - {datetime.now().strftime('%H:%M:%S')}")
 
@@ -711,7 +715,7 @@ def health_monitor():
             f"<p>錯誤訊息：<code>{str(e)[:200]}</code></p>"
         )
 
-scheduler.add_job(health_monitor, 'interval', minutes=5)
+scheduler.add_job(health_monitor, 'interval', minutes=10)
 scheduler.start()
 
 # 啟動時嘗試執行一次分析（非致命，資料庫未就緒時不影響啟動）
@@ -2335,8 +2339,12 @@ def verify_password():
         # 步驟 2：登入成功，重置失敗記錄
         reset_login_attempts(client_ip)
 
-        # 使用 store 作為顯示單位（如「大雅門市」），如果沒有或為'-'則使用 department
-        display_unit = row['store'] if row['store'] and row['store'] != '-' else row['department']
+        # 使用 store 作為顯示單位，如果沒有或為'-'則使用 department
+        # 注意：store 欄位儲存的是「豐原」「潭子」等簡稱，需要加上「門市」後綴才能與 needs.department 比對
+        if row['store'] and row['store'] != '-':
+            display_unit = row['store'] + '門市'
+        else:
+            display_unit = row['department']
         
         return jsonify({
             'success': True,
@@ -3527,14 +3535,14 @@ def purchase_need():
 
 請於到貨後至營運系統首頁結案"""
 
-            # 發送到電腦舖工作群組（背景執行）
+            # 發送到電腦舖工作群組（背景執行，非 daemon 確保完成）
             TELEGRAM_GROUP_CHAT_ID = "-5232179482"
             import threading
-            threading.Thread(
+            t = threading.Thread(
                 target=send_telegram_notification,
-                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs'),
-                daemon=True
-            ).start()
+                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs')
+            )
+            t.start()
         except Exception as e:
             print(f"已採購 Telegram 通知背景執行緒啟動失敗: {e}")
 
@@ -6646,45 +6654,30 @@ TELEGRAM_CHAT_ID = "8545239755"  # 老闆個人（請購通知）
 TELEGRAM_ACCOUNTANT_CHAT_ID = "8203016237"  # 會計個人（調撥通知）
 
 def send_telegram_notification(message, chat_id=None, notification_type='general',
-                                related_record_id=None, related_record_type=None):
-    """發送 Telegram 通知並記錄到資料庫"""
+                                related_record_id=None, related_record_type=None,
+                                max_retries=3, retry_delay=2):
+    """發送 Telegram 通知並記錄到資料庫（支援重試機制）"""
     chat_id = chat_id or TELEGRAM_CHAT_ID
-    recipient_name = '老闆' if chat_id == TELEGRAM_CHAT_ID else ('會計' if chat_id == TELEGRAM_ACCOUNTANT_CHAT_ID else '未知')
+    recipient_name = '老闆' if chat_id == TELEGRAM_CHAT_ID else ('會計' if chat_id == TELEGRAM_ACCOUNTANT_CHAT_ID else '群組')
     message_preview = message[:50] + '...' if len(message) > 50 else message
 
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "HTML"
-        }
-        response = requests.post(url, json=payload, timeout=5)
-        result = response.json()
-
-        # 記錄到資料庫
-        status = 'success' if result.get('ok') else 'failed'
-        error_msg = result.get('description') if not result.get('ok') else None
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO notification_logs
-            (notification_type, recipient_chat_id, recipient_name, message_preview,
-             status, error_message, related_record_id, related_record_type)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (notification_type, str(chat_id), recipient_name, message_preview,
-              status, error_msg, related_record_id, related_record_type))
-        conn.commit()
-        conn.close()
-
-        return result
-    except Exception as e:
-        error_msg = str(e)
-        print(f"Telegram 通知發送失敗: {error_msg}")
-
-        # 記錄失敗到資料庫
+    last_error = None
+    for attempt in range(max_retries):
         try:
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "HTML"
+            }
+            # 增加超時時間到 10 秒
+            response = requests.post(url, json=payload, timeout=10)
+            result = response.json()
+
+            # 記錄到資料庫
+            status = 'success' if result.get('ok') else 'failed'
+            error_msg = result.get('description') if not result.get('ok') else None
+
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
@@ -6693,13 +6686,51 @@ def send_telegram_notification(message, chat_id=None, notification_type='general
                  status, error_message, related_record_id, related_record_type)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (notification_type, str(chat_id), recipient_name, message_preview,
-                  'failed', error_msg, related_record_id, related_record_type))
+                  status, error_msg, related_record_id, related_record_type))
             conn.commit()
             conn.close()
-        except:
-            pass
 
-        return None
+            if result.get('ok'):
+                if attempt > 0:
+                    print(f"[Telegram] 通知發送成功（第 {attempt + 1} 次重試）")
+                return result
+            else:
+                # API 回傳錯誤，記錄並重試
+                last_error = error_msg
+                print(f"[Telegram] 發送失敗（嘗試 {attempt + 1}/{max_retries}）: {error_msg}")
+
+        except requests.exceptions.Timeout as e:
+            last_error = f"連線超時: {str(e)}"
+            print(f"[Telegram] 連線超時（嘗試 {attempt + 1}/{max_retries}）")
+        except requests.exceptions.ConnectionError as e:
+            last_error = f"連線錯誤: {str(e)}"
+            print(f"[Telegram] 連線錯誤（嘗試 {attempt + 1}/{max_retries}）")
+        except Exception as e:
+            last_error = str(e)
+            print(f"[Telegram] 發送異常（嘗試 {attempt + 1}/{max_retries}）: {e}")
+
+        # 如果不是最後一次嘗試，等待後重試
+        if attempt < max_retries - 1:
+            time.sleep(retry_delay)
+
+    # 所有重試都失敗，記錄到資料庫
+    print(f"[Telegram] 通知發送最終失敗，已重試 {max_retries} 次")
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO notification_logs
+            (notification_type, recipient_chat_id, recipient_name, message_preview,
+             status, error_message, related_record_id, related_record_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (notification_type, str(chat_id), recipient_name, message_preview,
+              'failed', last_error, related_record_id, related_record_type))
+        conn.commit()
+        conn.close()
+    except:
+        pass
+
+    return None
 
 # ============================================
 # Email 通知功能

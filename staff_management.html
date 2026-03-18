@@ -20,8 +20,8 @@
             transition: all 0.3s;
         }
         .btn-primary {
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            color: #fff;
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+            color: #231815;
         }
         .btn-primary:hover {
             opacity: 0.9;
@@ -49,7 +49,7 @@
             margin-bottom: 20px;
         }
         .card h2 {
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.3em;
             margin-bottom: 20px;
             display: flex;
@@ -67,7 +67,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         th {
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
             font-size: 0.85em;
             text-transform: uppercase;
@@ -94,7 +94,7 @@
         }
         .input-field:focus, select:focus {
             outline: none;
-            border-color: #00d4ff;
+            border-color: #FABF13;
         }
         select option {
             background: #1a1a2e;
@@ -123,7 +123,7 @@
             overflow-y: auto;
         }
         .modal h3 {
-            color: #00d4ff;
+            color: #FABF13;
             margin-bottom: 20px;
         }
         .form-row {
@@ -209,7 +209,7 @@
     <!-- 新增/編輯員工彈窗 -->
     <div id="staffModal" class="modal-overlay">
         <div class="modal">
-            <h3 id="modalTitle" style="margin-bottom: 20px; color: #00d4ff;">新增員工</h3>
+            <h3 id="modalTitle" style="margin-bottom: 20px; color: #FABF13;">新增員工</h3>
             
             <!-- 系統員工編號（唯讀）- 只在編輯時顯示 -->
             <div class="form-group" id="systemIdGroup" style="display:none;">
@@ -382,8 +382,8 @@
                     <td>${s.mobile || s.phone || '-'}</td>
                     <td><span class="status-badge ${s.is_active ? 'status-active' : 'status-inactive'}">${s.is_active ? '啟用' : '停用'}</span></td>
                     <td>
-                        <button class="btn btn-primary" onclick="editStaff('${s.id}')" style="padding:5px 10px;font-size:0.85em;">編輯</button>
-                        <button class="btn btn-warning" onclick="showPasswordModal('${s.id}')" style="padding:5px 10px;font-size:0.85em;margin-left:5px;">變更密碼</button>
+                        <button class="btn btn-primary" onclick="editStaff('${s.id}')" style="padding:5px 12px;font-size:0.85em;">編輯</button>
+                        <button class="btn btn-warning" onclick="showPasswordModal('${s.id}')" style="padding:5px 12px;font-size:0.85em;margin-left:5px;">變更密碼</button>
                     </td>
                 </tr>
             `).join('');
@@ -619,8 +619,8 @@ let staffData = [];
                     <td>${s.mobile || s.phone || '-'}</td>
                     <td><span class="status-badge ${s.is_active ? 'status-active' : 'status-inactive'}">${s.is_active ? '啟用' : '停用'}</span></td>
                     <td>
-                        <button class="btn btn-primary" onclick="editStaff('${s.id}')" style="padding:5px 10px;font-size:0.85em;">編輯</button>
-                        <button class="btn btn-warning" onclick="showPasswordModal('${s.id}')" style="padding:5px 10px;font-size:0.85em;margin-left:5px;">變更密碼</button>
+                        <button class="btn btn-primary" onclick="editStaff('${s.id}')" style="padding:5px 12px;font-size:0.85em;">編輯</button>
+                        <button class="btn btn-warning" onclick="showPasswordModal('${s.id}')" style="padding:5px 12px;font-size:0.85em;margin-left:5px;">變更密碼</button>
                     </td>
                 </tr>
             `).join('');

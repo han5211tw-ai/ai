@@ -25,25 +25,25 @@
         /* Header */
         .header { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: linear-gradient(180deg, rgba(11,18,32,0.95) 0%, rgba(11,18,32,0.8) 100%); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-glow); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; }
         .header-title { display: flex; align-items: center; gap: 12px; }
-        .header-title h1 { font-size: 1.2rem; font-weight: 600; background: linear-gradient(90deg, #22d3ee, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .header-badge { padding: 4px 10px; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; font-size: 0.7rem; color: #a5b4fc; }
+        .header-title h1 { font-size: 1.2rem; font-weight: 600; background: linear-gradient(90deg, #FABF13, #e6a800); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header-badge { padding: 5px 12px; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; font-size: 0.7rem; color: #a5b4fc; }
         
         /* Playback Controls */
         .playback-panel { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); background: var(--bg-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-glow); border-radius: 16px; padding: 16px 24px; z-index: 100; display: flex; gap: 16px; align-items: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-        .playback-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; border-radius: 12px; color: #fff; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .playback-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); border: none; border-radius: 12px; color: #231815; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .playback-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(99,102,241,0.4); }
         .playback-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .playback-speed { display: flex; gap: 4px; }
-        .speed-btn { padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+        .speed-btn { padding: 5px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
         .speed-btn.active { background: rgba(99,102,241,0.3); border-color: rgba(99,102,241,0.5); color: #fff; }
         .flow-selector { display: flex; gap: 8px; }
-        .flow-btn { padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+        .flow-btn { padding: 10px 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
         .flow-btn.active { background: rgba(6,182,212,0.2); border-color: var(--color-page); color: var(--color-page); }
         .flow-btn.cancel { border-color: rgba(239,68,68,0.3); }
         .flow-btn.cancel.active { background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444; }
         
         /* Status Caption */
-        .status-caption { position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%); background: var(--bg-glass); backdrop-filter: blur(10px); border: 1px solid var(--border-glow); border-radius: 12px; padding: 12px 24px; z-index: 90; font-size: 0.95rem; color: #e2e8f0; opacity: 0; transition: opacity 0.3s;  text-align: center; }
+        .status-caption { position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%); background: var(--bg-glass); backdrop-filter: blur(10px); border: 1px solid var(--border-glow); border-radius: 12px; padding: 12px 28px; z-index: 90; font-size: 0.95rem; color: #e2e8f0; opacity: 0; transition: opacity 0.3s;  text-align: center; }
         .status-caption.show { opacity: 1; }
         .status-caption .step-number { color: var(--color-page); font-weight: 600; margin-right: 8px; }
         
@@ -92,7 +92,7 @@
         
         /* Progress Bar */
         .progress-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.05); z-index: 101; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); width: 0%; transition: width 0.3s; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #FABF13, #e6a800); width: 0%; transition: width 0.3s; }
 </style>
 {% endblock %}
 
@@ -105,29 +105,29 @@
     
     <!-- 版本號彈窗 -->
     <div id="versionModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:2000;justify-content:center;align-items:center;">
-        <div style="background:var(--bg-secondary);border:1px solid var(--border-glow);border-radius:16px;padding:30px;width:90%;max-height:80vh;overflow-y:auto;">
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-glow);border-radius: 8px;padding:30px;width:90%;max-height:80vh;overflow-y:auto;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:15px;">
                 <h2 style="margin:0;color:#fff;">📋 版本資訊</h2>
                 <button onclick="closeVersionModal()" style="background:none;border:none;color:#94a3b8;font-size:1.5em;cursor:pointer;">×</button>
             </div>
             <div style="margin-bottom:20px;">
-                <div style="font-size:2rem;font-weight:bold;color:#00d4ff;margin-bottom:10px;">v2.00</div>
+                <div style="font-size:2rem;font-weight:bold;color:#FABF13;margin-bottom:10px;">v2.00</div>
                 <div style="color:#8892b0;">System Architecture Map</div>
             </div>
             <div style="margin-bottom:20px;">
                 <h3 style="color:#94a3b8;font-size:0.9em;margin-bottom:10px;">更新日誌</h3>
                 <div style="space-y:10px;">
-                    <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:10px;border-left:3px solid #00d4ff;">
+                    <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius: 8px;margin-bottom:10px;border-left:3px solid #FABF13;">
                         <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px;">2026-03-03</div>
                         <div style="color:#fff;">V2 科技感动态架构图：D3.js + GSAP、節點互動、資料流播放、分層篩選</div>
                     </div>
-                    <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid #64748b;">
+                    <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius: 8px;border-left:3px solid #64748b;">
                         <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px;">2026-03-01</div>
                         <div style="color:#fff;">初始版本：靜態 SVG 架构图</div>
                     </div>
                 </div>
             </div>
-            <button onclick="closeVersionModal()" style="width:100%;padding:10px;background:rgba(0,212,255,0.2);border:1px solid #00d4ff;color:#00d4ff;border-radius:8px;cursor:pointer;">關閉</button>
+            <button onclick="closeVersionModal()" style="width:100%;padding:10px;background:rgba(250,191,19,0.2);border:1px solid #FABF13;color:#FABF13;border-radius:8px;cursor:pointer;">關閉</button>
         </div>
     </div>
     

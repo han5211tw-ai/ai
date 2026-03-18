@@ -5,52 +5,52 @@
 
 {% block content %}
 <!-- 計算控制區塊 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-    <h3 style="color: #38bdf8; margin-bottom: 16px;">🧮 獎金計算</h3>
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #FABF13; margin-bottom: 16px;">🧮 獎金計算</h3>
     <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">開始日期</label>
-            <input type="date" id="calcStartDate" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+            <input type="date" id="calcStartDate" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
         </div>
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">結束日期</label>
-            <input type="date" id="calcEndDate" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+            <input type="date" id="calcEndDate" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
         </div>
-        <button onclick="calculateBonus()" style="padding: 10px 24px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        <button onclick="calculateBonus()" style="padding: 10px 20px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); color: #231815; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
             🚀 開始計算
         </button>
     </div>
 </div>
 
 <!-- 查詢條件 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-    <h3 style="color: #38bdf8; margin-bottom: 16px;">🔍 查詢條件</h3>
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #FABF13; margin-bottom: 16px;">🔍 查詢條件</h3>
     <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">週期起日</label>
-            <input type="date" id="filterStartDate" onchange="loadResults()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+            <input type="date" id="filterStartDate" onchange="loadResults()" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
         </div>
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">週期迄日</label>
-            <input type="date" id="filterEndDate" onchange="loadResults()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+            <input type="date" id="filterEndDate" onchange="loadResults()" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
         </div>
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">狀態</label>
-            <select id="filterStatus" onchange="loadResults()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+            <select id="filterStatus" onchange="loadResults()" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
                 <option value="">全部</option>
                 <option value="pending">待確認</option>
                 <option value="confirmed">已確認</option>
             </select>
         </div>
-        <button onclick="exportReport()" style="padding: 10px 20px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 6px; cursor: pointer;">
+        <button onclick="exportReport()" style="padding: 10px 20px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 8px; cursor: pointer;">
             📥 匯出報表
         </button>
     </div>
 </div>
 
 <!-- 統計摘要 -->
-<div id="summarySection" style="display: none; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-    <h3 style="color: #38bdf8; margin-bottom: 16px;">📈 統計摘要</h3>
+<div id="summarySection" style="display: none; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #FABF13; margin-bottom: 16px;">📈 統計摘要</h3>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
         <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
             <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總筆數</div>
@@ -58,7 +58,7 @@
         </div>
         <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
             <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總銷售額</div>
-            <div id="totalSales" style="color: #38bdf8; font-size: 24px; font-weight: 500;">NT$ 0</div>
+            <div id="totalSales" style="color: #FABF13; font-size: 24px; font-weight: 500;">NT$ 0</div>
         </div>
         <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
             <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總獎金</div>
@@ -72,10 +72,10 @@
 </div>
 
 <!-- 結果列表 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px;">
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-        <h3 style="color: #38bdf8;">📋 獎金明細</h3>
-        <button onclick="batchConfirm()" style="padding: 8px 16px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+        <h3 style="color: #FABF13;">📋 獎金明細</h3>
+        <button onclick="batchConfirm()" style="padding: 10px 20px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border: none; border-radius: 8px; cursor: pointer;">
             ✓ 批次確認
         </button>
     </div>
@@ -212,7 +212,7 @@ function renderResults() {
                         <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #94a3b8;">
                             ${r.sales_quantity}
                         </td>
-                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #38bdf8;">
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #FABF13;">
                             NT$ ${r.sales_amount.toLocaleString()}
                         </td>
                         <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #fbbf24; font-weight: 500;">
@@ -225,7 +225,7 @@ function renderResults() {
                         </td>
                         <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center;">
                             ${r.status === 'pending' ? 
-                                `<button onclick="confirmResult(${r.id})" style="padding: 4px 10px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 4px; cursor: pointer; font-size: 12px;">確認</button>` : 
+                                `<button onclick="confirmResult(${r.id})" style="padding: 5px 12px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 4px; cursor: pointer; font-size: 13px;">確認</button>` : 
                                 '<span style="color: #64748b; font-size: 0.85em;">-</span>'}
                         </td>
                     </tr>

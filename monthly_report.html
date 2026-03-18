@@ -12,7 +12,7 @@
             text-align: center;
             font-size: 2.5em;
             margin-bottom: 10px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -34,10 +34,10 @@
         }
         .section-title {
             font-size: 1.8em;
-            color: #00d4ff;
+            color: #FABF13;
             margin-bottom: 30px;
             padding-bottom: 15px;
-            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+            border-bottom: 2px solid rgba(250, 191, 19, 0.3);
         }
         .card {
             background: rgba(255, 255, 255, 0.03);
@@ -62,7 +62,7 @@
         .stat-value {
             font-size: 2.5em;
             font-weight: bold;
-            color: #00d4ff;
+            color: #FABF13;
             margin-bottom: 10px;
         }
         .stat-label {
@@ -79,7 +79,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         th {
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
         }
         td { color: #ccd6f6; }
@@ -346,7 +346,7 @@
                         datasets: [{
                             label: '實際業績',
                             data: top10.map(p => p.total),
-                            backgroundColor: top10.map((p, i) => i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#00d4ff')
+                            backgroundColor: top10.map((p, i) => i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#FABF13')
                         }]
                     },
                     options: {
@@ -404,7 +404,7 @@
                         <div class="stat-label">合約客戶服務</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" style="color: #00d4ff">${contractRate}%</div>
+                        <div class="stat-value" style="color: #FABF13">${contractRate}%</div>
                         <div class="stat-label">合約比例</div>
                     </div>
                 `;
@@ -675,7 +675,7 @@
                         datasets: [{
                             label: '實際業績',
                             data: top10.map(p => p.total),
-                            backgroundColor: top10.map((p, i) => i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#00d4ff')
+                            backgroundColor: top10.map((p, i) => i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#FABF13')
                         }]
                     },
                     options: {
@@ -733,7 +733,7 @@
                         <div class="stat-label">合約客戶服務</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" style="color: #00d4ff">${contractRate}%</div>
+                        <div class="stat-value" style="color: #FABF13">${contractRate}%</div>
                         <div class="stat-label">合約比例</div>
                     </div>
                 `;
@@ -785,18 +785,18 @@
                 const top3Contribution = totalRevenue > 0 ? (top3Revenue / totalRevenue * 100).toFixed(1) : 0;
                 
                 const html = `
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">📈 本月關鍵指標</h3>
+                    <h3 style="color: #FABF13; margin-bottom: 15px;">📈 本月關鍵指標</h3>
                     <div style="margin-bottom: 20px;">
                         <p>• 本月總營業額：<strong>${formatMoney(totalRevenue)}</strong></p>
                         <p>• 平均達成率：<strong style="color: ${getAchievementColor(avgAchievement)}">${avgAchievement}%</strong></p>
                         <p>• Top 3 業務員貢獻占比：<strong>${top3Contribution}%</strong></p>
                     </div>
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">🏆 表現亮點</h3>
+                    <h3 style="color: #FABF13; margin-bottom: 15px;">🏆 表現亮點</h3>
                     <div style="margin-bottom: 20px;">
                         <p>• 最佳部門：<strong>${bestDept?.name || '-'}</strong>（達成率 ${((bestDept?.achievement_rate || 0) * 100).toFixed(1)}%）</p>
                         ${worstDept && worstDept.name !== bestDept?.name ? `<p>• 待加強部門：<strong>${worstDept.name}</strong>（達成率 ${((worstDept.achievement_rate || 0) * 100).toFixed(1)}%）</p>` : ''}
                     </div>
-                    <h3 style="color: #00d4ff; margin-bottom: 15px;">💡 營運建議</h3>
+                    <h3 style="color: #FABF13; margin-bottom: 15px;">💡 營運建議</h3>
                     <div>
                         ${avgAchievement < 80 ? '<p>• 整體達成率低於 80%，建議檢討目標設定或加強業務推動</p>' : ''}
                         ${top3Contribution > 50 ? '<p>• Top 3 業務員貢獻超過 50%，建議關注其他業務員培訓</p>' : ''}
