@@ -46,9 +46,9 @@
             transition: all 0.3s;
         }
         .nav a:hover, .nav a.active, .nav span.active {
-            color: #00d4ff;
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
+            color: #FABF13;
+            border-color: #FABF13;
+            background: rgba(250, 191, 19, 0.1);
         }
         .nav span.active {
             cursor: default;
@@ -61,7 +61,7 @@
             margin-bottom: 20px;
         }
         .card h2 {
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.3em;
             margin-bottom: 25px;
             display: flex;
@@ -78,7 +78,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         th {
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
             font-size: 0.9em;
             text-transform: uppercase;
@@ -87,7 +87,7 @@
         td { color: #ccd6f6; }
         tr:hover { background: rgba(255, 255, 255, 0.03); }
         .number { font-family: 'Courier New', monospace; }
-        .highlight { color: #00d4ff; font-weight: bold; }
+        .highlight { color: #FABF13; font-weight: bold; }
         /* 達成率顏色 */
         .ach-excellent { color: #4caf50; font-weight: bold; }  /* ≥80% 綠色 */
         .ach-good { color: #ffc107; font-weight: bold; }       /* ≥60% 黃色 */
@@ -110,7 +110,7 @@
         .back-link {
             display: inline-block;
             margin-top: 20px;
-            color: #00d4ff;
+            color: #FABF13;
             text-decoration: none;
         }
         .back-link:hover { text-decoration: underline; }
@@ -205,9 +205,9 @@
                                 return val < 1 ? 1 : val; // 最小顯示 1% 讓 0% 也能看到柱子
                             }),
                             backgroundColor: data.map(d => {
-                                if (d.name.includes('門市部')) return '#00d4ff';
+                                if (d.name.includes('門市部')) return '#FABF13';
                                 if (d.name.includes('業務部')) return '#ffc107';
-                                return '#00d4ff';
+                                return '#FABF13';
                             }),
                             borderRadius: 8,
                             borderWidth: 0
@@ -256,9 +256,9 @@
                                 return val < 1 ? 1 : val; // 最小顯示 1% 讓 0% 也能看到柱子
                             }),
                             backgroundColor: data.map(d => {
-                                if (d.name.includes('門市部')) return '#00d4ff';
+                                if (d.name.includes('門市部')) return '#FABF13';
                                 if (d.name.includes('業務部')) return '#ffc107';
-                                return '#00d4ff';
+                                return '#FABF13';
                             }),
                             borderRadius: 8,
                             borderWidth: 0

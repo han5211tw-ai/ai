@@ -43,7 +43,7 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
         .login-box h1 {
-            color: #38bdf8;
+            color: #FABF13;
             font-size: 1.8em;
             margin-bottom: 10px;
         }
@@ -73,15 +73,15 @@
         }
         .form-group input:focus {
             outline: none;
-            border-color: #38bdf8;
+            border-color: #FABF13;
         }
         .btn {
             width: 100%;
             padding: 12px;
             border: none;
             border-radius: 8px;
-            background: linear-gradient(135deg, #0ea5e9, #0284c7);
-            color: white;
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+            color: #231815;
             font-size: 1em;
             cursor: pointer;
             transition: all 0.2s;
@@ -120,7 +120,7 @@
             margin-bottom: 20px;
         }
         .sidebar-header h2 {
-            color: #38bdf8;
+            color: #FABF13;
             font-size: 1.3em;
         }
         .sidebar-header .user-info {
@@ -141,7 +141,7 @@
         }
         .nav-item {
             display: block;
-            padding: 12px 20px;
+            padding: 12px 28px;
             color: #cbd5e1;
             text-decoration: none;
             cursor: pointer;
@@ -149,9 +149,9 @@
             border-left: 3px solid transparent;
         }
         .nav-item:hover, .nav-item.active {
-            background: rgba(56, 189, 248, 0.1);
-            color: #38bdf8;
-            border-left-color: #38bdf8;
+            background: rgba(250, 191, 19, 0.1);
+            color: #FABF13;
+            border-left-color: #FABF13;
         }
         .nav-item .icon {
             display: inline-block;
@@ -201,7 +201,7 @@
         }
         .audit-card:hover {
             transform: translateY(-3px);
-            border-color: rgba(56, 189, 248, 0.3);
+            border-color: rgba(250, 191, 19, 0.3);
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
         }
         .audit-card.alert-high {
@@ -256,14 +256,14 @@
         }
         .search-box input {
             flex: 1;
-            padding: 10px 15px;
+            padding: 10px 20px;
             border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 8px;
             background: rgba(15, 23, 42, 0.8);
             color: #e2e8f0;
         }
         .btn-small {
-            padding: 8px 16px;
+            padding: 10px 20px;
             font-size: 0.85em;
             width: auto;
         }
@@ -293,11 +293,11 @@
             color: #e2e8f0;
         }
         .data-table tr:hover td {
-            background: rgba(56, 189, 248, 0.05);
+            background: rgba(250, 191, 19, 0.05);
         }
         .badge {
             display: inline-block;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 4px;
             font-size: 0.75em;
             font-weight: 500;
@@ -416,8 +416,8 @@
         .spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(56, 189, 248, 0.3);
-            border-top-color: #38bdf8;
+            border: 3px solid rgba(250, 191, 19, 0.3);
+            border-top-color: #FABF13;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -1017,14 +1017,14 @@
                 </div>
                 <div class="toolbar" style="margin:15px 0; display:flex; gap:10px; flex-wrap:wrap;">
                     <input type="text" id="customersSearch" placeholder="搜尋：姓名、手機（至少2個字）" 
-                           style="padding:8px 12px; width:280px; border-radius:6px; border:1px solid rgba(148,163,184,0.3); background:rgba(15,23,42,0.5); color:#e2e8f0;">
+                           style="padding: 10px 14px; width:280px; border-radius: 8px; border:1px solid rgba(148,163,184,0.3); background:rgba(15,23,42,0.5); color:#e2e8f0;">
                     <button class="btn" onclick="searchCustomers()">🔍 搜尋</button>
                     <button class="btn btn-small" onclick="clearCustomersSearch()">清除</button>
                     <div style="flex:1;"></div>
                     <button class="btn btn-small" onclick="showSyncPanel()" style="background:rgba(234,179,8,0.2); color:#eab308;">⚙️ 同步管理</button>
                 </div>
-                <div id="syncPanel" style="display:none; margin:15px 0; padding:15px; background:rgba(15,23,42,0.8); border:1px solid rgba(148,163,184,0.2); border-radius:8px;">
-                    <h4 style="margin-bottom:10px; color:#38bdf8;">🔄 資料同步管理</h4>
+                <div id="syncPanel" style="display:none; margin:15px 0; padding:15px; background:rgba(15,23,42,0.8); border:1px solid rgba(148,163,184,0.2); border-radius: 8px;">
+                    <h4 style="margin-bottom:10px; color:#FABF13;">🔄 資料同步管理</h4>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="btn" onclick="checkSyncStatus()">📊 檢查狀態</button>
                         <button class="btn" onclick="initCustomersToMaster()" style="background:rgba(34,197,94,0.2); color:#22c55e;">📥 初始化 (→Master)</button>
@@ -1278,10 +1278,10 @@
                     </div>
                     <div class="toolbar" style="margin:15px 0; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                         <input type="text" id="tableSearch" placeholder="搜尋..." 
-                               style="padding:8px 12px; width:250px; border-radius:6px; border:1px solid rgba(148,163,184,0.3); background:rgba(15,23,42,0.5); color:#e2e8f0;">
+                               style="padding: 10px 14px; width:250px; border-radius: 8px; border:1px solid rgba(148,163,184,0.3); background:rgba(15,23,42,0.5); color:#e2e8f0;">
                         <button class="btn" onclick="performSearch()">🔍 搜尋</button>
                         <button class="btn btn-small" onclick="clearSearch()">清除</button>
-                        <select id="sortSelect" style="padding:8px; border-radius:6px; background:rgba(15,23,42,0.5); color:#e2e8f0; border:1px solid rgba(148,163,184,0.3);">
+                        <select id="sortSelect" style="padding:8px; border-radius: 8px; background:rgba(15,23,42,0.5); color:#e2e8f0; border:1px solid rgba(148,163,184,0.3);">
                             <option value="${sortField}|desc">${sortField} ↓</option>
                             <option value="${sortField}|asc">${sortField} ↑</option>
                             <option value="id|desc">ID ↓</option>
@@ -1471,10 +1471,10 @@
             const modal = document.createElement('div');
             modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; display:flex; justify-content:center; align-items:center; padding:20px;';
             modal.innerHTML = `
-                <div style="background:rgba(30,41,59,0.95); border:1px solid rgba(148,163,184,0.2); border-radius:12px;  max-height:80vh; overflow:auto; padding:30px; position:relative;">
+                <div style="background:rgba(30,41,59,0.95); border:1px solid rgba(148,163,184,0.2); border-radius: 8px;  max-height:80vh; overflow:auto; padding:30px; position:relative;">
                     <button onclick="this.closest('.modal-overlay').remove()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
-                    <h3 style="color:#38bdf8; margin-bottom:15px;">📋 ${title} - 詳細資料</h3>
-                    <pre style="background:rgba(15,23,42,0.5); padding:15px; border-radius:8px; overflow:auto; font-size:12px; color:#e2e8f0; max-height:60vh;">${JSON.stringify(item, null, 2)}</pre>
+                    <h3 style="color:#FABF13; margin-bottom:15px;">📋 ${title} - 詳細資料</h3>
+                    <pre style="background:rgba(15,23,42,0.5); padding:15px; border-radius: 8px; overflow:auto; font-size: 16px; color:#e2e8f0; max-height:60vh;">${JSON.stringify(item, null, 2)}</pre>
                 </div>
             `;
             modal.className = 'modal-overlay';

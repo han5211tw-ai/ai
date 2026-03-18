@@ -1,38 +1,56 @@
 /* ============================================
    電腦舖營運系統 - 全域樣式系統 (Global CSS System)
-   版本: 1.0.0
+   版本: 2.0.0  (CIS 品牌黃融合版 - 方案 B)
+   更新: 2026-03-18
+   色系來源: COSH 電腦舖品牌識別手冊 v1140105
    ============================================ */
 
 /* ------------------------------------------
    1. CSS Variables - Design Tokens
    ------------------------------------------ */
 :root {
-    /* Color Palette - Dark Theme */
-    --color-bg-primary: #0a0a0a;
+    /* ── CIS 官方品牌色 ──────────────────────── */
+    --color-brand-primary:  #FABF13;            /* CIS 輔助黃 (主要強調色) */
+    --color-brand-black:    #231815;            /* CIS 品牌黑 */
+    --color-brand-yellow-10: rgba(250, 191, 19, 0.10); /* 黃 10% 透明 */
+    --color-brand-yellow-20: rgba(250, 191, 19, 0.20); /* 黃 20% 透明 */
+    --color-brand-yellow-30: rgba(250, 191, 19, 0.30); /* 黃 30% 透明 */
+
+    /* ── 背景色 (深色暗系，維持科技感) ─────────── */
+    --color-bg-primary:   #0a0a0a;
     --color-bg-secondary: #1a1a2e;
-    --color-bg-tertiary: #16213e;
-    --color-bg-elevated: rgba(255, 255, 255, 0.03);
-    --color-bg-hover: rgba(255, 255, 255, 0.05);
-    --color-bg-active: rgba(0, 212, 255, 0.1);
-    
-    --color-text-primary: #ffffff;
+    --color-bg-tertiary:  #16213e;
+    --color-bg-elevated:  rgba(255, 255, 255, 0.03);
+    --color-bg-hover:     rgba(255, 255, 255, 0.05);
+    --color-bg-active:    rgba(250, 191, 19, 0.10); /* 品牌黃 10% */
+
+    /* ── 文字色 ──────────────────────────────── */
+    --color-text-primary:   #ffffff;
     --color-text-secondary: #8892b0;
-    --color-text-tertiary: #64748b;
-    --color-text-muted: #475569;
-    
-    --color-accent-cyan: #00d4ff;
-    --color-accent-purple: #7b2cbf;
-    --color-accent-gold: #ffd700;
-    --color-accent-gradient: linear-gradient(135deg, #00d4ff 0%, #7b2cbf 100%);
-    
+    --color-text-tertiary:  #64748b;
+    --color-text-muted:     #475569;
+
+    /* ── 強調色 ──────────────────────────────── */
+    --color-accent-primary:  #FABF13;           /* 主要互動強調 = CIS 品牌黃 */
+    --color-accent-cyan:     #00d4ff;           /* 保留：圖表/資料視覺化專用 */
+    --color-accent-purple:   #7b2cbf;           /* 保留：圖表/資料視覺化專用 */
+    --color-accent-gold:     #ffd700;
+    --color-accent-gradient: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); /* 品牌黃漸層 */
+
+    /* ── 邊框色 ──────────────────────────────── */
     --color-border-default: rgba(255, 255, 255, 0.1);
-    --color-border-accent: rgba(0, 212, 255, 0.3);
-    --color-border-focus: rgba(0, 212, 255, 0.5);
-    
+    --color-border-accent:  rgba(250, 191, 19, 0.30); /* 品牌黃 30% */
+    --color-border-focus:   rgba(250, 191, 19, 0.60); /* 品牌黃 60% */
+
+    /* ── 狀態色 ──────────────────────────────── */
     --color-status-success: #4caf50;
     --color-status-warning: #ffc107;
-    --color-status-error: #f44336;
-    --color-status-info: #2196f3;
+    --color-status-error:   #f44336;
+    --color-status-info:    #FABF13;
+
+    /* ── Glow 特效 ───────────────────────────── */
+    --shadow-glow:       0 0 20px rgba(250, 191, 19, 0.35);
+    --shadow-glow-hover: 0 0 32px rgba(250, 191, 19, 0.55);
     
     /* Layout Scale */
     --layout-sidebar-width: 250px;
@@ -86,7 +104,7 @@
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
     --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
-    --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+    /* --shadow-glow 已移至強調色區塊定義 */
     
     /* Transitions */
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -128,6 +146,8 @@ body {
     line-height: var(--line-height-normal);
     color: var(--color-text-primary);
     background-color: var(--color-bg-primary);
+    overflow-x: hidden; /* 防止水平跑版 */
+    max-width: 100vw;
 }
 
 /* ------------------------------------------
@@ -254,7 +274,7 @@ body {
 .text-secondary { color: var(--color-text-secondary); }
 .text-tertiary { color: var(--color-text-tertiary); }
 .text-muted { color: var(--color-text-muted); }
-.text-accent { color: var(--color-accent-cyan); }
+.text-accent { color: var(--color-brand-primary); }
 .text-success { color: var(--color-status-success); }
 .text-warning { color: var(--color-status-warning); }
 .text-error { color: var(--color-status-error); }
@@ -388,16 +408,24 @@ body {
     cursor: not-allowed;
 }
 
+/* ── Primary Button：品牌黃漸層 ──── */
 .btn-primary {
-    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-    color: white;
+    background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+    color: var(--color-brand-black);
+    font-weight: var(--font-weight-semibold);
 }
 
 .btn-primary:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(250, 191, 19, 0.45);
 }
 
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* ── Secondary Button ─────────────── */
 .btn-secondary {
     background: var(--color-bg-hover);
     color: var(--color-text-secondary);
@@ -410,6 +438,13 @@ body {
     border-color: var(--color-border-accent);
 }
 
+.btn-secondary:active:not(:disabled) {
+    background: var(--color-brand-yellow-10);
+    border-color: var(--color-brand-primary);
+    color: var(--color-brand-primary);
+}
+
+/* ── Danger Button ────────────────── */
 .btn-danger {
     background: linear-gradient(135deg, #ff6b6b, #c92a2a);
     color: white;
@@ -417,18 +452,28 @@ body {
 
 .btn-danger:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.35);
 }
 
-/* 儲存按鈕 */
+.btn-danger:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* ── Save Button（同 Primary）──────── */
 .btn-save {
-    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-    color: white;
+    background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+    color: var(--color-brand-black);
+    font-weight: var(--font-weight-semibold);
 }
 
 .btn-save:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(250, 191, 19, 0.45);
+}
+
+.btn-save:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 /* Form Elements */
@@ -439,14 +484,20 @@ body {
     border: 1px solid var(--color-border-default);
     border-radius: var(--radius-md);
     color: var(--color-text-primary);
-    font-size: var(--font-size-md);
+    font-size: max(var(--font-size-md), 16px); /* 最小 16px，防 iOS 自動縮放 */
     transition: all var(--transition-fast);
+    -webkit-appearance: none; /* 移除 iOS 預設樣式 */
+    appearance: none;
 }
 
 .form-input:focus {
     outline: none;
-    border-color: var(--color-accent-cyan);
-    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px var(--color-brand-yellow-20);
+}
+
+.form-input:hover:not(:disabled):not(:read-only) {
+    border-color: var(--color-brand-yellow-30);
 }
 
 .form-input::placeholder {
@@ -538,11 +589,11 @@ body {
 }
 
 .section-title {
-    color: var(--color-accent-cyan);
+    color: var(--color-brand-primary);
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
     margin-bottom: var(--space-4);
-    border-bottom: 1px solid var(--color-border-default);
+    border-bottom: 1px solid var(--color-border-accent);
     padding-bottom: var(--space-3);
 }
 
@@ -574,17 +625,25 @@ body {
     border-radius: var(--radius-md);
     background: var(--color-bg-primary);
     color: var(--color-text-primary);
-    font-size: var(--font-size-md);
+    font-size: max(var(--font-size-md), 16px); /* 最小 16px，防 iOS 縮放 */
     transition: all var(--transition-fast);
     box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .form-field input:focus,
 .form-field select:focus,
 .form-field textarea:focus {
     outline: none;
-    border-color: var(--color-accent-cyan);
-    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px var(--color-brand-yellow-20);
+}
+
+.form-field input:hover:not(:disabled):not(:read-only),
+.form-field select:hover:not(:disabled),
+.form-field textarea:hover:not(:disabled):not(:read-only) {
+    border-color: var(--color-brand-yellow-30);
 }
 
 .form-field input::placeholder,
@@ -611,9 +670,13 @@ body {
 }
 
 .data-table th {
-    background: var(--color-bg-active);
-    color: var(--color-accent-cyan);
+    background: var(--color-brand-yellow-10);
+    color: var(--color-brand-primary);
     font-weight: var(--font-weight-semibold);
+}
+
+.data-table tr:hover td {
+    background: var(--color-bg-hover);
 }
 
 .data-table input {
@@ -641,9 +704,10 @@ body {
 .total-section {
     text-align: right;
     padding: var(--space-4);
-    background: rgba(0, 212, 255, 0.05);
+    background: var(--color-brand-yellow-10);
     border-radius: var(--radius-md);
     margin-top: var(--space-4);
+    border: 1px solid var(--color-brand-yellow-20);
 }
 
 .total-label {
@@ -653,7 +717,7 @@ body {
 
 .total-amount {
     font-size: var(--font-size-2xl);
-    color: var(--color-accent-cyan);
+    color: var(--color-brand-primary);
     font-weight: var(--font-weight-bold);
 }
 
@@ -770,7 +834,7 @@ body {
     width: 40px;
     height: 40px;
     border: 3px solid var(--color-border-default);
-    border-top-color: var(--color-accent-cyan);
+    border-top-color: var(--color-brand-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }

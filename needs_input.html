@@ -10,79 +10,79 @@
 .form-section.active{display:block}
 .form-group{margin-bottom:15px;text-align:left}
 .form-group label{display:block;margin-bottom:6px;color:var(--color-text-secondary);font-size:0.95em}
-.form-group input,.form-group select{width:100%;max-width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--color-accent-cyan)}
+.form-group input,.form-group select{width:100%;max-width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--color-brand-primary)}
 select option{background:var(--color-bg-secondary);color:#fff}
-.btn{padding:10px 25px;border:none;border-radius:6px;background:linear-gradient(135deg,var(--color-accent-cyan),#7b2cbf);color:#fff;font-size:1.05em;cursor:pointer;transition:transform 0.2s}
+.btn{padding:10px 20px;border:none;border-radius:8px;background:linear-gradient(135deg, #FABF13 0%, #e6a800 100%);color: #231815;font-size:1.05em;cursor:pointer;transition:transform 0.2s}
 .btn:hover{transform:translateY(-2px)}
 .btn:disabled{opacity:0.5;cursor:not-allowed}
 /* 內嵌旋轉動畫 */
 .spinner-inline{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 .user-info{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 20px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:1.05em}
-.user-info span{color:var(--color-accent-cyan);font-weight:bold}
+.user-info span{color:var(--color-brand-primary);font-weight:bold}
 .btn-logout{padding:5px 12px;font-size:0.9em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:var(--color-status-error)}
 .header-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-bottom:20px}
-.header-title{color:var(--color-accent-cyan);font-size:1.1em;margin-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px}
+.header-title{color:var(--color-brand-primary);font-size:1.1em;margin-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px}
 .form-row{display:flex;gap:15px;margin-bottom:12px;flex-wrap:wrap}
 .form-field{flex:1;min-width:200px}
 .form-field label{display:block;margin-bottom:5px;color:var(--color-text-secondary);font-size:0.9em}
-.form-field input,.form-field select{width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em}
-.form-field input:focus,.form-field select:focus{outline:none;border-color:var(--color-accent-cyan)}
-.customer-section{background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:15px;margin-top:10px;display:none}
+.form-field input,.form-field select{width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em}
+.form-field input:focus,.form-field select:focus{outline:none;border-color:var(--color-brand-primary)}
+.customer-section{background:rgba(250,191,19,0.05);border:1px solid rgba(250,191,19,0.2);border-radius:8px;padding:15px;margin-top:10px;display:none}
 .customer-section.active{display:block}
 .customer-search-wrapper{position:relative}
 .autocomplete-list{position:absolute;top:100%;left:0;right:0;background:var(--color-bg-secondary);border:1px solid rgba(255,255,255,0.2);border-radius:6px;max-height:200px;overflow-y:auto;z-index:100;display:none}
 .autocomplete-list.active{display:block}
 .autocomplete-item{padding:10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.1)}
-.autocomplete-item:hover{background:rgba(0,212,255,0.1)}
-.customer-selected{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:6px;padding:10px;margin-top:8px;display:none}
+.autocomplete-item:hover{background:rgba(250,191,19,0.1)}
+.customer-selected{background:rgba(250,191,19,0.1);border:1px solid rgba(250,191,19,0.3);border-radius:6px;padding:10px;margin-top:8px;display:none}
 .customer-selected.active{display:flex;justify-content:space-between;align-items:center}
 .products-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-bottom:20px}
 .products-table{width:100%;border-collapse:collapse;background:rgba(0,0,0,0.2)}
-.products-table th{text-align:left;padding:12px 10px;background:rgba(0,212,255,0.1);color:#00d4ff;border-bottom:2px solid rgba(255,255,255,0.2);font-size:0.9em;font-weight:600}
+.products-table th{text-align:left;padding:12px 10px;background:rgba(250,191,19,0.1);color:#FABF13;border-bottom:2px solid rgba(255,255,255,0.2);font-size:0.9em;font-weight:600}
 .products-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);vertical-align:top;height:60px;box-sizing:border-box;color:#ccd6f6}
 .products-table tr{height:60px}
 .product-row input{width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em;box-sizing:border-box}
-.product-row input:focus{outline:none;border-color:var(--color-accent-cyan)}
+.product-row input:focus{outline:none;border-color:var(--color-brand-primary)}
 .product-row input.error{border-color:var(--color-status-error);background:rgba(244,67,54,0.1)}
 .product-autocomplete{position:absolute;top:100%;left:0;right:0;background:var(--color-bg-secondary);border:1px solid rgba(255,255,255,0.2);border-radius:4px;max-height:150px;overflow-y:auto;z-index:50;display:none}
 .product-autocomplete.active{display:block}
 .product-search-wrapper{position:relative}
-.btn-add{margin-top:15px;padding:10px 20px;background:rgba(0,212,255,0.2);border:1px solid var(--color-accent-cyan);color:var(--color-accent-cyan);border-radius:6px;cursor:pointer;font-size:0.95em;transition:all 0.2s}
-.btn-add:hover{background:rgba(0,212,255,0.3)}
-.btn-delete{padding:6px 12px;background:rgba(244,67,54,0.2);border:1px solid var(--color-status-error);color:var(--color-status-error);border-radius:4px;cursor:pointer;font-size:0.85em;transition:all 0.2s}
+.btn-add{margin-top:15px;padding:10px 20px;background:rgba(250,191,19,0.2);border:1px solid var(--color-brand-primary);color:var(--color-brand-primary);border-radius:8px;cursor:pointer;font-size:0.95em;transition:all 0.2s}
+.btn-add:hover{background:rgba(250,191,19,0.3)}
+.btn-delete{padding:5px 12px;background:rgba(244,67,54,0.2);border:1px solid var(--color-status-error);color:var(--color-status-error);border-radius:4px;cursor:pointer;font-size:0.85em;transition:all 0.2s}
 .btn-delete:hover{background:rgba(244,67,54,0.3)}
 .field-error{color:var(--color-status-error);font-size:0.85em;margin-top:4px;display:none}
 .field-error.show{display:block}
-.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;color:#fff;font-size:0.95em;z-index:1000;opacity:0;transition:opacity 0.3s}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:12px 28px;border-radius:8px;color:#fff;font-size:0.95em;z-index:1000;opacity:0;transition:opacity 0.3s}
 .toast.show{opacity:1}
 .toast.success{background:rgba(76,175,80,0.9)}
 .toast.error{background:rgba(244,67,54,0.9)}
-.toast-center{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px 40px;border-radius:12px;color:#fff;font-size:1.2em;z-index:2000;opacity:0;transition:opacity 0.3s;background:rgba(0,0,0,0.85);border:2px solid var(--color-accent-cyan);box-shadow:0 0 20px rgba(0,212,255,0.3);text-align:center;min-width:300px}
+.toast-center{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px 40px;border-radius:12px;color:#fff;font-size:1.2em;z-index:2000;opacity:0;transition:opacity 0.3s;background:rgba(0,0,0,0.85);border:2px solid var(--color-brand-primary);box-shadow:0 0 20px rgba(250,191,19,0.3);text-align:center;min-width:300px}
 .toast-center.show{opacity:1}
-.toast-center.info{background:rgba(0,212,255,0.9)}
+.toast-center.info{background:rgba(250,191,19,0.9)}
 .recent-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:20px}
-.recent-section h3{color:var(--color-accent-cyan);margin-bottom:15px;font-size:1.1em}
+.recent-section h3{color:var(--color-brand-primary);margin-bottom:15px;font-size:1.1em}
 .recent-item{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .recent-item .info{flex:1;min-width:200px;font-size:0.9em;line-height:1.5}
-.recent-item .status{display:inline-block;padding:4px 10px;border-radius:4px;font-size:0.85em;margin-right:10px}
+.recent-item .status{display:inline-block;padding:5px 12px;border-radius:4px;font-size:0.85em;margin-right:10px}
 .status-pending{background:rgba(255,152,0,0.2);color:#ff9800}
 .status-cancelled{background:rgba(244,67,54,0.2);color:#f44336}
-.status-arrived{background:rgba(33,150,243,0.2);color:#2196f3}
+.status-arrived{background:rgba(250,191,19,0.2);color:#FABF13}
 .status-completed{background:rgba(76,175,80,0.2);color:#4caf50}
-.btn-cancel{padding:6px 12px;font-size:0.85em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:var(--color-status-error);border-radius:4px;cursor:pointer}
+.btn-cancel{padding:5px 12px;font-size:0.85em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:var(--color-status-error);border-radius:4px;cursor:pointer}
 .btn-cancel:hover{background:rgba(244,67,54,0.3)}
 .history-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:20px}
-.history-section h3{color:var(--color-accent-cyan);margin-bottom:15px;font-size:1.1em}
+.history-section h3{color:var(--color-brand-primary);margin-bottom:15px;font-size:1.1em}
 .history-filters{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center}
-.history-filters select,.history-filters input{padding:8px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em}
+.history-filters select,.history-filters input{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em}
 .history-filters select option{background:var(--color-bg-secondary);color:#fff}
-.history-filters button{padding:8px 16px;background:rgba(0,212,255,0.2);border:1px solid var(--color-accent-cyan);color:var(--color-accent-cyan);border-radius:6px;cursor:pointer;font-size:0.9em;transition:all 0.2s}
+.history-filters button{padding:10px 20px;background:rgba(250,191,19,0.2);border:1px solid var(--color-brand-primary);color:var(--color-brand-primary);border-radius:8px;cursor:pointer;font-size:0.9em;transition:all 0.2s}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-.history-filters button:hover{background:rgba(0,212,255,0.3)}
+.history-filters button:hover{background:rgba(250,191,19,0.3)}
 .history-pagination{display:flex;justify-content:center;gap:10px;margin-top:15px;align-items:center}
-.history-pagination button{padding:6px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;cursor:pointer;font-size:0.85em;transition:all 0.2s}
+.history-pagination button{padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;cursor:pointer;font-size:0.85em;transition:all 0.2s}
 .history-pagination button:hover:not(:disabled){background:rgba(255,255,255,0.2)}
 .history-pagination button:disabled{opacity:0.3;cursor:not-allowed}
 .history-pagination span{color:var(--color-text-secondary);font-size:0.9em}
@@ -90,15 +90,15 @@ select option{background:var(--color-bg-secondary);color:#fff}
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center;z-index:9999}
 .modal-overlay.active{display:flex}
 .modal{background:linear-gradient(135deg,var(--color-bg-secondary) 0%,var(--color-bg-elevated) 100%);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:30px;width:90%;max-width:400px}
-.modal h3{color:var(--color-accent-cyan);margin-bottom:20px}
+.modal h3{color:var(--color-brand-primary);margin-bottom:20px}
 .modal .form-group{margin-bottom:15px}
 .modal .form-group label{display:block;margin-bottom:8px;color:var(--color-text-secondary);font-size:0.9em}
 .modal .form-group input{width:100%;padding:12px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(15,23,42,0.8);color:#fff;font-size:1em}
-.modal .form-group input:focus{outline:none;border-color:var(--color-accent-cyan)}
+.modal .form-group input:focus{outline:none;border-color:var(--color-brand-primary)}
 .modal-actions{display:flex;gap:10px;margin-top:20px}
 .modal-actions button{flex:1;padding:12px;border-radius:8px;cursor:pointer;font-size:0.95em;transition:all 0.3s;border:none}
-.btn-primary{background:linear-gradient(135deg,var(--color-accent-cyan),#7b2cbf);color:#fff}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,212,255,0.4)}
+.btn-primary{background:linear-gradient(135deg, #FABF13 0%, #e6a800 100%);color: #231815}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(250,191,19,0.4)}
 .btn-secondary{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff}
 .btn-secondary:hover{background:rgba(255,255,255,0.2)}
 .error-text{color:var(--color-status-error);font-size:0.85em;margin-top:5px}
@@ -161,16 +161,16 @@ select option{background:var(--color-bg-secondary);color:#fff}
                         <input type="hidden" id="customerMobile">
                         <div id="customerSelected" class="customer-selected">
                             <div>
-                                <span style="color:var(--color-accent-cyan)">編號:</span> <span id="displayCustomerCode"></span>
-                                <span style="color:var(--color-accent-cyan);margin-left:15px">姓名:</span> <span id="displayCustomerName"></span>
+                                <span style="color:var(--color-brand-primary)">編號:</span> <span id="displayCustomerCode"></span>
+                                <span style="color:var(--color-brand-primary);margin-left:15px">姓名:</span> <span id="displayCustomerName"></span>
                             </div>
-                            <button type="button" class="btn" onclick="clearCustomer()" style="background:rgba(255,255,255,0.1);padding:6px 12px;font-size:0.85em">清除</button>
+                            <button type="button" class="btn" onclick="clearCustomer()" style="background:rgba(255,255,255,0.1);padding:5px 12px;font-size:0.85em">清除</button>
                         </div>
                     </div>
                 </div>
                 <div class="form-field" style="flex:1">
                     <label>&nbsp;</label>
-                    <button type="button" class="btn" onclick="showNewCustomerDialog()" style="width:100%;background:rgba(0,212,255,0.2)">+ 新客戶</button>
+                    <button type="button" class="btn" onclick="showNewCustomerDialog()" style="width:100%;background:rgba(250,191,19,0.2)">+ 新客戶</button>
                 </div>
             </div>
         </div>
@@ -196,7 +196,7 @@ select option{background:var(--color-bg-secondary);color:#fff}
     </div>
 
     <div style="text-align:center;padding:20px">
-        <button id="submitBtn" class="btn" onclick="submitForm()" style="padding:14px 50px;font-size:1.1em">提交送出</button>
+        <button id="submitBtn" class="btn" onclick="submitForm()" style="padding:12px 28px;font-size:1.1em">提交送出</button>
     </div>
 
     <!-- 最近提交區塊（30分鐘內可取消） -->
@@ -546,7 +546,7 @@ async function queryProductStock(rowId,productCode){
                 stockDiv.innerHTML='<div style="color:var(--color-status-error);font-size:0.85em;margin-top:4px">庫存: 0（無庫存）</div>';
             }else{
                 const stockDetails=data.inventory.map(s=>s.warehouse+':'+s.stock_quantity).join(' / ');
-                stockDiv.innerHTML='<div style="color:var(--color-accent-cyan);font-size:0.8em;margin-top:4px;line-height:1.4"><div>總庫存: '+totalStock+'</div><div style="color:var(--color-text-secondary);font-size:0.9em;">'+stockDetails+'</div></div>';
+                stockDiv.innerHTML='<div style="color:var(--color-brand-primary);font-size:0.8em;margin-top:4px;line-height:1.4"><div>總庫存: '+totalStock+'</div><div style="color:var(--color-text-secondary);font-size:0.9em;">'+stockDetails+'</div></div>';
             }
             stockDiv.style.display='block';
         }else{
@@ -566,7 +566,7 @@ function onNewProductChange(rowId){
     if(isNew){
         codeInput.value=generateTempProductId();
         codeInput.readOnly=true;
-        codeInput.style.background='rgba(0,212,255,0.1)';
+        codeInput.style.background='rgba(250,191,19,0.1)';
     }else{
         codeInput.value='';
         codeInput.readOnly=false;

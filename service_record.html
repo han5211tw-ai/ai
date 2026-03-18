@@ -5,23 +5,23 @@
 
 {% block content %}
 <!-- 服務紀錄表單 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-    <h3 style="margin-bottom: 20px; color: #38bdf8;">📝 新增服務紀錄</h3>
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="margin-bottom: 20px; color: #FABF13;">📝 新增服務紀錄</h3>
 
     <!-- 基本資訊 -->
     <div style="margin-bottom: 20px;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務日期 *</label>
-                <input type="date" id="serviceDate" required max="" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; height: 40px;">
+                <input type="date" id="serviceDate" required max="" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; height: 40px;">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務時間</label>
-                <input type="time" id="serviceTime" max="" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; height: 40px;">
+                <input type="time" id="serviceTime" max="" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; height: 40px;">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">業務人員</label>
-                <input type="text" id="salesperson" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #64748b; box-sizing: border-box; height: 40px;">
+                <input type="text" id="salesperson" readonly style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #64748b; box-sizing: border-box; height: 40px;">
             </div>
         </div>
     </div>
@@ -32,7 +32,7 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 12px;">
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務類型 *</label>
-                <select id="serviceType" onchange="handleServiceTypeChange()" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                <select id="serviceType" onchange="handleServiceTypeChange()" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
                     <option value="">請選擇</option>
                     <option value="門市支援">門市支援</option>
                     <option value="現場維修">現場維修</option>
@@ -46,7 +46,7 @@
             <!-- 門市選擇（只在服務類型=門市支援時顯示） -->
             <div id="storeSection" style="display: none;">
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">門市 *</label>
-                <select id="store" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                <select id="store" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
                     <option value="">請選擇</option>
                     <option value="大雅門市">大雅門市</option>
                     <option value="豐原門市">豐原門市</option>
@@ -56,7 +56,7 @@
         </div>
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務內容 *</label>
-            <textarea id="serviceContent" rows="3" placeholder="請描述服務內容" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; resize: vertical;"></textarea>
+            <textarea id="serviceContent" rows="3" placeholder="請描述服務內容" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; resize: vertical;"></textarea>
         </div>
     </div>
 
@@ -68,14 +68,14 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 12px;">
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶來源</label>
-                <select id="customerSource" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                <select id="customerSource" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
                     <option value="業務聯絡">業務聯絡</option>
                     <option value="門市轉介">門市轉介</option>
                 </select>
             </div>
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">合約客戶</label>
-                <select id="isContract" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                <select id="isContract" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
                     <option value="否">否</option>
                     <option value="是">是</option>
                 </select>
@@ -85,28 +85,28 @@
         <!-- 客戶搜尋 -->
         <div style="position: relative; margin-bottom: 12px;">
             <div style="display: flex; gap: 10px;">
-                <input type="text" id="customerSearch" placeholder="輸入客戶姓名或手機搜尋..." oninput="searchCustomerRealtime(this)" style="flex: 1; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
-                <button type="button" onclick="searchCustomer()" style="padding: 10px 16px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">🔍 搜尋</button>
-                <button type="button" onclick="showNewCustomerForm()" style="padding: 10px 16px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; cursor: pointer;">+ 新客戶</button>
+                <input type="text" id="customerSearch" placeholder="輸入客戶姓名或手機搜尋..." oninput="searchCustomerRealtime(this)" style="flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
+                <button type="button" onclick="searchCustomer()" style="padding: 10px 20px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 8px; cursor: pointer;">🔍 搜尋</button>
+                <button type="button" onclick="showNewCustomerForm()" style="padding: 10px 20px; background: rgba(250, 191, 19, 0.2); color: #FABF13; border: 1px solid rgba(250, 191, 19, 0.4); border-radius: 8px; cursor: pointer;">+ 新客戶</button>
             </div>
             <!-- 即時搜尋下拉選單 -->
-            <div id="customerSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
+            <div id="customerSuggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30, 30, 50, 0.98); border: 1px solid rgba(250, 191, 19, 0.3); border-radius: 8px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);"></div>
         </div>
 
         <!-- 客戶編號與名稱（搜尋後自動帶入） -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 12px;">
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶編號</label>
-                <input type="text" id="customerCode" placeholder="搜尋後自動帶入" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b;">
+                <input type="text" id="customerCode" placeholder="搜尋後自動帶入" readonly style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.5); color: #64748b;">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶名稱</label>
-                <input type="text" id="customerName" placeholder="搜尋後自動帶入" readonly style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.5); color: #64748b;">
+                <input type="text" id="customerName" placeholder="搜尋後自動帶入" readonly style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.5); color: #64748b;">
             </div>
         </div>
 
         <!-- 搜尋結果 -->
-        <div id="customerResult" style="display: none; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 12px; margin-top: 10px;">
+        <div id="customerResult" style="display: none; background: rgba(250, 191, 19, 0.1); border: 1px solid rgba(250, 191, 19, 0.3); border-radius: 8px; padding: 12px; margin-top: 10px;">
             <div id="customerInfo"></div>
         </div>
 
@@ -115,16 +115,16 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                 <div>
                     <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">客戶姓名 *</label>
-                    <input type="text" id="newCustomerName" placeholder="輸入客戶姓名" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                    <input type="text" id="newCustomerName" placeholder="輸入客戶姓名" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">手機號碼 *</label>
-                    <input type="text" id="newCustomerMobile" placeholder="09xxxxxxxx" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                    <input type="text" id="newCustomerMobile" placeholder="09xxxxxxxx" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
                 </div>
             </div>
             <div style="margin-top: 10px;">
-                <button type="button" onclick="confirmNewCustomer()" style="padding: 10px 16px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; cursor: pointer; margin-right: 8px;">✓ 確認新客戶</button>
-                <button type="button" onclick="hideNewCustomerForm()" style="padding: 10px 16px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">取消</button>
+                <button type="button" onclick="confirmNewCustomer()" style="padding: 10px 20px; background: rgba(250, 191, 19, 0.2); color: #FABF13; border: 1px solid rgba(250, 191, 19, 0.4); border-radius: 8px; cursor: pointer; margin-right: 8px;">✓ 確認新客戶</button>
+                <button type="button" onclick="hideNewCustomerForm()" style="padding: 10px 20px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 8px; cursor: pointer;">取消</button>
             </div>
         </div>
 
@@ -136,16 +136,16 @@
 
     <!-- 提交按 -->
     <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <button type="button" onclick="resetForm()" style="padding: 10px 20px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">↺ 重置</button>
-        <button type="button" onclick="submitForm()" style="padding: 10px 20px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; cursor: pointer;">✓ 提交送出</button>
+        <button type="button" onclick="resetForm()" style="padding: 10px 20px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 8px; cursor: pointer;">↺ 重置</button>
+        <button type="button" onclick="submitForm()" style="padding: 10px 20px; background: rgba(250, 191, 19, 0.2); color: #FABF13; border: 1px solid rgba(250, 191, 19, 0.4); border-radius: 8px; cursor: pointer;">✓ 提交送出</button>
     </div>
 </div>
 
 <!-- 服務紀錄列表 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px;">
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
         <h3>📋 最近服務紀錄</h3>
-        <button type="button" onclick="loadRecentRecords()" style="padding: 8px 16px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; cursor: pointer;">🔄 重新整理</button>
+        <button type="button" onclick="loadRecentRecords()" style="padding: 10px 20px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 8px; cursor: pointer;">🔄 重新整理</button>
     </div>
     <div id="recordsList">
         <div style="text-align: center; padding: 40px; color: #64748b;">載入中...</div>
@@ -271,7 +271,7 @@
                 suggestions.innerHTML = data.items.map(c => {
                     const mobile = c.mobile ? c.mobile : (c.phone1 ? c.phone1 : '');
                     const contactInfo = mobile ? `📱 ${mobile}` : '';
-                    return `<div onclick="selectCustomer('${c.customer_id || c.short_name}', '${c.short_name.replace(/'/g, "\\'")}')" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); min-width: 280px;">
+                    return `<div onclick="selectCustomer('${c.customer_id || c.short_name}', '${c.short_name.replace(/'/g, "\\'")}')" style="padding: 10px 20px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); min-width: 280px;">
                         <div style="font-weight:500; color: #fff;">${c.short_name}</div>
                         <div style="font-size:0.85em; color: #64748b; margin-top: 2px;">${c.customer_id || ''} ${contactInfo}</div>
                     </div>`;
@@ -301,12 +301,12 @@
                     <strong>${name}</strong>
                     <span style="color: #64748b; margin-left: 10px;">${id}</span>
                 </div>
-                <span style="background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 4px 10px; border-radius: 4px; font-size: 0.85em;">既有客戶</span>
+                <span style="background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 10px 14px; border-radius: 8px; font-size: 0.85em;">既有客戶</span>
             </div>
         `;
         resultDiv.style.display = 'block';
-        resultDiv.style.background = 'rgba(56, 189, 248, 0.1)';
-        resultDiv.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+        resultDiv.style.background = 'rgba(250, 191, 19, 0.1)';
+        resultDiv.style.borderColor = 'rgba(250, 191, 19, 0.3)';
     }
 
     // 搜尋客戶
@@ -378,7 +378,7 @@
                     <span style="color: #fbbf24; margin-left: 10px;">${tempId}</span>
                     <span style="color: #64748b; margin-left: 10px;">${mobile}</span>
                 </div>
-                <span style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; padding: 4px 10px; border-radius: 4px; font-size: 0.85em;">新客戶</span>
+                <span style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; padding: 10px 14px; border-radius: 8px; font-size: 0.85em;">新客戶</span>
             </div>
         `;
         resultDiv.style.display = 'block';
@@ -522,11 +522,11 @@
         // 建立彈窗 HTML
         const modalHtml = `
             <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
-                <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
-                    <h3 style="color: #38bdf8; margin-bottom: 20px;">✏️ 編輯服務紀錄</h3>
+                <div style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+                    <h3 style="color: #FABF13; margin-bottom: 20px;">✏️ 編輯服務紀錄</h3>
                     <div style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務類型</label>
-                        <select id="editServiceType" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+                        <select id="editServiceType" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #231815;">
                             <option value="門市支援" ${serviceType === '門市支援' ? 'selected' : ''}>門市支援</option>
                             <option value="現場維修" ${serviceType === '現場維修' ? 'selected' : ''}>現場維修</option>
                             <option value="設備問題" ${serviceType === '設備問題' ? 'selected' : ''}>設備問題</option>
@@ -538,11 +538,11 @@
                     </div>
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">服務內容</label>
-                        <textarea id="editServiceItem" rows="4" style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; resize: vertical;">${serviceItem}</textarea>
+                        <textarea id="editServiceItem" rows="4" style="width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; resize: vertical;">${serviceItem}</textarea>
                     </div>
                     <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <button type="button" onclick="closeEditModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; cursor: pointer;">關閉</button>
-                        <button type="button" onclick="saveEditServiceRecord(${id})" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 6px; cursor: pointer;">儲存</button>
+                        <button type="button" onclick="closeEditModal()" style="padding: 10px 20px; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; cursor: pointer;">關閉</button>
+                        <button type="button" onclick="saveEditServiceRecord(${id})" style="padding: 10px 20px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); color: #231815; border: none; border-radius: 8px; cursor: pointer;">儲存</button>
                     </div>
                 </div>
             </div>
@@ -706,8 +706,8 @@
                                 <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">${r.store || '-'}</td>
                                 <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
                                     ${canEdit ? `
-                                        <button type="button" onclick="editServiceRecord(${r.id}, '${(r.service_type || '').replace(/'/g, "\\'")}', '${(r.service_item || '').replace(/'/g, "\\'")}')" style="padding: 4px 10px; background: linear-gradient(135deg, #38bdf8, #7c3aed); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 5px;">編輯</button>
-                                        <button type="button" onclick="deleteServiceRecord(${r.id})" style="padding: 4px 10px; background: linear-gradient(135deg, #ff6b6b, #c92a2a); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">刪除</button>
+                                        <button type="button" onclick="editServiceRecord(${r.id}, '${(r.service_type || '').replace(/'/g, "\\'")}', '${(r.service_item || '').replace(/'/g, "\\'")}')" style="padding: 5px 12px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); color: #231815; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; margin-right: 5px;">編輯</button>
+                                        <button type="button" onclick="deleteServiceRecord(${r.id})" style="padding: 5px 12px; background: linear-gradient(135deg, #ff6b6b, #c92a2a); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">刪除</button>
                                     ` : '-'}
                                 </td>
                             </tr>

@@ -19,7 +19,7 @@
             margin-bottom: 20px;
         }
         .card h2 {
-            color: var(--color-accent-cyan);
+            color: var(--color-brand-primary);
             font-size: 1.1em;
             margin-bottom: 25px;
             display: flex;
@@ -51,8 +51,8 @@
         }
         .form-control:focus {
             outline: none;
-            border-color: var(--color-accent-cyan);
-            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            border-color: var(--color-brand-primary);
+            box-shadow: 0 0 0 3px rgba(250, 191, 19, 0.1);
         }
         .form-control:read-only {
             background: var(--color-bg-hover);
@@ -67,7 +67,7 @@
         .suggestions {
             position: absolute;
             background: rgba(30, 30, 50, 0.95);
-            border: 1px solid rgba(0, 212, 255, 0.3);
+            border: 1px solid rgba(250, 191, 19, 0.3);
             border-radius: var(--radius-sm);
             max-height: 200px;
             overflow-y: auto;
@@ -76,12 +76,12 @@
             margin-top: 5px;
         }
         .suggestion-item {
-            padding: 10px 15px;
+            padding: 10px 20px;
             cursor: pointer;
             border-bottom: 1px solid var(--color-border-default);
         }
         .suggestion-item:hover {
-            background: rgba(0, 212, 255, 0.1);
+            background: rgba(250, 191, 19, 0.1);
         }
         .search-wrapper {
             position: relative;
@@ -97,17 +97,17 @@
             border: 1px solid var(--color-border-default);
         }
         th {
-            background: rgba(0, 212, 255, 0.1);
-            color: var(--color-accent-cyan);
+            background: rgba(250, 191, 19, 0.1);
+            color: var(--color-brand-primary);
             font-weight: 600;
         }
         td {
             color: var(--color-text-primary);
         }
         .btn-add {
-            background: rgba(0, 212, 255, 0.2);
-            border: 1px solid rgba(0, 212, 255, 0.5);
-            color: var(--color-accent-cyan);
+            background: rgba(250, 191, 19, 0.2);
+            border: 1px solid rgba(250, 191, 19, 0.5);
+            color: var(--color-brand-primary);
             padding: 10px 20px;
             border-radius: var(--radius-sm);
             cursor: pointer;
@@ -116,7 +116,7 @@
             transition: all var(--transition-normal);
         }
         .btn-add:hover {
-            background: rgba(0, 212, 255, 0.3);
+            background: rgba(250, 191, 19, 0.3);
         }
         .btn-delete {
             background: rgba(244, 67, 54, 0.2);
@@ -131,10 +131,10 @@
             background: rgba(244, 67, 54, 0.3);
         }
         .btn-submit {
-            background: linear-gradient(135deg, var(--color-accent-cyan), #7b2cbf);
-            color: white;
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+            color: #231815;
             border: none;
-            padding: 15px 40px;
+            padding: 12px 28px;
             border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 1em;
@@ -144,13 +144,13 @@
         }
         .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 4px 20px rgba(250, 191, 19, 0.4);
         }
         .btn-continue {
             background: rgba(255, 215, 0, 0.2);
             border: 1px solid rgba(255, 215, 0, 0.5);
             color: var(--color-status-warning);
-            padding: 15px 40px;
+            padding: 12px 28px;
             border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 1em;
@@ -163,7 +163,7 @@
             background: rgba(255, 215, 0, 0.3);
         }
         .amount-display {
-            color: var(--color-accent-cyan);
+            color: var(--color-brand-primary);
         }
 
         /* 資料列表樣式 */
@@ -175,7 +175,7 @@
             margin-top: 20px;
         }
         .data-section h3 {
-            color: var(--color-accent-cyan);
+            color: var(--color-brand-primary);
             margin-bottom: 15px;
             font-size: 1.1em;
         }
@@ -188,7 +188,7 @@
         .data-filters input {
             flex: 1;
             min-width: 200px;
-            padding: 10px 15px;
+            padding: 10px 20px;
             border: 1px solid var(--color-border-hover);
             border-radius: var(--radius-sm);
             background: rgba(15, 23, 42, 0.8);
@@ -197,20 +197,20 @@
         }
         .data-filters input:focus {
             outline: none;
-            border-color: var(--color-accent-cyan);
+            border-color: var(--color-brand-primary);
         }
         .data-filters button {
             padding: 10px 20px;
-            background: rgba(0, 212, 255, 0.2);
-            border: 1px solid rgba(0, 212, 255, 0.5);
-            color: var(--color-accent-cyan);
+            background: rgba(250, 191, 19, 0.2);
+            border: 1px solid rgba(250, 191, 19, 0.5);
+            color: var(--color-brand-primary);
             border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 0.9em;
             transition: all var(--transition-normal);
         }
         .data-filters button:hover {
-            background: rgba(0, 212, 255, 0.3);
+            background: rgba(250, 191, 19, 0.3);
         }
         .data-table {
             width: 100%;
@@ -218,11 +218,11 @@
             font-size: 0.9em;
         }
         .data-table th {
-            background: rgba(0, 212, 255, 0.1);
-            color: var(--color-accent-cyan);
+            background: rgba(250, 191, 19, 0.1);
+            color: var(--color-brand-primary);
             padding: var(--radius-md);
             text-align: left;
-            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+            border-bottom: 2px solid rgba(250, 191, 19, 0.3);
         }
         .data-table td {
             padding: var(--radius-md);
@@ -286,7 +286,7 @@
             overflow-y: auto;
         }
         .modal h3 {
-            color: var(--color-accent-cyan);
+            color: var(--color-brand-primary);
             margin-bottom: 20px;
             font-size: 1.2em;
         }
@@ -297,7 +297,7 @@
             margin-top: 15px;
         }
         .items-list h4 {
-            color: var(--color-accent-cyan);
+            color: var(--color-brand-primary);
             margin-bottom: 10px;
             font-size: 1em;
         }
@@ -315,8 +315,8 @@
             justify-content: flex-end;
         }
         .btn-primary {
-            background: linear-gradient(135deg, var(--color-accent-cyan), #7b2cbf);
-            color: #fff;
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+            color: #231815;
             border: none;
             padding: var(--radius-md) 24px;
             border-radius: var(--radius-sm);
@@ -338,12 +338,12 @@
             text-align: right;
             margin-top: 20px;
             padding: 15px;
-            background: rgba(0, 212, 255, 0.05);
+            background: rgba(250, 191, 19, 0.05);
             border-radius: var(--radius-sm);
         }
         .total-amount {
             font-size: 1.5em;
-            color: var(--color-accent-cyan);
+            color: var(--color-brand-primary);
             font-weight: bold;
         }
 </style>
@@ -959,9 +959,9 @@
                 <div class="items-list">
                     
                     ${itemsHtml}
-                    <div class="item-row" style="margin-top: 10px; padding-top: 10px; border-top: 2px solid rgba(0, 212, 255, 0.3); font-weight: bold;">
+                    <div class="item-row" style="margin-top: 10px; padding-top: 10px; border-top: 2px solid rgba(250, 191, 19, 0.3); font-weight: bold;">
                         <span>總計</span>
-                        <span style="color: var(--color-accent-cyan);">${purchase.total_amount.toLocaleString()} 元</span>
+                        <span style="color: var(--color-brand-primary);">${purchase.total_amount.toLocaleString()} 元</span>
                     </div>
                 </div>
             `;

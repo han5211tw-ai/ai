@@ -5,29 +5,29 @@
 
 {% block content %}
 <!-- 說明區塊 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 16px 24px; margin-bottom: 24px;">
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 10px 14px; margin-bottom: 24px;">
     <p style="color: #94a3b8; margin: 0;">
         💡 查詢您在特定期間內達成的銷售獎金記錄。
     </p>
 </div>
 
 <!-- 查詢條件 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
     <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">開始日期</label>
-            <input type="date" id="startDate" onchange="loadMyBonus()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+            <input type="date" id="startDate" onchange="loadMyBonus()" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
         </div>
         <div>
             <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">結束日期</label>
-            <input type="date" id="endDate" onchange="loadMyBonus()" style="padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff;">
+            <input type="date" id="endDate" onchange="loadMyBonus()" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
         </div>
     </div>
 </div>
 
 <!-- 統計摘要 -->
-<div id="summarySection" style="display: none; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-    <h3 style="color: #38bdf8; margin-bottom: 16px;">📈 統計摘要</h3>
+<div id="summarySection" style="display: none; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #FABF13; margin-bottom: 16px;">📈 統計摘要</h3>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
         <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
             <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">達成筆數</div>
@@ -35,7 +35,7 @@
         </div>
         <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
             <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總銷售額</div>
-            <div id="totalSales" style="color: #38bdf8; font-size: 24px; font-weight: 500;">NT$ 0</div>
+            <div id="totalSales" style="color: #FABF13; font-size: 24px; font-weight: 500;">NT$ 0</div>
         </div>
         <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
             <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總獎金</div>
@@ -45,8 +45,8 @@
 </div>
 
 <!-- 獎金明細 -->
-<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 24px;">
-    <h3 style="color: #38bdf8; margin-bottom: 20px;">📋 獎金明細</h3>
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px;">
+    <h3 style="color: #FABF13; margin-bottom: 20px;">📋 獎金明細</h3>
     
     <div id="bonusList">
         <div style="text-align: center; padding: 40px; color: #64748b;">請選擇查詢日期範圍</div>
@@ -132,7 +132,7 @@ function renderBonusList() {
                         <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #94a3b8;">
                             ${b.sales_quantity}
                         </td>
-                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #38bdf8;">
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #FABF13;">
                             NT$ ${b.sales_amount.toLocaleString()}
                         </td>
                         <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #fbbf24; font-weight: 500;">

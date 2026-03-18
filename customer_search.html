@@ -28,7 +28,7 @@
             text-align: left;
             font-size: 1.2em;
             margin-bottom: 5px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -54,8 +54,8 @@
             transition: all 0.3s;
         }
         .nav a:hover {
-            color: #00d4ff;
-            border-color: #00d4ff;
+            color: #FABF13;
+            border-color: #FABF13;
         }
         .search-box {
             display: flex;
@@ -66,7 +66,7 @@
             flex: 1;
             padding: 20px 25px;
             font-size: 1.2em;
-            border: 2px solid rgba(0, 212, 255, 0.3);
+            border: 2px solid rgba(250, 191, 19, 0.3);
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.05);
             color: #fff;
@@ -74,16 +74,16 @@
         }
         .search-input::placeholder { color: #8892b0; }
         .search-input:focus {
-            border-color: #00d4ff;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+            border-color: #FABF13;
+            box-shadow: 0 0 20px rgba(250, 191, 19, 0.2);
         }
         .search-btn {
-            padding: 20px 40px;
+            padding: 12px 28px;
             font-size: 1.2em;
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
             border: none;
-            border-radius: 12px;
-            color: #fff;
+            border-radius: 8px;
+            color: #231815;
             cursor: pointer;
             transition: transform 0.3s;
         }
@@ -104,9 +104,9 @@
             transition: all 0.3s;
         }
         .nav a:hover, .nav a.active, .nav span.active {
-            color: #00d4ff;
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
+            color: #FABF13;
+            border-color: #FABF13;
+            background: rgba(250, 191, 19, 0.1);
         }
         .nav span.active {
             cursor: default;
@@ -136,7 +136,7 @@
         }
         .info-value {
             font-size: 1.3em;
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
         }
         .purchase-history h3 {
@@ -155,8 +155,8 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         th {
-            background: rgba(0, 212, 255, 0.1);
-            color: #00d4ff;
+            background: rgba(250, 191, 19, 0.1);
+            color: #FABF13;
         }
         td { color: #ccd6f6; }
         .no-result {
@@ -171,7 +171,7 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
-            padding: 15px 20px;
+            padding: 12px 28px;
             margin-bottom: 10px;
             cursor: pointer;
             transition: all 0.3s;
@@ -180,12 +180,12 @@
             align-items: center;
         }
         .customer-list-item:hover {
-            background: rgba(0, 212, 255, 0.1);
-            border-color: #00d4ff;
+            background: rgba(250, 191, 19, 0.1);
+            border-color: #FABF13;
         }
         .customer-list-name {
             font-size: 1.1em;
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
         }
         .customer-list-id {
@@ -195,7 +195,7 @@
         .loading {
             text-align: center;
             padding: 40px;
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.1em;
             display: none;
         }
@@ -218,7 +218,7 @@
                    onkeypress="if(event.key==='Enter') searchCustomer()">
             <button class="search-btn" onclick="searchCustomer()">搜尋</button>
         </div>
-        <p style="text-align: center; color: #00d4ff; margin-bottom: 30px; font-size: 0.95em;" id="customerCount">載入中...</p>
+        <p style="text-align: center; color: #FABF13; margin-bottom: 30px; font-size: 0.95em;" id="customerCount">載入中...</p>
         
         <div class="loading" id="loading">搜尋中...</div>
         
