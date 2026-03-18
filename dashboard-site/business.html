@@ -46,9 +46,9 @@
             transition: all 0.3s;
         }
         .nav a:hover, .nav a.active, .nav span.active {
-            color: #00d4ff;
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
+            color: #FABF13;
+            border-color: #FABF13;
+            background: rgba(250, 191, 19, 0.1);
         }
         .nav span.active {
             cursor: default;
@@ -61,7 +61,7 @@
             margin-bottom: 30px;
         }
         .card h2 {
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.3em;
             margin-bottom: 25px;
             display: flex;
@@ -78,7 +78,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         th {
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
             font-size: 0.9em;
             text-transform: uppercase;
@@ -87,7 +87,7 @@
         td { color: #ccd6f6; }
         tr:hover { background: rgba(255, 255, 255, 0.03); }
         .number { font-family: 'Courier New', monospace; }
-        .highlight { color: #00d4ff; font-weight: bold; }
+        .highlight { color: #FABF13; font-weight: bold; }
         /* 達成率顏色 */
         .ach-excellent { color: #4caf50; font-weight: bold; }
         .ach-good { color: #ffc107; font-weight: bold; }
@@ -110,12 +110,12 @@
         .back-link {
             display: inline-block;
             margin-top: 20px;
-            color: #00d4ff;
+            color: #FABF13;
             text-decoration: none;
         }
         .back-link:hover { text-decoration: underline; }
         .section-title {
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.3em;
             font-weight: 600;
             margin-bottom: 20px;
@@ -144,9 +144,9 @@
         }
         .btn-card:hover {
             background: rgba(255, 255, 255, 0.1);
-            border-color: #00d4ff;
+            border-color: #FABF13;
             transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.2);
+            box-shadow: 0 8px 30px rgba(250, 191, 19, 0.2);
         }
         .btn-icon { font-size: 2em; margin-bottom: 10px; }
         .btn-title { font-size: 1em; font-weight: 600; margin-bottom: 5px; color: #fff; }
@@ -164,14 +164,14 @@
             padding: 20px;
             text-align: left;
         }
-        .service-box.blue { border-color: rgba(0, 212, 255, 0.3); }
+        .service-box.blue { border-color: rgba(250, 191, 19, 0.3); }
         .service-box.green { border-color: rgba(76, 175, 80, 0.3); }
         .service-name {
             font-size: 1.1em;
             font-weight: 600;
             margin-bottom: 10px;
         }
-        .service-name.blue { color: #00d4ff; }
+        .service-name.blue { color: #FABF13; }
         .service-name.green { color: #4caf50; }
         .service-count {
             font-size: 2em;
@@ -219,13 +219,13 @@
             <!-- 服務分類圓餅圖 -->
             <div class="chart-row" style="margin-top: 30px;">
                 <div style="flex: 1;">
-                    <h3 style="color: #00d4ff; font-size: 1.1em; margin-bottom: 15px;">🔧 服務類型分布</h3>
+                    <h3 style="color: #FABF13; font-size: 1.1em; margin-bottom: 15px;">🔧 服務類型分布</h3>
                     <div class="chart-container" style="height: 250px;">
                         <canvas id="serviceTypeChart"></canvas>
                     </div>
                 </div>
                 <div style="flex: 1;">
-                    <h3 style="color: #00d4ff; font-size: 1.1em; margin-bottom: 15px;">📍 客戶來源分布</h3>
+                    <h3 style="color: #FABF13; font-size: 1.1em; margin-bottom: 15px;">📍 客戶來源分布</h3>
                     <div class="chart-container" style="height: 250px;">
                         <canvas id="customerSourceChart"></canvas>
                     </div>
@@ -234,7 +234,7 @@
 
             <!-- 最近7天趨勢 -->
             <div style="margin-top: 30px;">
-                <h3 style="color: #00d4ff; font-size: 1.1em; margin-bottom: 15px;">📈 最近7天服務趨勢</h3>
+                <h3 style="color: #FABF13; font-size: 1.1em; margin-bottom: 15px;">📈 最近7天服務趨勢</h3>
                 <div class="chart-container" style="height: 250px;">
                     <canvas id="serviceTrendChart"></canvas>
                 </div>
@@ -433,7 +433,7 @@
                 const typeColorMap = {
                     '門市支援': '#ff9800',
                     '其他': '#9c27b0',
-                    '現場維修': '#00d4ff',
+                    '現場維修': '#FABF13',
                     '設備問題': '#f44336',
                     '交機': '#4caf50',
                     '網通設定': '#ffc107',
@@ -493,7 +493,7 @@
                 });
                 
                 // 客戶來源圓餅圖
-                const sourceColors = ['#00d4ff', '#4caf50', '#ffc107', '#ff9800', '#9c27b0'];
+                const sourceColors = ['#FABF13', '#4caf50', '#ffc107', '#ff9800', '#9c27b0'];
                 const sourceTotal = data.customer_sources.reduce((sum, s) => sum + s.count, 0);
                 new Chart(document.getElementById('customerSourceChart'), {
                     type: 'doughnut',

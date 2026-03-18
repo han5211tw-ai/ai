@@ -176,7 +176,7 @@ def send_telegram_message(message, file_path=None):
 
 ### GitHub Deploy Key
 
-**Repo:** `https://github.com/han5211tw-ai/ai.git`  
+**Repo:** `https://github.com/han5211tw-ai/ERP.git`  
 **Key 位置:** `~/.ssh/github_deploy_key` (ed25519)  
 **設定日期:** 2026-03-16
 
@@ -298,6 +298,72 @@ clawdhub publish ./my-skill --slug my-skill --name "My Skill" --version 1.0.0
 | purchase-request-manager | `skills/purchase-request-manager/` | 規格完成，待實作 |
 | roster-performance-tracker | `skills/roster-performance-tracker/` | 規格完成，待實作 |
 | google-reviews-automation | `skills/google-reviews-automation/` | 規格完成，待實作 |
+
+---
+
+---
+
+### OpenClaw Browser 自動化
+
+**用途:** 控制瀏覽器進行網頁自動化操作、功能測試、資料抓取
+**底層技術:** Playwright (Chrome/Firefox/Edge)
+**設定日期:** 2026-03-18
+
+**兩種連線方式:**
+
+| 方式 | 參數 | 使用情境 |
+|------|------|----------|
+| **本機瀏覽器** | `profile="user"` | 連上已開啟的 Chrome，保留登入狀態 |
+| **Chrome 擴充** | `profile="chrome-relay"` | 透過 Browser Relay 擴充功能 attach 特定分頁 |
+
+**基本操作流程:**
+```python
+# 1. 檢查瀏覽器狀態
+browser action="status" profile="user"
+
+# 2. 列出所有分頁
+browser action="tabs" profile="user"
+
+# 3. 對特定分頁截圖/操作
+browser action="snapshot" profile="user" targetId="<tab_id>"
+browser action="click" profile="user" targetId="<tab_id>" ref="<element_ref>"
+```
+
+**實際測試記錄:**
+- ✅ 2026-03-18 成功連上本機 Chrome (PID: 5133)
+- ✅ 可讀取分頁列表、頁面結構、執行點擊操作
+- ✅ 支援電腦舖官網 (computershop.shop) 自動化測試
+
+**應用場景:**
+- 網站功能自動化測試
+- 登入流程驗證
+- 表單填寫測試
+- 視覺回歸測試（截圖比對）
+- 競品價格監控
+
+---
+
+### 電腦舖官網 (Website)
+
+**本地路徑:** `~/srv/web-site/computershop-web/`
+**GitHub Repo:** `https://github.com/han5211tw-ai/WEB.git`
+**部署位置:** `/srv/web-site/computershop-web/` (生產環境)
+**本地開發:** Port 8000
+
+**Deploy Key:**
+- **Key 位置:** `~/.ssh/cosh_deploy_key`
+- **設定日期:** 2026-03-18
+- **SSH Config:** `~/.ssh/config` 已設定 `Host github.com` 使用此金鑰
+
+**常用指令:**
+```bash
+# Push 到 GitHub
+cd ~/srv/web-site/computershop-web
+git push origin main
+
+# 測試 SSH 連線
+ssh -T git@github.com
+```
 
 ---
 

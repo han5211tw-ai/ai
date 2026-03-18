@@ -25,9 +25,9 @@
 }
 
 .filter-select {
-    padding: 12px 20px;
+    padding: 12px 28px;
     font-size: 1em;
-    border: 2px solid rgba(0, 212, 255, 0.3);
+    border: 2px solid rgba(250, 191, 19, 0.3);
     border-radius: var(--radius-md);
     background: var(--color-bg-primary);
     color: var(--color-text-primary);
@@ -37,8 +37,8 @@
 }
 
 .filter-select:focus {
-    border-color: var(--color-accent-cyan);
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 20px rgba(250, 191, 19, 0.2);
 }
 
 .filter-select option {
@@ -57,7 +57,7 @@
     flex: 1;
     padding: 15px 20px;
     font-size: 1.1em;
-    border: 2px solid rgba(0, 212, 255, 0.3);
+    border: 2px solid rgba(250, 191, 19, 0.3);
     border-radius: var(--radius-md);
     background: var(--color-bg-primary);
     color: var(--color-text-primary);
@@ -69,8 +69,8 @@
 }
 
 .search-input:focus {
-    border-color: var(--color-accent-cyan);
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 20px rgba(250, 191, 19, 0.2);
 }
 
 /* 搜尋結果下拉 */
@@ -80,7 +80,7 @@
     left: 0;
     right: 0;
     background: var(--color-bg-secondary);
-    border: 2px solid rgba(0, 212, 255, 0.3);
+    border: 2px solid rgba(250, 191, 19, 0.3);
     border-radius: var(--radius-md);
     margin-top: 10px;
     max-height: 400px;
@@ -94,14 +94,14 @@
 }
 
 .result-item {
-    padding: 15px 20px;
+    padding: 12px 28px;
     border-bottom: 1px solid var(--color-border-default);
     cursor: pointer;
     transition: all var(--transition-fast);
 }
 
 .result-item:hover {
-    background: rgba(0, 212, 255, 0.1);
+    background: rgba(250, 191, 19, 0.1);
 }
 
 .result-item:last-child {
@@ -122,17 +122,17 @@
 .result-category {
     display: inline-block;
     padding: 2px 8px;
-    background: rgba(0, 212, 255, 0.2);
+    background: rgba(250, 191, 19, 0.2);
     border-radius: 4px;
     font-size: 0.8em;
-    color: var(--color-accent-cyan);
+    color: var(--color-brand-primary);
     margin-left: 10px;
 }
 
 /* 商品詳情 */
 .product-detail {
     background: var(--color-bg-elevated);
-    border: 1px solid rgba(0, 212, 255, 0.2);
+    border: 1px solid rgba(250, 191, 19, 0.2);
     border-radius: var(--radius-lg);
     padding: 30px;
     margin-top: 20px;
@@ -151,7 +151,7 @@
 
 .detail-title {
     font-size: 1.4em;
-    color: var(--color-accent-cyan);
+    color: var(--color-brand-primary);
     margin-bottom: 10px;
 }
 
@@ -200,9 +200,9 @@
 }
 
 .inventory-table th {
-    color: var(--color-accent-cyan);
+    color: var(--color-brand-primary);
     font-weight: 500;
-    background: rgba(0, 212, 255, 0.1);
+    background: rgba(250, 191, 19, 0.1);
 }
 
 .inventory-table tr:hover {
@@ -456,7 +456,7 @@ function renderQueryResults(items, category, warehouse) {
                 <td>${item.item_spec}</td>
                 <td>${item.warehouse}</td>
                 <td><span class="stock-badge ${stockClass}">${item.stock_quantity}</span></td>
-                <td><button class="btn btn-primary" style="padding: 8px 16px; font-size: 0.9em;" onclick="selectProduct('${item.product_id}')">查看</button></td>
+                <td><button class="btn btn-primary" style="padding: 10px 20px; font-size: 0.9em;" onclick="selectProduct('${item.product_id}')">查看</button></td>
             </tr>
         `;
     }).join('');

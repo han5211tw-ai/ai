@@ -16,28 +16,33 @@
    ============================================ */
 
 :root {
-    /* 與 global.css 一致的 Design Tokens */
-    --auth-bg-primary: #0a0a0a;
+    /* 與 global.css 一致的 Design Tokens (CIS 品牌黃融合版) */
+    --auth-bg-primary:   #0a0a0a;
     --auth-bg-secondary: #1a1a2e;
-    --auth-bg-tertiary: #16213e;
-    
+    --auth-bg-tertiary:  #16213e;
+
+    /* ── CIS 品牌色 ─────────────── */
+    --auth-brand-primary: #FABF13;
+    --auth-brand-black:   #231815;
+
     /* Accent Colors */
-    --auth-accent-cyan: #00d4ff;
-    --auth-accent-purple: #7b2cbf;
-    --auth-accent-gradient: linear-gradient(135deg, #00d4ff, #7b2cbf);
-    
+    --auth-accent-primary:  #FABF13;
+    --auth-accent-cyan:     #FABF13;   /* 保留備用 */
+    --auth-accent-purple:   #7b2cbf;   /* 保留備用 */
+    --auth-accent-gradient: linear-gradient(135deg, #FABF13, #e6a800);
+
     /* Glassmorphism */
-    --auth-glass-bg: rgba(255, 255, 255, 0.03);
+    --auth-glass-bg:     rgba(255, 255, 255, 0.03);
     --auth-glass-border: rgba(255, 255, 255, 0.1);
-    
+
     /* Shadows */
-    --auth-shadow-glow: 0 0 40px -15px rgba(0, 212, 255, 0.3);
-    --auth-shadow-glow-hover: 0 0 60px -15px rgba(0, 212, 255, 0.5);
-    
+    --auth-shadow-glow:       0 0 40px -15px rgba(250, 191, 19, 0.35);
+    --auth-shadow-glow-hover: 0 0 60px -15px rgba(250, 191, 19, 0.55);
+
     /* Text Colors */
-    --auth-text-primary: #ffffff;
+    --auth-text-primary:   #ffffff;
     --auth-text-secondary: #8892b0;
-    --auth-text-muted: #64748b;
+    --auth-text-muted:     #64748b;
 }
 
 /* 背景覆層 */
@@ -47,9 +52,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: 
-        radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(123, 44, 191, 0.1) 0%, transparent 50%),
+    background:
+        radial-gradient(circle at 20% 30%, rgba(250, 191, 19, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(230, 168, 0, 0.06) 0%, transparent 50%),
         linear-gradient(135deg, var(--auth-bg-primary) 0%, var(--auth-bg-secondary) 50%, var(--auth-bg-tertiary) 100%);
     display: flex;
     justify-content: center;
@@ -67,7 +72,7 @@
     left: 30%;
     width: 400px;
     height: 400px;
-    background: rgba(0, 212, 255, 0.15);
+    background: rgba(250, 191, 19, 0.12);
     border-radius: 50%;
     filter: blur(100px);
     pointer-events: none;
@@ -80,7 +85,7 @@
     right: 30%;
     width: 400px;
     height: 400px;
-    background: rgba(123, 44, 191, 0.15);
+    background: rgba(230, 168, 0, 0.08);
     border-radius: 50%;
     filter: blur(100px);
     pointer-events: none;
@@ -121,7 +126,7 @@
 #auth-icon-ring-outer {
     position: absolute;
     inset: 0;
-    border: 2px solid rgba(0, 212, 255, 0.3);
+    border: 2px solid rgba(250, 191, 19, 0.40);
     border-radius: 50%;
     animation: auth-spin 10s linear infinite;
 }
@@ -130,7 +135,7 @@
 #auth-icon-ring-inner {
     position: absolute;
     inset: 8px;
-    border: 1px solid rgba(123, 44, 191, 0.3);
+    border: 1px solid rgba(230, 168, 0, 0.25);
     border-radius: 50%;
     animation: auth-spin-reverse 8s linear infinite;
 }
@@ -161,8 +166,8 @@
 #auth-shield-icon {
     width: 32px;
     height: 32px;
-    color: var(--auth-accent-cyan);
-    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.8));
+    color: var(--auth-brand-primary);
+    filter: drop-shadow(0 0 8px rgba(250, 191, 19, 0.8));
 }
 
 /* 主標題 */
@@ -225,7 +230,8 @@
 
 #auth-password-input:focus {
     outline: none;
-    border-color: var(--auth-accent-cyan);
+    border-color: var(--auth-brand-primary);
+    box-shadow: 0 0 0 3px rgba(250, 191, 19, 0.20);
 }
 
 #auth-password-input::placeholder {
@@ -247,11 +253,11 @@
 }
 
 #auth-input-wrapper:focus-within #auth-lock-icon {
-    color: var(--auth-accent-cyan);
+    color: var(--auth-brand-primary);
 }
 
 #auth-lock-icon.zap {
-    color: var(--auth-accent-cyan);
+    color: var(--auth-brand-primary);
     animation: auth-pulse 1.5s ease-in-out infinite;
 }
 
@@ -279,7 +285,7 @@
 }
 
 #auth-toggle-password:hover {
-    color: var(--auth-accent-cyan);
+    color: var(--auth-brand-primary);
 }
 
 #auth-toggle-password svg {
@@ -305,7 +311,8 @@
     gap: 10px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    box-shadow: 0 0 20px -5px rgba(0, 212, 255, 0.5);
+    color: var(--auth-brand-black);
+    box-shadow: 0 0 20px -5px rgba(250, 191, 19, 0.50);
     position: relative;
     overflow: hidden;
 }
@@ -327,7 +334,7 @@
 
 #auth-login-btn:hover {
     transform: scale(1.02);
-    box-shadow: 0 0 25px -5px rgba(0, 212, 255, 0.7);
+    box-shadow: 0 0 25px -5px rgba(250, 191, 19, 0.70);
 }
 
 #auth-login-btn:disabled {
@@ -373,7 +380,7 @@
 #auth-status-dot {
     width: 8px;
     height: 8px;
-    background: var(--auth-accent-cyan);
+    background: var(--auth-brand-primary);
     border-radius: 50%;
     animation: auth-blink 2s ease-in-out infinite;
 }
@@ -391,7 +398,7 @@
 }
 
 #auth-override-link:hover {
-    color: var(--auth-accent-cyan);
+    color: var(--auth-brand-primary);
 }
 
 /* 錯誤訊息 */
@@ -407,7 +414,7 @@
 #auth-login-loading {
     display: none;
     margin-top: 16px;
-    color: var(--auth-accent-cyan);
+    color: var(--auth-brand-primary);
     font-size: 0.9rem;
 }
 

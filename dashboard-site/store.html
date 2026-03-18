@@ -46,9 +46,9 @@
             transition: all 0.3s;
         }
         .nav a:hover, .nav a.active, .nav span.active {
-            color: #00d4ff;
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
+            color: #FABF13;
+            border-color: #FABF13;
+            background: rgba(250, 191, 19, 0.1);
         }
         .nav span.active {
             cursor: default;
@@ -61,7 +61,7 @@
             margin-bottom: 20px;
         }
         .card h2 {
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.3em;
             margin-bottom: 25px;
             display: flex;
@@ -78,7 +78,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         th {
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
             font-size: 0.9em;
             text-transform: uppercase;
@@ -87,7 +87,7 @@
         td { color: #ccd6f6; }
         tr:hover { background: rgba(255, 255, 255, 0.03); }
         .number { font-family: 'Courier New', monospace; }
-        .highlight { color: #00d4ff; font-weight: bold; }
+        .highlight { color: #FABF13; font-weight: bold; }
         /* 達成率顏色 */
         .ach-excellent { color: #4caf50; font-weight: bold; }  /* ≥80% 綠色 */
         .ach-good { color: #ffc107; font-weight: bold; }       /* ≥60% 黃色 */
@@ -113,7 +113,7 @@
         }
         .stat-card .number {
             font-size: 2.5em;
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: bold;
         }
         .stat-card .stars {
@@ -138,13 +138,13 @@
         .back-link {
             display: inline-block;
             margin-top: 20px;
-            color: #00d4ff;
+            color: #FABF13;
             text-decoration: none;
         }
         .back-link:hover { text-decoration: underline; }
         /* 功能表單樣式 */
         .section-title {
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.2em;
             margin-bottom: 20px;
             display: flex;
@@ -172,9 +172,9 @@
         }
         .btn-card:hover {
             background: rgba(255, 255, 255, 0.1);
-            border-color: #00d4ff;
+            border-color: #FABF13;
             transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+            box-shadow: 0 10px 40px rgba(250, 191, 19, 0.2);
         }
         .btn-icon { font-size: 2em; margin-bottom: 10px; }
         .btn-title { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; color: #fff; }
@@ -348,7 +348,7 @@
                                 if (name.includes('豐原')) return '#ff9800';
                                 if (name.includes('潭子')) return '#9c27b0';
                                 if (name.includes('大雅')) return '#4caf50';
-                                return '#00d4ff';
+                                return '#FABF13';
                             }),
                             borderRadius: 8,
                             borderWidth: 0
@@ -387,7 +387,7 @@
                                 if (name.includes('豐原')) return '#ff9800';
                                 if (name.includes('潭子')) return '#9c27b0';
                                 if (name.includes('大雅')) return '#4caf50';
-                                return '#00d4ff';
+                                return '#FABF13';
                             }),
                             borderRadius: 8,
                             borderWidth: 0
@@ -429,7 +429,7 @@
                     const reviewsHtml = reviews.map(r => `
                         <div class="review-item" style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                <span style="color: #00d4ff; font-weight: 600;">${r.store}店</span>
+                                <span style="color: #FABF13; font-weight: 600;">${r.store}店</span>
                                 <span style="color: #ffd700;">${'⭐'.repeat(r.stars)}</span>
                             </div>
                             <div style="color: #fff; margin-bottom: 4px;">${r.reviewer || '匿名'}</div>

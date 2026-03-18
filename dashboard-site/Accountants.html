@@ -17,7 +17,7 @@
 }
 
 .section-title {
-    color: #00d4ff;
+    color: #FABF13;
     font-size: 1.1em;
     margin-bottom: 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -36,14 +36,14 @@
 
 .items-table th,
 .items-table td {
-    padding: 10px 12px;
+    padding: 10px 14px;
     border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     text-align: left;
 }
 
 .items-table th {
-    background: rgba(0, 212, 255, 0.1);
-    color: #00d4ff;
+    background: rgba(250, 191, 19, 0.1);
+    color: #FABF13;
     font-size: 0.9em;
     font-weight: 600;
     text-transform: uppercase;
@@ -73,16 +73,16 @@
 
 .items-table input:focus {
     outline: none;
-    border-color: #00d4ff;
+    border-color: #FABF13;
 }
 
 /* 按鈕樣式 - 與老闆頁面一致 */
 .btn {
-    padding: 6px 16px;
+    padding: 5px 12px;
     border: none;
-    border-radius: 6px;
-    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-    color: #fff;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+    color: #231815;
     cursor: pointer;
     transition: transform 0.2s;
     font-size: 12px;
@@ -116,7 +116,7 @@
 /* 狀態標籤 */
 .status {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: 4px;
     font-size: 0.85em;
 }
@@ -127,8 +127,8 @@
 }
 
 .status-arrived {
-    background: rgba(0, 212, 255, 0.15);
-    color: #00d4ff;
+    background: rgba(250, 191, 19, 0.15);
+    color: #FABF13;
 }
 
 .status-completed {
@@ -144,8 +144,8 @@
 /* 庫存標籤 */
 .stock-warehouse {
     display: inline-block;
-    background: rgba(0, 212, 255, 0.1);
-    color: #00d4ff;
+    background: rgba(250, 191, 19, 0.1);
+    color: #FABF13;
     padding: 2px 8px;
     border-radius: 12px;
     margin: 2px;
@@ -508,8 +508,8 @@
                         shiftColor = '#4caf50';  // 綠色（與早班相同）
                         shiftBg = 'background:rgba(76,175,80,0.15);';
                     } else if (shift === '晚班' || shift === '晚') {
-                        shiftColor = '#2196f3';  // 藍色
-                        shiftBg = 'background:rgba(33,150,243,0.15);';
+                        shiftColor = '#FABF13';  // 藍色
+                        shiftBg = 'background:rgba(250,191,19,0.15);';
                     } else if (shift === '全班' || shift === '全') {
                         shiftColor = '#ff9800';  // 橙色
                         shiftBg = 'background:rgba(255,152,0,0.15);';
@@ -520,8 +520,8 @@
                         shiftColor = '#64748b';  // 灰色
                         shiftBg = 'background:rgba(100,116,139,0.1);';
                     } else if (shift === '特休' || shift === '特') {
-                        shiftColor = '#00bcd4';  // 青色
-                        shiftBg = 'background:rgba(0,188,212,0.15);';
+                        shiftColor = '#FABF13';  // 青色
+                        shiftBg = 'background:rgba(250,191,19,0.15);';
                     }
 
                     const weekday = new Date(year, month - 1, day).getDay();

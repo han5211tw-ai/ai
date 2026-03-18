@@ -21,14 +21,17 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             color: #fff;
-            font-size: 14px;
+            font-size: 16px; /* 最小 16px 防 iOS 縮放 */
             transition: all 0.2s;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
         }
-        
+
         .menu-search-input:focus {
             outline: none;
-            border-color: #00d4ff;
-            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            border-color: #FABF13;
+            box-shadow: 0 0 0 3px rgba(250, 191, 19, 0.20);
         }
         
         .menu-search-input::placeholder {
@@ -44,7 +47,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 20px;
+            padding: 12px 28px;
             cursor: pointer;
             transition: all 0.2s;
             border-left: 3px solid transparent;
@@ -55,8 +58,8 @@
         }
         
         .menu-group-header.active {
-            background: rgba(0, 212, 255, 0.1);
-            border-left-color: #00d4ff;
+            background: rgba(250, 191, 19, 0.10);
+            border-left-color: #FABF13;
         }
         
         .menu-group-title {
@@ -115,9 +118,9 @@
         }
         
         .menu-item.active {
-            background: rgba(0, 212, 255, 0.1);
-            color: #00d4ff;
-            border-left-color: #00d4ff;
+            background: rgba(250, 191, 19, 0.10);
+            color: #FABF13;
+            border-left-color: #FABF13;
         }
         
         .menu-item-icon {
@@ -183,9 +186,10 @@
             gap: 12px;
             font-size: 1.2rem;
             font-weight: 600;
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, #FABF13, #e6a800);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         /* 中間選單區 - 強制高度鎖定 */
@@ -229,8 +233,8 @@
         .sidebar-user-section .btn-home,
         .sidebar-user-section .btn-logout {
             flex: 1;
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 8px;
             text-align: center;
             text-decoration: none;
             font-size: 0.85em;
@@ -240,13 +244,13 @@
         }
 
         .sidebar-user-section .btn-home {
-            background: rgba(0, 212, 255, 0.1);
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            color: #00d4ff;
+            background: rgba(250, 191, 19, 0.10);
+            border: 1px solid rgba(250, 191, 19, 0.30);
+            color: #FABF13;
         }
 
         .sidebar-user-section .btn-home:hover {
-            background: rgba(0, 212, 255, 0.2);
+            background: rgba(250, 191, 19, 0.20);
         }
 
         .sidebar-user-section .btn-logout {
@@ -274,7 +278,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, #FABF13, #e6a800);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -327,8 +331,8 @@
             color: #fff;
             font-size: 24px;
             cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 5px 12px;
+            border-radius: 4px;
             transition: background 0.2s;
         }
 
@@ -400,9 +404,41 @@
         .content-workspace {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden; /* 防止水平跑版 */
             width: 100%;
+            max-width: 100%;
             padding: 24px 5%;
             box-sizing: border-box;
+        }
+
+        /* 全域防跑版保護 */
+        .main-content {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        /* 手機版 RWD：表格可橫向滑動 */
+        @media screen and (max-width: 768px) {
+            .table-responsive {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table {
+                min-width: 600px; /* 確保表格不會擠壓 */
+            }
+
+            /* 表單欄位在手機版全寬 */
+            .form-field {
+                min-width: 100% !important;
+            }
+
+            /* 修正固定寬度元素 */
+            input, select, textarea {
+                max-width: 100%;
+                box-sizing: border-box;
+            }
         }
     </style>
     
@@ -422,15 +458,15 @@
             left: 0;
             width: 8px;
             height: 8px;
-            background: #00d4ff;
+            background: #FABF13;
             border-radius: 50%;
             pointer-events: none;
             z-index: 99999;
             transform: translate(-50%, -50%);
             transition: width 0.2s, height 0.2s, background 0.2s;
-            box-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 30px #00d4ff;
+            box-shadow: 0 0 10px #FABF13, 0 0 20px #FABF13, 0 0 30px rgba(250,191,19,0.6);
         }
-        
+
         /* 游標外圈 */
         .cursor-ring {
             position: fixed;
@@ -438,26 +474,26 @@
             left: 0;
             width: 40px;
             height: 40px;
-            border: 2px solid rgba(0, 212, 255, 0.5);
+            border: 2px solid rgba(250, 191, 19, 0.5);
             border-radius: 50%;
             pointer-events: none;
             z-index: 99998;
             transform: translate(-50%, -50%);
             transition: width 0.3s, height 0.3s, border-color 0.3s, border-width 0.3s;
         }
-        
+
         /* 懸停可點擊元素時 */
         .cursor-hover .cursor-dot {
             width: 12px;
             height: 12px;
-            background: #7b2cbf;
-            box-shadow: 0 0 15px #7b2cbf, 0 0 30px #7b2cbf, 0 0 45px #7b2cbf;
+            background: #e6a800;
+            box-shadow: 0 0 15px #FABF13, 0 0 30px #FABF13, 0 0 45px rgba(250,191,19,0.5);
         }
-        
+
         .cursor-hover .cursor-ring {
             width: 60px;
             height: 60px;
-            border-color: rgba(123, 44, 191, 0.6);
+            border-color: rgba(250, 191, 19, 0.6);
             border-width: 3px;
         }
         
@@ -475,7 +511,7 @@
             width: 2px;
             height: 20px;
             border-radius: 0;
-            background: #00d4ff;
+            background: #FABF13;
         }
         
         .cursor-text .cursor-ring {
@@ -512,14 +548,14 @@
             z-index: 0;
             overflow: hidden;
         }
-        
+
         .particle {
             position: absolute;
             width: 2px; height: 2px;
-            background: rgba(0, 212, 255, 0.5);
+            background: rgba(250, 191, 19, 0.5);
             border-radius: 50%;
             opacity: 0.3;
-            box-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 0 6px rgba(250, 191, 19, 0.4);
             animation: float-particle 20s infinite ease-in-out;
         }
         
@@ -546,7 +582,7 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <span>🖥️</span>
-                    <span>電腦舖</span>
+                    <span>電腦舖營運系統</span>
                 </div>
             </div>
 
@@ -563,6 +599,17 @@
                     <a href="/" class="btn-home">🏠 首頁</a>
                     <button onclick="logout()" class="btn-logout">🚪 登出</button>
                 </div>
+            </div>
+
+            <!-- 選單搜尋框 -->
+            <div style="padding: 10px 20px; flex-shrink: 0;">
+                <input
+                    type="text"
+                    id="menuSearchInput"
+                    class="menu-search-input"
+                    placeholder="🔍 搜尋選單..."
+                    autocomplete="off"
+                >
             </div>
 
             <nav class="sidebar-nav" id="sidebarNav">

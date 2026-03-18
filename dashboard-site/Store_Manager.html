@@ -28,7 +28,7 @@
             text-align: left;
             font-size: 1.2em;
             margin-bottom: 5px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -55,9 +55,9 @@
             transition: all 0.3s;
         }
         .nav a:hover, .nav a.active {
-            color: #00d4ff;
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
+            color: #FABF13;
+            border-color: #FABF13;
+            background: rgba(250, 191, 19, 0.1);
         }
         .card {
             background: rgba(255, 255, 255, 0.03);
@@ -67,7 +67,7 @@
             margin-bottom: 30px;
         }
         .card h2 {
-            color: #00d4ff;
+            color: #FABF13;
             font-size: 1.3em;
             margin-bottom: 25px;
             display: flex;
@@ -91,7 +91,7 @@
         .stat-value {
             font-size: 2em;
             font-weight: bold;
-            color: #00d4ff;
+            color: #FABF13;
         }
         .stat-sub {
             font-size: 0.85em;
@@ -110,21 +110,21 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         th {
-            background: rgba(0, 212, 255, 0.1);
-            color: #00d4ff;
+            background: rgba(250, 191, 19, 0.1);
+            color: #FABF13;
             font-weight: 600;
         }
         td { color: #ccd6f6; }
         tr:hover { background: rgba(255, 255, 255, 0.03); }
         .highlight-box {
-            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(123, 44, 191, 0.1));
-            border: 1px solid rgba(0, 212, 255, 0.3);
+            background: linear-gradient(135deg, rgba(250, 191, 19, 0.1), rgba(123, 44, 191, 0.1));
+            border: 1px solid rgba(250, 191, 19, 0.3);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
         }
         .highlight-title {
-            color: #00d4ff;
+            color: #FABF13;
             font-weight: 600;
             margin-bottom: 10px;
         }
@@ -170,11 +170,11 @@
             display: inline-flex;
             align-items: center;
             gap: 12px;
-            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(123, 44, 191, 0.2));
-            border: 1px solid rgba(0, 212, 255, 0.4);
-            color: #00d4ff;
-            padding: 20px 40px;
-            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(250, 191, 19, 0.2), rgba(123, 44, 191, 0.2));
+            border: 1px solid rgba(250, 191, 19, 0.4);
+            color: #FABF13;
+            padding: 12px 28px;
+            border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
             font-size: 1.05em;
@@ -183,9 +183,9 @@
             cursor: pointer;
         }
         .btn-cloud:hover {
-            background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(123, 44, 191, 0.3));
+            background: linear-gradient(135deg, rgba(250, 191, 19, 0.3), rgba(123, 44, 191, 0.3));
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.2);
+            box-shadow: 0 5px 20px rgba(250, 191, 19, 0.2);
         }
         .store-selector {
             display: flex;
@@ -197,11 +197,11 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 20px 40px;
+            padding: 12px 28px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             background: rgba(255, 255, 255, 0.05);
             color: #8892b0;
-            border-radius: 14px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
             font-size: 1.1em;
@@ -209,9 +209,9 @@
             min-width: 160px;
         }
         .store-btn:hover, .store-btn.active {
-            background: rgba(0, 212, 255, 0.2);
-            border-color: #00d4ff;
-            color: #00d4ff;
+            background: rgba(250, 191, 19, 0.2);
+            border-color: #FABF13;
+            color: #FABF13;
         }
         .chart-container {
             background: rgba(255, 255, 255, 0.03);
@@ -246,7 +246,7 @@
         .score-value {
             font-size: 1.8em;
             font-weight: bold;
-            color: #00d4ff;
+            color: #FABF13;
         }
         @media (max-width: 768px) {
             .two-col {
@@ -576,7 +576,7 @@
                                     if (s.score >= 90) sClass = 'ach-excellent';
                                     else if (s.score >= 70) sClass = 'ach-good';
                                     else if (s.score >= 50) sClass = 'ach-warning';
-                                    const isCurrent = s.store === currentStore ? 'background: rgba(0, 212, 255, 0.1);' : '';
+                                    const isCurrent = s.store === currentStore ? 'background: rgba(250, 191, 19, 0.1);' : '';
                                     return `
                                     <tr style="${isCurrent}">
                                         <td>${s.store}門市</td>

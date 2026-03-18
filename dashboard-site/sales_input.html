@@ -15,7 +15,7 @@
 
 /* 覆蓋 section-title 樣式以符合報價作業標準 */
 .section-title {
-    color: #00d4ff;
+    color: #FABF13;
     font-size: 1.1em;
     margin-bottom: 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -27,7 +27,7 @@
 .form-group select,
 .form-control {
     width: 100%;
-    padding: 10px 12px;
+    padding: 10px 14px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.05);
@@ -40,7 +40,7 @@
 .form-group select:focus,
 .form-control:focus {
     outline: none;
-    border-color: #00d4ff;
+    border-color: #FABF13;
 }
 
 /* 按鈕樣式 - 與報價作業一致 */
@@ -49,9 +49,9 @@
 .btn-add {
     padding: 10px 20px;
     border: none;
-    border-radius: 6px;
-    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-    color: #fff;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+    color: #231815;
     cursor: pointer;
     transition: transform 0.2s;
     font-size: 0.95em;
@@ -64,9 +64,9 @@
 }
 
 .btn-delete {
-    padding: 8px 16px;
+    padding: 10px 20px;
     border: 1px solid rgba(244, 67, 54, 0.5);
-    border-radius: 6px;
+    border-radius: 8px;
     background: rgba(244, 67, 54, 0.2);
     color: #f44336;
     cursor: pointer;
@@ -93,8 +93,8 @@
 }
 
 .items-table th {
-    background: rgba(0, 212, 255, 0.1);
-    color: #00d4ff;
+    background: rgba(250, 191, 19, 0.1);
+    color: #FABF13;
 }
 
 .items-table td {
@@ -112,7 +112,7 @@
 
 .items-table input:focus {
     outline: none;
-    border-color: #00d4ff;
+    border-color: #FABF13;
 }
 
 /* 搜尋建議下拉 - 頁面特定 */
@@ -127,7 +127,7 @@
     min-width: 100%;
     width: max-content;
     background: rgba(30, 30, 50, 0.98);
-    border: 1px solid rgba(0, 212, 255, 0.3);
+    border: 1px solid rgba(250, 191, 19, 0.3);
     border-radius: var(--radius-md);
     max-height: 280px;
     overflow-y: auto;
@@ -138,14 +138,14 @@
 }
 
 .suggestion-item {
-    padding: 12px 16px;
+    padding: 12px 28px;
     cursor: pointer;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     min-width: 280px;
 }
 
 .suggestion-item:hover {
-    background: rgba(0, 212, 255, 0.15);
+    background: rgba(250, 191, 19, 0.15);
 }
 
 .suggestion-item:last-child {
@@ -154,7 +154,7 @@
 
 /* 利潤顯示 */
 .amount-display {
-    color: var(--color-accent-cyan);
+    color: var(--color-brand-primary);
     font-weight: 600;
 }
 
@@ -275,9 +275,9 @@
                     <div id="orderSuggestions" class="suggestions"></div>
                 </div>
             </div>
-            <div id="orderInfo" style="display:none; margin-top:15px; padding:15px; background:rgba(0,212,255,0.05); border:1px solid rgba(0,212,255,0.2); border-radius:8px;">
+            <div id="orderInfo" style="display:none; margin-top:15px; padding:15px; background:rgba(250,191,19,0.05); border:1px solid rgba(250,191,19,0.2); border-radius: 8px;">
                 <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                    <span>訂單號：<span id="displayOrderNo" style="color:var(--color-accent-cyan);"></span></span>
+                    <span>訂單號：<span id="displayOrderNo" style="color:var(--color-brand-primary);"></span></span>
                     <span>訂金已收：<span id="displayDeposit" style="color:var(--color-status-success);"></span> 元</span>
                     <span>應收尾款：<span id="displayBalance" style="color:var(--color-status-warning);"></span> 元</span>
                 </div>
@@ -363,7 +363,7 @@
         <div class="form-section">
             <div class="section-title">💳 付款方式與提交</div>
             <!-- 訂金資訊顯示（帶入訂單時顯示） -->
-            <div id="depositInfoSection" style="display:none; margin-bottom:20px; padding:15px; background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); border-radius:8px;">
+            <div id="depositInfoSection" style="display:none; margin-bottom:20px; padding:15px; background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); border-radius: 8px;">
                 <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:15px; font-size:1.1em;">
                     <span>總金額：<span id="paymentTotalAmount" class="amount-display">0</span> 元</span>
                     <span style="color:var(--color-status-success);">訂金已收：<span id="paymentDepositAmount">0</span> 元</span>
@@ -1298,9 +1298,9 @@ let currentUser = null;
                         </thead>
                         <tbody>
                             ${itemsHtml}
-                            <tr style="border-top:2px solid rgba(0,212,255,0.3);font-weight:bold;">
+                            <tr style="border-top:2px solid rgba(250,191,19,0.3);font-weight:bold;">
                                 <td colspan="4">總計</td>
-                                <td style="color:var(--color-accent-cyan);">${sale.total_amount.toLocaleString()} 元</td>
+                                <td style="color:var(--color-brand-primary);">${sale.total_amount.toLocaleString()} 元</td>
                                 ${canViewCost ? `<td colspan="3"></td>` : ''}
                             </tr>
                         </tbody>
