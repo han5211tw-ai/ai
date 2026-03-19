@@ -674,8 +674,19 @@ def health_monitor():
 
         conn.close()
 
-        # 只有當失敗次數 >= 3 時才發送告警（避免單次網路問題造成干擾）
-        if failed_count >= 3:
+        # 新增：檢查是否已在 10 分鐘內發送過「系統告警」
+        cursor.execute("""
+            SELECT COUNT(*) as alert_count
+            FROM notification_logs
+            WHERE notification_type = '系統告警'
+            AND created_at >= datetime('now', '-10 minutes')
+        """)
+        alert_count = cursor.fetchone()['alert_count']
+
+        conn.close()
+
+        # 只有當失敗次數 >= 3 且未發送過告警時才發送
+        if failed_count >= 3 and alert_count == 0:
             alert_msg = f"""⚠️ <b>系統告警</b>
 
 最近 10 分鐘有 {failed_count} 筆通知發送失敗
@@ -689,31 +700,44 @@ def health_monitor():
                 f"<p>最近 10 分鐘有 <strong>{failed_count}</strong> 筆 Telegram 通知發送失敗</p>"
                 f"<p>請檢查 Telegram Bot 狀態或網路連線</p>"
             )
-            print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，已發送告警")
+            print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，已發送告警（避免重複）")
+        elif failed_count >= 3 and alert_count > 0:
+            print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，但 10 分鐘內已發送告警（避免重複）")
         elif failed_count > 0:
             print(f"[HEALTH MONITOR] 檢測到 {failed_count} 筆通知失敗，未達告警門檻（<3）")
         else:
             print(f"[HEALTH MONITOR] 系統健康檢查通過 - {datetime.now().strftime('%H:%M:%S')}")
 
     except Exception as e:
-        print(f"[HEALTH MONITOR] 健康檢查失敗: {e}")
-        # 資料庫連線失敗也發送告警
+        # 資料庫連線失敗也發送告警，但要避免重複通知
         try:
-            alert_msg = f"""🚨 <b>系統嚴重告警</b>
+            # 檢查是否在 30 分鐘內已發送過「系統嚴重告警」
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT COUNT(*) as alert_count
+                FROM notification_logs
+                WHERE notification_type = '系統嚴重告警'
+                AND status != 'failed'
+                AND created_at >= datetime('now', '-30 minutes')
+            """)
+            alert_count = cursor.fetchone()["alert_count"]
+            conn.close()
+            
+            # 只在首次發現問題時發送，避免重複
+            if alert_count == 0:
+                alert_msg = f"""🚨 <b>系統嚴重告警</b>
 
 資料庫連線異常！
 錯誤：{str(e)[:100]}
 
 時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
-            send_telegram_notification(alert_msg, TELEGRAM_CHAT_ID, notification_type='系統嚴重告警')
+                send_telegram_notification(alert_msg, TELEGRAM_CHAT_ID, notification_type='系統嚴重告警')
+                print("[HEALTH MONITOR] 已發送系統嚴重告警（避免重複)")
+            else:
+                print(f"[HEALTH MONITOR] 檢測到資料庫連線異常，但 30 分鐘內已發送告警（避免重複)")
         except:
-            pass
-        # 同時發送 Email 告警
-        send_email_alert(
-            "資料庫連線異常",
-            f"<p>系統健康檢查時發現資料庫連線異常</p>"
-            f"<p>錯誤訊息：<code>{str(e)[:200]}</code></p>"
-        )
+            print("[HEALTH MONITOR] 發送告警時也失敗了")
 
 scheduler.add_job(health_monitor, 'interval', minutes=10)
 scheduler.start()
@@ -3503,18 +3527,15 @@ def purchase_need():
         if not row:
             return jsonify({'success': False, 'message': '找不到該筆資料'})
 
-        if row['status'] != '待處理':
-            return jsonify({'success': False, 'message': '該筆資料無法標記已採購'})
-
-        # 標記為已採購
+        # 標記為已採購（如果狀態已經是已採購，就不更新，但仍發送通知）
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        cursor.execute("""
-            UPDATE needs
-            SET status = '已採購', processed_at = ?
-            WHERE id = ?
-        """, (now, need_id))
-
-        conn.commit()
+        if row['status'] == '待處理':
+            cursor.execute("""
+                UPDATE needs
+                SET status = '已採購', processed_at = ?
+                WHERE id = ?
+            """, (now, need_id))
+            conn.commit()
 
         # 發送 Telegram 通知到工作群組（背景執行，不阻塞回應）
         try:
@@ -3523,7 +3544,11 @@ def purchase_need():
             quantity = row['quantity'] or 1
             department = row['department'] or '未知部門'
             original_requester = row['requester'] or '未知'
-
+            old_status = row['status']
+            
+            # 如果狀態已經是已採購，重新發送通知
+            status_text = "再次已採購" if old_status == '已採購' else "已採購"
+            
             telegram_msg = f"""✅ <b>已採購通知</b>
 
 📅 日期：{need_date}
@@ -3531,7 +3556,7 @@ def purchase_need():
 📍 部門：{department}
 📦 產品：{item_name}
 🔢 數量：{quantity} 個
-📌 狀態：已採購
+📌 狀態：{status_text}
 
 請於到貨後至營運系統首頁結案"""
 
@@ -3544,7 +3569,7 @@ def purchase_need():
             )
             t.start()
         except Exception as e:
-            print(f"已採購 Telegram 通知背景執行緒啟動失敗: {e}")
+            print(f"已採購 Telegram 通知背景執行緒啟動失敗：{e}")
 
         return jsonify({'success': True})
     except Exception as e:
