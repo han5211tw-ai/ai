@@ -717,16 +717,30 @@
         if (!confirm(`確定要${actionText}此筆請購嗎？`)) return;
 
         try {
-            const response = await fetch(`/api/boss/needs/${needId}/status`, {
+            let url, body;
+
+            if (status === 'purchased') {
+                // 走正規已採購 API，確保 Telegram 通知正確發送到群組
+                const currentUser = window.getCurrentUser();
+                const requester = currentUser ? currentUser.name : '';
+                url = '/api/needs/purchase';
+                body = JSON.stringify({ id: needId, requester });
+            } else {
+                // 到貨、取消維持原本流程
+                url = `/api/boss/needs/${needId}/status`;
+                body = JSON.stringify({ status });
+            }
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
+                body
             });
 
             const data = await response.json();
             if (data.success) {
                 const toastMessages = {
-                    'purchased': '已標記為已採購',
+                    'purchased': '已標記為已採購，通知已發送至工作群組',
                     'arrived': '已標記為已到貨，該筆請購已從清單移除',
                     'cancelled': '已取消該筆請購'
                 };
