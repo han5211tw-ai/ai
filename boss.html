@@ -721,8 +721,10 @@
 
             if (status === 'purchased') {
                 // 走正規已採購 API，確保 Telegram 通知正確發送到群組
-                const currentUser = window.getCurrentUser();
-                const requester = currentUser ? currentUser.name : '';
+                // 直接讀 localStorage（與 Accountants.html 做法一致，不受 9PM 過期機制影響）
+                const storedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+                const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+                const requester = parsedUser ? parsedUser.name : '';
                 url = '/api/needs/purchase';
                 body = JSON.stringify({ id: needId, requester });
             } else {

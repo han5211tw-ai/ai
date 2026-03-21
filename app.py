@@ -672,8 +672,6 @@ def health_monitor():
         cursor.execute("SELECT 1")
         cursor.fetchone()
 
-        conn.close()
-
         # 新增：檢查是否已在 10 分鐘內發送過「系統告警」
         cursor.execute("""
             SELECT COUNT(*) as alert_count
