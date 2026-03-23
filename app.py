@@ -761,10 +761,19 @@ def render_page_html(page):
 
 @app.route('/<path:page>')
 def render_page(page):
-    """渲染模板頁面（無副檔名版本）"""
+    """渲染模板頁面（無副檔名版本）+ 靜態檔案 fallback"""
     # 排除 API、admin 和靜態檔案路徑
     if page.startswith('api/') or page.startswith('static/') or page.startswith('admin/'):
         abort(404)
+
+    # 如果路徑帶有副檔名（.js, .css, .png 等），直接 serve 靜態檔案
+    last_segment = page.split('/')[-1]
+    if '.' in last_segment and not page.endswith('.html'):
+        try:
+            return send_from_directory(STATIC_DIR, page)
+        except Exception:
+            abort(404)
+
     try:
         return render_template(f'{page}.html')
     except:
@@ -1732,9 +1741,16 @@ def get_business_performance():
 def get_weekly_roster():
     from datetime import datetime, timedelta
 
-    today = datetime.now()
-    sunday = today - timedelta(days=(today.weekday() + 1) % 7)  # 本週日
-    saturday = sunday + timedelta(days=6)  # 本週六
+    # 讀取前端傳入的日期參數，若未提供則使用今天
+    date_param = request.args.get('date', '')
+    try:
+        base_date = datetime.strptime(date_param, '%Y-%m-%d') if date_param else datetime.now()
+    except ValueError:
+        base_date = datetime.now()
+
+    # 計算該日期所在週的週日到週六
+    sunday = base_date - timedelta(days=(base_date.weekday() + 1) % 7)  # 該週週日
+    saturday = sunday + timedelta(days=6)  # 該週週六
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -5375,268 +5391,6 @@ def save_roster_batch():
 # ============================================
     return decorated_function
 
-# Admin 稽核摘要 API
-@app.route('/api/admin/audit/summary')
-@require_admin
-def admin_audit_summary():
-    """回傳稽核檢查摘要（A1-A5）"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    checks = {}
-
-    try:
-        # A1: Staging resolved 但 needs 未回填
-        cursor.execute("""
-            SELECT COUNT(*) as cnt
-            FROM staging_records s
-            JOIN needs n ON (s.temp_customer_id = n.customer_staging_id
-                          OR s.temp_product_id = n.product_staging_id)
-            WHERE s.status = 'resolved'
-              AND s.resolved_code IS NOT NULL
-              AND (n.customer_code = '' OR n.customer_code IS NULL
-                   OR n.product_code LIKE 'TEMP-P-%')
-        """)
-        checks['A1'] = cursor.fetchone()['cnt']
-
-        # A2: 待建檔異常 - needs 已有正式碼但 staging 仍 pending/needs_review
-        # 條件：staging pending/needs_review + needs 未取消 + 不是 TEMP 編號
-        cursor.execute("""
-            SELECT COUNT(*) as cnt FROM (
-                -- Customer A2
-                SELECT s.id
-                FROM staging_records s
-                JOIN needs n ON n.customer_staging_id = s.temp_customer_id
-                WHERE s.type = 'customer'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.customer_code NOT LIKE 'TEMP-C-%'
-                UNION ALL
-                -- Product A2
-                SELECT s.id
-                FROM staging_records s
-                JOIN needs n ON n.product_staging_id = s.temp_product_id
-                WHERE s.type = 'product'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.product_code NOT LIKE 'TEMP-P-%'
-            )
-        """)
-        checks['A2'] = cursor.fetchone()['cnt']
-
-        # A3: Needs 指到不存在的正式主檔
-        # 排除臨時客戶 (TEMP-C-%) 和臨時產品 (TEMP-P-%, NEW-%)
-        # 注意：needs.customer_code 可能存 customer_id 或 short_name
-        cursor.execute("""
-            SELECT COUNT(*) as cnt
-            FROM needs n
-            LEFT JOIN customers c1 ON n.customer_code = c1.customer_id
-            LEFT JOIN customers c2 ON n.customer_code = c2.short_name
-            LEFT JOIN products p ON n.product_code = p.product_code
-            WHERE (n.customer_code != ''
-                   AND n.customer_code NOT LIKE 'TEMP-C-%'
-                   AND c1.customer_id IS NULL
-                   AND c2.short_name IS NULL)
-               OR (n.product_code NOT LIKE 'TEMP-P-%'
-                   AND n.product_code NOT LIKE 'NEW-%'
-                   AND p.product_code IS NULL)
-        """)
-        checks['A3'] = cursor.fetchone()['cnt']
-
-        # A4: 同手機重複 customer staging
-        cursor.execute("""
-            SELECT COUNT(*) as cnt FROM (
-                SELECT raw_mobile
-                FROM staging_records
-                WHERE type = 'customer' AND status = 'pending'
-                GROUP BY raw_mobile
-                HAVING COUNT(*) > 1
-            )
-        """)
-        checks['A4'] = cursor.fetchone()['cnt']
-
-        # A5: Products 同名多 product_code
-        cursor.execute("""
-            SELECT COUNT(*) as cnt FROM (
-                SELECT product_name
-                FROM products
-                GROUP BY product_name
-                HAVING COUNT(*) > 1
-            )
-        """)
-        checks['A5'] = cursor.fetchone()['cnt']
-
-        return jsonify({'success': True, 'checks': checks})
-
-    except Exception as e:
-        print(f"admin_audit_summary 錯誤: {e}")
-        return jsonify({'success': False, 'message': '系統錯誤'}), 500
-    finally:
-        conn.close()
-
-
-# Admin 稽核明細 API
-@app.route('/api/admin/audit/detail')
-@require_admin
-def admin_audit_detail():
-    """回傳稽核明細資料"""
-    code = request.args.get('code', '')
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        items = []
-
-        if code == 'A1':
-            # Staging resolved 但 needs 未回填
-            cursor.execute("""
-                SELECT
-                    s.id as staging_id,
-                    s.type,
-                    s.raw_input,
-                    s.temp_customer_id,
-                    s.temp_product_id,
-                    s.resolved_code,
-                    s.resolved_name,
-                    n.id as need_id,
-                    n.customer_code,
-                    n.product_code,
-                    n.item_name,
-                    n.requester,
-                    n.department
-                FROM staging_records s
-                JOIN needs n ON (s.temp_customer_id = n.customer_staging_id
-                              OR s.temp_product_id = n.product_staging_id)
-                WHERE s.status = 'resolved'
-                  AND s.resolved_code IS NOT NULL
-                  AND (n.customer_code = '' OR n.customer_code IS NULL
-                       OR n.product_code LIKE 'TEMP-P-%')
-                ORDER BY s.resolved_at DESC
-                LIMIT 100
-            """)
-            items = [dict(row) for row in cursor.fetchall()]
-
-        elif code == 'A2':
-            # A2: 待建檔異常 - needs 已有正式碼但 staging 仍 pending/needs_review
-            cursor.execute("""
-                SELECT
-                    s.id as staging_id,
-                    s.type,
-                    s.status as staging_status,
-                    n.id as need_id,
-                    n.customer_code,
-                    n.product_code,
-                    n.item_name,
-                    n.requester,
-                    n.department
-                FROM staging_records s
-                JOIN needs n ON n.customer_staging_id = s.temp_customer_id
-                WHERE s.type = 'customer'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.customer_code NOT LIKE 'TEMP-C-%'
-                UNION ALL
-                SELECT
-                    s.id as staging_id,
-                    s.type,
-                    s.status as staging_status,
-                    n.id as need_id,
-                    n.customer_code,
-                    n.product_code,
-                    n.item_name,
-                    n.requester,
-                    n.department
-                FROM staging_records s
-                JOIN needs n ON n.product_staging_id = s.temp_product_id
-                WHERE s.type = 'product'
-                  AND s.status IN ('pending', 'needs_review')
-                  AND n.cancelled_at IS NULL
-                  AND n.product_code NOT LIKE 'TEMP-P-%'
-                ORDER BY need_id DESC
-                LIMIT 100
-            """)
-            items = [dict(row) for row in cursor.fetchall()]
-
-        elif code == 'A3':
-            # Needs 指到不存在的正式主檔
-            # 排除臨時客戶 (TEMP-C-%) 和臨時產品 (TEMP-P-%, NEW-%)
-            # 注意：needs.customer_code 可能存 customer_id 或 short_name
-            cursor.execute("""
-                SELECT
-                    n.id,
-                    n.customer_code,
-                    n.product_code,
-                    n.item_name,
-                    n.requester,
-                    n.department,
-                    n.created_at
-                FROM needs n
-                LEFT JOIN customers c1 ON n.customer_code = c1.customer_id
-                LEFT JOIN customers c2 ON n.customer_code = c2.short_name
-                LEFT JOIN products p ON n.product_code = p.product_code
-                WHERE (n.customer_code != ''
-                       AND n.customer_code NOT LIKE 'TEMP-C-%'
-                       AND c1.customer_id IS NULL
-                       AND c2.short_name IS NULL)
-                   OR (n.product_code NOT LIKE 'TEMP-P-%'
-                       AND n.product_code NOT LIKE 'NEW-%'
-                       AND p.product_code IS NULL)
-                ORDER BY n.created_at DESC
-                LIMIT 100
-            """)
-            items = [dict(row) for row in cursor.fetchall()]
-
-        elif code == 'A4':
-            # 同手機重複 customer staging
-            cursor.execute("""
-                SELECT
-                    s1.id,
-                    s1.raw_mobile,
-                    s1.raw_input,
-                    s1.temp_customer_id,
-                    s1.created_at
-                FROM staging_records s1
-                JOIN (
-                    SELECT raw_mobile
-                    FROM staging_records
-                    WHERE type = 'customer' AND status = 'pending'
-                    GROUP BY raw_mobile
-                    HAVING COUNT(*) > 1
-                ) s2 ON s1.raw_mobile = s2.raw_mobile
-                WHERE s1.type = 'customer' AND s1.status = 'pending'
-                ORDER BY s1.raw_mobile, s1.created_at
-                LIMIT 100
-            """)
-            items = [dict(row) for row in cursor.fetchall()]
-
-        elif code == 'A5':
-            # Products 同名多 product_code
-            cursor.execute("""
-                SELECT
-                    p1.product_name,
-                    p1.product_code,
-                    p1.created_at
-                FROM products p1
-                JOIN (
-                    SELECT product_name
-                    FROM products
-                    GROUP BY product_name
-                    HAVING COUNT(*) > 1
-                ) p2 ON p1.product_name = p2.product_name
-                ORDER BY p1.product_name, p1.created_at
-                LIMIT 100
-            """)
-            items = [dict(row) for row in cursor.fetchall()]
-
-        return jsonify({'success': True, 'code': code, 'items': items})
-
-    except Exception as e:
-        print(f"admin_audit_detail 錯誤: {e}")
-        return jsonify({'success': False, 'message': '系統錯誤'}), 500
-    finally:
-        conn.close()
-
-
 # Admin 資料表查詢 API
 @app.route('/api/admin/table')
 @require_admin
@@ -5883,43 +5637,6 @@ def admin_fix_apply():
         return jsonify({'success': False, 'message': '系統錯誤'}), 500
     finally:
         conn.close()
-
-
-# Admin Audit Log 獲取 API
-@app.route('/api/admin/audit-log')
-@require_admin
-def admin_audit_log():
-    """獲取管理員操作日誌"""
-    limit = min(int(request.args.get('limit', 50)), 100)
-    offset = int(request.args.get('offset', 0))
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        # 檢查表是否存在
-        cursor.execute("""
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name='admin_audit_log'
-        """)
-        if not cursor.fetchone():
-            return jsonify({'success': True, 'items': [], 'message': '日誌表尚未建立'})
-
-        cursor.execute("""
-            SELECT * FROM admin_audit_log
-            ORDER BY created_at DESC
-            LIMIT ? OFFSET ?
-        """, (limit, offset))
-
-        items = [dict(row) for row in cursor.fetchall()]
-        return jsonify({'success': True, 'items': items})
-
-    except Exception as e:
-        print(f"admin_audit_log 錯誤: {e}")
-        return jsonify({'success': False, 'message': '系統錯誤'}), 500
-    finally:
-        conn.close()
-
 
 
 # ============================================

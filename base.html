@@ -14,30 +14,6 @@
     
     <!-- Sidebar 摺疊選單樣式 -->
     <style>
-        .menu-search-input {
-            width: 100%;
-            padding: 10px 14px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 16px; /* 最小 16px 防 iOS 縮放 */
-            transition: all 0.2s;
-            box-sizing: border-box;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        .menu-search-input:focus {
-            outline: none;
-            border-color: #FABF13;
-            box-shadow: 0 0 0 3px rgba(250, 191, 19, 0.20);
-        }
-        
-        .menu-search-input::placeholder {
-            color: #64748b;
-        }
-        
         /* 選單群組樣式 */
         .menu-group {
             margin-bottom: 4px;
@@ -67,7 +43,7 @@
             align-items: center;
             gap: 10px;
             color: #8892b0;
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -78,7 +54,7 @@
         }
         
         .menu-group-arrow {
-            font-size: 12px;
+            font-size: 14px;
             color: #64748b;
             transition: transform 0.3s ease;
         }
@@ -109,7 +85,7 @@
             cursor: pointer;
             transition: all 0.15s;
             border-left: 3px solid transparent;
-            font-size: 14px;
+            font-size: 16px;
         }
         
         .menu-item:hover {
@@ -237,7 +213,7 @@
             border-radius: 8px;
             text-align: center;
             text-decoration: none;
-            font-size: 0.85em;
+            font-size: 1em;
             transition: all 0.2s;
             border: none;
             cursor: pointer;
@@ -458,13 +434,13 @@
             left: 0;
             width: 8px;
             height: 8px;
-            background: #FABF13;
+            background: #FFFFFF;
             border-radius: 50%;
             pointer-events: none;
             z-index: 99999;
             transform: translate(-50%, -50%);
             transition: width 0.2s, height 0.2s, background 0.2s;
-            box-shadow: 0 0 10px #FABF13, 0 0 20px #FABF13, 0 0 30px rgba(250,191,19,0.6);
+            box-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.5), 0 0 30px rgba(255,255,255,0.3);
         }
 
         /* 游標外圈 */
@@ -474,7 +450,7 @@
             left: 0;
             width: 40px;
             height: 40px;
-            border: 2px solid rgba(250, 191, 19, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 50%;
             pointer-events: none;
             z-index: 99998;
@@ -486,32 +462,32 @@
         .cursor-hover .cursor-dot {
             width: 12px;
             height: 12px;
-            background: #e6a800;
-            box-shadow: 0 0 15px #FABF13, 0 0 30px #FABF13, 0 0 45px rgba(250,191,19,0.5);
+            background: #00d4ff;
+            box-shadow: 0 0 15px #00d4ff, 0 0 30px rgba(0,212,255,0.6), 0 0 45px rgba(0,212,255,0.3);
         }
 
         .cursor-hover .cursor-ring {
             width: 60px;
             height: 60px;
-            border-color: rgba(250, 191, 19, 0.6);
+            border-color: rgba(0, 212, 255, 0.6);
             border-width: 3px;
         }
-        
+
         /* 點擊動畫 */
         .cursor-click .cursor-dot {
             transform: translate(-50%, -50%) scale(0.8);
         }
-        
+
         .cursor-click .cursor-ring {
             transform: translate(-50%, -50%) scale(0.9);
         }
-        
+
         /* 輸入文字時 */
         .cursor-text .cursor-dot {
             width: 2px;
             height: 20px;
             border-radius: 0;
-            background: #FABF13;
+            background: #FFFFFF;
         }
         
         .cursor-text .cursor-ring {
@@ -566,6 +542,7 @@
             75% { transform: translate(25px, -120px) scale(0.9); opacity: 0.35; }
         }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <!-- 自定義游標 -->
@@ -719,7 +696,7 @@
                 title: '備貨推薦',
                 icon: '📦',
                 items: [
-                    { id: 'recommended-products', icon: '📦', label: '推薦備貨商品', route: '/recommended_products', roles: ['老闆', '會計'] },
+                    { id: 'recommended-products', icon: '📦', label: '推薦備貨商品', route: '/recommended_products', roles: ['老闆', '會計', '門市工程師', '業務人員', '業務部主管', '門市部主管'] },
                     { id: 'recommended-admin', icon: '⚙️', label: '商品管理', route: '/admin/recommended_products', roles: ['老闆', '會計'] }
                 ]
             },
@@ -730,7 +707,7 @@
                 items: [
                     { id: 'bonus-rules', icon: '📝', label: '獎金規則管理', route: '/admin/bonus_rules', roles: ['老闆', '會計'] },
                     { id: 'bonus-report', icon: '📊', label: '獎金報表', route: '/admin/bonus_report', roles: ['老闆', '會計'] },
-                    { id: 'bonus-personal', icon: '💵', label: '我的獎金', route: '/bonus_personal', roles: ['老闆', '會計'] }
+                    { id: 'bonus-personal', icon: '💵', label: '銷售獎金', route: '/bonus_personal', roles: ['老闆', '會計', '門市工程師', '業務人員', '業務部主管', '門市部主管'] }
                 ]
             },
             {
@@ -738,7 +715,7 @@
                 title: '系統管理',
                 icon: '⚙️',
                 items: [
-                    { id: 'audit', icon: '🔍', label: '稽核儀表', route: '/admin', roles: ['老闆'] },
+
                     { id: 'needs-mgmt', icon: '📝', label: '需求表管理', route: '/admin', roles: ['老闆'] },
                     { id: 'customers-mgmt', icon: '👥', label: '客戶主檔', route: '/admin', roles: ['老闆'] },
                     { id: 'products-mgmt', icon: '📦', label: '產品主檔', route: '/admin', roles: ['老闆'] },
@@ -748,7 +725,7 @@
                     { id: 'announcements', icon: '📢', label: '系統公告', route: '/admin/announcement_management.html', roles: ['老闆'] },
                     { id: 'targets', icon: '🎯', label: '業績目標', route: '/target_input.html', roles: ['老闆'] },
                     { id: 'staff-mgmt', icon: '👤', label: '員工管理', route: '/staff_management.html', roles: ['老闆'] },
-                    { id: 'audit-log', icon: '📋', label: '操作日誌', route: '/admin', roles: ['老闆'] },
+
                     { id: 'health', icon: '🔧', label: '系統健康', route: '/admin/health', roles: ['老闆'] },
                     { id: 'system-map', icon: '🗺️', label: '系統架構圖', route: '/system_map_v3.html', roles: ['老闆'] }
                 ]

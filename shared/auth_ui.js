@@ -362,21 +362,21 @@
                 // 已登入，檢查權限
                 const userRole = getUserRole(authData.title);
                 const requiredRole = options.minRole || 'staff';
-                
+
                 if (!checkPermission(userRole, requiredRole)) {
-                    // 權限不足
-                    alert('⚠️ 權限不足：您沒有權限訪問此頁面');
-                    reject(new Error('Permission denied'));
+                    // 舊 session 角色不足：清除並重新顯示登入框，讓使用者以正確帳號登入
+                    console.warn('[AuthUI] Stale session has insufficient role (' + userRole + ' < ' + requiredRole + '). Clearing and re-showing login.');
+                    clearAuthData();
+                    // 不 reject，繼續往下走到「顯示登入框」流程
+                } else {
+                    // 有權限，直接返回（標記為已登入狀態）
+                    authData._justLoggedIn = false;
+                    resolve(authData);
                     return;
                 }
-                
-                // 有權限，直接返回（標記為已登入狀態）
-                authData._justLoggedIn = false;
-                resolve(authData);
-                return;
             }
-            
-            // 未登入，顯示登入框
+
+            // 未登入（或剛清除了不足權限的舊 session），顯示登入框
             window.authSuccessCallback = function(data) {
                 const userRole = getUserRole(data.title);
                 const requiredRole = options.minRole || 'staff';

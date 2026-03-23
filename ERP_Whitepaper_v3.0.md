@@ -1,7 +1,7 @@
 # ERP 營運系統 - 專案白皮書
 
-**版本**: v3.2
-**最後更新**: 2026-03-18
+**版本**: v3.3
+**最後更新**: 2026-03-23
 **文件編號**: ERP-WP-001
 **撰寫者**: Yvonne (AI Assistant)
 
@@ -370,7 +370,7 @@
 | 獎金規則 | `admin/bonus_rules.html` | 獎金規則設定 | 老闆 |
 | 獎金報表 | `admin/bonus_report.html` | 獎金發放報表 | 老闆/會計 |
 | 推薦商品管理 | `admin/recommended_products.html` | 推薦商品設定 | 老闆 |
-| 系統管理 | `admin.html` | 系統設定 | 老闆 |
+
 | 健康檢查 | `health_check.html` | 系統狀態 | 老闆 |
 | 系統架構圖 | `system_map_v3.html` | 架構視覺化 | 老闆 |
 
@@ -726,17 +726,23 @@ CREATE TABLE performance_metrics (
 ### 6.8 班表相關 API
 
 #### GET /api/roster/weekly
-取得本週班表
+取得指定日期所在週的班表（週日～週六）
+
+**參數**:
+- `date`（可選）：查詢基準日期，格式 `YYYY-MM-DD`。若未提供或格式錯誤，預設使用當天。
+
+> **v3.3 Bug 修正**：原始實作忽略 `date` 參數，每次固定以 `datetime.now()` 計算本週範圍，導致前端無論選擇哪個日期都只能查看當週班表。v3.3 已修正為依傳入日期動態計算所屬週次。
 
 **回應**:
 ```json
 {
-  "week_start": "2026-03-16",
-  "week_end": "2026-03-22",
-  "stores": {
-    "豐原": [...],
-    "潭子": [...],
-    "大雅": [...]
+  "王小明": {
+    "location": "豐原",
+    "shifts": {
+      "2026-03-16": "早班",
+      "2026-03-17": "休",
+      "2026-03-18": "早班"
+    }
   }
 }
 ```
@@ -1161,7 +1167,36 @@ v3.2 起全系統採用三段式按鈕尺寸與統一輸入框規格，以消除
 | `:focus border` | `var(--color-brand-primary)` |
 | `:focus box-shadow` | `0 0 0 3px var(--color-brand-yellow-20)` |
 
-### 7.8 圖表設計
+### 7.8 自訂游標（Custom Cursor）
+
+**檔案**: `base.html`（內嵌 CSS + JS）
+
+全系統採用「大圈套小圓點」雙層游標設計，小圓點即時跟隨滑鼠位置，外圈以 CSS transition 延遲追上，產生流暢的跟隨動態。
+
+#### 元素結構
+
+```html
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+```
+
+#### 游標狀態與配色
+
+| 狀態 | 觸發條件 | 小圓點顏色 | 外圈顏色 |
+|------|----------|-----------|----------|
+| 預設 | 一般移動 | 白色 `#FFFFFF` + 白色光暈 | `rgba(255,255,255,0.5)` |
+| Hover | 懸停可點擊元素（`a`、`button`、`[onclick]` 等） | 青色 `#00d4ff` + 青色光暈 | `rgba(0,212,255,0.6)` |
+| Click | 滑鼠按下瞬間 | 縮小 `scale(0.8)` | 縮小 `scale(0.9)` |
+| Text | 懸停輸入框 | 白色細條（`2px × 20px`，仿文字游標） | 隱藏 |
+| Disabled | 懸停 `disabled` 元素 | 紅色 `#f44336` + 紅色光暈 | `rgba(244,67,54,0.5)` 縮小 |
+
+> **配色設計說明**：預設白色在深色背景上清晰可辨；Hover 改用系統既有的 `--color-accent-cyan`（`#00d4ff`）而非品牌黃，是因為品牌黃按鈕懸停時游標會與按鈕融合、難以辨識。青色與黃色形成互補對比，在任何背景色下皆清楚可見，形成白色（中性移動）→ 青色（可互動）的明確視覺語意。
+
+#### 行動裝置
+
+觸控裝置（`pointer: coarse`）自動停用自訂游標，恢復瀏覽器預設，避免殘影干擾。
+
+### 7.9 圖表設計
 
 **使用 Chart.js**，統一設定：
 
@@ -1375,6 +1410,7 @@ GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push
 | v3.0 | 2026-03-16 | 系統正名 ERP、Google 評論自動化、獎金系統 |
 | v3.1 | 2026-03-18 | 前端視覺優化：導入 CIS 品牌黃色系（#FABF13）、修正選單搜尋 Bug（menuSearchInput）、全面 RWD 強化 |
 | v3.2 | 2026-03-18 | 全系統色彩清掃（35 檔案 500+ 處藍青色 → 品牌黃）、按鈕三段式尺寸標準化、輸入框規格統一、非品牌漸層修正、側邊欄標題更新、清除廢棄 templates/ 目錄 |
+| v3.3 | 2026-03-23 | 移除稽核儀表功能（admin.html 及相關 API）、調整推薦備貨與銷售獎金權限為全員可見、版本號更新為 2.0.3、安裝 Edge TTS 語音工具 |
 
 ### 10.5 聯絡資訊
 
@@ -1390,4 +1426,4 @@ GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push
 
 **文件結束**
 
-*本文件由 Yvonne 自動生成於 2026-03-18*
+*本文件由 Yvonne 自動生成於 2026-03-23*

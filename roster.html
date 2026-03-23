@@ -50,6 +50,25 @@
         transform: translateY(-2px);
     }
 
+    .btn-edit-roster {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.95em;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 0.2s;
+        display: inline-block;
+    }
+
+    .btn-edit-roster:hover {
+        transform: translateY(-2px);
+        color: #fff;
+    }
+
     .roster-table {
         width: 100%;
         border-collapse: collapse;
@@ -348,6 +367,7 @@
         <label>選擇日期：</label>
         <input type="date" id="datePicker">
         <button onclick="loadRoster()">查詢班表</button>
+        <a href="/roster_input.html" class="btn-edit-roster">編輯排班</a>
     </div>
 
     <!-- 各門市當天人員摘要 -->

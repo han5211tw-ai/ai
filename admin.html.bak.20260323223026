@@ -460,52 +460,88 @@
             </div>
             
             <div class="nav-section">
+                <div class="nav-title">主要功能</div>
+                <a class="nav-item" href="/">
+                    <span class="icon">🏠</span>首頁
+                    <span class="table-name">index</span>
+                </a>
+                <a class="nav-item" href="/inventory_query">
+                    <span class="icon">📦</span>庫存查詢
+                    <span class="table-name">inventory</span>
+                </a>
+                <a class="nav-item" href="/department">
+                    <span class="icon">📈</span>部門業績
+                    <span class="table-name">department</span>
+                </a>
+                <a class="nav-item" href="/store">
+                    <span class="icon">🏪</span>門市業績
+                    <span class="table-name">store</span>
+                </a>
+                <a class="nav-item" href="/business">
+                    <span class="icon">📉</span>業務業績
+                    <span class="table-name">business</span>
+                </a>
+                <a class="nav-item" href="/personal">
+                    <span class="icon">🎯</span>個人業績
+                    <span class="table-name">personal</span>
+                </a>
+                <a class="nav-item" href="/bonus_personal">
+                    <span class="icon">💵</span>銷售獎金
+                    <span class="table-name">bonus</span>
+                </a>
+                <a class="nav-item" href="/recommended_products">
+                    <span class="icon">📦</span>推薦備貨商品
+                    <span class="table-name">recommended</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
                 <div class="nav-title">稽核檢查</div>
-                <a class="nav-item active" onclick="showPage('audit')">
+                <a class="nav-item active" data-page="audit">
                     <span class="icon">🔍</span>稽核儀表
                     <span class="table-name">admin_audit_checks</span>
                 </a>
             </div>
-            
+
             <div class="nav-section">
                 <div class="nav-title">資料管理</div>
-                <a class="nav-item" onclick="showPage('staging')">
+                <a class="nav-item" data-page="staging">
                     <span class="icon">⏳</span>待建檔中心
                     <span class="table-name">staging_records</span>
                 </a>
-                <a class="nav-item" onclick="showPage('needs')">
+                <a class="nav-item" data-page="needs">
                     <span class="icon">📝</span>需求表
                     <span class="table-name">needs</span>
                 </a>
-                <a class="nav-item" onclick="showPage('customers')">
+                <a class="nav-item" data-page="customers">
                     <span class="icon">👥</span>客戶主檔
                     <span class="table-name">customers</span>
                 </a>
-                <a class="nav-item" onclick="showPage('products')">
+                <a class="nav-item" data-page="products">
                     <span class="icon">📦</span>產品主檔
                     <span class="table-name">products</span>
                 </a>
-                <a class="nav-item" onclick="showPage('inventory')">
+                <a class="nav-item" data-page="inventory">
                     <span class="icon">🏭</span>庫存管理
                     <span class="table-name">inventory</span>
                 </a>
             </div>
-            
+
             <div class="nav-section">
                 <div class="nav-title">交易紀錄</div>
-                <a class="nav-item" onclick="showPage('purchase')">
+                <a class="nav-item" data-page="purchase">
                     <span class="icon">📥</span>進貨紀錄
                     <span class="table-name">purchase_history</span>
                 </a>
-                <a class="nav-item" onclick="showPage('sales')">
+                <a class="nav-item" data-page="sales">
                     <span class="icon">📤</span>銷貨紀錄
                     <span class="table-name">sales_history</span>
                 </a>
             </div>
-            
+
             <div class="nav-section">
                 <div class="nav-title">系統</div>
-                <a class="nav-item" onclick="window.open('/admin/announcement_management.html', '_blank')">
+                <a class="nav-item" onclick="window.open('/admin/announcement_management', '_blank')">
                     <span class="icon">📢</span>系統公告
                     <span class="table-name">announcements</span>
                 </a>
@@ -517,13 +553,13 @@
                     <span class="icon">👤</span>員工管理
                     <span class="table-name">staff</span>
                 </a>
-                <a class="nav-item" onclick="showPage('audit_log')">
+                <a class="nav-item" data-page="audit_log">
                     <span class="icon">📋</span>操作日誌
                     <span class="table-name">admin_audit_log</span>
                 </a>
-                <a class="nav-item" href="/admin/health.html" target="_blank">
+                <a class="nav-item" href="/admin/health" target="_blank">
                     <span class="icon">🔧</span>系統健康
-                    <span class="table-name">admin/health.html</span>
+                    <span class="table-name">admin/health</span>
                 </a>
                 <a class="nav-item" href="/system_map_v3.html" onclick="window.location.href='/system_map_v3.html?v=' + Date.now(); return false;">
                     <span class="icon">🗺️</span>系統架構圖 V3
@@ -637,23 +673,36 @@
             console.log('[Admin] Initializing...');
 
             // 使用 requireLogin 確保登入
-            if (window.requireLogin) {
-                try {
-                    const user = await window.requireLogin({
-                        minRole: 'boss',
-                        title: '🔐 管理員登入',
-                        subtitle: '請輸入密碼驗證身份'
-                    });
-                    console.log('[Admin] Login success:', user);
-                    currentAdmin = user;
+            if (!window.requireLogin) {
+                document.body.innerHTML += `<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,41,59,0.95);border:1px solid #ef4444;border-radius:12px;padding:30px;color:#f87171;text-align:center;z-index:9999;">
+                    ⚠️ auth_ui.js 載入失敗<br><small style="color:#94a3b8;">請重新整理頁面</small>
+                    <br><br><button onclick="location.reload()" style="padding:8px 20px;background:#ef4444;border:none;border-radius:6px;color:white;cursor:pointer;">重新整理</button>
+                </div>`;
+                return;
+            }
 
-                    // 顯示主頁面
-                    document.getElementById('dashboard').style.display = 'block';
-                    document.getElementById('adminName').textContent = user.name;
-                    loadAuditSummary();
-                } catch (err) {
-                    console.error('[Admin] Login failed:', err);
-                }
+            try {
+                const user = await window.requireLogin({
+                    minRole: 'boss',
+                    title: '🔐 管理員登入',
+                    subtitle: '請輸入管理員密碼（身分證後四碼）'
+                });
+                console.log('[Admin] Login success:', user);
+                currentAdmin = user;
+
+                // 顯示主頁面
+                document.getElementById('dashboard').style.display = 'block';
+                document.getElementById('adminName').textContent = user.name;
+                loadAuditSummary();
+            } catch (err) {
+                console.error('[Admin] Login failed:', err);
+                // 顯示可見的錯誤訊息（不要只有空白背景）
+                document.body.innerHTML += `<div id="loginFallback" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,41,59,0.95);border:1px solid rgba(250,191,19,0.4);border-radius:12px;padding:30px;color:#e2e8f0;text-align:center;z-index:9999;min-width:280px;">
+                    <div style="font-size:2em;margin-bottom:10px;">🔐</div>
+                    <div style="color:#FABF13;font-size:1.1em;margin-bottom:8px;">需要管理員權限</div>
+                    <div style="color:#94a3b8;font-size:0.85em;margin-bottom:20px;">請以管理員帳號重新登入</div>
+                    <button onclick="sessionStorage.removeItem('currentUser');localStorage.removeItem('currentUser');location.reload();" style="padding:10px 24px;background:linear-gradient(135deg,#FABF13,#e6a800);border:none;border-radius:8px;color:#231815;font-weight:bold;cursor:pointer;">重新登入</button>
+                </div>`;
             }
         });
         
@@ -672,53 +721,38 @@
                 console.error("[ADMIN] sidebar not found");
                 return;
             }
-            
+
             sidebar.addEventListener('click', (e) => {
                 const item = e.target.closest('.nav-item');
                 if (!item) return;
 
-                // 檢查是否有 href 屬性（外部連結），如果有則不阻止預設行為
+                // 檢查是否有 href 屬性（外部連結），讓瀏覽器正常處理
                 const href = item.getAttribute('href');
                 if (href && !href.startsWith('#')) {
-                    return; // 讓瀏覽器處理外部連結
-                }
-
-                e.preventDefault();
-                const page = item.dataset.page;
-                if (!page) {
-                    // 嘗試從 onclick 屬性解析
-                    const onclick = item.getAttribute('onclick');
-                    if (onclick && onclick.includes("showPage('")) {
-                        const match = onclick.match(/showPage\('([^']+)'\)/);
-                        if (match) {
-                            openPage(match[1], item);
-                        }
-                    }
                     return;
                 }
 
+                // 有 onclick 但沒有 data-page（例如 window.open 類型），交給 onclick 處理
+                const page = item.dataset.page;
+                if (!page) return;
+
+                e.preventDefault();
                 openPage(page, item);
             });
-            
-            // 為所有 nav-item 添加 data-page 屬性
-            const items = sidebar.querySelectorAll('.nav-item');
-            items.forEach((item, index) => {
-                const onclick = item.getAttribute('onclick');
-                if (onclick && onclick.includes("showPage('")) {
-                    const match = onclick.match(/showPage\('([^']+)'\)/);
-                    if (match && !item.dataset.page) {
-                        item.dataset.page = match[1];
-                    }
-                }
-            });
-            
-            console.log("[ADMIN] sidebar bind done", items.length);
+
+            console.log("[ADMIN] sidebar bind done");
         }
         
         // openPage - 切換頁面並載入資料
         async function openPage(page, navItem) {
-            console.log("[ADMIN] click", page);
+            console.log("[ADMIN] openPage:", page);
             currentPage = page;
+
+            // 防呆：currentAdmin 尚未就緒（登入中）
+            if (!currentAdmin) {
+                console.warn("[ADMIN] openPage called before login, page:", page);
+                return;
+            }
             
             try {
                 // 1. 更新 UI active 狀態
@@ -824,11 +858,17 @@
         
         // Load Audit Summary
         async function loadAuditSummary() {
+            // 防護檢查：確保 currentAdmin 已就緒
+            if (!currentAdmin || !currentAdmin.name) {
+                console.warn('[Admin] loadAuditSummary called before login');
+                return;
+            }
+
             showLoading(true);
             try {
                 const response = await fetch('/api/admin/audit/summary?admin=' + encodeURIComponent(currentAdmin.name));
                 const data = await response.json();
-                
+
                 if (data.success) {
                     renderAuditCards(data.checks);
                 } else {
@@ -2190,9 +2230,15 @@
         }
         
         async function showAuditDetail(code) {
+            // 防護檢查：確保 currentAdmin 已就緒
+            if (!currentAdmin || !currentAdmin.name) {
+                console.warn('[Admin] showAuditDetail called before login');
+                return;
+            }
+
             const container = document.getElementById('page-audit');
             container.innerHTML = '<div class="loading">載入明細中...</div>';
-            
+
             try {
                 const response = await fetch('/api/admin/audit/detail?code=' + code + '&admin=' + encodeURIComponent(currentAdmin.name));
                 const data = await response.json();
@@ -2244,14 +2290,7 @@
         function showLoading(show) {
             document.getElementById('loading').classList.toggle('active', show);
         }
-        
-        function showToast(message, type) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast ' + type + ' show';
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-        
+
         function refreshAudit() {
             loadAuditSummary();
         }
