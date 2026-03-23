@@ -39,11 +39,56 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 - Brave Search: `BSAkRFXkBoZ3j1lnCsAVA7wXJpCZu9z` — 設定於環境變數 `export BRAVE_API_KEY="..."
 
-### TTS (sherpa-onnx)
+### TTS (Edge TTS) - 預設語音工具
 
-**類型:** 本地離線文字轉語音（免費，無需 API key）
+**類型:** Microsoft Edge 線上 TTS 服務（免費，需網路連線）
+**安裝日期:** 2026-03-23
+**版本:** 7.2.8
+**安裝方式:** `pipx install edge-tts`
+
+**預設語音:**
+- **zh-TW-HsiaoChenNeural** (曉辰) - 台灣女生，溫暖自然，適合正式場合
+
+**可用中文語音:**
+| 語音 | 地區 | 性別 | 特色 |
+|------|------|------|------|
+| zh-TW-HsiaoChenNeural | 台灣 | 女 | 溫暖自然（預設）|
+| zh-TW-HsiaoYuNeural | 台灣 | 女 | 活潑輕快 |
+| zh-TW-YunJheNeural | 台灣 | 男 | 沉穩可靠 |
+| zh-CN-XiaoxiaoNeural | 中國 | 女 | 新聞播報風格 |
+| zh-HK-HiuGaaiNeural | 香港 | 女 | 粵語 |
+
+**基本使用方法:**
+```bash
+# 基本語音合成
+edge-tts --voice zh-TW-HsiaoChenNeural --text "你好" --write-media output.mp3
+
+# 調整語速和音調
+edge-tts --voice zh-TW-HsiaoChenNeural --rate "+20%" --pitch "+10Hz" --text "你好" --write-media output.mp3
+
+# 生成字幕
+edge-tts --voice zh-TW-HsiaoChenNeural --text "你好" --write-media output.mp3 --write-subtitles output.vtt
+
+# 直接播放（使用 mpv）
+edge-playback --voice zh-TW-HsiaoChenNeural --text "你好"
+```
+
+**列出所有語音:**
+```bash
+edge-tts --list-voices
+edge-tts --list-voices | grep "zh-"  # 只顯示中文語音
+```
+
+**測試結果:** ✅ 2026-03-23 安裝成功，中文語音品質優秀
+
+---
+
+### TTS (sherpa-onnx) - 備用離線方案
+
+**類型:** 本地離線文字轉語音（免費，無需 API key，無需網路）
 **模型:** vits-melo-tts-zh_en（中文+英文，支援中英混合）
 **路徑:** `~/.openclaw/tools/sherpa-onnx-tts/`
+**狀態:** 備用方案，當 Edge TTS 無法使用時啟用
 
 **環境變數設定:**
 ```bash
@@ -59,8 +104,6 @@ $SHERPA_ONNX_RUNTIME_DIR/bin/sherpa-onnx-offline-tts \
   --vits-tokens="$SHERPA_ONNX_MODEL_DIR/tokens.txt" \
   --output-filename="output.wav" "要轉換的文字"
 ```
-
-**測試結果:** ✅ 2026-03-11 安裝成功，支援中文與英文混合朗讀
 
 ---
 
