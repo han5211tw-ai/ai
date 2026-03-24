@@ -102,6 +102,24 @@
             cursor: pointer;
             transition: transform 0.2s;
         }
+
+        .btn-view-roster {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+            border: none;
+            border-radius: 8px;
+            color: #231815;
+            font-size: 0.95em;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+
+        .btn-view-roster:hover {
+            transform: translateY(-2px);
+            color: #231815;
+        }
         .btn:hover { transform: translateY(-2px); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .error-msg { color: var(--color-status-error); margin-top: 10px; font-size: 0.95em; }
@@ -372,8 +390,11 @@
         <!-- 排班區塊 -->
         <div id="rosterSection" class="roster-section" style="display:none;">
             <div class="user-info">
-                <div>填表人：<span id="userName">-</span>｜單位：<span id="userStore">-</span> <span style="font-size:0.7rem;color:var(--color-text-secondary);font-family:monospace;">v1.10</span></div>
-                <button class="btn btn-logout" onclick="logout()">重新登入</button>
+                <div>填表人：<span id="rosterUserName">-</span>｜單位：<span id="rosterUserStore">-</span> <span style="font-size:0.7rem;color:var(--color-text-secondary);font-family:monospace;">v1.10</span></div>
+                <div style="display:flex;gap:10px;">
+                    <a href="/roster.html" class="btn-view-roster">回到班表</a>
+                    <button class="btn btn-logout" onclick="logout()">重新登入</button>
+                </div>
             </div>
 
             <!-- 主管選擇區（僅主管可見）-->
@@ -485,7 +506,21 @@
             currentUser = data;
             isSupervisor = data.department.includes('主管') || data.name === '莊圍迪';
 
+            // 顯示排班區塊並更新用戶資訊
             document.getElementById('rosterSection').style.display = 'block';
+            
+            // 更新用戶資訊顯示
+            const rosterUserNameEl = document.getElementById('rosterUserName');
+            const rosterUserStoreEl = document.getElementById('rosterUserStore');
+            
+            if (rosterUserNameEl) {
+                rosterUserNameEl.textContent = data.name || '-';
+            }
+            if (rosterUserStoreEl) {
+                const storeName = staffStore[data.name];
+                rosterUserStoreEl.textContent = isSupervisor ? '主管' : (storeName ? storeName + '門市' : '未知門市');
+            }
+            
             sessionStorage.setItem('roster_user', JSON.stringify(data));
 
             if (isSupervisor) {
@@ -495,6 +530,14 @@
             } else {
                 document.getElementById('supervisorPanel').style.display = 'none';
                 currentStore = staffStore[data.name];
+                
+                // 如果找不到對應門市，使用使用者資料中的門市或顯示錯誤
+                if (!currentStore) {
+                    console.error('找不到使用者對應門市:', data.name);
+                    document.getElementById('rostersContainer').innerHTML = `<div style="text-align:center; color:var(--color-status-error); padding:40px;">無法載入班表：找不到 ${data.name} 的門市資料</div>`;
+                    return;
+                }
+                
                 staffList = storeStaff[currentStore];
                 setMonthTitle();
                 loadEmployeeRoster();
@@ -514,18 +557,35 @@
                 currentUser = JSON.parse(userData);
                 isSupervisor = currentUser.department.includes('主管') || currentUser.name === '莊圍迪';
 
-                document.getElementById('loginSection').classList.remove('active');
-                document.getElementById('rosterSection').classList.add('active');
+                // 顯示排班區塊
+                const rosterSection = document.getElementById('rosterSection');
+                if (rosterSection) {
+                    rosterSection.style.display = 'block';
+                }
 
-                document.getElementById('userName').textContent = currentUser.name;
-                document.getElementById('userStore').textContent = isSupervisor ? '主管' : (staffStore[currentUser.name] + '門市');
+                // 更新用戶資訊
+                const rosterUserNameEl = document.getElementById('rosterUserName');
+                const rosterUserStoreEl = document.getElementById('rosterUserStore');
+                
+                if (rosterUserNameEl) {
+                    rosterUserNameEl.textContent = currentUser.name || '-';
+                }
+                if (rosterUserStoreEl) {
+                    const storeName = staffStore[currentUser.name];
+                    rosterUserStoreEl.textContent = isSupervisor ? '主管' : (storeName ? storeName + '門市' : '未知門市');
+                }
 
                 if (isSupervisor) {
-                    document.getElementById('supervisorPanel').style.display = 'block';
+                    const supervisorPanel = document.getElementById('supervisorPanel');
+                    if (supervisorPanel) supervisorPanel.style.display = 'block';
                     setMonthTitle();
-                    document.getElementById('rostersContainer').innerHTML = '<div style="text-align:center; color:var(--color-text-secondary); padding:40px;">請先選擇門市</div>';
+                    const rostersContainer = document.getElementById('rostersContainer');
+                    if (rostersContainer) {
+                        rostersContainer.innerHTML = '<div style="text-align:center; color:var(--color-text-secondary); padding:40px;">請先選擇門市</div>';
+                    }
                 } else {
-                    document.getElementById('supervisorPanel').style.display = 'none';
+                    const supervisorPanel = document.getElementById('supervisorPanel');
+                    if (supervisorPanel) supervisorPanel.style.display = 'none';
                     currentStore = staffStore[currentUser.name];
                     staffList = storeStaff[currentStore];
                     setMonthTitle();
@@ -566,14 +626,17 @@
                 return;
             }
 
-            if (currentDate < 24) {
-                statusDiv.innerHTML = `<span style="color:var(--color-status-error);">✗ 排班尚未開放，每月24號開放</span>`;
+            // 計算截止日（月底前一天）
+            const deadlineDate = lastDayOfMonth - 1;
+            
+            if (currentDate < 24 || (currentDate === 24 && currentHour < 12)) {
+                statusDiv.innerHTML = `<span style="color:var(--color-status-error);">✗ 排班尚未開放，每月24號中午12:00開放</span>`;
                 saveBtn.disabled = true;
-            } else if (currentDate === lastDayOfMonth && currentHour >= 15) {
-                statusDiv.innerHTML = `<span style="color:var(--color-status-error);">✗ 本月排班已截止（月底15:00截止）</span>`;
+            } else if (currentDate > deadlineDate || (currentDate === deadlineDate && currentHour >= 15)) {
+                statusDiv.innerHTML = `<span style="color:var(--color-status-error);">✗ 本月排班已截止（月底前一天15:00截止）</span>`;
                 saveBtn.disabled = true;
             } else {
-                statusDiv.innerHTML = `<span style="color:var(--color-status-success);">✓ 排班開放中（24號開放，月底15:00截止）</span>`;
+                statusDiv.innerHTML = `<span style="color:var(--color-status-success);">✓ 排班開放中（24號12:00開放，月底前一天15:00截止）</span>`;
                 saveBtn.disabled = false;
             }
         }

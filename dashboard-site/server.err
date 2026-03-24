@@ -2821,3 +2821,178 @@ SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.opencl
     ��敗'}), 500
     ^
 SyntaxError: Non-UTF-8 code starting with '\xa4' in file /Users/aiserver/.openclaw/workspace/dashboard-site/app.py on line 9698, but no encoding declared; see https://peps.python.org/pep-0263/ for details
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3000
+ * Running on http://192.168.1.212:3000
+[33mPress CTRL+C to quit[0m
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 14:34:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    send_email_alert(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 14:44:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    send_email_alert(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 14:54:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    send_email_alert(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 15:04:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    send_email_alert(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 15:14:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    send_email_alert(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 15:24:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    send_email_alert(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 15:34:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    send_email_alert(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 15:44:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    print(f"[HEALTH MONITOR] 健康檢查失敗: {e}")
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 15:54:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    print(f"[HEALTH MONITOR] 健康檢查失敗: {e}")
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
+Job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-19 16:04:32 CST)" raised an exception
+Traceback (most recent call last):
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 657, in health_monitor
+    conn = get_db_connection()
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 60, in get_db_connection
+    conn = sqlite3.connect(DB_PATH)
+sqlite3.OperationalError: unable to open database file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/apscheduler/executors/base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 712, in health_monitor
+    print(f"[HEALTH MONITOR] 健康檢查失敗: {e}")
+    ^^^^^^^^^^^^^^^^
+NameError: name 'send_email_alert' is not defined
