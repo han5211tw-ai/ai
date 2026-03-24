@@ -111,19 +111,6 @@
             display: none !important;
         }
         
-        /* 無結果提示 */
-        .menu-no-results {
-            padding: 20px;
-            text-align: center;
-            color: #64748b;
-            font-size: 14px;
-            display: none;
-        }
-        
-        .menu-no-results.show {
-            display: block;
-        }
-        
         /* 規則 1: 最外層全域容器 (App Wrapper) */
         .app-shell {
             display: flex;
@@ -578,24 +565,9 @@
                 </div>
             </div>
 
-            <!-- 選單搜尋框 -->
-            <div style="padding: 10px 20px; flex-shrink: 0;">
-                <input
-                    type="text"
-                    id="menuSearchInput"
-                    class="menu-search-input"
-                    placeholder="🔍 搜尋選單..."
-                    autocomplete="off"
-                >
-            </div>
-
             <nav class="sidebar-nav" id="sidebarNav">
                 <!-- 選單群組將由 JavaScript 動態生成 -->
             </nav>
-            
-            <div class="menu-no-results" id="menuNoResults">
-                沒有符合的選單項目
-            </div>
         </aside>
 
         <!-- 遮罩層 (手機版 Sidebar 滑出時顯示) -->
@@ -839,68 +811,6 @@
             }
         }
         
-        // 搜尋過濾功能
-        function filterMenu(keyword) {
-            const groups = document.querySelectorAll('.menu-group');
-            const standaloneItems = document.querySelectorAll('.menu-item:not(.menu-group .menu-item)');
-            const noResults = document.getElementById('menuNoResults');
-            let hasVisibleItem = false;
-
-            const lowerKeyword = keyword.toLowerCase();
-
-            // 處理獨立選單項目
-            standaloneItems.forEach(item => {
-                const label = item.dataset.label.toLowerCase();
-                const route = item.dataset.route.toLowerCase();
-
-                if (label.includes(lowerKeyword) || route.includes(lowerKeyword)) {
-                    item.classList.remove('hidden');
-                    hasVisibleItem = true;
-                } else if (keyword) {
-                    item.classList.add('hidden');
-                } else {
-                    item.classList.remove('hidden');
-                }
-            });
-
-            groups.forEach(group => {
-                const items = group.querySelectorAll('.menu-item');
-                let groupHasMatch = false;
-
-                items.forEach(item => {
-                    const label = item.dataset.label.toLowerCase();
-                    const route = item.dataset.route.toLowerCase();
-
-                    if (label.includes(lowerKeyword) || route.includes(lowerKeyword)) {
-                        item.classList.remove('hidden');
-                        groupHasMatch = true;
-                        hasVisibleItem = true;
-                    } else {
-                        item.classList.add('hidden');
-                    }
-                });
-
-                // 如果有匹配項目，展開群組並顯示
-                if (groupHasMatch) {
-                    group.classList.add('expanded');
-                    group.classList.remove('hidden');
-                } else if (keyword) {
-                    // 有搜尋關鍵字但沒匹配，隱藏群組
-                    group.classList.add('hidden');
-                } else {
-                    // 沒有搜尋，恢復預設
-                    group.classList.remove('hidden', 'expanded');
-                }
-            });
-
-            // 顯示/隱藏「無結果」提示
-            if (keyword && !hasVisibleItem) {
-                noResults.classList.add('show');
-            } else {
-                noResults.classList.remove('show');
-            }
-        }
-        
         // === RWD: Sidebar 切換邏輯 ===
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
@@ -929,12 +839,6 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             renderMenu();
-
-            // 綁定搜尋事件
-            const searchInput = document.getElementById('menuSearchInput');
-            searchInput.addEventListener('input', function(e) {
-                filterMenu(e.target.value);
-            });
 
             // RWD: 視窗大小改變時自動關閉 Sidebar
             window.addEventListener('resize', function() {

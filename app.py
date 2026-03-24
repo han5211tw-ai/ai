@@ -3560,10 +3560,25 @@ def purchase_need():
             original_requester = row['requester'] or '未知'
             old_status = row['status']
             
-            # 如果狀態已經是已採購，重新發送通知
-            status_text = "再次已採購" if old_status == '已採購' else "已採購"
+            # 檢查是否在 1 分鐘內已發送過「已採購通知」給該筆需求
+            cursor.execute("""
+                SELECT COUNT(*) as notify_count
+                FROM notification_logs
+                WHERE notification_type = '已採購通知'
+                AND status = 'success'
+                AND related_record_id = ?
+                AND created_at >= datetime('now', '-1 minutes')
+            """, (need_id,))
+            notify_count = cursor.fetchone()['notify_count']
             
-            telegram_msg = f"""✅ <b>已採購通知</b>
+            # 如果 1 分鐘內已發送過，跳過通知
+            if notify_count > 0:
+                print(f"[purchase_need] 需求 {need_id} 在 1 分鐘內已發送過通知，跳過重複通知")
+            else:
+                # 如果狀態已經是已採購，顯示「再次已採購」
+                status_text = "再次已採購" if old_status == '已採購' else "已採購"
+                
+                telegram_msg = f"""✅ <b>已採購通知</b>
 
 📅 日期：{need_date}
 👤 填表人：{original_requester}
@@ -3574,14 +3589,14 @@ def purchase_need():
 
 請於到貨後至營運系統首頁結案"""
 
-            # 發送到電腦舖工作群組（背景執行，非 daemon 確保完成）
-            TELEGRAM_GROUP_CHAT_ID = "-5232179482"
-            import threading
-            t = threading.Thread(
-                target=send_telegram_notification,
-                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs')
-            )
-            t.start()
+                # 發送到電腦舖工作群組（背景執行，非 daemon 確保完成）
+                TELEGRAM_GROUP_CHAT_ID = "-5232179482"
+                import threading
+                t = threading.Thread(
+                    target=send_telegram_notification,
+                    args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs')
+                )
+                t.start()
         except Exception as e:
             print(f"已採購 Telegram 通知背景執行緒啟動失敗：{e}")
 
