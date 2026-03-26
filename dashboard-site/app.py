@@ -2976,38 +2976,76 @@ def create_needs_batch():
                     print(f"建立產品 staging 失敗: {e}")
 
             try:
+                # 先檢查是否為已取消的資料（允許重新提交）
                 cursor.execute("""
-                    INSERT OR IGNORE INTO needs
-                    (date, product_code, item_name, quantity, customer_code, department,
-                     requester, status, created_at, remark, purpose, request_type, transfer_from,
-                     is_new_product, is_new_customer, product_staging_id, customer_staging_id,
-                     product_status, customer_status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, '待處理', ?, ?, ?, ?, ?,
-                            ?, ?, ?, ?, ?, ?)
-                """, (
-                    item['date'],
-                    item['product_code'],
-                    product_name,
-                    item['quantity'],
-                    customer_code if purpose == '客戶' else '',
-                    item['department'],
-                    item['requester'],
-                    now,
-                    item.get('remark', ''),
-                    purpose,
-                    request_type,
-                    transfer_from,
-                    is_new_product,
-                    is_new_customer,
-                    product_staging_id,
-                    customer_staging_id,
-                    product_status,
-                    customer_status
-                ))
-                if cursor.rowcount > 0:
+                    SELECT id FROM needs
+                    WHERE date = ? AND item_name = ? AND quantity = ?
+                      AND requester = ? AND product_code = ?
+                      AND cancelled_at IS NOT NULL
+                """, (item['date'], product_name, item['quantity'],
+                      item['requester'], item['product_code']))
+                cancelled_row = cursor.fetchone()
+
+                if cancelled_row:
+                    # 已取消的資料，復活為新的待處理
+                    cursor.execute("""
+                        UPDATE needs
+                        SET status = '待處理',
+                            cancelled_at = NULL,
+                            created_at = ?,
+                            remark = ?,
+                            purpose = ?,
+                            request_type = ?,
+                            transfer_from = ?,
+                            customer_code = ?,
+                            is_new_product = ?,
+                            is_new_customer = ?,
+                            product_staging_id = ?,
+                            customer_staging_id = ?,
+                            product_status = ?,
+                            customer_status = ?
+                        WHERE id = ?
+                    """, (now, item.get('remark', ''), purpose, request_type,
+                          transfer_from, customer_code if purpose == '客戶' else '',
+                          is_new_product, is_new_customer, product_staging_id,
+                          customer_staging_id, product_status, customer_status,
+                          cancelled_row[0]))
                     inserted += 1
+                    print(f"復活已取消資料: {product_name} ({item['date']})")
                 else:
-                    print(f"跳過重複資料: {product_name} ({item['date']})")
+                    # 嘗試插入新資料
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO needs
+                        (date, product_code, item_name, quantity, customer_code, department,
+                         requester, status, created_at, remark, purpose, request_type, transfer_from,
+                         is_new_product, is_new_customer, product_staging_id, customer_staging_id,
+                         product_status, customer_status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, '待處理', ?, ?, ?, ?, ?,
+                                ?, ?, ?, ?, ?, ?)
+                    """, (
+                        item['date'],
+                        item['product_code'],
+                        product_name,
+                        item['quantity'],
+                        customer_code if purpose == '客戶' else '',
+                        item['department'],
+                        item['requester'],
+                        now,
+                        item.get('remark', ''),
+                        purpose,
+                        request_type,
+                        transfer_from,
+                        is_new_product,
+                        is_new_customer,
+                        product_staging_id,
+                        customer_staging_id,
+                        product_status,
+                        customer_status
+                    ))
+                    if cursor.rowcount > 0:
+                        inserted += 1
+                    else:
+                        print(f"跳過重複資料: {product_name} ({item['date']})")
             except Exception as e:
                 print(f"匯入失敗: {e}")
                 # 發生錯誤時拋出例外，讓外層 catch 並執行 ROLLBACK
