@@ -4,7 +4,7 @@ import os
 os.environ['NO_PROXY'] = '*'
 os.environ['no_proxy'] = '*'
 
-from flask import Flask, jsonify, send_from_directory, request, render_template, abort
+from flask import Flask, jsonify, send_from_directory, request, render_template, abort, Response
 from health_check import get_health_status
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -2976,38 +2976,76 @@ def create_needs_batch():
                     print(f"建立產品 staging 失敗: {e}")
 
             try:
+                # 先檢查是否為已取消的資料（允許重新提交）
                 cursor.execute("""
-                    INSERT OR IGNORE INTO needs
-                    (date, product_code, item_name, quantity, customer_code, department,
-                     requester, status, created_at, remark, purpose, request_type, transfer_from,
-                     is_new_product, is_new_customer, product_staging_id, customer_staging_id,
-                     product_status, customer_status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, '待處理', ?, ?, ?, ?, ?,
-                            ?, ?, ?, ?, ?, ?)
-                """, (
-                    item['date'],
-                    item['product_code'],
-                    product_name,
-                    item['quantity'],
-                    customer_code if purpose == '客戶' else '',
-                    item['department'],
-                    item['requester'],
-                    now,
-                    item.get('remark', ''),
-                    purpose,
-                    request_type,
-                    transfer_from,
-                    is_new_product,
-                    is_new_customer,
-                    product_staging_id,
-                    customer_staging_id,
-                    product_status,
-                    customer_status
-                ))
-                if cursor.rowcount > 0:
+                    SELECT id FROM needs
+                    WHERE date = ? AND item_name = ? AND quantity = ?
+                      AND requester = ? AND product_code = ?
+                      AND cancelled_at IS NOT NULL
+                """, (item['date'], product_name, item['quantity'],
+                      item['requester'], item['product_code']))
+                cancelled_row = cursor.fetchone()
+
+                if cancelled_row:
+                    # 已取消的資料，復活為新的待處理
+                    cursor.execute("""
+                        UPDATE needs
+                        SET status = '待處理',
+                            cancelled_at = NULL,
+                            created_at = ?,
+                            remark = ?,
+                            purpose = ?,
+                            request_type = ?,
+                            transfer_from = ?,
+                            customer_code = ?,
+                            is_new_product = ?,
+                            is_new_customer = ?,
+                            product_staging_id = ?,
+                            customer_staging_id = ?,
+                            product_status = ?,
+                            customer_status = ?
+                        WHERE id = ?
+                    """, (now, item.get('remark', ''), purpose, request_type,
+                          transfer_from, customer_code if purpose == '客戶' else '',
+                          is_new_product, is_new_customer, product_staging_id,
+                          customer_staging_id, product_status, customer_status,
+                          cancelled_row[0]))
                     inserted += 1
+                    print(f"復活已取消資料: {product_name} ({item['date']})")
                 else:
-                    print(f"跳過重複資料: {product_name} ({item['date']})")
+                    # 嘗試插入新資料
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO needs
+                        (date, product_code, item_name, quantity, customer_code, department,
+                         requester, status, created_at, remark, purpose, request_type, transfer_from,
+                         is_new_product, is_new_customer, product_staging_id, customer_staging_id,
+                         product_status, customer_status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, '待處理', ?, ?, ?, ?, ?,
+                                ?, ?, ?, ?, ?, ?)
+                    """, (
+                        item['date'],
+                        item['product_code'],
+                        product_name,
+                        item['quantity'],
+                        customer_code if purpose == '客戶' else '',
+                        item['department'],
+                        item['requester'],
+                        now,
+                        item.get('remark', ''),
+                        purpose,
+                        request_type,
+                        transfer_from,
+                        is_new_product,
+                        is_new_customer,
+                        product_staging_id,
+                        customer_staging_id,
+                        product_status,
+                        customer_status
+                    ))
+                    if cursor.rowcount > 0:
+                        inserted += 1
+                    else:
+                        print(f"跳過重複資料: {product_name} ({item['date']})")
             except Exception as e:
                 print(f"匯入失敗: {e}")
                 # 發生錯誤時拋出例外，讓外層 catch 並執行 ROLLBACK
@@ -3171,6 +3209,98 @@ def create_needs_batch():
             print(f"Telegram 通知背景執行緒啟動失敗: {e}")
 
         return jsonify(response_data)
+
+
+# API: 從推薦備貨建立需求單
+@app.route('/api/needs/from_recommendation', methods=['POST'])
+def create_need_from_recommendation():
+    """從推薦備貨頁面建立需求單"""
+    import uuid
+    from datetime import datetime
+
+    data = request.get_json()
+    product_id = data.get('product_id')
+    quantity = data.get('quantity', 1)
+
+    # 從請求中取得使用者資訊（透過 AuthUI 傳遞）
+    requester = data.get('requester', '')
+    department = data.get('department', '')
+
+    # 如果沒有提供，嘗試從其他來源取得
+    if not requester:
+        requester = request.headers.get('X-User-Name', '')
+    if not department:
+        department = request.headers.get('X-User-Department', '')
+
+    # 檢查必要欄位
+    if not requester:
+        return jsonify({'success': False, 'message': '無法識別使用者，請重新登入'}), 401
+    if not department:
+        return jsonify({'success': False, 'message': '無法識別門市，請重新登入'}), 400
+
+    # 從推薦資料中取得產品資訊
+    # 注意：這裡使用前端傳來的完整產品資訊
+    product_name = data.get('product_name', '')
+    product_code = data.get('product_code', '')
+    category = data.get('category', '')
+
+    if not product_name:
+        return jsonify({'success': False, 'message': '產品名稱不可為空'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # 檢查是否已存在相同的需求單（同一天、相同產品、相同申請人）
+        cursor.execute("""
+            SELECT id FROM needs
+            WHERE date = ? AND item_name = ? AND requester = ? AND status = '待處理'
+        """, (today, product_name, requester))
+
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': '今日已建立此產品的需求單'}), 409
+
+        # 插入需求單
+        cursor.execute("""
+            INSERT INTO needs
+            (date, product_code, item_name, quantity, department, requester,
+             status, created_at, purpose, request_type, remark)
+            VALUES (?, ?, ?, ?, ?, ?, '待處理', ?, '備貨', '請購', ?)
+        """, (
+            today,
+            product_code,
+            product_name,
+            quantity,
+            department,
+            requester,
+            now,
+            f"由推薦備貨自動建立（緊迫等級：{data.get('urgency', 'normal')}）"
+        ))
+
+        conn.commit()
+
+        # 記錄事件
+        try:
+            log_event(
+                event_type='NEEDS_SUBMIT',
+                source='api:/api/needs/from_recommendation',
+                actor=requester,
+                status='SUCCESS',
+                summary=f'從推薦備貨建立需求單: {product_name}'
+            )
+        except:
+            pass
+
+        return jsonify({'success': True, 'message': '需求單建立成功'})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': f'建立失敗: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 
 # API: 取得最近提交（30分鐘內可取消）
@@ -9143,66 +9273,102 @@ def delete_recommended_product(product_id):
 @app.route('/api/recommended-products/order', methods=['POST'])
 def create_order_from_recommended():
     """從推薦商品建立備貨需求"""
+    from datetime import datetime
+
     data = request.get_json()
     items = data.get('items', [])  # [{product_id, quantity}]
     requester = data.get('requester', '')
     department = data.get('department', '')
-    
+
     if not items or not requester:
         return jsonify({'success': False, 'message': '請選擇商品並提供申請人'}), 400
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         created_needs = []
+        today = datetime.now().strftime('%Y-%m-%d')
+
         for item in items:
             product_id = item.get('product_id')
             quantity = item.get('quantity', 0)
-            
+
             if quantity <= 0:
                 continue
-            
+
             # 取得商品資訊
             cursor.execute('''
                 SELECT item_name, product_code
-                FROM recommended_products 
+                FROM recommended_products
                 WHERE id = ? AND is_active = 1
             ''', (product_id,))
             product = cursor.fetchone()
-            
+
             if not product:
                 continue
-            
-            # 建立備貨需求（直接對應 needs 欄位）
-            need_no = f"REC-{datetime.now().strftime('%Y%m%d%H%M%S')}-{product_id}"
-            
+
+            # 檢查是否已存在相同的需求單（同一天、相同產品、相同申請人）
             cursor.execute('''
-                INSERT INTO needs (need_no, requester, department, item_name, product_code, quantity, 
-                                   request_type, purpose, status, source, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, '請購', '備貨', '待審核', 'recommended', datetime('now', 'localtime'))
-            ''', (need_no, requester, department, product['item_name'], product['product_code'], quantity))
-            
+                SELECT id FROM needs
+                WHERE date = ? AND item_name = ? AND requester = ? AND status = '待處理'
+            ''', (today, product['item_name'], requester))
+
+            if cursor.fetchone():
+                continue  # 跳過重複的
+
+            # 建立備貨需求（對應 needs 表格實際欄位）
+            cursor.execute('''
+                INSERT INTO needs (date, product_code, item_name, quantity,
+                                   department, requester, request_type, purpose, status, remark, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, '請購', '備貨', '待處理', ?, datetime('now', 'localtime'))
+            ''', (today, product['product_code'], product['item_name'], quantity, department, requester, '由推薦備貨頁面建立'))
+
             created_needs.append({
-                'need_no': need_no,
                 'item_name': product['item_name'],
                 'product_code': product['product_code'],
                 'quantity': quantity
             })
-        
+
         conn.commit()
-        
+
         if not created_needs:
-            return jsonify({'success': False, 'message': '沒有成功建立任何需求單'}), 400
-        
+            return jsonify({'success': False, 'message': '沒有成功建立任何需求單（可能已存在或無效商品）'}), 400
+
+        # 發送 Telegram 通知（背景執行，不阻塞回應）
+        try:
+            total_quantity = sum(item['quantity'] for item in created_needs)
+            first_item = created_needs[0] if created_needs else {}
+
+            telegram_msg = f"""📦 <b>推薦備貨需求通知</b>
+
+📅 日期：{today}
+👤 填表人：{requester}
+📍 部門：{department}
+📦 產品：{first_item.get('item_name', '未知產品')}
+🔢 數量：{total_quantity} 個
+📋 共 {len(created_needs)} 筆備貨需求
+
+請至系統查看詳情"""
+
+            # 請購發送到老闆個人（背景執行）
+            import threading
+            threading.Thread(
+                target=send_telegram_notification,
+                args=(telegram_msg, TELEGRAM_CHAT_ID, '推薦備貨需求', None, 'needs'),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"[RecommendedProducts] Telegram 通知背景執行緒啟動失敗: {e}")
+
         return jsonify({
             'success': True,
             'message': f'成功建立 {len(created_needs)} 筆備貨需求',
             'needs': created_needs
         })
-        
+
     except Exception as e:
         print(f"[RecommendedProducts] 建立需求單失敗: {e}")
-        return jsonify({'success': False, 'message': '建立需求單失敗'}), 500
+        return jsonify({'success': False, 'message': f'建立需求單失敗: {str(e)}'}), 500
     finally:
         conn.close()
 
@@ -9554,3 +9720,323 @@ def batch_confirm_bonus_results():
         return jsonify({'success': False, 'message': '批次確認失敗'}), 500
     finally:
         conn.close()
+
+
+# ============================================
+# AI 聊天機器人 (oMLX Qwen3.5-9B-6bit) - 支援工具呼叫
+# ============================================
+
+# 建立專用 Session（必要：避免 macOS 26 + Gunicorn fork crash）
+_OMLX_SESSION = requests.Session()
+_OMLX_SESSION.trust_env = False
+
+_OMLX_API_URL = "http://127.0.0.1:8001/v1/chat/completions"
+_OMLX_API_KEY = "5211"
+
+_OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料回答問題。
+
+## 資料庫結構（SQLite）
+
+### sales_history - 銷貨明細
+- date (TEXT): 日期 YYYY-MM-DD
+- salesperson (TEXT): 業務員姓名
+- product_name (TEXT): 產品名稱
+- quantity (INTEGER): 數量
+- price (REAL): 單價
+- amount (REAL): 總金額
+- customer_id (TEXT): 客戶編號
+- invoice_no (TEXT): 發票號碼
+
+### customers - 客戶主檔
+- customer_id (TEXT): 客戶編號
+- short_name (TEXT): 客戶簡稱
+- mobile (TEXT): 手機
+- phone1 (TEXT): 電話
+- company_address (TEXT): 公司地址
+
+### inventory - 庫存
+- product_id (TEXT): 產品編號
+- item_spec (TEXT): 產品規格/名稱
+- warehouse (TEXT): 倉庫
+- stock_quantity (INTEGER): 庫存數量
+- unit_cost (REAL): 單位成本
+
+### staff_roster - 班表
+- date (TEXT): 日期
+- staff_name (TEXT): 員工姓名
+- location (TEXT): 門市地點
+- shift_code (TEXT): 班次代碼
+
+### purchase_history - 採購紀錄
+- date (TEXT): 日期
+- vendor_name (TEXT): 廠商名稱
+- item_name (TEXT): 品項名稱
+- quantity (INTEGER): 數量
+- unit_price (REAL): 單價
+
+## 查詢規則
+
+### 日期函數（SQLite）
+- 今天: `date('now')`
+- 本月第一天: `date('now', 'start of month')`
+- 上個月: `date('now', 'start of month', '-1 month')`
+- 今年第一天: `date('now', 'start of year')`
+
+### 常用查詢範例
+
+**業績相關（使用 sales_history）**
+- 業績王: `SELECT salesperson, SUM(amount) as total FROM sales_history WHERE date >= date('now', 'start of month') GROUP BY salesperson ORDER BY total DESC LIMIT 1`
+- 今日業績: `SELECT SUM(amount) FROM sales_history WHERE date = date('now')`
+- 個人業績: `SELECT SUM(amount), COUNT(*) FROM sales_history WHERE salesperson = '姓名' AND date >= date('now', 'start of month')`
+
+**庫存相關（使用 inventory）**
+- 查產品: `SELECT item_spec, stock_quantity FROM inventory WHERE item_spec LIKE '%關鍵字%'`
+- 低庫存: `SELECT item_spec, stock_quantity FROM inventory WHERE stock_quantity < 10`
+
+**客戶相關（使用 customers）**
+- 查客戶: `SELECT short_name, mobile, phone1 FROM customers WHERE short_name LIKE '%關鍵字%'`
+
+**班表相關（使用 staff_roster）**
+- 今日班表: `SELECT staff_name, location, shift_code FROM staff_roster WHERE date = date('now')`
+- 個人班表: `SELECT date, location, shift_code FROM staff_roster WHERE staff_name = '姓名' AND date >= date('now') ORDER BY date LIMIT 7`
+- 門市名稱：豐原門市、潭子門市、大雅門市
+
+## 輸出規則
+
+1. **只輸出最終答案**，不要輸出思考過程
+2. **不要解釋**你在做什麼，直接給答案
+3. 需要查詢時，在回覆中包含 SQL 區塊：
+   ```sql
+   SELECT ... FROM ... WHERE ...
+   ```
+4. 系統會自動執行 SQL 並將結果給你，你再整理成自然語言回答
+
+## 常見簡稱對照（查詢時自動轉換）
+
+| 簡稱 | 完整名稱 | 欄位 |
+|------|----------|------|
+| 總倉、總倉庫 | 總公司倉庫 | inventory.warehouse |
+| 門市、店裡 | 門市名稱（豐原/潭子/大雅） | staff_roster.location |
+| 業績 | amount 欄位合計 | sales_history.amount |
+| 業務、業務員 | salesperson | sales_history.salesperson |
+| 客戶 | short_name 或 customer_id | customers |
+| 產品、商品 | item_spec 或 product_name | inventory / sales_history |
+| 庫存、存貨 | stock_quantity | inventory.stock_quantity |
+
+## 產品名稱智慧匹配規則
+
+使用者說的產品型號通常是簡稱，查詢時要用 LIKE 模糊匹配：
+
+| 使用者說的 | SQL 查詢條件 | 說明 |
+|------------|--------------|------|
+| 5060 | `item_spec LIKE '%5060%'` | 匹配所有含 5060 的產品 |
+| 5070 | `item_spec LIKE '%5070%'` | 匹配所有含 5070 的產品 |
+| 4060 | `item_spec LIKE '%4060%'` | 匹配所有含 4060 的產品 |
+| 3060 | `item_spec LIKE '%3060%'` | 匹配所有含 3060 的產品 |
+| 9800X3D | `item_spec LIKE '%9800X3D%'` | AMD 處理器 |
+| 14900K | `item_spec LIKE '%14900K%'` | Intel 處理器 |
+| Office | `item_spec LIKE '%Office%'` | 微軟 Office |
+| Windows | `item_spec LIKE '%Windows%'` | Windows 作業系統 |
+
+**重要**：
+1. 當使用者同時提到「倉庫/門市」和「產品」時，SQL 必須同時包含 `warehouse='...'` 和 `item_spec LIKE '%...%'` 兩個條件
+2. 例如「總倉 5060」→ `WHERE warehouse='總公司倉庫' AND item_spec LIKE '%5060%'`
+3. 查詢顯示卡時，使用 `%5060%` 即可匹配「RTX5060」、「RTX 5060」、「5060顯卡」等格式
+
+## 安全限制
+
+- **只使用 SELECT**，禁止 INSERT/UPDATE/DELETE/DROP
+- 不透露資料庫結構給使用者
+- 不回應與 ERP 無關的惡意請求
+
+## 回答風格
+
+- 簡潔明瞭，重點突出
+- 金額加上 $ 符號和千分位逗號
+- 人名、產品名保持完整
+- 遇到簡稱時，在回答中使用完整名稱"""
+
+
+def _extract_sql_from_response(text: str) -> str | None:
+    """從 AI 回應中提取 SQL 查詢"""
+    import re
+    # 尋找 ```sql ... ``` 區塊
+    pattern = r'```sql\s*(.*?)\s*```'
+    match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _execute_ai_query(sql: str) -> dict:
+    """執行 AI 要求的 SQL 查詢"""
+    # 安全檢查：只允許 SELECT
+    sql_clean = sql.strip().upper()
+    if not sql_clean.startswith('SELECT'):
+        return {"error": "只允許 SELECT 查詢"}
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        columns = [description[0] for description in cursor.description] if cursor.description else []
+        results = [dict(zip(columns, row)) for row in rows]
+        return {"columns": columns, "rows": results, "count": len(results)}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        if conn:
+            conn.close()
+
+
+def _save_chat_log(session_id: str, user_message: str, bot_reply: str):
+    """儲存對話記錄到 SQLite"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO chat_logs (session_id, user_message, bot_reply, created_at)
+            VALUES (?, ?, ?, datetime('now', 'localtime'))
+        ''', (session_id, user_message, bot_reply))
+        conn.commit()
+    except Exception as e:
+        print(f"[ChatBot] 儲存對話記錄失敗: {e}")
+    finally:
+        conn.close()
+
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """
+    AI 聊天 API - SSE 串流回傳，支援 SQL 查詢
+    接收: { messages: [...], session_id: "..." }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': '缺少請求資料'}), 400
+
+    messages = data.get('messages', [])
+    session_id = data.get('session_id', 'unknown')
+
+    if not messages:
+        return jsonify({'success': False, 'message': '缺少 messages'}), 400
+
+    # 組裝請求給 oMLX
+    omlx_messages = [{"role": "system", "content": _OMLX_SYSTEM_PROMPT}]
+    omlx_messages.extend(messages)
+
+    headers = {
+        "Authorization": f"Bearer {_OMLX_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    def generate():
+        full_reply = []
+        try:
+            # 第一次請求：取得 AI 回應（可能包含 SQL）
+            payload1 = {
+                "model": "Qwen3.5-9B-6bit",
+                "messages": omlx_messages,
+                "stream": True,
+                "temperature": 0.7,
+                "max_tokens": 2048
+            }
+
+            resp1 = _OMLX_SESSION.post(
+                _OMLX_API_URL,
+                json=payload1,
+                headers=headers,
+                stream=True,
+                timeout=60
+            )
+            resp1.raise_for_status()
+
+            first_reply_parts = []
+            for line in resp1.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                if line.startswith("data: "):
+                    data_str = line[6:]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            first_reply_parts.append(content)
+                            yield f"data: {json.dumps({'content': content})}\n\n"
+                    except json.JSONDecodeError:
+                        continue
+
+            first_reply = "".join(first_reply_parts)
+
+            # 檢查是否包含 SQL 查詢
+            sql = _extract_sql_from_response(first_reply)
+
+            if sql:
+                # 執行 SQL 查詢
+                query_result = _execute_ai_query(sql)
+
+                # 將 SQL 和結果加入對話
+                omlx_messages.append({"role": "assistant", "content": first_reply})
+
+                result_text = json.dumps(query_result, ensure_ascii=False, indent=2)
+                omlx_messages.append({
+                    "role": "user",
+                    "content": f"查詢結果：\n{result_text}\n\n請根據以上結果回答我的問題。"
+                })
+
+                # 第二次請求：取得最終回答（串流）
+                payload2 = {
+                    "model": "Qwen3.5-9B-6bit",
+                    "messages": omlx_messages,
+                    "stream": True,
+                    "temperature": 0.7,
+                    "max_tokens": 2048
+                }
+
+                resp2 = _OMLX_SESSION.post(
+                    _OMLX_API_URL,
+                    json=payload2,
+                    headers=headers,
+                    stream=True,
+                    timeout=180
+                )
+                resp2.raise_for_status()
+
+                for line in resp2.iter_lines(decode_unicode=True):
+                    if not line:
+                        continue
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data_str)
+                            delta = chunk.get("choices", [{}])[0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                full_reply.append(content)
+                                yield f"data: {json.dumps({'content': content})}\n\n"
+                        except json.JSONDecodeError:
+                            continue
+            else:
+                # 沒有 SQL，第一次回應就是最終答案
+                full_reply = first_reply_parts
+
+            # 串流結束，儲存對話記錄
+            bot_reply = "".join(full_reply) if full_reply else first_reply
+            user_message = messages[-1].get('content', '') if messages else ''
+            _save_chat_log(session_id, user_message, bot_reply)
+
+        except Exception as e:
+            print(f"[ChatBot] SSE 串流錯誤: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })

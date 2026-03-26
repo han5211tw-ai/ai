@@ -1,7 +1,7 @@
 # ERP 營運系統 - 專案白皮書
 
-**版本**: v3.3
-**最後更新**: 2026-03-23
+**版本**: v3.4
+**最後更新**: 2026-03-26
 **文件編號**: ERP-WP-001
 **撰寫者**: Yvonne (AI Assistant)
 
@@ -1350,7 +1350,79 @@ def send_telegram_message(message, file_path=None):
 
 ---
 
-## 10. 附錄
+## 10. AI 聊天機器人
+
+### 10.1 功能概述
+
+ERP 系統內建 AI 聊天機器人，支援自然語言查詢即時資料庫資料。
+
+### 10.2 技術規格
+
+| 項目 | 內容 |
+|------|------|
+| **模型** | oMLX Qwen3.5-9B-6bit |
+| **API 端點** | `http://127.0.0.1:8001/v1/chat/completions` |
+| **串流協定** | SSE (Server-Sent Events) |
+| **前端組件** | 浮動視窗 (`shared/ai-chat.js`) |
+| **對話記錄** | SQLite `chat_logs` 資料表 |
+
+### 10.3 核心功能
+
+#### 兩階段對話流程
+1. **第一階段**：AI 分析問題並生成 SQL 查詢
+2. **系統執行**：後端執行 SQL 並將結果回傳
+3. **第二階段**：AI 根據查詢結果生成自然語言回答
+
+#### 支援查詢類型
+- **業績查詢**：業績王、個人業績、今日/本月業績
+- **庫存查詢**：產品庫存、低庫存警示
+- **客戶查詢**：客戶資料、聯絡方式
+- **班表查詢**：今日班表、個人排班
+
+#### 智慧匹配
+- 簡稱自動轉換：總倉→總公司倉庫、5060→RTX 5060
+- 門市名稱：豐原、潭子、大雅
+- 產品型號模糊匹配
+
+### 10.4 API 規格
+
+**端點**: `POST /api/chat`
+
+**請求格式**:
+```json
+{
+  "messages": [
+    {"role": "user", "content": "誰是這個月業績王？"}
+  ],
+  "session_id": "erp_xxx"
+}
+```
+
+**回應格式**: SSE 串流
+```
+data: {"content": "本月業績王是"}
+data: {"content": " **林榮祺**"}
+data: {"content": "！"}
+```
+
+### 10.5 安全限制
+
+- 只允許 SELECT 查詢
+- 禁止 INSERT/UPDATE/DELETE/DROP
+- 不透露資料庫結構給使用者
+
+### 10.6 相關檔案
+
+| 檔案 | 說明 |
+|------|------|
+| `app.py` | 後端 API、System Prompt |
+| `shared/ai-chat.js` | 前端聊天組件 |
+| `gunicorn.conf.py` | Gunicorn 設定（gthread worker） |
+| `base.html` | 引入聊天組件 |
+
+---
+
+## 11. 附錄
 
 ### 10.1 組織架構
 
@@ -1411,6 +1483,7 @@ GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push
 | v3.1 | 2026-03-18 | 前端視覺優化：導入 CIS 品牌黃色系（#FABF13）、修正選單搜尋 Bug（menuSearchInput）、全面 RWD 強化 |
 | v3.2 | 2026-03-18 | 全系統色彩清掃（35 檔案 500+ 處藍青色 → 品牌黃）、按鈕三段式尺寸標準化、輸入框規格統一、非品牌漸層修正、側邊欄標題更新、清除廢棄 templates/ 目錄 |
 | v3.3 | 2026-03-23 | 移除稽核儀表功能（admin.html 及相關 API）、調整推薦備貨與銷售獎金權限為全員可見、版本號更新為 2.0.3、安裝 Edge TTS 語音工具 |
+| v3.4 | 2026-03-26 | AI 聊天機器人上線（oMLX Qwen3.5-9B-6bit）、推薦備貨需求單修復、新增 Telegram 通知 |
 
 ### 10.5 聯絡資訊
 
@@ -1426,4 +1499,4 @@ GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push
 
 **文件結束**
 
-*本文件由 Yvonne 自動生成於 2026-03-23*
+*本文件由 Yvonne 自動生成於 2026-03-26*
