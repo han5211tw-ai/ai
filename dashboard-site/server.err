@@ -3001,3 +3001,27 @@ NameError: name 'send_email_alert' is not defined
  * Running on http://127.0.0.1:3000
  * Running on http://192.168.1.212:3000
 [33mPress CTRL+C to quit[0m
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    _OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料。
+                          ^
+SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    _OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料。
+                          ^
+SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    _OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料。
+                          ^
+SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    _OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料。
+                          ^
+SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    _OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料。
+                          ^
+SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
+  File "/Users/aiserver/.openclaw/workspace/dashboard-site/app.py", line 9698
+    _OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料。
+                          ^
+SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
