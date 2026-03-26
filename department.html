@@ -204,11 +204,21 @@
                                 const val = d.achievement_rate * 100;
                                 return val < 1 ? 1 : val; // 最小顯示 1% 讓 0% 也能看到柱子
                             }),
-                            backgroundColor: data.map(d => {
-                                if (d.name.includes('門市部')) return '#FABF13';
-                                if (d.name.includes('業務部')) return '#ffc107';
-                                return '#FABF13';
-                            }),
+                            backgroundColor: (function() {
+                                const colorMap = { '門市部': '#FABF13', '業務部': '#36a2eb' };
+                                const palette = ['#FABF13', '#36a2eb', '#4bc0c0', '#ff6384', '#9966ff', '#ff9f40'];
+                                let paletteIdx = 0;
+                                const usedColors = new Set();
+                                return data.map(d => {
+                                    for (const [key, color] of Object.entries(colorMap)) {
+                                        if (d.name.includes(key)) return color;
+                                    }
+                                    // 未知部門：從調色盤找一個還沒被 colorMap 用過的顏色
+                                    const reserved = new Set(Object.values(colorMap));
+                                    const fallbacks = palette.filter(c => !reserved.has(c));
+                                    return fallbacks[paletteIdx++ % fallbacks.length];
+                                });
+                            })(),
                             borderRadius: 8,
                             borderWidth: 0
                         }]
@@ -216,7 +226,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { 
+                        plugins: {
                             legend: { display: false },
                             tooltip: {
                                 callbacks: {
@@ -255,11 +265,21 @@
                                 const val = d.margin_rate * 100;
                                 return val < 1 ? 1 : val; // 最小顯示 1% 讓 0% 也能看到柱子
                             }),
-                            backgroundColor: data.map(d => {
-                                if (d.name.includes('門市部')) return '#FABF13';
-                                if (d.name.includes('業務部')) return '#ffc107';
-                                return '#FABF13';
-                            }),
+                            backgroundColor: (function() {
+                                const colorMap = { '門市部': '#FABF13', '業務部': '#36a2eb' };
+                                const palette = ['#FABF13', '#36a2eb', '#4bc0c0', '#ff6384', '#9966ff', '#ff9f40'];
+                                let paletteIdx = 0;
+                                const usedColors = new Set();
+                                return data.map(d => {
+                                    for (const [key, color] of Object.entries(colorMap)) {
+                                        if (d.name.includes(key)) return color;
+                                    }
+                                    // 未知部門：從調色盤找一個還沒被 colorMap 用過的顏色
+                                    const reserved = new Set(Object.values(colorMap));
+                                    const fallbacks = palette.filter(c => !reserved.has(c));
+                                    return fallbacks[paletteIdx++ % fallbacks.length];
+                                });
+                            })(),
                             borderRadius: 8,
                             borderWidth: 0
                         }]
@@ -267,7 +287,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { 
+                        plugins: {
                             legend: { display: false },
                             tooltip: {
                                 callbacks: {

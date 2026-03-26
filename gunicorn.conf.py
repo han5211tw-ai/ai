@@ -3,13 +3,14 @@ import os
 
 # Worker 數量
 workers = 4
-worker_class = "sync"
+worker_class = "gthread"
+threads = 4
 
 # 綁定
 bind = "127.0.0.1:3000"  # 正式環境用 3000
 
-# Timeout（秒）
-timeout = 60
+# Timeout（秒）- SSE 串流需要較長 timeout
+timeout = 180
 keepalive = 5
 
 # 日誌目錄
