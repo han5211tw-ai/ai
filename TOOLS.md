@@ -386,6 +386,40 @@ browser action="click" profile="user" targetId="<tab_id>" ref="<element_ref>"
 
 ---
 
+### Git LFS (Large File Storage)
+
+**用途:** 管理 Git 倉庫中的大檔案（如 log 檔）
+**安裝日期:** 2026-03-24
+**版本:** 3.7.1
+
+**安裝指令:**
+```bash
+brew install git-lfs
+git lfs install
+```
+
+**設定追蹤檔案類型:**
+```bash
+# 追蹤所有 .log 檔案
+git lfs track "*.log"
+
+# 追蹤特定目錄下的大檔案
+git lfs track "server/*.log"
+```
+
+**常用指令:**
+```bash
+git lfs status          # 查看 LFS 狀態
+git lfs ls-files        # 列出被 LFS 管理的檔案
+git lfs migrate info    # 查看倉庫中哪些檔案應該用 LFS
+```
+
+**目前設定:**
+- 追蹤 `*.log` 檔案
+- `.gitattributes` 已加入版本控制
+
+---
+
 ### 電腦舖官網 (Website)
 
 **本地路徑:** `~/srv/web-site/computershop-web/`

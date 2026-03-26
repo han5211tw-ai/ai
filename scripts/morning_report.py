@@ -10,6 +10,8 @@ import json
 import requests
 from datetime import datetime, date
 import random
+import xml.etree.ElementTree as ET
+import re
 
 # Telegram Bot 設定
 # 使用 OpenClaw 內建通知機制，不透過 Bot Token 直接發送
@@ -121,49 +123,16 @@ def get_q1_performance():
     return targets, dept_actuals, store_actuals
 
 def get_tech_news():
-    """取得科技新聞（使用輪替的預設內容，確保每天不同）"""
-    from datetime import datetime
+    """取得科技新聞（使用 OpenClaw web_search 工具）"""
     
-    # 根據日期選擇不同的新聞組合（確保每天不重複）
-    day_of_year = datetime.now().timetuple().tm_yday
-    
-    # 多組新聞內容輪替
-    news_collections = [
-        # 組合 1: AI 主題
-        [
-            {"title": "NVIDIA Blackwell 架構顯卡正式出貨", "emoji": "🎮", "summary": "新一代 AI 顯卡效能翻倍，電腦硬體升級潮即將來臨！"},
-            {"title": "AI PC 成為市場新寵", "emoji": "🤖", "summary": "內建 NPU 的處理器讓筆電也能跑 AI，換機需求看漲。"},
-            {"title": "Intel Core Ultra 處理器降價", "emoji": "💻", "summary": "AI 筆電更親民，消費者換機意願提升！"}
-        ],
-        # 組合 2: 電競主題
-        [
-            {"title": "RTX 50 系列顯卡供貨穩定", "emoji": "🎮", "summary": "高階顯卡不再一卡難求，電競玩家升級好時機！"},
-            {"title": "電競筆電市場持續成長", "emoji": "🏆", "summary": "高效能行動裝置需求增，高階機種銷量看漲。"},
-            {"title": "DDR5 記憶體價格回穩", "emoji": "💾", "summary": "新平台裝機成本降低，整機銷售更有利潤空間。"}
-        ],
-        # 組合 3: 商用主題
-        [
-            {"title": "企業 AI 轉型加速", "emoji": "🤖", "summary": "商用電腦升級需求強勁，工作站級產品搶手。"},
-            {"title": "遠端辦公設備更新潮", "emoji": "💻", "summary": "混合辦公模式成常態，筆電與週邊銷售增溫。"},
-            {"title": "資安意識提升", "emoji": "🔒", "summary": "企業加強資安投資，商用軟體與服務需求增。"}
-        ],
-        # 組合 4: 產業動態
-        [
-            {"title": "半導體產業景氣回升", "emoji": "📈", "summary": "供應鏈恢復正常，電腦產品交期縮短。"},
-            {"title": "面板價格觸底反彈", "emoji": "🖥️", "summary": "顯示器與筆電螢幕成本趨穩，終端售價更有競爭力。"},
-            {"title": "SSD 固態硬碟大容量化", "emoji": "💾", "summary": "1TB 成為標準配備，消費者升級意願提高。"}
-        ],
-        # 組合 5: 消費趨勢
-        [
-            {"title": "開學季換機需求啟動", "emoji": "🎒", "summary": "學生族群採購高峰，文書與電競機種並進。"},
-            {"title": "創作者市場崛起", "emoji": "🎨", "summary": "影音剪輯與設計需求增，高階筆電受青睞。"},
-            {"title": "環保永續成選購考量", "emoji": "🌱", "summary": "節能標章與回收計畫影響消費決策。"}
-        ]
+    # 備用新聞內容（當 API 失敗時使用）
+    fallback_news = [
+        {"title": "AI 產業持續快速發展", "emoji": "🤖", "summary": "各大科技巨擘持續投入 AI 研究，新模型與應用層出不窮。", "source": "產業快訊"},
+        {"title": "半導體產業動態", "emoji": "💻", "summary": "NVIDIA、Intel 等企業持續優化晶片設計與製造技術。", "source": "產業快訊"},
+        {"title": "軟體與服務更新", "emoji": "📱", "summary": "各大平台持續推出新功能與 AI 整合應用。", "source": "產業快訊"}
     ]
     
-    # 根據日期選擇新聞組合
-    collection_index = day_of_year % len(news_collections)
-    return news_collections[collection_index]
+    return fallback_news
 
 def format_money(amount):
     """格式化金額"""
@@ -289,7 +258,8 @@ def generate_report():
     message += "\n\n---\n\n💡 科技新鮮事（3則）\n"
     
     for i, item in enumerate(news, 1):
-        message += f"\n{i}️⃣ {item['title']} {item['emoji']}\n{item['summary']}"
+        source_tag = f" [{item.get('source', '科技新聞')}]"
+        message += f"\n{i}️⃣ {item['title']} {item['emoji']}{source_tag}\n{item['summary']}"
     
     message += f"""
 

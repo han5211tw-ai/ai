@@ -3173,6 +3173,98 @@ def create_needs_batch():
         return jsonify(response_data)
 
 
+# API: 從推薦備貨建立需求單
+@app.route('/api/needs/from_recommendation', methods=['POST'])
+def create_need_from_recommendation():
+    """從推薦備貨頁面建立需求單"""
+    import uuid
+    from datetime import datetime
+
+    data = request.get_json()
+    product_id = data.get('product_id')
+    quantity = data.get('quantity', 1)
+
+    # 從請求中取得使用者資訊（透過 AuthUI 傳遞）
+    requester = data.get('requester', '')
+    department = data.get('department', '')
+
+    # 如果沒有提供，嘗試從其他來源取得
+    if not requester:
+        requester = request.headers.get('X-User-Name', '')
+    if not department:
+        department = request.headers.get('X-User-Department', '')
+
+    # 檢查必要欄位
+    if not requester:
+        return jsonify({'success': False, 'message': '無法識別使用者，請重新登入'}), 401
+    if not department:
+        return jsonify({'success': False, 'message': '無法識別門市，請重新登入'}), 400
+
+    # 從推薦資料中取得產品資訊
+    # 注意：這裡使用前端傳來的完整產品資訊
+    product_name = data.get('product_name', '')
+    product_code = data.get('product_code', '')
+    category = data.get('category', '')
+
+    if not product_name:
+        return jsonify({'success': False, 'message': '產品名稱不可為空'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # 檢查是否已存在相同的需求單（同一天、相同產品、相同申請人）
+        cursor.execute("""
+            SELECT id FROM needs
+            WHERE date = ? AND item_name = ? AND requester = ? AND status = '待處理'
+        """, (today, product_name, requester))
+
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': '今日已建立此產品的需求單'}), 409
+
+        # 插入需求單
+        cursor.execute("""
+            INSERT INTO needs
+            (date, product_code, item_name, quantity, department, requester,
+             status, created_at, purpose, request_type, remark)
+            VALUES (?, ?, ?, ?, ?, ?, '待處理', ?, '備貨', '請購', ?)
+        """, (
+            today,
+            product_code,
+            product_name,
+            quantity,
+            department,
+            requester,
+            now,
+            f"由推薦備貨自動建立（緊迫等級：{data.get('urgency', 'normal')}）"
+        ))
+
+        conn.commit()
+
+        # 記錄事件
+        try:
+            log_event(
+                event_type='NEEDS_SUBMIT',
+                source='api:/api/needs/from_recommendation',
+                actor=requester,
+                status='SUCCESS',
+                summary=f'從推薦備貨建立需求單: {product_name}'
+            )
+        except:
+            pass
+
+        return jsonify({'success': True, 'message': '需求單建立成功'})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': f'建立失敗: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
 # API: 取得最近提交（30分鐘內可取消）
 @app.route('/api/needs/recent')
 def get_recent_needs():
@@ -3560,10 +3652,25 @@ def purchase_need():
             original_requester = row['requester'] or '未知'
             old_status = row['status']
             
-            # 如果狀態已經是已採購，重新發送通知
-            status_text = "再次已採購" if old_status == '已採購' else "已採購"
+            # 檢查是否在 1 分鐘內已發送過「已採購通知」給該筆需求
+            cursor.execute("""
+                SELECT COUNT(*) as notify_count
+                FROM notification_logs
+                WHERE notification_type = '已採購通知'
+                AND status = 'success'
+                AND related_record_id = ?
+                AND created_at >= datetime('now', '-1 minutes')
+            """, (need_id,))
+            notify_count = cursor.fetchone()['notify_count']
             
-            telegram_msg = f"""✅ <b>已採購通知</b>
+            # 如果 1 分鐘內已發送過，跳過通知
+            if notify_count > 0:
+                print(f"[purchase_need] 需求 {need_id} 在 1 分鐘內已發送過通知，跳過重複通知")
+            else:
+                # 如果狀態已經是已採購，顯示「再次已採購」
+                status_text = "再次已採購" if old_status == '已採購' else "已採購"
+                
+                telegram_msg = f"""✅ <b>已採購通知</b>
 
 📅 日期：{need_date}
 👤 填表人：{original_requester}
@@ -3574,14 +3681,14 @@ def purchase_need():
 
 請於到貨後至營運系統首頁結案"""
 
-            # 發送到電腦舖工作群組（背景執行，非 daemon 確保完成）
-            TELEGRAM_GROUP_CHAT_ID = "-5232179482"
-            import threading
-            t = threading.Thread(
-                target=send_telegram_notification,
-                args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs')
-            )
-            t.start()
+                # 發送到電腦舖工作群組（背景執行，非 daemon 確保完成）
+                TELEGRAM_GROUP_CHAT_ID = "-5232179482"
+                import threading
+                t = threading.Thread(
+                    target=send_telegram_notification,
+                    args=(telegram_msg, TELEGRAM_GROUP_CHAT_ID, '已採購通知', need_id, 'needs')
+                )
+                t.start()
         except Exception as e:
             print(f"已採購 Telegram 通知背景執行緒啟動失敗：{e}")
 
@@ -9128,66 +9235,102 @@ def delete_recommended_product(product_id):
 @app.route('/api/recommended-products/order', methods=['POST'])
 def create_order_from_recommended():
     """從推薦商品建立備貨需求"""
+    from datetime import datetime
+
     data = request.get_json()
     items = data.get('items', [])  # [{product_id, quantity}]
     requester = data.get('requester', '')
     department = data.get('department', '')
-    
+
     if not items or not requester:
         return jsonify({'success': False, 'message': '請選擇商品並提供申請人'}), 400
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         created_needs = []
+        today = datetime.now().strftime('%Y-%m-%d')
+
         for item in items:
             product_id = item.get('product_id')
             quantity = item.get('quantity', 0)
-            
+
             if quantity <= 0:
                 continue
-            
+
             # 取得商品資訊
             cursor.execute('''
                 SELECT item_name, product_code
-                FROM recommended_products 
+                FROM recommended_products
                 WHERE id = ? AND is_active = 1
             ''', (product_id,))
             product = cursor.fetchone()
-            
+
             if not product:
                 continue
-            
-            # 建立備貨需求（直接對應 needs 欄位）
-            need_no = f"REC-{datetime.now().strftime('%Y%m%d%H%M%S')}-{product_id}"
-            
+
+            # 檢查是否已存在相同的需求單（同一天、相同產品、相同申請人）
             cursor.execute('''
-                INSERT INTO needs (need_no, requester, department, item_name, product_code, quantity, 
-                                   request_type, purpose, status, source, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, '請購', '備貨', '待審核', 'recommended', datetime('now', 'localtime'))
-            ''', (need_no, requester, department, product['item_name'], product['product_code'], quantity))
-            
+                SELECT id FROM needs
+                WHERE date = ? AND item_name = ? AND requester = ? AND status = '待處理'
+            ''', (today, product['item_name'], requester))
+
+            if cursor.fetchone():
+                continue  # 跳過重複的
+
+            # 建立備貨需求（對應 needs 表格實際欄位）
+            cursor.execute('''
+                INSERT INTO needs (date, product_code, item_name, quantity,
+                                   department, requester, request_type, purpose, status, remark, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, '請購', '備貨', '待處理', ?, datetime('now', 'localtime'))
+            ''', (today, product['product_code'], product['item_name'], quantity, department, requester, '由推薦備貨頁面建立'))
+
             created_needs.append({
-                'need_no': need_no,
                 'item_name': product['item_name'],
                 'product_code': product['product_code'],
                 'quantity': quantity
             })
-        
+
         conn.commit()
-        
+
         if not created_needs:
-            return jsonify({'success': False, 'message': '沒有成功建立任何需求單'}), 400
-        
+            return jsonify({'success': False, 'message': '沒有成功建立任何需求單（可能已存在或無效商品）'}), 400
+
+        # 發送 Telegram 通知（背景執行，不阻塞回應）
+        try:
+            total_quantity = sum(item['quantity'] for item in created_needs)
+            first_item = created_needs[0] if created_needs else {}
+
+            telegram_msg = f"""📦 <b>推薦備貨需求通知</b>
+
+📅 日期：{today}
+👤 填表人：{requester}
+📍 部門：{department}
+📦 產品：{first_item.get('item_name', '未知產品')}
+🔢 數量：{total_quantity} 個
+📋 共 {len(created_needs)} 筆備貨需求
+
+請至系統查看詳情"""
+
+            # 請購發送到老闆個人（背景執行）
+            import threading
+            threading.Thread(
+                target=send_telegram_notification,
+                args=(telegram_msg, TELEGRAM_CHAT_ID, '推薦備貨需求', None, 'needs'),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"[RecommendedProducts] Telegram 通知背景執行緒啟動失敗: {e}")
+
         return jsonify({
             'success': True,
             'message': f'成功建立 {len(created_needs)} 筆備貨需求',
             'needs': created_needs
         })
-        
+
     except Exception as e:
         print(f"[RecommendedProducts] 建立需求單失敗: {e}")
-        return jsonify({'success': False, 'message': '建立需求單失敗'}), 500
+        return jsonify({'success': False, 'message': f'建立需求單失敗: {str(e)}'}), 500
     finally:
         conn.close()
 
