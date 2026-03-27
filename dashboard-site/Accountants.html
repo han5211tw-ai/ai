@@ -172,6 +172,100 @@
     margin-top: 20px;
     font-size: 0.85em;
 }
+
+/* 健康檢查卡片 - 小型版 */
+.health-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .health-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.health-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.health-card:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(250, 191, 19, 0.3);
+}
+
+.health-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.health-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+}
+
+.health-card-icon.green { background: rgba(34, 197, 94, 0.15); }
+.health-card-icon.yellow { background: rgba(234, 179, 8, 0.15); }
+.health-card-icon.red { background: rgba(239, 68, 68, 0.15); }
+
+.health-card-title {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #fff;
+}
+
+.health-card-status {
+    font-size: 0.8em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: auto;
+}
+
+.health-card-status.ok { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.health-card-status.warn { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+.health-card-status.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+.health-card-content {
+    font-size: 0.85em;
+    color: #8892b0;
+}
+
+.health-card-content .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.health-card-content .detail-row:last-child {
+    border-bottom: none;
+}
+
+.health-card-content .detail-label {
+    color: #64748b;
+}
+
+.health-card-content .detail-value {
+    color: #ccd6f6;
+}
+
+.health-card-content .detail-value.green { color: #22c55e; }
+.health-card-content .detail-value.yellow { color: #eab308; }
+.health-card-content .detail-value.red { color: #ef4444; }
 </style>
 {% endblock %}
 
@@ -190,6 +284,40 @@
         <div class="section-title">📅 所有人的當月班表</div>
         <div id="monthlyRosterTable">
             <div class="loading">載入中...</div>
+        </div>
+    </div>
+
+    <!-- 系統健康狀態 -->
+    <div class="section">
+        <div class="section-title">🔧 系統健康狀態</div>
+        <div class="health-cards-grid">
+            <!-- 匯入任務卡片 -->
+            <div class="health-card" id="importCard" onclick="toggleHealthDetail('import')">
+                <div class="health-card-header">
+                    <div class="health-card-icon" id="importIcon">📥</div>
+                    <div class="health-card-title">匯入任務</div>
+                    <span class="health-card-status" id="importStatus">載入中...</span>
+                </div>
+                <div class="health-card-content" id="importContent">
+                    <div class="detail-row">
+                        <span class="detail-label">載入中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 資料新鮮度卡片 -->
+            <div class="health-card" id="dataCard" onclick="toggleHealthDetail('data')">
+                <div class="health-card-header">
+                    <div class="health-card-icon" id="dataIcon">📊</div>
+                    <div class="health-card-title">資料新鮮度</div>
+                    <span class="health-card-status" id="dataStatus">載入中...</span>
+                </div>
+                <div class="health-card-content" id="dataContent">
+                    <div class="detail-row">
+                        <span class="detail-label">載入中...</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -372,13 +500,94 @@
     // 載入資料
     loadNeeds();
     loadMonthlyRoster();
+    loadHealthStatus();
 
     // 每 5 分鐘自動重新載入資料（不整頁刷新）
     setInterval(() => {
         loadNeeds();
         loadMonthlyRoster();
+        loadHealthStatus();
         document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW');
     }, 300000);
+
+    // 載入系統健康狀態
+    async function loadHealthStatus() {
+        try {
+            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const adminParam = user.name ? `?admin=${encodeURIComponent(user.name)}` : '';
+            const response = await fetch('/api/v1/admin/health' + adminParam);
+            if (!response.ok) throw new Error('API 回傳錯誤');
+            const data = await response.json();
+            renderHealthCards(data);
+        } catch (error) {
+            console.error('載入健康狀態失敗:', error);
+            document.getElementById('importStatus').textContent = '錯誤';
+            document.getElementById('importStatus').className = 'health-card-status error';
+            document.getElementById('dataStatus').textContent = '錯誤';
+            document.getElementById('dataStatus').className = 'health-card-status error';
+        }
+    }
+
+    // 渲染健康檢查卡片
+    function renderHealthCards(data) {
+        // 匯入任務卡片
+        const ingest = data.ingest || {};
+        const ingestStatus = data.ingest_status || 'green';
+        const importCard = document.getElementById('importCard');
+        const importIcon = document.getElementById('importIcon');
+        const importStatus = document.getElementById('importStatus');
+        const importContent = document.getElementById('importContent');
+
+        importCard.className = 'health-card ' + ingestStatus;
+        importIcon.className = 'health-card-icon ' + ingestStatus;
+        importStatus.className = 'health-card-status ' + (ingestStatus === 'green' ? 'ok' : (ingestStatus === 'red' ? 'error' : 'warn'));
+        importStatus.textContent = getStatusText(ingestStatus);
+
+        let importHtml = '';
+        if (ingest.sales) {
+            importHtml += `<div class="detail-row"><span class="detail-label">銷貨資料</span><span class="detail-value ${ingest.sales.status === 'OK' ? 'green' : 'yellow'}">${ingest.sales.yesterday_count} 筆</span></div>`;
+        }
+        if (ingest.purchase) {
+            importHtml += `<div class="detail-row"><span class="detail-label">進貨資料</span><span class="detail-value ${ingest.purchase.status === 'OK' ? 'green' : 'yellow'}">${ingest.purchase.yesterday_count} 筆</span></div>`;
+        }
+        if (ingest.customers) {
+            importHtml += `<div class="detail-row"><span class="detail-label">客戶資料</span><span class="detail-value ${ingest.customers.status === 'OK' ? 'green' : 'yellow'}">${ingest.customers.yesterday_count} 筆</span></div>`;
+        }
+        if (ingest.inventory) {
+            importHtml += `<div class="detail-row"><span class="detail-label">庫存資料</span><span class="detail-value ${ingest.inventory.status === 'OK' ? 'green' : 'yellow'}">${ingest.inventory.yesterday_count} 筆</span></div>`;
+        }
+        importContent.innerHTML = importHtml || '<div class="detail-row"><span class="detail-label">暫無資料</span></div>';
+
+        // 資料新鮮度卡片
+        const freshness = data.freshness || [];
+        const freshnessStatus = data.freshness_status || 'green';
+        const dataCard = document.getElementById('dataCard');
+        const dataIcon = document.getElementById('dataIcon');
+        const dataStatus = document.getElementById('dataStatus');
+        const dataContent = document.getElementById('dataContent');
+
+        dataCard.className = 'health-card ' + freshnessStatus;
+        dataIcon.className = 'health-card-icon ' + freshnessStatus;
+        dataStatus.className = 'health-card-status ' + (freshnessStatus === 'green' ? 'ok' : (freshnessStatus === 'red' ? 'error' : 'warn'));
+        dataStatus.textContent = getStatusText(freshnessStatus);
+
+        let dataHtml = '';
+        freshness.slice(0, 4).forEach(f => {
+            const status = f.status === 'OK' ? 'green' : (f.status === 'WARN' ? 'yellow' : 'red');
+            dataHtml += `<div class="detail-row"><span class="detail-label">${f.data_source}</span><span class="detail-value ${status}">${f.latest_business_date || '無'}</span></div>`;
+        });
+        dataContent.innerHTML = dataHtml || '<div class="detail-row"><span class="detail-label">暫無資料</span></div>';
+    }
+
+    function getStatusText(status) {
+        const map = { 'green': '✓ 正常', 'yellow': '! 提醒', 'red': '✕ 異常', 'ok': '✓ 正常' };
+        return map[status] || status;
+    }
+
+    function toggleHealthDetail(type) {
+        // 點擊卡片可跳轉到完整健康檢查頁面
+        window.open('/admin/health', '_blank');
+    }
 
     // 儲存備註
     async function saveRemark(id) {
