@@ -1,7 +1,7 @@
 # ERP 營運系統專案白皮書
 
 **文件版本**: v4.3  
-**最後更新**: 2026-03-27 17:15  
+**最後更新**: 2026-03-27 17:33  
 **專案名稱**: 電腦舖 ERP 營運系統  
 **系統版本**: V2.0.4  
 **作者**: Yvonne (AI Assistant)  
@@ -246,27 +246,37 @@ CREATE TABLE staff_roster (
 #### supervision_scores (督導評分)
 ```sql
 CREATE TABLE supervision_scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT,
     store_name TEXT,
     employee_name TEXT,           -- 員工姓名（人員表現項目）
     -- 環境整潔（1-5項）
-    storefront REAL,              -- 門面整潔
-    store_interior REAL,          -- 店內清潔
-    product_display REAL,         -- 產品陳列
-    cable_management REAL,        -- 線材管理
-    warehouse REAL,               -- 倉庫整齊
+    storefront_cleanliness TEXT,  -- 門面整潔
+    store_cleanliness TEXT,       -- 店內清潔
+    product_display TEXT,         -- 產品陳列
+    cable_management TEXT,        -- 線材管理
+    warehouse_organization TEXT,  -- 倉庫整齊
     -- 人員表現（6-11項）
-    attendance REAL,              -- 出勤狀況
-    appearance REAL,              -- 服裝儀容
-    service_attitude REAL,        -- 服務態度
-    professionalism REAL,         -- 專業知識
-    sales_process REAL,           -- 銷售流程
-    work_attitude REAL,           -- 工作態度
+    attendance TEXT,              -- 出勤狀況
+    appearance TEXT,              -- 服裝儀容
+    service_attitude TEXT,        -- 服務態度
+    professional_knowledge TEXT,  -- 專業知識
+    sales_process TEXT,           -- 銷售流程
+    work_attitude TEXT,           -- 工作態度
+    -- LINE回覆（12-16項）
+    reply_speed TEXT,             -- 回覆速度
+    reply_attitude TEXT,          -- 回覆態度
+    problem_grasp TEXT,           -- 問題掌握
+    information_complete TEXT,    -- 資訊完整
+    follow_up TEXT,               -- 後續追蹤
     total_score REAL,             -- 總分（22分制）
     percentage REAL,              -- 百分比分數
     issues TEXT,                  -- 發現問題
     suggestions TEXT,             -- 改善建議
-    PRIMARY KEY (date, store_name, employee_name)
+    evaluator TEXT,               -- 評分人
+    evaluator_title TEXT,         -- 評分人職稱
+    updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
+    UNIQUE(date, store_name, employee_name)
 );
 ```
 
