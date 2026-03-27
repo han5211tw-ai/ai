@@ -1505,7 +1505,7 @@ cp /Users/aiserver/.openclaw/workspace/dashboard-site/.env \
 | v3.2 | 2026-03-18 | 全系統色彩清掃（35 檔案）、按鈕/輸入框規格統一 |
 | **v4.0** | **2026-03-21～26** | **完整前端重建：溫潤極簡設計系統、Noto Serif TC 字體、port 9000、PIN 認證、30 頁全數重建** |
 | **v4.1** | **2026-03-26** | **AI 聊天機器人：oMLX Qwen3 SSE 串流、浮動視窗、多輪對話、chat_logs DB、Gunicorn gthread** |
-| **v4.2** | **2026-03-27** | **LINE 回覆表：line_replies 資料表、列表/編輯頁面、6組 API、選單整合** |
+| **v4.2** | **2026-03-27** | **LINE 回覆表：line_replies 資料表、列表/編輯頁面、6組 API、選單整合、前端開發規則確立** |
 
 ### 10.5 前端開發規則（v4.0+）
 
@@ -1586,3 +1586,11 @@ cp /Users/aiserver/.openclaw/workspace/dashboard-site/.env \
 **文件結束**
 
 *本文件由 Yvonne 自動生成，更新於 2026-03-27*
+
+---
+
+## 文件更新記錄
+
+| 日期 | 更新內容 |
+|------|----------|
+| 2026-03-27 | 新增 LINE 回覆表功能、前端開發規則、所有頁面路由資訊 |
