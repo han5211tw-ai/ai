@@ -1507,6 +1507,41 @@ cp /Users/aiserver/.openclaw/workspace/dashboard-site/.env \
 | **v4.1** | **2026-03-26** | **AI 聊天機器人：oMLX Qwen3 SSE 串流、浮動視窗、多輪對話、chat_logs DB、Gunicorn gthread** |
 | **v4.2** | **2026-03-27** | **LINE 回覆表：line_replies 資料表、列表/編輯頁面、6組 API、選單整合** |
 
+### 10.5 前端開發規則（v4.0+）
+
+#### 新增頁面必須遵守
+
+1. **一律使用 Jinja2 模板**
+   - 所有頁面必須繼承 `base.html`
+   - 格式：
+   ```html
+   {% extends "base.html" %}
+   
+   {% block title %}頁面標題{% endblock %}
+   {% block page_title %}💬 頁面標題{% endblock %}
+   
+   {% block content %}
+   <!-- 頁面內容 -->
+   {% endblock %}
+   ```
+
+2. **使用共用樣式**
+   - 不寫獨立 CSS，使用 `shared/global.css`
+   - 按鈕使用 `.btn` 類別（統一大小、顏色、hover 效果）
+   - 表單元素使用系統預設樣式
+
+3. **使用共用元件**
+   - 側邊欄選單由 `base.html` 自動提供
+   - 登入驗證使用 `shared/auth_ui.js`
+   - 不自行實作登入檢查邏輯
+
+4. **禁止事項**
+   - 禁止建立獨立 HTML 檔案（不繼承 base.html）
+   - 禁止自行引入外部 CSS 框架
+   - 禁止自定義按鈕樣式（使用系統 `.btn`）
+
+> **教訓**：v4.2 LINE 回覆表初期開發未遵守此規則，導致樣式不一致、登入機制不相容，需全面重寫。未來所有新頁面必須嚴格遵守。
+
 ### 10.5 v4.0 重建頁面統計
 
 | 分類 | 頁面數 | 說明 |
