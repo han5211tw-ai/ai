@@ -154,6 +154,13 @@
         </div>
 
         <div class="card">
+            <h2>⭐ 個人督導評分（6-16項）</h2>
+            <div id="supervisionScoreSection">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
+        <div class="card">
             <h2>🏆 業績圖表分析</h2>
             <div class="chart-container">
                 <canvas id="personalChart"></canvas>
@@ -335,6 +342,96 @@
             });
         }
 
+        // 載入個人督導評分
+        async function loadPersonalSupervision() {
+            try {
+                const response = await fetch('/api/personal/supervision');
+                const data = await response.json();
+                
+                if (data.success && data.scores) {
+                    renderSupervisionTable(data.scores);
+                } else {
+                    document.getElementById('supervisionScoreSection').innerHTML = '<div style="color: #8892b0; text-align: center; padding: 20px;">暫無督導評分資料</div>';
+                }
+            } catch (error) {
+                console.error('載入督導評分失敗:', error);
+                document.getElementById('supervisionScoreSection').innerHTML = '<div style="color: #f44336; text-align: center; padding: 20px;">載入失敗</div>';
+            }
+        }
+        
+        // 渲染督導評分表格
+        function renderSupervisionTable(scores) {
+            const scoreLabels = {
+                'attendance': '6. 出勤狀況',
+                'appearance': '7. 服裝儀容',
+                'service_attitude': '8. 服務態度',
+                'professional_knowledge': '9. 專業知識',
+                'sales_process': '10. 銷售流程',
+                'work_attitude': '11. 工作態度',
+                'reply_speed': '12. 回覆速度',
+                'reply_attitude': '13. 回覆態度',
+                'problem_grasp': '14. 問題掌握',
+                'information_complete': '15. 資料完整',
+                'follow_up': '16. 後續追蹤'
+            };
+            
+            let tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>評分項目</th>
+                            <th>分數</th>
+                            <th>滿分</th>
+                            <th>百分比</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            let totalScore = 0;
+            const totalMax = 22; // 11項 × 2分 = 22分滿分
+
+            Object.keys(scoreLabels).forEach(key => {
+                const score = scores[key] || 0;
+                const max = 2;
+                const percentage = Math.round((score / max) * 100);
+                totalScore += score;
+                
+                let percentageClass = 'ach-danger';
+                if (percentage >= 85) percentageClass = 'ach-excellent';
+                else if (percentage >= 70) percentageClass = 'ach-good';
+                else if (percentage >= 50) percentageClass = 'ach-warning';
+                
+                tableHtml += `
+                    <tr>
+                        <td>${scoreLabels[key]}</td>
+                        <td class="number">${score}</td>
+                        <td class="number">${max}</td>
+                        <td class="number ${percentageClass}">${percentage}%</td>
+                    </tr>
+                `;
+            });
+            
+            const totalPercentage = Math.round((totalScore / 22) * 100); // 11項 × 2分 = 22分滿分
+            let totalClass = 'ach-danger';
+            if (totalPercentage >= 85) totalClass = 'ach-excellent';
+            else if (totalPercentage >= 70) totalClass = 'ach-good';
+            else if (totalPercentage >= 50) totalClass = 'ach-warning';
+
+            tableHtml += `
+                    <tr style="border-top: 2px solid rgba(250, 191, 19, 0.3);">
+                        <td><strong>總分</strong></td>
+                        <td class="number highlight">${totalScore}</td>
+                        <td class="number">12</td>
+                        <td class="number ${totalClass}"><strong>${totalPercentage}%</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            `;
+            
+            document.getElementById('supervisionScoreSection').innerHTML = tableHtml;
+        }
+
         // 載入個人資料
         async function loadPersonalData() {
             try {
@@ -343,6 +440,7 @@
                 
                 renderTable();
                 renderChart();
+                loadPersonalSupervision(); // 同時載入督導評分
             } catch (error) {
                 console.error('載入個人資料失敗:', error);
                 document.getElementById('personalTable').innerHTML = '<div class="loading">載入失敗</div>';

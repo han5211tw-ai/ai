@@ -219,6 +219,13 @@
             </div>
         </div>
 
+        <div class="card">
+            <h2>⭐ 環境整潔評分（1-5項）</h2>
+            <div id="supervisionScoreTable">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
         <div class="chart-row">
             <div class="card">
                 <h2>🎯 門市達成率</h2>
@@ -254,14 +261,14 @@
                 const reviewResponse = await fetch('/api/store/reviews');
                 const reviewData = await reviewResponse.json();
                 
-                // 載入督導評分
-                const supervisionResponse = await fetch('/api/store/supervision');
+                // 載入環境整潔評分（1-5項）
+                const supervisionResponse = await fetch('/api/store/supervision?type=environment');
                 const supervisionData = await supervisionResponse.json();
                 
-                // 建立督導評分對照表
+                // 建立環境整潔評分對照表
                 const supervisionMap = {};
                 supervisionData.forEach(s => {
-                    supervisionMap[s.store] = s.score;
+                    supervisionMap[s.store] = s.percentage || 0; // 使用百分比
                 });
                 
                 // 填充五星好評統計
@@ -313,11 +320,11 @@
                                 else if (ach >= 40) achClass = 'ach-warning';
                                 
                                 const storeName = row.store_name || row.name || '';
-                                const supervisionScore = supervisionMap[storeName] || 0;
-                                let supClass = 'ach-danger';
-                                if (supervisionScore >= 90) supClass = 'ach-excellent';
-                                else if (supervisionScore >= 70) supClass = 'ach-good';
-                                else if (supervisionScore >= 50) supClass = 'ach-warning';
+                                const envScore = supervisionMap[storeName] || 0;
+                                let envClass = 'ach-danger';
+                                if (envScore >= 85) envClass = 'ach-excellent';
+                                else if (envScore >= 70) envClass = 'ach-good';
+                                else if (envScore >= 50) envClass = 'ach-warning';
                                 
                                 return `
                                 <tr>
@@ -326,7 +333,7 @@
                                     <td class="number">${formatMoney(row.revenue)}</td>
                                     <td class="number ${achClass}">${ach.toFixed(2)}%</td>
                                     <td class="number">${(row.margin_rate * 100).toFixed(2)}%</td>
-                                    <td class="number ${supClass}">${supervisionScore > 0 ? supervisionScore.toFixed(1) : '--'}</td>
+                                    <td class="number ${envClass}">${envScore > 0 ? envScore + '%' : '--'}</td>
                                 </tr>
                             `}).join('')}
                         </tbody>

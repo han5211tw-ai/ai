@@ -51,8 +51,8 @@ app = Flask(__name__,
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 CORS(app)
 
-# 資料庫路徑（優先使用環境變數，預設為相對路徑）
-DB_PATH = os.environ.get('DB_PATH', os.path.join(BASE_DIR, '..', '..', 'srv', 'db', 'company.db'))
+# 資料庫路徑（優先使用環境變數，預設為絕對路徑）
+DB_PATH = os.environ.get('DB_PATH', '/Users/aiserver/srv/db/company.db')
 STATIC_DIR = BASE_DIR
 
 # 共用函數：取得資料庫連線
@@ -1374,79 +1374,136 @@ def get_store_supervision():
     # 獲取當月日期範圍
     today = datetime.now()
     date_start = f"{today.year}-{today.month:02d}-01"
+    
+    # 檢查是否只查詢環境整潔（1-5項）
+    score_type = request.args.get('type', 'all')
 
-    # 計算每個門市本月的平均督導評分
-    # 15項 × 3分 = 45分滿分，計算百分比
-    cursor.execute("""
-        SELECT
-            store_name,
-            AVG(CAST(COALESCE(attendance, '0') AS FLOAT)) as avg_attendance,
-            AVG(CAST(COALESCE(appearance, '0') AS FLOAT)) as avg_appearance,
-            AVG(CAST(COALESCE(service_attitude, '0') AS FLOAT)) as avg_service,
-            AVG(CAST(COALESCE(professional_knowledge, '0') AS FLOAT)) as avg_knowledge,
-            AVG(CAST(COALESCE(sales_process, '0') AS FLOAT)) as avg_sales,
-            AVG(CAST(COALESCE(storefront_cleanliness, '0') AS FLOAT)) as avg_storefront,
-            AVG(CAST(COALESCE(store_cleanliness, '0') AS FLOAT)) as avg_cleanliness,
-            AVG(CAST(COALESCE(product_display, '0') AS FLOAT)) as avg_display,
-            AVG(CAST(COALESCE(cable_management, '0') AS FLOAT)) as avg_cable,
-            AVG(CAST(COALESCE(warehouse_organization, '0') AS FLOAT)) as avg_warehouse,
-            AVG(CAST(COALESCE(reply_speed, '0') AS FLOAT)) as avg_reply_speed,
-            AVG(CAST(COALESCE(reply_attitude, '0') AS FLOAT)) as avg_reply_attitude,
-            AVG(CAST(COALESCE(problem_grasp, '0') AS FLOAT)) as avg_problem,
-            AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_info,
-            AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_followup
-        FROM supervision_scores
-        WHERE date >= ?
-        GROUP BY store_name
-    """, (date_start,))
+    if score_type == 'environment':
+        # 只計算環境整潔 5 項（storefront_cleanliness, store_cleanliness, product_display, cable_management, warehouse_organization）
+        cursor.execute("""
+            SELECT
+                store_name,
+                AVG(CAST(COALESCE(storefront_cleanliness, '0') AS FLOAT)) as avg_storefront,
+                AVG(CAST(COALESCE(store_cleanliness, '0') AS FLOAT)) as avg_cleanliness,
+                AVG(CAST(COALESCE(product_display, '0') AS FLOAT)) as avg_display,
+                AVG(CAST(COALESCE(cable_management, '0') AS FLOAT)) as avg_cable,
+                AVG(CAST(COALESCE(warehouse_organization, '0') AS FLOAT)) as avg_warehouse
+            FROM supervision_scores
+            WHERE date >= ?
+            GROUP BY store_name
+        """, (date_start,))
+        
+        rows = cursor.fetchall()
+        
+        # 獲取每個門市本月的督導次數
+        cursor.execute("""
+            SELECT
+                store_name,
+                COUNT(DISTINCT date) as inspection_count
+            FROM supervision_scores
+            WHERE date >= ?
+            GROUP BY store_name
+        """, (date_start,))
+        count_rows = cursor.fetchall()
+        count_map = {row['store_name']: row['inspection_count'] for row in count_rows}
+        
+        conn.close()
+        
+        result = []
+        for row in rows:
+            # 計算環境整潔總分（5項，每項 0-2 分，滿分 10）
+            total_avg = sum([
+                row['avg_storefront'] or 0,
+                row['avg_cleanliness'] or 0,
+                row['avg_display'] or 0,
+                row['avg_cable'] or 0,
+                row['avg_warehouse'] or 0
+            ])
+            # 10分滿分，計算百分比
+            percentage = round((total_avg / 10) * 100) if total_avg > 0 else 0
+            store_name = row['store_name']
+            
+            result.append({
+                'store': store_name,
+                'percentage': percentage,
+                'raw_score': round(total_avg, 1),
+                'max_score': 10,
+                'inspection_count': count_map.get(store_name, 0)
+            })
+        
+        return jsonify(result)
+    else:
+        # 原有邏輯：計算所有項目
+        cursor.execute("""
+            SELECT
+                store_name,
+                AVG(CAST(COALESCE(attendance, '0') AS FLOAT)) as avg_attendance,
+                AVG(CAST(COALESCE(appearance, '0') AS FLOAT)) as avg_appearance,
+                AVG(CAST(COALESCE(service_attitude, '0') AS FLOAT)) as avg_service,
+                AVG(CAST(COALESCE(professional_knowledge, '0') AS FLOAT)) as avg_knowledge,
+                AVG(CAST(COALESCE(sales_process, '0') AS FLOAT)) as avg_sales,
+                AVG(CAST(COALESCE(storefront_cleanliness, '0') AS FLOAT)) as avg_storefront,
+                AVG(CAST(COALESCE(store_cleanliness, '0') AS FLOAT)) as avg_cleanliness,
+                AVG(CAST(COALESCE(product_display, '0') AS FLOAT)) as avg_display,
+                AVG(CAST(COALESCE(cable_management, '0') AS FLOAT)) as avg_cable,
+                AVG(CAST(COALESCE(warehouse_organization, '0') AS FLOAT)) as avg_warehouse,
+                AVG(CAST(COALESCE(reply_speed, '0') AS FLOAT)) as avg_reply_speed,
+                AVG(CAST(COALESCE(reply_attitude, '0') AS FLOAT)) as avg_reply_attitude,
+                AVG(CAST(COALESCE(problem_grasp, '0') AS FLOAT)) as avg_problem,
+                AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_info,
+                AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_followup
+            FROM supervision_scores
+            WHERE date >= ?
+            GROUP BY store_name
+        """, (date_start,))
 
-    rows = cursor.fetchall()
+        rows = cursor.fetchall()
 
-    # 獲取每個門市本月的督導次數
-    cursor.execute("""
-        SELECT
-            store_name,
-            COUNT(DISTINCT date) as inspection_count
-        FROM supervision_scores
-        WHERE date >= ?
-        GROUP BY store_name
-    """, (date_start,))
-    count_rows = cursor.fetchall()
-    count_map = {row['store_name']: row['inspection_count'] for row in count_rows}
+        # 獲取每個門市本月的督導次數
+        cursor.execute("""
+            SELECT
+                store_name,
+                COUNT(DISTINCT date) as inspection_count
+            FROM supervision_scores
+            WHERE date >= ?
+            GROUP BY store_name
+        """, (date_start,))
+        count_rows = cursor.fetchall()
+        count_map = {row['store_name']: row['inspection_count'] for row in count_rows}
 
-    conn.close()
+        conn.close()
 
-    result = []
-    for row in rows:
-        # 計算總分（15項的平均值相加）
-        total_avg = sum([
-            row['avg_attendance'] or 0,
-            row['avg_appearance'] or 0,
-            row['avg_service'] or 0,
-            row['avg_knowledge'] or 0,
-            row['avg_sales'] or 0,
-            row['avg_storefront'] or 0,
-            row['avg_cleanliness'] or 0,
-            row['avg_display'] or 0,
-            row['avg_cable'] or 0,
-            row['avg_warehouse'] or 0,
-            row['avg_reply_speed'] or 0,
-            row['avg_reply_attitude'] or 0,
-            row['avg_problem'] or 0,
-            row['avg_info'] or 0,
-            row['avg_followup'] or 0
-        ])
-        # 30分滿分（15項×2分），計算百分比
-        score_percentage = (total_avg / 30) * 100 if total_avg > 0 else 0
-        store_name = row['store_name']
+        result = []
+        for row in rows:
+            # 計算總分（15項的平均值相加）
+            total_avg = sum([
+                row['avg_attendance'] or 0,
+                row['avg_appearance'] or 0,
+                row['avg_service'] or 0,
+                row['avg_knowledge'] or 0,
+                row['avg_sales'] or 0,
+                row['avg_storefront'] or 0,
+                row['avg_cleanliness'] or 0,
+                row['avg_display'] or 0,
+                row['avg_cable'] or 0,
+                row['avg_warehouse'] or 0,
+                row['avg_reply_speed'] or 0,
+                row['avg_reply_attitude'] or 0,
+                row['avg_problem'] or 0,
+                row['avg_info'] or 0,
+                row['avg_followup'] or 0
+            ])
+            # 30分滿分（15項×2分），計算百分比
+            score_percentage = (total_avg / 30) * 100 if total_avg > 0 else 0
+            store_name = row['store_name']
 
-        result.append({
-            'store': store_name,
-            'score': round(score_percentage, 1),
-            'inspection_count': count_map.get(store_name, 0)
-        })
+            result.append({
+                'store': store_name,
+                'score': round(score_percentage, 1),
+                'inspection_count': count_map.get(store_name, 0)
+            })
 
-    return jsonify(result)
+        return jsonify(result)
 
 # API: 門市督導評分明細（本月詳細項目）
 @app.route('/api/store/supervision/detail')
@@ -5206,9 +5263,10 @@ def run_staging_reconcile():
 
 @app.route('/api/supervision/score', methods=['GET'])
 def get_supervision_score():
-    """查詢督導評分"""
+    """查詢督導評分 - 支援新結構（含員工姓名）"""
     store_name = request.args.get('store', '').strip()
     date = request.args.get('date', '').strip()
+    employee_name = request.args.get('employee', '').strip()
 
     if not store_name or not date:
         return jsonify({'success': False, 'error': '店別和日期必填'})
@@ -5216,10 +5274,23 @@ def get_supervision_score():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT * FROM supervision_scores
-        WHERE store_name = ? AND date = ?
-    """, (store_name, date))
+    # 檢查是否有 employee_name 欄位
+    cursor.execute("PRAGMA table_info(supervision_scores)")
+    columns = [col['name'] for col in cursor.fetchall()]
+    
+    if 'employee_name' in columns and employee_name:
+        # 新結構：查詢特定員工
+        cursor.execute("""
+            SELECT * FROM supervision_scores
+            WHERE store_name = ? AND employee_name = ? AND date = ?
+        """, (store_name, employee_name, date))
+    else:
+        # 舊結構或無員工指定：只查店別和日期
+        cursor.execute("""
+            SELECT * FROM supervision_scores
+            WHERE store_name = ? AND date = ?
+            ORDER BY updated_at DESC LIMIT 1
+        """, (store_name, date))
 
     row = cursor.fetchone()
     conn.close()
@@ -5232,12 +5303,13 @@ def get_supervision_score():
 
 @app.route('/api/supervision/score', methods=['POST'])
 def save_supervision_score():
-    """儲存/更新督導評分"""
+    """儲存/更新督導評分 - 支援新結構（11項 × 10分制）"""
     data = request.json
 
     # 驗證必填欄位
     store_name = data.get('store_name', '').strip()
     date = data.get('date', '').strip()
+    employee_name = data.get('employee_name', '').strip()
 
     if not store_name or not date:
         return jsonify({'success': False, 'message': '店別和日期必填'}), 400
@@ -5248,85 +5320,152 @@ def save_supervision_score():
     except ValueError:
         return jsonify({'success': False, 'message': '日期格式錯誤，應為 YYYY-MM-DD'}), 400
 
-    # 驗證分數只能是 0/1/2
+    # 新結構：16 項評分，每項 0-2 分
     score_fields = ['attendance', 'appearance', 'service_attitude', 'professional_knowledge',
                    'sales_process', 'storefront_cleanliness', 'store_cleanliness', 'product_display',
-                   'cable_management', 'warehouse_organization', 'reply_speed', 'reply_attitude',
-                   'information_complete']
+                   'cable_management', 'warehouse_organization', 'work_attitude',
+                   'reply_speed', 'reply_attitude', 'problem_grasp', 'information_complete', 'follow_up']
 
     for field in score_fields:
         value = data.get(field, 0)
         if value not in [0, 1, 2]:
             return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
 
-    # problem_grasp 和 follow_up 也接受文字內容（用於存放問題描述和後續追蹤）
-    for field in ['problem_grasp', 'follow_up']:
-        value = data.get(field, 0)
-        # 如果是數字，檢查範圍；如果是字串，允許通過
-        if isinstance(value, (int, float)) and value not in [0, 1, 2]:
-            return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # 檢查是否已存在
-        cursor.execute("""
-            SELECT id FROM supervision_scores
-            WHERE store_name = ? AND date = ?
-        """, (store_name, date))
+        # 檢查資料表結構
+        cursor.execute("PRAGMA table_info(supervision_scores)")
+        columns = [col['name'] for col in cursor.fetchall()]
+        
+        # 確保新欄位存在
+        if 'employee_name' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN employee_name TEXT")
+        if 'work_attitude' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN work_attitude INTEGER DEFAULT 0")
+        if 'reply_speed' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN reply_speed INTEGER DEFAULT 0")
+        if 'reply_attitude' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN reply_attitude INTEGER DEFAULT 0")
+        if 'problem_grasp' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN problem_grasp INTEGER DEFAULT 0")
+        if 'information_complete' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN information_complete INTEGER DEFAULT 0")
+        if 'follow_up' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN follow_up INTEGER DEFAULT 0")
+        if 'issues' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN issues TEXT")
+        if 'suggestions' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN suggestions TEXT")
+        if 'percentage' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN percentage INTEGER DEFAULT 0")
+        
+        conn.commit()
+        
+        # 檢查是否已存在（新結構：店別 + 員工 + 日期）
+        if employee_name:
+            cursor.execute("""
+                SELECT id FROM supervision_scores
+                WHERE store_name = ? AND employee_name = ? AND date = ?
+            """, (store_name, employee_name, date))
+        else:
+            cursor.execute("""
+                SELECT id FROM supervision_scores
+                WHERE store_name = ? AND date = ?
+            """, (store_name, date))
 
         existing = cursor.fetchone()
         now = datetime.now().isoformat()
+        
+        # 計算百分比
+        total_score = data.get('total_score', 0)
+        percentage = data.get('percentage', 0)
 
         if existing:
             # 更新
-            cursor.execute("""
-                UPDATE supervision_scores SET
-                    attendance = ?, appearance = ?, service_attitude = ?,
-                    professional_knowledge = ?, sales_process = ?,
-                    storefront_cleanliness = ?, store_cleanliness = ?,
-                    product_display = ?, cable_management = ?,
-                    warehouse_organization = ?, reply_speed = ?,
-                    reply_attitude = ?, problem_grasp = ?,
-                    information_complete = ?, follow_up = ?,
-                    total_score = ?, evaluator = ?, evaluator_title = ?, updated_at = ?
-                WHERE store_name = ? AND date = ?
-            """, (
-                data.get('attendance', 0), data.get('appearance', 0),
-                data.get('service_attitude', 0), data.get('professional_knowledge', 0),
-                data.get('sales_process', 0), data.get('storefront_cleanliness', 0),
-                data.get('store_cleanliness', 0), data.get('product_display', 0),
-                data.get('cable_management', 0), data.get('warehouse_organization', 0),
-                data.get('reply_speed', 0), data.get('reply_attitude', 0),
-                data.get('problem_grasp', 0), data.get('information_complete', 0),
-                data.get('follow_up', 0), data.get('total_score', 0),
-                data.get('evaluator', ''), data.get('evaluator_title', ''),
-                now, store_name, date
-            ))
+            if employee_name:
+                cursor.execute("""
+                    UPDATE supervision_scores SET
+                        attendance = ?, appearance = ?, service_attitude = ?,
+                        professional_knowledge = ?, sales_process = ?, work_attitude = ?,
+                        storefront_cleanliness = ?, store_cleanliness = ?,
+                        product_display = ?, cable_management = ?,
+                        warehouse_organization = ?,
+                        reply_speed = ?, reply_attitude = ?, problem_grasp = ?,
+                        information_complete = ?, follow_up = ?,
+                        total_score = ?, percentage = ?, issues = ?, suggestions = ?,
+                        evaluator = ?, evaluator_title = ?, updated_at = ?
+                    WHERE store_name = ? AND employee_name = ? AND date = ?
+                """, (
+                    data.get('attendance', 0), data.get('appearance', 0),
+                    data.get('service_attitude', 0), data.get('professional_knowledge', 0),
+                    data.get('sales_process', 0), data.get('work_attitude', 0),
+                    data.get('storefront_cleanliness', 0), data.get('store_cleanliness', 0),
+                    data.get('product_display', 0), data.get('cable_management', 0),
+                    data.get('warehouse_organization', 0),
+                    data.get('reply_speed', 0), data.get('reply_attitude', 0),
+                    data.get('problem_grasp', 0), data.get('information_complete', 0),
+                    data.get('follow_up', 0),
+                    total_score, percentage,
+                    data.get('issues', ''), data.get('suggestions', ''),
+                    data.get('evaluator', ''), data.get('evaluator_title', ''),
+                    now, store_name, employee_name, date
+                ))
+            else:
+                cursor.execute("""
+                    UPDATE supervision_scores SET
+                        attendance = ?, appearance = ?, service_attitude = ?,
+                        professional_knowledge = ?, sales_process = ?, work_attitude = ?,
+                        storefront_cleanliness = ?, store_cleanliness = ?,
+                        product_display = ?, cable_management = ?,
+                        warehouse_organization = ?,
+                        reply_speed = ?, reply_attitude = ?, problem_grasp = ?,
+                        information_complete = ?, follow_up = ?,
+                        total_score = ?, percentage = ?, issues = ?, suggestions = ?,
+                        evaluator = ?, evaluator_title = ?, updated_at = ?
+                    WHERE store_name = ? AND date = ?
+                """, (
+                    data.get('attendance', 0), data.get('appearance', 0),
+                    data.get('service_attitude', 0), data.get('professional_knowledge', 0),
+                    data.get('sales_process', 0), data.get('work_attitude', 0),
+                    data.get('storefront_cleanliness', 0), data.get('store_cleanliness', 0),
+                    data.get('product_display', 0), data.get('cable_management', 0),
+                    data.get('warehouse_organization', 0),
+                    data.get('reply_speed', 0), data.get('reply_attitude', 0),
+                    data.get('problem_grasp', 0), data.get('information_complete', 0),
+                    data.get('follow_up', 0),
+                    total_score, percentage,
+                    data.get('issues', ''), data.get('suggestions', ''),
+                    data.get('evaluator', ''), data.get('evaluator_title', ''),
+                    now, store_name, date
+                ))
             message = '評分已更新'
         else:
             # 新增
             cursor.execute("""
                 INSERT INTO supervision_scores (
-                    store_name, date, attendance, appearance, service_attitude,
-                    professional_knowledge, sales_process, storefront_cleanliness,
+                    store_name, employee_name, date, attendance, appearance, service_attitude,
+                    professional_knowledge, sales_process, work_attitude, storefront_cleanliness,
                     store_cleanliness, product_display, cable_management,
-                    warehouse_organization, reply_speed, reply_attitude,
-                    problem_grasp, information_complete, follow_up,
-                    total_score, evaluator, evaluator_title,
-                    updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    warehouse_organization,
+                    reply_speed, reply_attitude, problem_grasp, information_complete, follow_up,
+                    total_score, percentage, issues, suggestions,
+                    evaluator, evaluator_title, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                store_name, date,
+                store_name, employee_name, date,
                 data.get('attendance', 0), data.get('appearance', 0),
                 data.get('service_attitude', 0), data.get('professional_knowledge', 0),
-                data.get('sales_process', 0), data.get('storefront_cleanliness', 0),
-                data.get('store_cleanliness', 0), data.get('product_display', 0),
-                data.get('cable_management', 0), data.get('warehouse_organization', 0),
+                data.get('sales_process', 0), data.get('work_attitude', 0),
+                data.get('storefront_cleanliness', 0), data.get('store_cleanliness', 0),
+                data.get('product_display', 0), data.get('cable_management', 0),
+                data.get('warehouse_organization', 0),
                 data.get('reply_speed', 0), data.get('reply_attitude', 0),
                 data.get('problem_grasp', 0), data.get('information_complete', 0),
-                data.get('follow_up', 0), data.get('total_score', 0),
+                data.get('follow_up', 0),
+                total_score, percentage,
+                data.get('issues', ''), data.get('suggestions', ''),
                 data.get('evaluator', ''), data.get('evaluator_title', ''),
                 now
             ))
@@ -5526,6 +5665,127 @@ def save_roster_batch():
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+# ==================== 店別員工 API ====================
+
+@app.route('/api/store/employees', methods=['GET'])
+def get_store_employees():
+    """取得指定店別的員工列表"""
+    store = request.args.get('store', '').strip()
+
+    if not store:
+        return jsonify({'success': False, 'error': '店別必填'})
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 從 staff_passwords 資料表查詢該店的員工
+        # 根據 department 欄位判斷所屬門市
+        cursor.execute("""
+            SELECT name, title, department
+            FROM staff_passwords
+            WHERE department LIKE ?
+            ORDER BY name
+        """, (f'%{store}%',))
+
+        rows = cursor.fetchall()
+
+        employees = []
+        for row in rows:
+            employees.append({
+                'name': row['name'],
+                'title': row['title'] or '',
+                'department': row['department'] or ''
+            })
+
+        return jsonify({'success': True, 'employees': employees})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+
+# ==================== 個人督導評分 API ====================
+
+@app.route('/api/personal/supervision', methods=['GET'])
+def get_personal_supervision():
+    """取得當前登入使用者的督導評分（6-16項：人員表現 + LINE回覆）"""
+    # 從請求中取得使用者名稱
+    user_name = request.args.get('user', '').strip()
+    
+    # 如果沒有提供，嘗試從 header 取得
+    if not user_name:
+        user_name = request.headers.get('X-User-Name', '').strip()
+    
+    if not user_name:
+        return jsonify({'success': False, 'error': '使用者名稱必填'}), 400
+    
+    from datetime import datetime
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 獲取當月日期範圍
+        today = datetime.now()
+        date_start = f"{today.year}-{today.month:02d}-01"
+        
+        # 查詢該員工本月的平均督導評分（6-16 項：人員表現 + LINE回覆）
+        cursor.execute("""
+            SELECT
+                AVG(CAST(COALESCE(attendance, '0') AS FLOAT)) as avg_attendance,
+                AVG(CAST(COALESCE(appearance, '0') AS FLOAT)) as avg_appearance,
+                AVG(CAST(COALESCE(service_attitude, '0') AS FLOAT)) as avg_service,
+                AVG(CAST(COALESCE(professional_knowledge, '0') AS FLOAT)) as avg_knowledge,
+                AVG(CAST(COALESCE(sales_process, '0') AS FLOAT)) as avg_sales,
+                AVG(CAST(COALESCE(work_attitude, '0') AS FLOAT)) as avg_work_attitude,
+                AVG(CAST(COALESCE(reply_speed, '0') AS FLOAT)) as avg_reply_speed,
+                AVG(CAST(COALESCE(reply_attitude, '0') AS FLOAT)) as avg_reply_attitude,
+                AVG(CAST(COALESCE(problem_grasp, '0') AS FLOAT)) as avg_problem_grasp,
+                AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_information_complete,
+                AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_follow_up
+            FROM supervision_scores
+            WHERE employee_name = ? AND date >= ?
+        """, (user_name, date_start))
+        
+        row = cursor.fetchone()
+        
+        if row and row['avg_attendance'] is not None:
+            scores = {
+                'attendance': round(row['avg_attendance'] or 0, 1),
+                'appearance': round(row['avg_appearance'] or 0, 1),
+                'service_attitude': round(row['avg_service'] or 0, 1),
+                'professional_knowledge': round(row['avg_knowledge'] or 0, 1),
+                'sales_process': round(row['avg_sales'] or 0, 1),
+                'work_attitude': round(row['avg_work_attitude'] or 0, 1),
+                'reply_speed': round(row['avg_reply_speed'] or 0, 1),
+                'reply_attitude': round(row['avg_reply_attitude'] or 0, 1),
+                'problem_grasp': round(row['avg_problem_grasp'] or 0, 1),
+                'information_complete': round(row['avg_information_complete'] or 0, 1),
+                'follow_up': round(row['avg_follow_up'] or 0, 1)
+            }
+
+            # 計算總分百分比 (11項 × 2分 = 22分滿分)
+            total = sum(scores.values())
+            max_total = 22
+            percentage = round((total / max_total) * 100)
+            
+            return jsonify({
+                'success': True, 
+                'scores': scores,
+                'total': round(total, 1),
+                'max': max_total,
+                'percentage': percentage
+            })
+        else:
+            return jsonify({'success': True, 'scores': None, 'message': '本月暫無評分資料'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         conn.close()
 
@@ -10040,3 +10300,322 @@ def chat():
         'Cache-Control': 'no-cache',
         'X-Accel-Buffering': 'no'
     })
+
+# ============================================
+# LINE 官方帳號回覆表 API
+# ============================================
+
+@app.route('/api/line-replies', methods=['GET'])
+def get_line_replies():
+    """取得 LINE 回覆紀錄列表"""
+    # 分頁參數
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    # 篩選參數
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    store = request.args.get('store')
+    staff = request.args.get('staff')
+    is_resolved = request.args.get('is_resolved')
+    search = request.args.get('search')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 建立查詢
+        query = 'SELECT * FROM line_replies WHERE 1=1'
+        count_query = 'SELECT COUNT(*) as total FROM line_replies WHERE 1=1'
+        params = []
+
+        if start_date:
+            query += ' AND DATE(reply_datetime) >= ?'
+            count_query += ' AND DATE(reply_datetime) >= ?'
+            params.append(start_date)
+
+        if end_date:
+            query += ' AND DATE(reply_datetime) <= ?'
+            count_query += ' AND DATE(reply_datetime) <= ?'
+            params.append(end_date)
+
+        if store:
+            query += ' AND reply_store = ?'
+            count_query += ' AND reply_store = ?'
+            params.append(store)
+
+        if staff:
+            query += ' AND reply_staff = ?'
+            count_query += ' AND reply_staff = ?'
+            params.append(staff)
+
+        if is_resolved is not None:
+            query += ' AND is_resolved = ?'
+            count_query += ' AND is_resolved = ?'
+            params.append(1 if is_resolved == 'true' else 0)
+
+        if search:
+            query += ' AND (customer_line_name LIKE ? OR inquiry_content LIKE ?)'
+            count_query += ' AND (customer_line_name LIKE ? OR inquiry_content LIKE ?)'
+            search_pattern = f'%{search}%'
+            params.extend([search_pattern, search_pattern])
+
+        # 取得總數
+        cursor.execute(count_query, params)
+        total = cursor.fetchone()['total']
+
+        # 排序與分頁
+        query += ' ORDER BY reply_datetime DESC LIMIT ? OFFSET ?'
+        offset = (page - 1) * per_page
+        params.extend([per_page, offset])
+
+        cursor.execute(query, params)
+        rows = [dict(row) for row in cursor.fetchall()]
+
+        return jsonify({
+            'success': True,
+            'data': rows,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': (total + per_page - 1) // per_page,
+                'data_count': len(rows)
+            }
+        })
+    except Exception as e:
+        print(f"[LineReplies] 查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies', methods=['POST'])
+def create_line_reply():
+    """新增 LINE 回覆紀錄"""
+    data = request.get_json()
+
+    # 驗證必填欄位
+    required_fields = ['reply_datetime', 'customer_line_name', 'inquiry_content', 'reply_store', 'reply_staff']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'success': False, 'message': f'缺少必填欄位: {field}'}), 400
+
+    # 驗證日期時間不能是未來
+    try:
+        reply_dt = datetime.fromisoformat(data['reply_datetime'].replace('Z', '+00:00').replace('+00:00', ''))
+        if reply_dt > datetime.now():
+            return jsonify({'success': False, 'message': '回覆時間不能是未來'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'message': '日期時間格式錯誤'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO line_replies
+            (reply_datetime, customer_line_name, inquiry_content, reply_store, reply_staff, is_resolved)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data['reply_datetime'],
+            data['customer_line_name'],
+            data['inquiry_content'],
+            data['reply_store'],
+            data['reply_staff'],
+            data.get('is_resolved', False)
+        ))
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'message': '新增成功',
+            'id': cursor.lastrowid
+        })
+    except Exception as e:
+        print(f"[LineReplies] 新增失敗: {e}")
+        return jsonify({'success': False, 'message': '新增失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/<int:reply_id>', methods=['GET'])
+def get_line_reply(reply_id):
+    """取得單筆 LINE 回覆紀錄"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('SELECT * FROM line_replies WHERE id = ?', (reply_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'success': False, 'message': '記錄不存在'}), 404
+
+        return jsonify({'success': True, 'data': dict(row)})
+    except Exception as e:
+        print(f"[LineReplies] 查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/<int:reply_id>', methods=['PUT'])
+def update_line_reply(reply_id):
+    """更新 LINE 回覆紀錄"""
+    data = request.get_json()
+
+    # 驗證日期時間不能是未來
+    if data.get('reply_datetime'):
+        try:
+            reply_dt = datetime.fromisoformat(data['reply_datetime'].replace('Z', '+00:00').replace('+00:00', ''))
+            if reply_dt > datetime.now():
+                return jsonify({'success': False, 'message': '回覆時間不能是未來'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'message': '日期時間格式錯誤'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 檢查記錄是否存在
+        cursor.execute('SELECT id FROM line_replies WHERE id = ?', (reply_id,))
+        if not cursor.fetchone():
+            return jsonify({'success': False, 'message': '記錄不存在'}), 404
+
+        # 動態建立更新欄位
+        update_fields = []
+        params = []
+
+        if 'reply_datetime' in data:
+            update_fields.append('reply_datetime = ?')
+            params.append(data['reply_datetime'])
+        if 'customer_line_name' in data:
+            update_fields.append('customer_line_name = ?')
+            params.append(data['customer_line_name'])
+        if 'inquiry_content' in data:
+            update_fields.append('inquiry_content = ?')
+            params.append(data['inquiry_content'])
+        if 'is_resolved' in data:
+            update_fields.append('is_resolved = ?')
+            params.append(1 if data['is_resolved'] else 0)
+
+        if not update_fields:
+            return jsonify({'success': False, 'message': '沒有要更新的欄位'}), 400
+
+        params.append(reply_id)
+        query = f"UPDATE line_replies SET {', '.join(update_fields)} WHERE id = ?"
+        cursor.execute(query, params)
+        conn.commit()
+
+        return jsonify({'success': True, 'message': '更新成功'})
+    except Exception as e:
+        print(f"[LineReplies] 更新失敗: {e}")
+        return jsonify({'success': False, 'message': '更新失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/<int:reply_id>', methods=['DELETE'])
+def delete_line_reply(reply_id):
+    """刪除 LINE 回覆紀錄"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('DELETE FROM line_replies WHERE id = ?', (reply_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': '記錄不存在'}), 404
+
+        return jsonify({'success': True, 'message': '刪除成功'})
+    except Exception as e:
+        print(f"[LineReplies] 刪除失敗: {e}")
+        return jsonify({'success': False, 'message': '刪除失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/stats/store/<store>', methods=['GET'])
+def get_line_reply_store_stats(store):
+    """取得門市統計"""
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = '''
+            SELECT
+                COUNT(*) as total_count,
+                SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) as resolved_count,
+                SUM(CASE WHEN is_resolved = 0 THEN 1 ELSE 0 END) as pending_count,
+                ROUND(
+                    CAST(SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) AS FLOAT) * 100 /
+                    NULLIF(COUNT(*), 0), 2
+                ) as resolve_rate
+            FROM line_replies
+            WHERE reply_store = ?
+        '''
+        params = [store]
+
+        if start_date:
+            query += ' AND DATE(reply_datetime) >= ?'
+            params.append(start_date)
+        if end_date:
+            query += ' AND DATE(reply_datetime) <= ?'
+            params.append(end_date)
+
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+
+        return jsonify({
+            'success': True,
+            'data': dict(row) if row else {'total_count': 0, 'resolved_count': 0, 'pending_count': 0, 'resolve_rate': 0}
+        })
+    except Exception as e:
+        print(f"[LineReplies] 門市統計查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/stats/staff/<staff>', methods=['GET'])
+def get_line_reply_staff_stats(staff):
+    """取得人員統計"""
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = '''
+            SELECT
+                COUNT(*) as total_count,
+                SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) as resolved_count,
+                SUM(CASE WHEN is_resolved = 0 THEN 1 ELSE 0 END) as pending_count,
+                ROUND(
+                    CAST(SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) AS FLOAT) * 100 /
+                    NULLIF(COUNT(*), 0), 2
+                ) as resolve_rate
+            FROM line_replies
+            WHERE reply_staff = ?
+        '''
+        params = [staff]
+
+        if start_date:
+            query += ' AND DATE(reply_datetime) >= ?'
+            params.append(start_date)
+        if end_date:
+            query += ' AND DATE(reply_datetime) <= ?'
+            params.append(end_date)
+
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+
+        return jsonify({
+            'success': True,
+            'data': dict(row) if row else {'total_count': 0, 'resolved_count': 0, 'pending_count': 0, 'resolve_rate': 0}
+        })
+    except Exception as e:
+        print(f"[LineReplies] 人員統計查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
