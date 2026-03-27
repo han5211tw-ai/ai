@@ -10040,3 +10040,322 @@ def chat():
         'Cache-Control': 'no-cache',
         'X-Accel-Buffering': 'no'
     })
+
+# ============================================
+# LINE 官方帳號回覆表 API
+# ============================================
+
+@app.route('/api/line-replies', methods=['GET'])
+def get_line_replies():
+    """取得 LINE 回覆紀錄列表"""
+    # 分頁參數
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    # 篩選參數
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    store = request.args.get('store')
+    staff = request.args.get('staff')
+    is_resolved = request.args.get('is_resolved')
+    search = request.args.get('search')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 建立查詢
+        query = 'SELECT * FROM line_replies WHERE 1=1'
+        count_query = 'SELECT COUNT(*) as total FROM line_replies WHERE 1=1'
+        params = []
+
+        if start_date:
+            query += ' AND DATE(reply_datetime) >= ?'
+            count_query += ' AND DATE(reply_datetime) >= ?'
+            params.append(start_date)
+
+        if end_date:
+            query += ' AND DATE(reply_datetime) <= ?'
+            count_query += ' AND DATE(reply_datetime) <= ?'
+            params.append(end_date)
+
+        if store:
+            query += ' AND reply_store = ?'
+            count_query += ' AND reply_store = ?'
+            params.append(store)
+
+        if staff:
+            query += ' AND reply_staff = ?'
+            count_query += ' AND reply_staff = ?'
+            params.append(staff)
+
+        if is_resolved is not None:
+            query += ' AND is_resolved = ?'
+            count_query += ' AND is_resolved = ?'
+            params.append(1 if is_resolved == 'true' else 0)
+
+        if search:
+            query += ' AND (customer_line_name LIKE ? OR inquiry_content LIKE ?)'
+            count_query += ' AND (customer_line_name LIKE ? OR inquiry_content LIKE ?)'
+            search_pattern = f'%{search}%'
+            params.extend([search_pattern, search_pattern])
+
+        # 取得總數
+        cursor.execute(count_query, params)
+        total = cursor.fetchone()['total']
+
+        # 排序與分頁
+        query += ' ORDER BY reply_datetime DESC LIMIT ? OFFSET ?'
+        offset = (page - 1) * per_page
+        params.extend([per_page, offset])
+
+        cursor.execute(query, params)
+        rows = [dict(row) for row in cursor.fetchall()]
+
+        return jsonify({
+            'success': True,
+            'data': rows,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': (total + per_page - 1) // per_page,
+                'data_count': len(rows)
+            }
+        })
+    except Exception as e:
+        print(f"[LineReplies] 查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies', methods=['POST'])
+def create_line_reply():
+    """新增 LINE 回覆紀錄"""
+    data = request.get_json()
+
+    # 驗證必填欄位
+    required_fields = ['reply_datetime', 'customer_line_name', 'inquiry_content', 'reply_store', 'reply_staff']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'success': False, 'message': f'缺少必填欄位: {field}'}), 400
+
+    # 驗證日期時間不能是未來
+    try:
+        reply_dt = datetime.fromisoformat(data['reply_datetime'].replace('Z', '+00:00').replace('+00:00', ''))
+        if reply_dt > datetime.now():
+            return jsonify({'success': False, 'message': '回覆時間不能是未來'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'message': '日期時間格式錯誤'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO line_replies
+            (reply_datetime, customer_line_name, inquiry_content, reply_store, reply_staff, is_resolved)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data['reply_datetime'],
+            data['customer_line_name'],
+            data['inquiry_content'],
+            data['reply_store'],
+            data['reply_staff'],
+            data.get('is_resolved', False)
+        ))
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'message': '新增成功',
+            'id': cursor.lastrowid
+        })
+    except Exception as e:
+        print(f"[LineReplies] 新增失敗: {e}")
+        return jsonify({'success': False, 'message': '新增失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/<int:reply_id>', methods=['GET'])
+def get_line_reply(reply_id):
+    """取得單筆 LINE 回覆紀錄"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('SELECT * FROM line_replies WHERE id = ?', (reply_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'success': False, 'message': '記錄不存在'}), 404
+
+        return jsonify({'success': True, 'data': dict(row)})
+    except Exception as e:
+        print(f"[LineReplies] 查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/<int:reply_id>', methods=['PUT'])
+def update_line_reply(reply_id):
+    """更新 LINE 回覆紀錄"""
+    data = request.get_json()
+
+    # 驗證日期時間不能是未來
+    if data.get('reply_datetime'):
+        try:
+            reply_dt = datetime.fromisoformat(data['reply_datetime'].replace('Z', '+00:00').replace('+00:00', ''))
+            if reply_dt > datetime.now():
+                return jsonify({'success': False, 'message': '回覆時間不能是未來'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'message': '日期時間格式錯誤'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 檢查記錄是否存在
+        cursor.execute('SELECT id FROM line_replies WHERE id = ?', (reply_id,))
+        if not cursor.fetchone():
+            return jsonify({'success': False, 'message': '記錄不存在'}), 404
+
+        # 動態建立更新欄位
+        update_fields = []
+        params = []
+
+        if 'reply_datetime' in data:
+            update_fields.append('reply_datetime = ?')
+            params.append(data['reply_datetime'])
+        if 'customer_line_name' in data:
+            update_fields.append('customer_line_name = ?')
+            params.append(data['customer_line_name'])
+        if 'inquiry_content' in data:
+            update_fields.append('inquiry_content = ?')
+            params.append(data['inquiry_content'])
+        if 'is_resolved' in data:
+            update_fields.append('is_resolved = ?')
+            params.append(1 if data['is_resolved'] else 0)
+
+        if not update_fields:
+            return jsonify({'success': False, 'message': '沒有要更新的欄位'}), 400
+
+        params.append(reply_id)
+        query = f"UPDATE line_replies SET {', '.join(update_fields)} WHERE id = ?"
+        cursor.execute(query, params)
+        conn.commit()
+
+        return jsonify({'success': True, 'message': '更新成功'})
+    except Exception as e:
+        print(f"[LineReplies] 更新失敗: {e}")
+        return jsonify({'success': False, 'message': '更新失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/<int:reply_id>', methods=['DELETE'])
+def delete_line_reply(reply_id):
+    """刪除 LINE 回覆紀錄"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('DELETE FROM line_replies WHERE id = ?', (reply_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': '記錄不存在'}), 404
+
+        return jsonify({'success': True, 'message': '刪除成功'})
+    except Exception as e:
+        print(f"[LineReplies] 刪除失敗: {e}")
+        return jsonify({'success': False, 'message': '刪除失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/stats/store/<store>', methods=['GET'])
+def get_line_reply_store_stats(store):
+    """取得門市統計"""
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = '''
+            SELECT
+                COUNT(*) as total_count,
+                SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) as resolved_count,
+                SUM(CASE WHEN is_resolved = 0 THEN 1 ELSE 0 END) as pending_count,
+                ROUND(
+                    CAST(SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) AS FLOAT) * 100 /
+                    NULLIF(COUNT(*), 0), 2
+                ) as resolve_rate
+            FROM line_replies
+            WHERE reply_store = ?
+        '''
+        params = [store]
+
+        if start_date:
+            query += ' AND DATE(reply_datetime) >= ?'
+            params.append(start_date)
+        if end_date:
+            query += ' AND DATE(reply_datetime) <= ?'
+            params.append(end_date)
+
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+
+        return jsonify({
+            'success': True,
+            'data': dict(row) if row else {'total_count': 0, 'resolved_count': 0, 'pending_count': 0, 'resolve_rate': 0}
+        })
+    except Exception as e:
+        print(f"[LineReplies] 門市統計查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/line-replies/stats/staff/<staff>', methods=['GET'])
+def get_line_reply_staff_stats(staff):
+    """取得人員統計"""
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = '''
+            SELECT
+                COUNT(*) as total_count,
+                SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) as resolved_count,
+                SUM(CASE WHEN is_resolved = 0 THEN 1 ELSE 0 END) as pending_count,
+                ROUND(
+                    CAST(SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) AS FLOAT) * 100 /
+                    NULLIF(COUNT(*), 0), 2
+                ) as resolve_rate
+            FROM line_replies
+            WHERE reply_staff = ?
+        '''
+        params = [staff]
+
+        if start_date:
+            query += ' AND DATE(reply_datetime) >= ?'
+            params.append(start_date)
+        if end_date:
+            query += ' AND DATE(reply_datetime) <= ?'
+            params.append(end_date)
+
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+
+        return jsonify({
+            'success': True,
+            'data': dict(row) if row else {'total_count': 0, 'resolved_count': 0, 'pending_count': 0, 'resolve_rate': 0}
+        })
+    except Exception as e:
+        print(f"[LineReplies] 人員統計查詢失敗: {e}")
+        return jsonify({'success': False, 'message': '查詢失敗'}), 500
+    finally:
+        conn.close()

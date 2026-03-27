@@ -46,13 +46,18 @@ class SidebarNavigation {
                 ]
             },
             {
+                section: '工作紀錄',
+                items: [
+                    { id: 'line-replies', icon: '💬', label: 'LINE 回覆表', route: '/line_replies.html', minRole: 'staff' }
+                ]
+            },
+            {
                 section: '報表中心',
                 items: [
                     { id: 'report-dept', icon: '📈', label: '部門業績', route: '/report/dept', minRole: 'staff', requireTitle: ['老闆', '會計', '門市部主管', '業務部主管'] },
                     { id: 'report-sales', icon: '📉', label: '業務業績', route: '/report/sales', minRole: 'staff', requireTitle: ['老闆', '會計', '業務人員', '業務部主管'] },
                     { id: 'report-store', icon: '🏪', label: '門市業績', route: '/report/store', minRole: 'staff', requireTitle: ['老闆', '會計', '工程師', '門市部主管'] },
-                    { id: 'report-personal', icon: '🎯', label: '個人業績', route: '/report/personal', minRole: 'staff' },
-                    
+                    { id: 'report-personal', icon: '🎯', label: '個人業績', route: '/report/personal', minRole: 'staff' }
                 ]
             },
             {
