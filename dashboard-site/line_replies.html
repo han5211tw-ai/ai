@@ -6,105 +6,36 @@
 
 {% block styles %}
 <style>
-    /* ── 頁面標題 ─────────────────────────── */
+    /* ── 頁面專用（global.css 未涵蓋）───── */
     .page-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 24px;
+        margin-bottom: var(--space-5);
         flex-wrap: wrap;
-        gap: 16px;
-    }
-    .page-title-wrap {
-        display: flex;
-        align-items: baseline;
-        gap: 12px;
+        gap: var(--space-4);
     }
     .page-subtitle {
-        font-size: 13px;
-        color: #8892b0;
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
     }
 
-    /* ── 篩選區 ───────────────────────────── */
-    .filter-section {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-    }
+    /* 篩選格 - 使用 form-row 延伸 */
     .filter-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
+        gap: var(--space-3);
         align-items: end;
     }
-    .filter-item {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-    .filter-label {
-        font-size: 12px;
-        font-weight: 400;
-        color: #8892b0;
-    }
-    .filter-input {
-        padding: 10px 14px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        font-size: 14px;
-        background: rgba(255, 255, 255, 0.05);
-        color: #fff;
-        transition: border-color 0.2s;
-    }
-    .filter-input:focus {
-        outline: none;
-        border-color: #FABF13;
-    }
 
-    /* ── 表格 ─────────────────────────────── */
-    .table-container {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-    }
-    .data-table th {
-        background: rgba(250, 191, 19, 0.1);
-        padding: 12px 16px;
-        text-align: left;
-        font-weight: 600;
-        color: #FABF13;
-        font-size: 12px;
-        letter-spacing: 0.02em;
-        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-        white-space: nowrap;
-    }
-    .data-table td {
-        padding: 14px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        color: #ccd6f6;
-        vertical-align: top;
-    }
-    .data-table tr:last-child td {
-        border-bottom: none;
-    }
-    .data-table tr:hover {
-        background: rgba(255, 255, 255, 0.03);
-    }
+    /* 表格欄寬 */
     .col-datetime { width: 140px; }
     .col-customer { width: 140px; }
-    .col-content { min-width: 200px; }
-    .col-store { width: 100px; }
-    .col-staff { width: 100px; }
-    .col-status { width: 80px; }
-    .col-actions { width: 100px; }
+    .col-content  { min-width: 200px; }
+    .col-store    { width: 100px; }
+    .col-staff    { width: 100px; }
+    .col-status   { width: 80px; }
+    .col-actions  { width: 120px; }
 
     .content-cell {
         max-width: 300px;
@@ -116,142 +47,87 @@
         line-height: 1.5;
     }
 
-    /* ── 狀態標籤 ─────────────────────────── */
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 400;
+    /* 表格 th 覆寫（全域 data-table 使用 border，這裡改 borderless 風格） */
+    .table-wrap .data-table th {
+        border: none;
+        border-bottom: 2px solid var(--color-border-default);
+        font-size: var(--font-size-xs);
+        letter-spacing: 0.02em;
+        white-space: nowrap;
     }
-    .status-resolved {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
+    .table-wrap .data-table td {
+        border: none;
+        border-bottom: 1px solid var(--color-border-default);
+        color: var(--color-text-primary);
+        vertical-align: top;
     }
-    .status-pending {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-    }
-
-    /* ── 操作按鈕 ─────────────────────────── */
-    .action-btns {
-        display: flex;
-        gap: 8px;
-    }
-    .action-btn {
-        padding: 6px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.05);
-        color: #8892b0;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .action-btn:hover {
-        border-color: #FABF13;
-        color: #FABF13;
-    }
-    .action-btn.delete:hover {
-        border-color: #dc3545;
-        color: #dc3545;
+    .table-wrap .data-table tr:last-child td {
+        border-bottom: none;
     }
 
-    /* ── 分頁 ─────────────────────────────── */
-    .pagination {
+    /* 操作按鈕 */
+    .action-btns { display: flex; gap: var(--space-2); }
+
+    /* 分頁（覆蓋 global pagination 的 center 對齊） */
+    .pager {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: var(--space-4) var(--space-5);
+        border-top: 1px solid var(--color-border-default);
     }
-    .pagination-info {
-        font-size: 13px;
-        color: #8892b0;
+    .pager-info {
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
     }
-    .pagination-btns {
-        display: flex;
-        gap: 8px;
-    }
-    .page-btn {
-        padding: 6px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.05);
-        color: #8892b0;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .page-btn:hover:not(:disabled) {
-        border-color: #FABF13;
-        color: #FABF13;
-    }
-    .page-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    .page-btn.active {
-        background: #FABF13;
-        border-color: #FABF13;
-        color: #231815;
+    .pager-btns { display: flex; gap: var(--space-2); }
+    .btn-page.active {
+        background: var(--color-brand-primary);
+        border-color: var(--color-brand-primary);
+        color: var(--color-brand-black);
+        font-weight: var(--font-weight-semibold);
     }
 
-    /* ── 空狀態 ───────────────────────────── */
+    /* 空狀態 */
     .empty-state {
         text-align: center;
         padding: 60px 20px;
-        color: #8892b0;
+        color: var(--color-text-secondary);
     }
     .empty-state-icon {
         font-size: 48px;
-        margin-bottom: 16px;
+        margin-bottom: var(--space-4);
         opacity: 0.5;
     }
     .empty-state-text {
-        font-size: 15px;
-        margin-bottom: 20px;
+        font-size: var(--font-size-md);
+        margin-bottom: var(--space-5);
     }
 
-    /* ── 載入狀態 ─────────────────────────── */
+    /* 載入 */
     .loading-overlay {
         position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
+        inset: 0;
         background: rgba(0,0,0,0.5);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 10;
+        border-radius: var(--radius-lg);
     }
     .loading-spinner {
-        width: 32px;
-        height: 32px;
+        width: 32px; height: 32px;
         border: 2px solid rgba(255,255,255,0.2);
-        border-top-color: #FABF13;
+        border-top-color: var(--color-brand-primary);
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
     }
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── 響應式 ───────────────────────────── */
     @media (max-width: 768px) {
-        .filter-grid {
-            grid-template-columns: 1fr;
-        }
-        .data-table {
-            font-size: 13px;
-        }
-        .data-table th,
-        .data-table td {
-            padding: 10px 12px;
-        }
-        .col-store, .col-staff {
-            display: none;
-        }
+        .filter-grid { grid-template-columns: 1fr; }
+        .table-wrap .data-table { font-size: var(--font-size-sm); }
+        .col-store, .col-staff { display: none; }
     }
 </style>
 {% endblock %}
@@ -259,59 +135,56 @@
 {% block content %}
 <!-- 頁面標題 -->
 <div class="page-header">
-    <div class="page-title-wrap">
-        <span class="page-subtitle">記錄官方帳號客戶回覆</span>
-    </div>
-    <a href="/line_replies_edit" class="btn">
+    <span class="page-subtitle">記錄官方帳號客戶回覆</span>
+    <a href="/line_replies_edit" class="btn btn-primary">
         <span>+</span> 新增回覆
     </a>
 </div>
 
 <!-- 篩選區 -->
-<div class="filter-section">
+<div class="card" style="margin-bottom: var(--space-5);">
     <div class="filter-grid">
-        <div class="filter-item">
-            <label class="filter-label">開始日期</label>
-            <input type="date" id="filterStartDate" class="filter-input">
+        <div class="form-field">
+            <label>開始日期</label>
+            <input type="date" id="filterStartDate" class="form-input">
         </div>
-        <div class="filter-item">
-            <label class="filter-label">結束日期</label>
-            <input type="date" id="filterEndDate" class="filter-input">
+        <div class="form-field">
+            <label>結束日期</label>
+            <input type="date" id="filterEndDate" class="form-input">
         </div>
-        <div class="filter-item">
-            <label class="filter-label">門市</label>
-            <select id="filterStore" class="filter-input">
+        <div class="form-field">
+            <label>門市</label>
+            <select id="filterStore" class="form-input">
                 <option value="">全部門市</option>
                 <option value="潭子門市">潭子門市</option>
                 <option value="大雅門市">大雅門市</option>
                 <option value="豐原門市">豐原門市</option>
-                <option value="中科門市">中科門市</option>
             </select>
         </div>
-        <div class="filter-item">
-            <label class="filter-label">結案狀態</label>
-            <select id="filterStatus" class="filter-input">
+        <div class="form-field">
+            <label>結案狀態</label>
+            <select id="filterStatus" class="form-input">
                 <option value="">全部</option>
                 <option value="true">已結案</option>
                 <option value="false">未結案</option>
             </select>
         </div>
-        <div class="filter-item">
-            <label class="filter-label">搜尋</label>
-            <input type="text" id="filterSearch" class="filter-input" placeholder="客戶名稱或內容...">
+        <div class="form-field">
+            <label>搜尋</label>
+            <input type="text" id="filterSearch" class="form-input" placeholder="客戶名稱或內容...">
         </div>
-        <div class="filter-item">
-            <button id="btnSearch" class="btn" style="width: 100%;">查詢</button>
+        <div class="form-field" style="align-self: flex-end;">
+            <button id="btnSearch" class="btn btn-primary" style="width: 100%;">查詢</button>
         </div>
     </div>
 </div>
 
 <!-- 表格 -->
-<div class="table-container" style="position: relative;">
+<div class="card table-wrap" style="padding: 0; position: relative; overflow: hidden;">
     <div id="loadingOverlay" class="loading-overlay" style="display: none;">
         <div class="loading-spinner"></div>
     </div>
-    <table class="data-table">
+    <table class="data-table" style="margin-bottom: 0;">
         <thead>
             <tr>
                 <th class="col-datetime">日期時間</th>
@@ -323,55 +196,45 @@
                 <th class="col-actions">操作</th>
             </tr>
         </thead>
-        <tbody id="tableBody">
-            <!-- 由 JS 動態填入 -->
-        </tbody>
+        <tbody id="tableBody"></tbody>
     </table>
 
     <!-- 空狀態 -->
     <div id="emptyState" class="empty-state" style="display: none;">
         <div class="empty-state-icon">💬</div>
         <div class="empty-state-text">尚無回覆紀錄</div>
-        <a href="/line_replies_edit" class="btn">新增第一筆回覆</a>
+        <a href="/line_replies_edit" class="btn btn-primary">新增第一筆回覆</a>
     </div>
 
     <!-- 分頁 -->
-    <div id="pagination" class="pagination" style="display: none;">
-        <div class="pagination-info">
-            顯示 <span id="pageStart">1</span>-<span id="pageEnd">20</span> 筆，共 <span id="pageTotal">0</span> 筆
+    <div id="pagination" class="pager" style="display: none;">
+        <div class="pager-info">
+            顯示 <span id="pageStart">1</span>–<span id="pageEnd">20</span> 筆，共 <span id="pageTotal">0</span> 筆
         </div>
-        <div class="pagination-btns" id="paginationBtns">
-            <!-- 由 JS 動態填入 -->
-        </div>
+        <div class="pager-btns" id="paginationBtns"></div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // ── 全域狀態 ───────────────────────────
     let currentPage = 1;
-    let totalPages = 1;
-    const perPage = 20;
+    let totalPages  = 1;
+    const perPage   = 20;
 
-    // ── 初始化 ─────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-        // 設定預設日期範圍（本月）
-        const today = new Date();
+        const today    = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         document.getElementById('filterStartDate').value = formatDate(firstDay);
-        document.getElementById('filterEndDate').value = formatDate(today);
+        document.getElementById('filterEndDate').value   = formatDate(today);
 
-        // 載入資料
         loadData();
 
-        // 綁定事件
         document.getElementById('btnSearch').addEventListener('click', () => {
             currentPage = 1;
             loadData();
         });
 
-        // 篩選條件變更時自動查詢
         ['filterStartDate', 'filterEndDate', 'filterStore', 'filterStatus'].forEach(id => {
             document.getElementById(id).addEventListener('change', () => {
                 currentPage = 1;
@@ -379,40 +242,30 @@
             });
         });
 
-        // 搜尋框 Enter 事件
         document.getElementById('filterSearch').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                currentPage = 1;
-                loadData();
-            }
+            if (e.key === 'Enter') { currentPage = 1; loadData(); }
         });
     });
 
-    // ── 載入資料 ───────────────────────────
     async function loadData() {
         showLoading(true);
 
-        const params = new URLSearchParams({
-            page: currentPage,
-            per_page: perPage
-        });
-
+        const params = new URLSearchParams({ page: currentPage, per_page: perPage });
         const startDate = document.getElementById('filterStartDate').value;
-        const endDate = document.getElementById('filterEndDate').value;
-        const store = document.getElementById('filterStore').value;
-        const status = document.getElementById('filterStatus').value;
-        const search = document.getElementById('filterSearch').value;
+        const endDate   = document.getElementById('filterEndDate').value;
+        const store     = document.getElementById('filterStore').value;
+        const status    = document.getElementById('filterStatus').value;
+        const search    = document.getElementById('filterSearch').value;
 
         if (startDate) params.append('start_date', startDate);
-        if (endDate) params.append('end_date', endDate);
-        if (store) params.append('store', store);
-        if (status) params.append('is_resolved', status);
-        if (search) params.append('search', search);
+        if (endDate)   params.append('end_date', endDate);
+        if (store)     params.append('store', store);
+        if (status)    params.append('is_resolved', status);
+        if (search)    params.append('search', search);
 
         try {
             const response = await fetch(`/api/line-replies?${params}`);
-            const result = await response.json();
-
+            const result   = await response.json();
             if (result.success) {
                 renderTable(result.data);
                 renderPagination(result.pagination);
@@ -427,9 +280,8 @@
         }
     }
 
-    // ── 渲染表格 ───────────────────────────
     function renderTable(data) {
-        const tbody = document.getElementById('tableBody');
+        const tbody      = document.getElementById('tableBody');
         const emptyState = document.getElementById('emptyState');
 
         if (data.length === 0) {
@@ -452,87 +304,70 @@
                 <td>${escapeHtml(item.reply_store)}</td>
                 <td>${escapeHtml(item.reply_staff)}</td>
                 <td>
-                    <span class="status-badge ${item.is_resolved ? 'status-resolved' : 'status-pending'}">
+                    <span class="status-badge ${item.is_resolved ? 'status-completed' : 'status-pending'}">
                         ${item.is_resolved ? '✓ 已結案' : '○ 未結案'}
                     </span>
                 </td>
                 <td>
                     <div class="action-btns">
-                        <button class="action-btn" onclick="editReply(${item.id})">編輯</button>
-                        <button class="action-btn delete" onclick="deleteReply(${item.id})">刪除</button>
+                        <button class="btn btn-secondary" style="font-size:12px;padding:5px 10px;" onclick="editReply(${item.id})">編輯</button>
+                        <button class="btn btn-danger"    style="font-size:12px;padding:5px 10px;" onclick="deleteReply(${item.id})">刪除</button>
                     </div>
                 </td>
             </tr>
         `).join('');
     }
 
-    // ── 渲染分頁 ───────────────────────────
     function renderPagination(pagination) {
         totalPages = pagination.total_pages;
         const start = (pagination.page - 1) * pagination.per_page + 1;
-        const end = Math.min(start + pagination.data_count - 1, pagination.total);
+        const end   = Math.min(start + pagination.data_count - 1, pagination.total);
 
         document.getElementById('pageStart').textContent = pagination.total > 0 ? start : 0;
-        document.getElementById('pageEnd').textContent = end;
+        document.getElementById('pageEnd').textContent   = end;
         document.getElementById('pageTotal').textContent = pagination.total;
 
         const btnContainer = document.getElementById('paginationBtns');
         let html = '';
 
-        // 上一頁
-        html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一頁</button>`;
+        html += `<button class="btn-page" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一頁</button>`;
 
-        // 頁碼按鈕
         const maxButtons = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
-        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-
-        if (endPage - startPage < maxButtons - 1) {
-            startPage = Math.max(1, endPage - maxButtons + 1);
-        }
+        let endPage   = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage < maxButtons - 1) startPage = Math.max(1, endPage - maxButtons + 1);
 
         if (startPage > 1) {
-            html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
-            if (startPage > 2) html += `<span style="padding: 6px; color: #8892b0;">...</span>`;
+            html += `<button class="btn-page" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) html += `<span style="padding:6px;color:var(--color-text-secondary)">…</span>`;
         }
-
         for (let i = startPage; i <= endPage; i++) {
-            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            html += `<button class="btn-page ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
         }
-
         if (endPage < totalPages) {
-            if (endPage < totalPages - 1) html += `<span style="padding: 6px; color: #8892b0;">...</span>`;
-            html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            if (endPage < totalPages - 1) html += `<span style="padding:6px;color:var(--color-text-secondary)">…</span>`;
+            html += `<button class="btn-page" onclick="goToPage(${totalPages})">${totalPages}</button>`;
         }
 
-        // 下一頁
-        html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一頁</button>`;
-
+        html += `<button class="btn-page" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一頁</button>`;
         btnContainer.innerHTML = html;
     }
 
-    // ── 分頁操作 ───────────────────────────
     function goToPage(page) {
         if (page < 1 || page > totalPages || page === currentPage) return;
         currentPage = page;
         loadData();
     }
 
-    // ── 編輯 ───────────────────────────────
     function editReply(id) {
         window.location.href = `/line_replies_edit?id=${id}`;
     }
 
-    // ── 刪除 ───────────────────────────────
     async function deleteReply(id) {
         if (!confirm('確定要刪除這筆回覆紀錄嗎？')) return;
-
         try {
-            const response = await fetch(`/api/line-replies/${id}`, {
-                method: 'DELETE'
-            });
-            const result = await response.json();
-
+            const response = await fetch(`/api/line-replies/${id}`, { method: 'DELETE' });
+            const result   = await response.json();
             if (result.success) {
                 loadData();
             } else {
@@ -544,25 +379,23 @@
         }
     }
 
-    // ── 工具函數 ───────────────────────────
     function showLoading(show) {
         document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
     }
 
     function showError(message) {
         document.getElementById('tableBody').innerHTML = `
-            <tr><td colspan="7" style="text-align: center; padding: 40px; color: #8892b0;">${message}</td></tr>
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-text-secondary);">${message}</td></tr>
         `;
     }
 
     function formatDate(date) {
-        const d = new Date(date);
-        return d.toISOString().split('T')[0];
+        return new Date(date).toISOString().split('T')[0];
     }
 
     function formatDateTime(datetime) {
         const d = new Date(datetime);
-        return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     }
 
     function escapeHtml(text) {
