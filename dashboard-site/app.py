@@ -1411,7 +1411,7 @@ def get_store_supervision():
         
         result = []
         for row in rows:
-            # 計算環境整潔總分（5項，每項 0-10 分，滿分 50）
+            # 計算環境整潔總分（5項，每項 0-2 分，滿分 10）
             total_avg = sum([
                 row['avg_storefront'] or 0,
                 row['avg_cleanliness'] or 0,
@@ -1419,15 +1419,15 @@ def get_store_supervision():
                 row['avg_cable'] or 0,
                 row['avg_warehouse'] or 0
             ])
-            # 50分滿分，計算百分比
-            percentage = round((total_avg / 50) * 100) if total_avg > 0 else 0
+            # 10分滿分，計算百分比
+            percentage = round((total_avg / 10) * 100) if total_avg > 0 else 0
             store_name = row['store_name']
             
             result.append({
                 'store': store_name,
                 'percentage': percentage,
                 'raw_score': round(total_avg, 1),
-                'max_score': 50,
+                'max_score': 10,
                 'inspection_count': count_map.get(store_name, 0)
             })
         
@@ -5320,15 +5320,15 @@ def save_supervision_score():
     except ValueError:
         return jsonify({'success': False, 'message': '日期格式錯誤，應為 YYYY-MM-DD'}), 400
 
-    # 新結構：11 項評分，每項 0-10 分
+    # 新結構：11 項評分，每項 0-2 分
     score_fields = ['attendance', 'appearance', 'service_attitude', 'professional_knowledge',
                    'sales_process', 'storefront_cleanliness', 'store_cleanliness', 'product_display',
                    'cable_management', 'warehouse_organization', 'work_attitude']
 
     for field in score_fields:
         value = data.get(field, 0)
-        if value not in [0, 5, 10]:
-            return jsonify({'success': False, 'message': f'{field} 分數只能為 0/5/10'}), 400
+        if value not in [0, 1, 2]:
+            return jsonify({'success': False, 'message': f'{field} 分數只能為 0/1/2'}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()

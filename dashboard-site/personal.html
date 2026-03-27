@@ -388,7 +388,7 @@
             
             Object.keys(scoreLabels).forEach(key => {
                 const score = scores[key] || 0;
-                const max = 10;
+                const max = 2;
                 const percentage = Math.round((score / max) * 100);
                 totalScore += score;
                 totalMax += max;
@@ -408,17 +408,17 @@
                 `;
             });
             
-            const totalPercentage = Math.round((totalScore / totalMax) * 100);
+            const totalPercentage = Math.round((totalScore / 12) * 100); // 6項 × 2分 = 12分滿分
             let totalClass = 'ach-danger';
             if (totalPercentage >= 85) totalClass = 'ach-excellent';
             else if (totalPercentage >= 70) totalClass = 'ach-good';
             else if (totalPercentage >= 50) totalClass = 'ach-warning';
-            
+
             tableHtml += `
                     <tr style="border-top: 2px solid rgba(250, 191, 19, 0.3);">
                         <td><strong>總分</strong></td>
                         <td class="number highlight">${totalScore}</td>
-                        <td class="number">${totalMax}</td>
+                        <td class="number">12</td>
                         <td class="number ${totalClass}"><strong>${totalPercentage}%</strong></td>
                     </tr>
                 </tbody>
