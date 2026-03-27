@@ -573,26 +573,32 @@
 
         // 資料來源名稱對照表（英文轉中文）
         const sourceNameMap = {
-            'customers': '客戶資料',
             'sales': '銷貨資料',
             'purchase': '進貨資料',
+            'customers': '客戶資料',
             'inventory': '庫存資料',
             'feedback': '評論資料',
             'roster': '班表資料',
             'performance': '績效資料'
         };
 
+        // 定義固定順序：銷貨 → 進貨 → 客戶 → 庫存
+        const sourceOrder = ['sales', 'purchase', 'customers', 'inventory'];
+
         let dataHtml = '';
-        freshness.slice(0, 4).forEach(f => {
-            const status = f.status === 'OK' ? 'green' : (f.status === 'WARN' ? 'yellow' : 'red');
-            // 取得中文名稱，若無對照則使用原始值
-            const displayName = sourceNameMap[f.data_source] || f.data_source;
-            // customers 只顯示日期（去掉時間部分）
-            let dateValue = f.latest_business_date || '無';
-            if (f.data_source === 'customers' && dateValue.includes(' ')) {
-                dateValue = dateValue.split(' ')[0]; // 只取日期部分
+        // 依照固定順序渲染
+        sourceOrder.forEach(sourceKey => {
+            const f = freshness.find(item => item.data_source === sourceKey);
+            if (f) {
+                const status = f.status === 'OK' ? 'green' : (f.status === 'WARN' ? 'yellow' : 'red');
+                const displayName = sourceNameMap[f.data_source] || f.data_source;
+                // customers 只顯示日期（去掉時間部分）
+                let dateValue = f.latest_business_date || '無';
+                if (f.data_source === 'customers' && dateValue.includes(' ')) {
+                    dateValue = dateValue.split(' ')[0]; // 只取日期部分
+                }
+                dataHtml += `<div class="detail-row"><span class="detail-label">${displayName}</span><span class="detail-value ${status}">${dateValue}</span></div>`;
             }
-            dataHtml += `<div class="detail-row"><span class="detail-label">${displayName}</span><span class="detail-value ${status}">${dateValue}</span></div>`;
         });
         dataContent.innerHTML = dataHtml || '<div class="detail-row"><span class="detail-label">暫無資料</span></div>';
     }
