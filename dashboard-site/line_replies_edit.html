@@ -162,7 +162,7 @@
     <div class="page-title-wrap">
         <span class="page-subtitle" id="pageSubtitle">記錄 LINE 官方帳號客戶回覆</span>
     </div>
-    <a href="/line_replies.html" class="btn btn-secondary">← 返回列表</a>
+    <a href="/line_replies" class="btn btn-secondary">← 返回列表</a>
 </div>
 
 <!-- 表單 -->
@@ -221,7 +221,7 @@
         <!-- 按鈕 -->
         <div class="form-actions">
             <button type="submit" class="btn" id="btnSubmit">儲存</button>
-            <a href="/line_replies.html" class="btn btn-secondary">取消</a>
+            <a href="/line_replies" class="btn btn-secondary">取消</a>
         </div>
     </form>
 </div>
@@ -313,12 +313,12 @@
                 document.getElementById('replyStaff').value = data.reply_staff;
             } else {
                 alert('載入資料失敗: ' + result.message);
-                window.location.href = '/line_replies.html';
+                window.location.href = '/line_replies';
             }
         } catch (error) {
             console.error('載入資料失敗:', error);
             alert('載入資料失敗');
-            window.location.href = '/line_replies.html';
+            window.location.href = '/line_replies';
         }
     }
 
@@ -398,7 +398,7 @@
             const result = await response.json();
 
             if (result.success) {
-                window.location.href = '/line_replies.html';
+                window.location.href = '/line_replies';
             } else {
                 alert('儲存失敗: ' + result.message);
                 btn.disabled = false;
