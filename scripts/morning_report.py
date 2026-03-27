@@ -41,14 +41,44 @@ QUOTES = [
 ]
 
 def get_weather():
-    """取得台中天氣"""
+    """取得台中天氣 - 使用 Open-Meteo API"""
     try:
-        result = subprocess.run(
-            ['curl', '-s', 'wttr.in/Taichung?format=%l:+%c+%t+(體感+%f),+%w+風速,+%h+濕度,+%p+降雨機率'],
-            capture_output=True, text=True, timeout=10
-        )
-        return result.stdout.strip()
-    except:
+        # Open-Meteo API (免費，無需 API key)
+        url = "https://api.open-meteo.com/v1/forecast?latitude=24.15&longitude=120.68&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=Asia/Taipei"
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        
+        current = data.get('current', {})
+        temp = current.get('temperature_2m', 'N/A')
+        feels_like = current.get('apparent_temperature', 'N/A')
+        humidity = current.get('relative_humidity_2m', 'N/A')
+        wind = current.get('wind_speed_10m', 'N/A')
+        weather_code = current.get('weather_code', 0)
+        
+        # WMO Weather interpretation codes
+        weather_emojis = {
+            0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+            45: '🌫️', 48: '🌫️',
+            51: '🌦️', 53: '🌦️', 55: '🌧️',
+            61: '🌧️', 63: '🌧️', 65: '🌧️',
+            71: '🌨️', 73: '🌨️', 75: '🌨️',
+            80: '🌦️', 81: '🌧️', 82: '🌧️',
+            95: '⛈️', 96: '⛈️', 99: '⛈️'
+        }
+        weather_emoji = weather_emojis.get(weather_code, '🌡️')
+        
+        return f"台中: {weather_emoji} {temp}°C (體感 {feels_like}°C), 濕度 {humidity}%, 風速 {wind} km/h"
+    except Exception as e:
+        # 備用方案：嘗試 wttr.in
+        try:
+            result = subprocess.run(
+                ['curl', '-s', 'wttr.in/Taichung?format=%l:+%c+%t+(體感+%f),+%w+風速,+%h+濕度'],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0 and 'weather' not in result.stdout.lower():
+                return result.stdout.strip()
+        except:
+            pass
         return "台中天氣暫時無法取得"
 
 def get_today_roster():
@@ -123,16 +153,82 @@ def get_q1_performance():
     return targets, dept_actuals, store_actuals
 
 def get_tech_news():
-    """取得科技新聞（使用 OpenClaw web_search 工具）"""
+    """取得科技新聞（從 Google News RSS 抓取）"""
+    import xml.etree.ElementTree as ET
     
-    # 備用新聞內容（當 API 失敗時使用）
-    fallback_news = [
+    try:
+        # 嘗試抓取 Google News RSS (AI 相關)
+        rss_url = "https://news.google.com/rss/search?q=AI+人工智慧+科技&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get(rss_url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            # 解析 RSS
+            root = ET.fromstring(response.content)
+            items = root.findall('.//item')[:3]  # 取前 3 則
+            
+            news_list = []
+            emojis = ["🤖", "💻", "📱"]
+            
+            for i, item in enumerate(items):
+                title = item.find('title')
+                title_text = title.text if title is not None else "科技新聞"
+                # 移除來源標記 (如 - 聯合新聞網)
+                title_text = title_text.split(' - ')[0] if ' - ' in title_text else title_text
+                
+                # 簡短摘要 (從標題推測)
+                summary = "相關產業持續發展，值得關注最新動態。"
+                if 'AI' in title_text or '人工智慧' in title_text:
+                    summary = "AI 技術持續演進，影響各行各業發展。"
+                elif 'NVIDIA' in title_text or '輝達' in title_text or '晶片' in title_text:
+                    summary = "半導體產業持續創新，帶動科技供應鏈發展。"
+                elif '微軟' in title_text or 'Microsoft' in title_text or 'Google' in title_text:
+                    summary = "科技巨擘持續投入新服務與產品開發。"
+                
+                news_list.append({
+                    "title": title_text[:30] + "..." if len(title_text) > 30 else title_text,
+                    "emoji": emojis[i % len(emojis)],
+                    "summary": summary,
+                    "source": "科技新聞"
+                })
+            
+            if news_list:
+                return news_list
+    except Exception as e:
+        pass
+    
+    # 備用：嘗試另一個 RSS 源 (TechCrunch 中文或類似)
+    try:
+        rss_url2 = "https://feeds.feedburner.com/engadget/cstb"
+        response = requests.get(rss_url2, timeout=10)
+        if response.status_code == 200:
+            root = ET.fromstring(response.content)
+            items = root.findall('.//item')[:3]
+            
+            news_list = []
+            emojis = ["🤖", "💻", "📱"]
+            for i, item in enumerate(items):
+                title = item.find('title')
+                title_text = title.text if title is not None else "科技新聞"
+                news_list.append({
+                    "title": title_text[:30] + "..." if len(title_text) > 30 else title_text,
+                    "emoji": emojis[i % len(emojis)],
+                    "summary": "最新科技動態，值得關注。",
+                    "source": "Engadget"
+                })
+            if news_list:
+                return news_list
+    except:
+        pass
+    
+    # 最終備用新聞內容
+    return [
         {"title": "AI 產業持續快速發展", "emoji": "🤖", "summary": "各大科技巨擘持續投入 AI 研究，新模型與應用層出不窮。", "source": "產業快訊"},
         {"title": "半導體產業動態", "emoji": "💻", "summary": "NVIDIA、Intel 等企業持續優化晶片設計與製造技術。", "source": "產業快訊"},
         {"title": "軟體與服務更新", "emoji": "📱", "summary": "各大平台持續推出新功能與 AI 整合應用。", "source": "產業快訊"}
     ]
-    
-    return fallback_news
 
 def format_money(amount):
     """格式化金額"""
