@@ -292,9 +292,19 @@
         // ── 取得登入使用者 ─────────────────────
         function getCurrentUser() {
             try {
-                const userData = localStorage.getItem('erp_user');
+                // 優先從 sessionStorage 取得，其次 localStorage
+                const sessionData = sessionStorage.getItem('currentUser');
+                const localData = localStorage.getItem('currentUser');
+                const userData = sessionData || localData;
                 if (userData) {
-                    return JSON.parse(userData);
+                    const user = JSON.parse(userData);
+                    // 轉換格式以相容現有程式碼
+                    return {
+                        name: user.name || user.staff_name,
+                        title: user.title || user.role,
+                        store: user.store || user.department,
+                        department: user.department
+                    };
                 }
             } catch (e) {
                 console.error('取得使用者資訊失敗:', e);
