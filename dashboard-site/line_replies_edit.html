@@ -6,152 +6,63 @@
 
 {% block styles %}
 <style>
-    /* ── 頁面標題 ─────────────────────────── */
+    /* ── 頁面專用 ─────────────────────────── */
     .page-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 24px;
-    }
-    .page-title-wrap {
-        display: flex;
-        align-items: baseline;
-        gap: 12px;
+        margin-bottom: var(--space-5);
     }
     .page-subtitle {
-        font-size: 13px;
-        color: #8892b0;
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
     }
 
-    /* ── 表單卡片 ─────────────────────────── */
+    /* 表單卡片最大寬度 */
     .form-card {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 28px 32px;
-        max-width: 600px;
+        max-width: 640px;
     }
 
-    /* ── 表單欄位 ─────────────────────────── */
-    .form-group {
-        margin-bottom: 20px;
-    }
-    .form-label {
-        display: block;
-        font-size: 13px;
-        font-weight: 400;
-        color: #8892b0;
-        margin-bottom: 8px;
-    }
-    .form-label .required {
-        color: #dc3545;
-        margin-left: 2px;
-    }
-    .form-input,
-    .form-textarea,
-    .form-select {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        font-size: 14px;
-        background: rgba(255, 255, 255, 0.05);
-        color: #fff;
-        transition: border-color 0.2s;
-        box-sizing: border-box;
-    }
-    .form-input:focus,
-    .form-textarea:focus,
-    .form-select:focus {
-        outline: none;
-        border-color: #FABF13;
-    }
-    .form-input:disabled,
-    .form-select:disabled {
-        background: rgba(255, 255, 255, 0.03);
-        color: #8892b0;
-        cursor: not-allowed;
-    }
-    .form-textarea {
-        min-height: 120px;
-        resize: vertical;
-        line-height: 1.6;
-    }
-
-    /* ── 日期時間選擇器 ───────────────────── */
-    .datetime-wrap {
-        display: flex;
-        gap: 12px;
-    }
-    .datetime-wrap .form-input {
-        flex: 1;
-    }
-
-    /* ── Checkbox ────────────────────────── */
+    /* Checkbox */
     .checkbox-wrap {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 8px 0;
+        gap: var(--space-3);
+        padding: var(--space-2) 0;
     }
     .checkbox-wrap input[type="checkbox"] {
         width: 18px;
         height: 18px;
-        accent-color: #FABF13;
+        accent-color: var(--color-brand-primary);
         cursor: pointer;
     }
     .checkbox-wrap label {
-        font-size: 14px;
-        color: #ccd6f6;
+        font-size: var(--font-size-md);
+        color: var(--color-text-primary);
         cursor: pointer;
     }
 
-    /* ── 唯讀資訊 ─────────────────────────── */
-    .info-row {
-        display: flex;
-        gap: 20px;
-    }
-    .info-row .form-group {
-        flex: 1;
-    }
-
-    /* ── 按鈕區 ───────────────────────────── */
+    /* 按鈕區分隔線 */
     .form-actions {
         display: flex;
-        gap: 12px;
-        margin-top: 28px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        gap: var(--space-3);
+        margin-top: var(--space-6);
+        padding-top: var(--space-5);
+        border-top: 1px solid var(--color-border-default);
     }
 
-    /* ── 錯誤提示 ─────────────────────────── */
+    /* 錯誤提示 */
     .error-message {
-        color: #dc3545;
-        font-size: 12px;
-        margin-top: 6px;
+        color: var(--color-status-error);
+        font-size: var(--font-size-xs);
+        margin-top: var(--space-2);
         display: none;
     }
-    .error-message.show {
-        display: block;
-    }
-    .form-group.has-error .form-input,
-    .form-group.has-error .form-textarea {
-        border-color: #dc3545;
-    }
+    .error-message.show { display: block; }
+    .form-field.has-error .form-input { border-color: var(--color-status-error); }
 
-    /* ── 響應式 ───────────────────────────── */
     @media (max-width: 768px) {
-        .form-card {
-            padding: 20px;
-        }
-        .datetime-wrap {
-            flex-direction: column;
-            gap: 8px;
-        }
-        .info-row {
-            flex-direction: column;
-            gap: 0;
-        }
+        .form-card { padding: var(--space-5); }
     }
 </style>
 {% endblock %}
@@ -159,59 +70,52 @@
 {% block content %}
 <!-- 頁面標題 -->
 <div class="page-header">
-    <div class="page-title-wrap">
-        <span class="page-subtitle" id="pageSubtitle">記錄 LINE 官方帳號客戶回覆</span>
-    </div>
+    <span class="page-subtitle" id="pageSubtitle">記錄 LINE 官方帳號客戶回覆</span>
     <a href="/line_replies" class="btn btn-secondary">← 返回列表</a>
 </div>
 
 <!-- 表單 -->
-<div class="form-card">
+<div class="card form-card">
     <form id="replyForm">
+
         <!-- 日期時間 -->
-        <div class="form-group">
-            <label class="form-label">
-                回覆日期時間 <span class="required">*</span>
-            </label>
-            <div class="datetime-wrap">
-                <input type="date" id="replyDate" class="form-input" required>
-                <input type="time" id="replyTime" class="form-input" required>
+        <div class="form-field" style="margin-bottom: var(--space-5);">
+            <label>回覆日期時間 <span style="color:var(--color-status-error)">*</span></label>
+            <div class="form-row" style="margin-bottom: 0; gap: var(--space-3);">
+                <input type="date" id="replyDate" class="form-input" required style="flex:1;">
+                <input type="time" id="replyTime" class="form-input" required style="flex:1;">
             </div>
             <div class="error-message" id="errorDatetime">請選擇有效的日期時間（不能是未來）</div>
         </div>
 
         <!-- 客戶名稱 -->
-        <div class="form-group">
-            <label class="form-label">
-                客戶 LINE 名稱 <span class="required">*</span>
-            </label>
+        <div class="form-field" style="margin-bottom: var(--space-5);">
+            <label>客戶 LINE 名稱 <span style="color:var(--color-status-error)">*</span></label>
             <input type="text" id="customerName" class="form-input" placeholder="請輸入客戶在 LINE 上的名稱" required>
             <div class="error-message" id="errorCustomer">請輸入客戶名稱</div>
         </div>
 
         <!-- 提問內容 -->
-        <div class="form-group">
-            <label class="form-label">
-                提問與回覆事項 <span class="required">*</span>
-            </label>
-            <textarea id="inquiryContent" class="form-textarea" placeholder="請輸入客戶提問內容及回覆事項..." required></textarea>
+        <div class="form-field" style="margin-bottom: var(--space-5);">
+            <label>提問與回覆事項 <span style="color:var(--color-status-error)">*</span></label>
+            <textarea id="inquiryContent" class="form-input" style="min-height:120px;resize:vertical;line-height:1.6;" placeholder="請輸入客戶提問內容及回覆事項..." required></textarea>
             <div class="error-message" id="errorContent">請輸入提問與回覆事項</div>
         </div>
 
         <!-- 門市與人員（唯讀） -->
-        <div class="info-row">
-            <div class="form-group">
-                <label class="form-label">回覆門市</label>
+        <div class="form-row" style="margin-bottom: var(--space-5);">
+            <div class="form-field">
+                <label>回覆門市</label>
                 <input type="text" id="replyStore" class="form-input" disabled>
             </div>
-            <div class="form-group">
-                <label class="form-label">回覆人員</label>
+            <div class="form-field">
+                <label>回覆人員</label>
                 <input type="text" id="replyStaff" class="form-input" disabled>
             </div>
         </div>
 
         <!-- 結案狀態 -->
-        <div class="form-group">
+        <div class="form-field" style="margin-bottom: var(--space-4);">
             <div class="checkbox-wrap">
                 <input type="checkbox" id="isResolved">
                 <label for="isResolved">已結案 / 成交</label>
@@ -220,22 +124,20 @@
 
         <!-- 按鈕 -->
         <div class="form-actions">
-            <button type="submit" class="btn" id="btnSubmit">儲存</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmit">儲存</button>
             <a href="/line_replies" class="btn btn-secondary">取消</a>
         </div>
+
     </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // ── 全域狀態 ───────────────────────────
-    let editId = null;
+    let editId      = null;
     let currentUser = null;
 
-    // ── 初始化 ─────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-        // 取得登入使用者資訊
         currentUser = getCurrentUser();
         if (!currentUser) {
             alert('請先登入');
@@ -243,11 +145,9 @@
             return;
         }
 
-        // 填入門市與人員
         document.getElementById('replyStore').value = currentUser.store || currentUser.department || '';
         document.getElementById('replyStaff').value = currentUser.name || '';
 
-        // 檢查是否為編輯模式
         const urlParams = new URLSearchParams(window.location.search);
         editId = urlParams.get('id');
 
@@ -255,34 +155,24 @@
             document.getElementById('pageTitle').textContent = '💬 編輯回覆';
             loadReplyData(editId);
         } else {
-            // 新增模式：預設為現在時間
             const now = new Date();
             document.getElementById('replyDate').value = formatDate(now);
             document.getElementById('replyTime').value = formatTime(now);
         }
 
-        // 限制日期不能選未來
-        const today = new Date();
-        document.getElementById('replyDate').max = formatDate(today);
-
-        // 綁定表單提交
+        document.getElementById('replyDate').max = formatDate(new Date());
         document.getElementById('replyForm').addEventListener('submit', handleSubmit);
     });
 
-    // ── 取得登入使用者 ─────────────────────
     function getCurrentUser() {
         try {
-            // 優先從 sessionStorage 取得，其次 localStorage
-            const sessionData = sessionStorage.getItem('currentUser');
-            const localData = localStorage.getItem('currentUser');
-            const userData = sessionData || localData;
+            const userData = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
             if (userData) {
                 const user = JSON.parse(userData);
-                // 轉換格式以相容現有程式碼
                 return {
-                    name: user.name || user.staff_name,
-                    title: user.title || user.role,
-                    store: user.store || user.department,
+                    name:       user.name || user.staff_name,
+                    title:      user.title || user.role,
+                    store:      user.store || user.department,
                     department: user.department
                 };
             }
@@ -292,25 +182,21 @@
         return null;
     }
 
-    // ── 載入回覆資料（編輯模式）──────────────
     async function loadReplyData(id) {
         try {
             const response = await fetch(`/api/line-replies/${id}`);
-            const result = await response.json();
+            const result   = await response.json();
 
             if (result.success) {
                 const data = result.data;
-                const dt = new Date(data.reply_datetime);
-
-                document.getElementById('replyDate').value = formatDate(dt);
-                document.getElementById('replyTime').value = formatTime(dt);
-                document.getElementById('customerName').value = data.customer_line_name;
-                document.getElementById('inquiryContent').value = data.inquiry_content;
-                document.getElementById('isResolved').checked = data.is_resolved;
-
-                // 顯示原始門市與人員（唯讀）
-                document.getElementById('replyStore').value = data.reply_store;
-                document.getElementById('replyStaff').value = data.reply_staff;
+                const dt   = new Date(data.reply_datetime);
+                document.getElementById('replyDate').value        = formatDate(dt);
+                document.getElementById('replyTime').value        = formatTime(dt);
+                document.getElementById('customerName').value     = data.customer_line_name;
+                document.getElementById('inquiryContent').value   = data.inquiry_content;
+                document.getElementById('isResolved').checked     = data.is_resolved;
+                document.getElementById('replyStore').value       = data.reply_store;
+                document.getElementById('replyStaff').value       = data.reply_staff;
             } else {
                 alert('載入資料失敗: ' + result.message);
                 window.location.href = '/line_replies';
@@ -322,124 +208,83 @@
         }
     }
 
-    // ── 表單提交 ───────────────────────────
     async function handleSubmit(e) {
         e.preventDefault();
-
-        // 清除錯誤狀態
         clearErrors();
 
-        // 驗證
-        const date = document.getElementById('replyDate').value;
-        const time = document.getElementById('replyTime').value;
-        const customerName = document.getElementById('customerName').value.trim();
+        const date          = document.getElementById('replyDate').value;
+        const time          = document.getElementById('replyTime').value;
+        const customerName  = document.getElementById('customerName').value.trim();
         const inquiryContent = document.getElementById('inquiryContent').value.trim();
-
         let hasError = false;
 
-        // 驗證日期時間
-        if (!date || !time) {
+        if (!date || !time || new Date(`${date}T${time}`) > new Date()) {
             showError('datetime');
             hasError = true;
-        } else {
-            const selectedDatetime = new Date(`${date}T${time}`);
-            const now = new Date();
-            if (selectedDatetime > now) {
-                showError('datetime');
-                hasError = true;
-            }
         }
-
-        if (!customerName) {
-            showError('customer');
-            hasError = true;
-        }
-
-        if (!inquiryContent) {
-            showError('content');
-            hasError = true;
-        }
-
+        if (!customerName)   { showError('customer'); hasError = true; }
+        if (!inquiryContent) { showError('content');  hasError = true; }
         if (hasError) return;
 
-        // 組合資料
         const data = {
-            reply_datetime: `${date}T${time}`,
-            customer_line_name: customerName,
-            inquiry_content: inquiryContent,
-            reply_store: document.getElementById('replyStore').value,
-            reply_staff: document.getElementById('replyStaff').value,
-            is_resolved: document.getElementById('isResolved').checked
+            reply_datetime:      `${date}T${time}`,
+            customer_line_name:  customerName,
+            inquiry_content:     inquiryContent,
+            reply_store:         document.getElementById('replyStore').value,
+            reply_staff:         document.getElementById('replyStaff').value,
+            is_resolved:         document.getElementById('isResolved').checked
         };
 
-        // 送出
         const btn = document.getElementById('btnSubmit');
-        btn.disabled = true;
+        btn.disabled    = true;
         btn.textContent = '儲存中...';
 
         try {
-            let response;
-            if (editId) {
-                // 更新
-                response = await fetch(`/api/line-replies/${editId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-            } else {
-                // 新增
-                response = await fetch('/api/line-replies', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-            }
-
+            const url    = editId ? `/api/line-replies/${editId}` : '/api/line-replies';
+            const method = editId ? 'PUT' : 'POST';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
             const result = await response.json();
 
             if (result.success) {
                 window.location.href = '/line_replies';
             } else {
                 alert('儲存失敗: ' + result.message);
-                btn.disabled = false;
+                btn.disabled    = false;
                 btn.textContent = '儲存';
             }
         } catch (error) {
             console.error('儲存失敗:', error);
             alert('儲存失敗');
-            btn.disabled = false;
+            btn.disabled    = false;
             btn.textContent = '儲存';
         }
     }
 
-    // ── 錯誤處理 ───────────────────────────
     function showError(field) {
-        const errorEl = document.getElementById(`error${field.charAt(0).toUpperCase() + field.slice(1)}`);
-        if (errorEl) {
-            errorEl.classList.add('show');
-        }
-        const inputEl = document.getElementById(field === 'datetime' ? 'replyDate' : 
-                                                 field === 'customer' ? 'customerName' : 
-                                                 field === 'content' ? 'inquiryContent' : field);
-        if (inputEl) {
-            inputEl.closest('.form-group')?.classList.add('has-error');
-        }
+        const idMap = { datetime: 'errorDatetime', customer: 'errorCustomer', content: 'errorContent' };
+        const el = document.getElementById(idMap[field]);
+        if (el) el.classList.add('show');
+        const inputIdMap = { datetime: 'replyDate', customer: 'customerName', content: 'inquiryContent' };
+        const inputEl = document.getElementById(inputIdMap[field]);
+        if (inputEl) inputEl.closest('.form-field')?.classList.add('has-error');
     }
 
     function clearErrors() {
         document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
-        document.querySelectorAll('.form-group').forEach(el => el.classList.remove('has-error'));
+        document.querySelectorAll('.form-field').forEach(el => el.classList.remove('has-error'));
     }
 
-    // ── 工具函數 ───────────────────────────
     function formatDate(date) {
-        const d = new Date(date);
-        return d.toISOString().split('T')[0];
+        return new Date(date).toISOString().split('T')[0];
     }
 
     function formatTime(date) {
         const d = new Date(date);
-        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     }
 </script>
 {% endblock %}

@@ -421,60 +421,60 @@ _OMLX_SESSION.trust_env = False  # 避免 macOS 26 + Gunicorn fork crash
 
 ### 4.1 業績儀表板（Phase 2）
 
-| 頁面名稱 | 檔案 | 用途 | 權限 |
-|----------|------|------|------|
-| 首頁 | `index.html` | 總覽、KPI、日銷售趨勢、公告 | 全員 |
-| 部門業績 | `department.html` | 部門業績分析（月/季/年） | 全員 |
-| 門市業績 | `store.html` | 門市業績分析 | 全員 |
-| 個人業績 | `personal.html` | 個人業績排名、spotlight | 全員 |
-| 業務部績效 | `business.html` | 業務員專屬報表 | 全員 |
-| 老闆控制台 | `boss.html` | 需求審核、今日班表 | 老闆 |
+| 頁面名稱 | 路由 | 檔案 | 用途 | 權限 |
+|----------|------|------|------|------|
+| 首頁 | `/` | `index.html` | 總覽、KPI、日銷售趨勢、公告 | 全員 |
+| 部門業績 | `/department` | `department.html` | 部門業績分析（月/季/年） | 全員 |
+| 門市業績 | `/store` | `store.html` | 門市業績分析 | 全員 |
+| 個人業績 | `/personal` | `personal.html` | 個人業績排名、spotlight | 全員 |
+| 業務部績效 | `/business` | `business.html` | 業務員專屬報表 | 全員 |
+| 老闆控制台 | `/boss` | `boss.html` | 需求審核、今日班表 | 老闆 |
 
 ### 4.2 表單操作（Phase 3）
 
-| 頁面名稱 | 檔案 | 用途 | 權限 |
-|----------|------|------|------|
-| 銷貨輸入 | `query.html` | 新增銷貨單 | 全員 |
-| 報價單 | `quote_input.html` | 建立報價，定價/報價雙欄 | 全員 |
-| 需求表填寫 | `needs_input.html` | 請購/調撥/新品申請 | 全員 |
+| 頁面名稱 | 路由 | 檔案 | 用途 | 權限 |
+|----------|------|------|------|------|
+| 銷貨輸入 | `/query` | `query.html` | 新增銷貨單 | 全員 |
+| 報價單 | `/quote_input` | `quote_input.html` | 建立報價，定價/報價雙欄 | 全員 |
+| 需求表填寫 | `/needs_input` | `needs_input.html` | 請購/調撥/新品申請 | 全員 |
 
 ### 4.3 查詢類（Phase 3）
 
-| 頁面名稱 | 檔案 | 用途 | 權限 |
-|----------|------|------|------|
-| 庫存查詢 | `inventory_query.html` | 庫存查詢、缺貨/偏低過濾 | 全員 |
-| 客戶查詢 | `customer_search.html` | 客戶搜尋、交易記錄 | 全員 |
-| 班表查詢 | `roster.html` | 本週班表、日力統計 | 全員 |
+| 頁面名稱 | 路由 | 檔案 | 用途 | 權限 |
+|----------|------|------|------|------|
+| 庫存查詢 | `/inventory_query` | `inventory_query.html` | 庫存查詢、缺貨/偏低過濾 | 全員 |
+| 客戶查詢 | `/customer_search` | `customer_search.html` | 客戶搜尋、交易記錄 | 全員 |
+| 班表查詢 | `/roster` | `roster.html` | 本週班表、日力統計 | 全員 |
 
 ### 4.4 主管/管理（Phase 3）
 
-| 頁面名稱 | 檔案 | 用途 | 權限 |
-|----------|------|------|------|
-| 督導評分 | `supervision_score.html` | 四大類評分、歷史記錄 | 主管 |
-| 月報表 | `monthly_report.html` | 月度 KPI、各門市比較 | 全員 |
-| 推薦備貨 | `recommended_products.html` | 商品補貨建議、一鍵需求 | 全員 |
-| 個人獎金 | `bonus_personal.html` | 獎金查詢、達標進度 | 全員 |
+| 頁面名稱 | 路由 | 檔案 | 用途 | 權限 |
+|----------|------|------|------|------|
+| 督導評分 | `/supervision_score` | `supervision_score.html` | 四大類評分、歷史記錄 | 主管 |
+| 月報表 | `/monthly_report` | `monthly_report.html` | 月度 KPI、各門市比較 | 全員 |
+| 推薦備貨 | `/recommended_products` | `recommended_products.html` | 商品補貨建議、一鍵需求 | 全員 |
+| 個人獎金 | `/bonus_personal` | `bonus_personal.html` | 獎金查詢、達標進度 | 全員 |
 
 ### 4.5 建檔/後台（Phase 4）
 
-| 頁面名稱 | 檔案 | 用途 | 權限 |
-|----------|------|------|------|
-| 新增客戶 | `customer_create.html` | 建立個人/公司/VIP 客戶 | 全員 |
-| 新增產品 | `product_create.html` | 建立新品、SKU、毛利計算 | 主管 |
-| 新增廠商 | `supplier_create.html` | 建立廠商、聯絡人 | 主管 |
-| 待建檔中心 | `staging_center_v2.html` | 管理未完成的客戶/產品/廠商 | 主管 |
-| 會計專區 | `Accountants.html` | 損益摘要、應收帳款 | 會計 |
-| 員工管理 | `staff_admin.html` | 人員資料、PIN、狀態 | 老闆 |
-| 系統狀態 | `health_check.html` | 健檢、DB 統計、log | 老闆 |
+| 頁面名稱 | 路由 | 檔案 | 用途 | 權限 |
+|----------|------|------|------|------|
+| 新增客戶 | `/customer_create` | `customer_create.html` | 建立個人/公司/VIP 客戶 | 全員 |
+| 新增產品 | `/product_create` | `product_create.html` | 建立新品、SKU、毛利計算 | 主管 |
+| 新增廠商 | `/supplier_create` | `supplier_create.html` | 建立廠商、聯絡人 | 主管 |
+| 待建檔中心 | `/staging_center_v2` | `staging_center_v2.html` | 管理未完成的客戶/產品/廠商 | 主管 |
+| 會計專區 | `/Accountants` | `Accountants.html` | 損益摘要、應收帳款 | 會計 |
+| 員工管理 | `/staff_admin` | `staff_admin.html` | 人員資料、PIN、狀態 | 老闆 |
+| 系統狀態 | `/health_check` | `health_check.html` | 健檢、DB 統計、log | 老闆 |
 
 ### 4.6 管理後台（admin/）
 
-| 頁面名稱 | 檔案 | 用途 | 權限 |
-|----------|------|------|------|
-| 獎金規則設定 | `admin/bonus_rules.html` | 底薪/出勤/提成/加給/目標 | 老闆 |
-| 獎金總報表 | `admin/bonus_report.html` | 全員獎金明細、批次審核 | 老闆/會計 |
-| 公告管理 | `admin/announcement_management.html` | 公告 CRUD、排程、置頂 | 老闆 |
-| 推薦備貨管理 | `admin/recommended_products.html` | 備貨清單規則、批次需求 | 老闆 |
+| 頁面名稱 | 路由 | 檔案 | 用途 | 權限 |
+|----------|------|------|------|------|
+| 獎金規則設定 | `/admin/bonus_rules` | `admin/bonus_rules.html` | 底薪/出勤/提成/加給/目標 | 老闆 |
+| 獎金總報表 | `/admin/bonus_report` | `admin/bonus_report.html` | 全員獎金明細、批次審核 | 老闆/會計 |
+| 公告管理 | `/admin/announcement_management` | `admin/announcement_management.html` | 公告 CRUD、排程、置頂 | 老闆 |
+| 推薦備貨管理 | `/admin/recommended_products` | `admin/recommended_products.html` | 備貨清單規則、批次需求 | 老闆 |
 
 ### 4.7 共用組件 (Shared Components)
 
@@ -1556,6 +1556,21 @@ cp /Users/aiserver/.openclaw/workspace/dashboard-site/.env \
 | 管理後台（admin/） | 4 | bonus_rules, bonus_report, announcement_management, recommended_products |
 | 工作紀錄 | 2 | line_replies, line_replies_edit |
 | **合計** | **32** | — |
+
+> **路由規則**：v4.0+ 所有頁面使用無副檔名路由（如 `/line_replies` 而非 `/line_replies.html`）
+
+### 4.8 工作紀錄（v4.2 新增）
+
+| 頁面名稱 | 路由 | 檔案 | 用途 | 權限 |
+|----------|------|------|------|------|
+| LINE 回覆表 | `/line_replies` | `line_replies.html` | 官方帳號回覆紀錄列表 | 全員 |
+| LINE 回覆編輯 | `/line_replies_edit` | `line_replies_edit.html` | 新增/編輯回覆紀錄 | 全員 |
+
+**功能說明**：
+- 記錄 LINE 官方帳號客戶回覆
+- 日期時間選擇器限制不能選未來
+- 門市與人員由登入機制自動帶入
+- 4/1 正式啟用，從零開始記錄
 
 ### 10.6 聯絡資訊
 
