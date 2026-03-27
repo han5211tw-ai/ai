@@ -51,8 +51,8 @@ app = Flask(__name__,
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 CORS(app)
 
-# 資料庫路徑（優先使用環境變數，預設為相對路徑）
-DB_PATH = os.environ.get('DB_PATH', os.path.join(BASE_DIR, '..', '..', 'srv', 'db', 'company.db'))
+# 資料庫路徑（優先使用環境變數，預設為絕對路徑）
+DB_PATH = os.environ.get('DB_PATH', '/Users/aiserver/srv/db/company.db')
 STATIC_DIR = BASE_DIR
 
 # 共用函數：取得資料庫連線
