@@ -65,8 +65,26 @@
         border-bottom: none;
     }
 
-    /* 操作按鈕 */
+    /* 操作按鈕 - 與銷貨輸入頁面一致 */
     .action-btns { display: flex; gap: var(--space-2); }
+    .action-btn {
+        padding: 10px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #8892b0;
+        font-size: 0.95em;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .action-btn:hover {
+        border-color: #FABF13;
+        color: #FABF13;
+    }
+    .action-btn.delete:hover {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
 
     /* 分頁（覆蓋 global pagination 的 center 對齊） */
     .pager {
