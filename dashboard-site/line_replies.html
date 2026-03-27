@@ -262,7 +262,7 @@
     <div class="page-title-wrap">
         <span class="page-subtitle">記錄官方帳號客戶回覆</span>
     </div>
-    <a href="/line_replies_edit.html" class="btn">
+    <a href="/line_replies_edit" class="btn">
         <span>+</span> 新增回覆
     </a>
 </div>
@@ -332,7 +332,7 @@
     <div id="emptyState" class="empty-state" style="display: none;">
         <div class="empty-state-icon">💬</div>
         <div class="empty-state-text">尚無回覆紀錄</div>
-        <a href="/line_replies_edit.html" class="btn">新增第一筆回覆</a>
+        <a href="/line_replies_edit" class="btn">新增第一筆回覆</a>
     </div>
 
     <!-- 分頁 -->
@@ -520,7 +520,7 @@
 
     // ── 編輯 ───────────────────────────────
     function editReply(id) {
-        window.location.href = `/line_replies_edit.html?id=${id}`;
+        window.location.href = `/line_replies_edit?id=${id}`;
     }
 
     // ── 刪除 ───────────────────────────────
