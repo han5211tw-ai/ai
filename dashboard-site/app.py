@@ -5650,26 +5650,51 @@ def save_roster_batch():
 def get_store_employees():
     """取得指定店別的員工列表"""
     store = request.args.get('store', '').strip()
-    
+
     if not store:
         return jsonify({'success': False, 'error': '店別必填'})
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
+        # 先檢查資料表結構
+        cursor.execute("PRAGMA table_info(staff_passwords)")
+        columns = [col['name'] for col in cursor.fetchall()]
+
         # 從 staff_passwords 資料表查詢該店的員工
         # 支援多種店別欄位格式
-        cursor.execute("""
-            SELECT name, title, department 
-            FROM staff_passwords 
-            WHERE (department LIKE ? OR store LIKE ?)
-            AND status = 'active'
-            ORDER BY name
-        """, (f'%{store}%', f'%{store}%'))
-        
+        if 'department' in columns and 'store' in columns:
+            cursor.execute("""
+                SELECT name, title, department, store
+                FROM staff_passwords
+                WHERE (department LIKE ? OR store LIKE ?)
+                ORDER BY name
+            """, (f'%{store}%', f'%{store}%'))
+        elif 'department' in columns:
+            cursor.execute("""
+                SELECT name, title, department
+                FROM staff_passwords
+                WHERE department LIKE ?
+                ORDER BY name
+            """, (f'%{store}%',))
+        elif 'store' in columns:
+            cursor.execute("""
+                SELECT name, title, store as department
+                FROM staff_passwords
+                WHERE store LIKE ?
+                ORDER BY name
+            """, (f'%{store}%',))
+        else:
+            # 如果都沒有，回傳所有員工
+            cursor.execute("""
+                SELECT name, title
+                FROM staff_passwords
+                ORDER BY name
+            """)
+
         rows = cursor.fetchall()
-        
+
         employees = []
         for row in rows:
             employees.append({
@@ -5677,9 +5702,9 @@ def get_store_employees():
                 'title': row['title'] or '',
                 'department': row['department'] or ''
             })
-        
+
         return jsonify({'success': True, 'employees': employees})
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
