@@ -1,7 +1,7 @@
 # ERP 營運系統專案白皮書
 
 **文件版本**: v4.3  
-**最後更新**: 2026-03-27  
+**最後更新**: 2026-03-27 17:15  
 **專案名稱**: 電腦舖 ERP 營運系統  
 **系統版本**: V2.0.4  
 **作者**: Yvonne (AI Assistant)  
@@ -45,11 +45,11 @@
 
 | 項目 | 數量 |
 |------|------|
-| 前端頁面 | 197 個 HTML 檔案 |
-| API 端點 | 172 個路由 |
-| 後端函數 | 199 個 Python 函數 |
-| 資料庫表格 | 48 個資料表 |
-| Parser 腳本 | 12+ 個自動化腳本 |
+| 前端頁面 | 50 個 HTML 檔案 |
+| API 端點 | 181 個路由 |
+| 後端函數 | 205 個 Python 函數 |
+| 資料庫表格 | 49 個資料表 |
+| Parser 腳本 | 11 個自動化腳本 |
 | 開發歷程 | 36 天 (2026-02-20 ~ 2026-03-27) |
 
 ### 1.4 核心價值
@@ -248,14 +248,25 @@ CREATE TABLE staff_roster (
 CREATE TABLE supervision_scores (
     date TEXT,
     store_name TEXT,
+    employee_name TEXT,           -- 員工姓名（人員表現項目）
+    -- 環境整潔（1-5項）
+    storefront REAL,              -- 門面整潔
+    store_interior REAL,          -- 店內清潔
+    product_display REAL,         -- 產品陳列
+    cable_management REAL,        -- 線材管理
+    warehouse REAL,               -- 倉庫整齊
+    -- 人員表現（6-11項）
     attendance REAL,              -- 出勤狀況
     appearance REAL,              -- 服裝儀容
     service_attitude REAL,        -- 服務態度
-    -- ... 共15項評分
-    total_score REAL,             -- 總分
+    professionalism REAL,         -- 專業知識
+    sales_process REAL,           -- 銷售流程
+    work_attitude REAL,           -- 工作態度
+    total_score REAL,             -- 總分（22分制）
+    percentage REAL,              -- 百分比分數
     issues TEXT,                  -- 發現問題
     suggestions TEXT,             -- 改善建議
-    PRIMARY KEY (date, store_name)
+    PRIMARY KEY (date, store_name, employee_name)
 );
 ```
 
@@ -275,6 +286,8 @@ CREATE TABLE supervision_scores (
 | products | 產品主檔 |
 | purchase_history | 進貨歷史 |
 | crm_tasks | CRM 待辦 |
+| line_reply_templates | LINE 回覆範本 |
+| supervision_scores | 督導評分紀錄 |
 
 ### 4.3 資料庫路徑
 
@@ -309,9 +322,11 @@ CREATE TABLE supervision_scores (
 | | sales_input.html | 銷貨輸入 |
 | | roster.html | 班表查詢 |
 | | roster_input.html | 班表輸入 |
-| | supervision_score.html | 督導評分 |
+| | supervision_score.html | 督導紀錄表 |
 | | staging_center_v2.html | 待建檔中心 |
 | | target_input.html | 業績目標管理 |
+| | line_replies.html | LINE 回覆表 |
+| | line_replies_edit.html | LINE 回覆編輯 |
 | **後台管理** | admin/announcement_management.html | 公告管理 |
 | | admin/recommended_products.html | 推薦備貨商品 |
 | | admin/bonus_rules.html | 獎金規則管理 |
@@ -417,6 +432,12 @@ CREATE TABLE supervision_scores (
 | `/api/store/reviews` | GET | 門市評論統計 |
 | `/api/google-reviews` | GET | Google 評論列表 |
 | `/api/google-reviews/stats` | GET | Google 評論統計 |
+| `/api/line/replies` | GET/POST | LINE 回覆管理 |
+| `/api/line/categories` | GET | LINE 分類列表 |
+| `/api/store/employees` | GET | 店別員工列表 |
+| `/api/store/supervision` | GET | 門市督導評分 |
+| `/api/personal/supervision` | GET | 個人督導評分 |
+| `/api/supervision/score` | POST | 督導評分存檔 |
 
 ### 6.2 認證機制
 
@@ -597,24 +618,35 @@ const menuPermissions = {
 - **業務員**: 鄭宇晉 + 梁仁佑
 - **業務部總計**: 業務員 + 主管（萬書佑）
 
-### 11.3 督導評分
+### 11.3 督導評分系統
 
-#### 評分項目（15項，每項2分，總分30分）
-1. 出勤狀況
-2. 服裝儀容
-3. 服務態度
-4. 專業知識
-5. 銷售流程
-6. 門面整潔
-7. 店內清潔
-8. 產品陳列
-9. 線材管理
-10. 倉庫整齊
-11. 回覆速度
-12. 回覆態度
-13. 問題掌握
-14. 資訊完整
-15. 後續追蹤
+#### 評分結構（v4.3）
+
+| 類別 | 項目 | 編號 | 滿分 |
+|------|------|------|------|
+| **環境整潔** | 門面整潔 | 1 | 2分 |
+| | 店內清潔 | 2 | 2分 |
+| | 產品陳列 | 3 | 2分 |
+| | 線材管理 | 4 | 2分 |
+| | 倉庫整齊 | 5 | 2分 |
+| **人員表現** | 出勤狀況 | 6 | 2分 |
+| | 服裝儀容 | 7 | 2分 |
+| | 服務態度 | 8 | 2分 |
+| | 專業知識 | 9 | 2分 |
+| | 銷售流程 | 10 | 2分 |
+| | 工作態度 | 11 | 2分 |
+| **總計** | **11項** | | **22分** |
+
+#### 評分顯示
+- **門市頁面 (store.html)**: 顯示環境整潔 1-5 項
+- **個人頁面 (personal.html)**: 顯示人員表現 6-11 項
+- **總分計算**: 得分 ÷ 22 × 100 = 百分比（例如 18/22 = 82%）
+
+#### 工作態度細項（檢查重點）
+- 主動性：主動協助同事、主動回報問題
+- 責任感：對工作負責、不推卸責任
+- 配合度：配合公司政策、配合主管指示
+- 學習意願：願意學習新知識、接受指導
 
 ### 11.4 銷售獎金系統
 
@@ -638,6 +670,33 @@ const menuPermissions = {
 #### 資料表
 - `google_reviews`: 單筆評論明細
 - `google_reviews_stats`: 門市統計快取
+
+### 11.6 LINE 回覆表系統
+
+#### 功能說明
+- 管理 LINE 官方帳號的常見回覆範本
+- 支援分類管理（產品詢問、售後服務、活動資訊等）
+- 提供關鍵字搜尋功能
+- 可新增、編輯、刪除回覆內容
+
+#### 頁面結構
+| 頁面 | 功能 |
+|------|------|
+| line_replies.html | 回覆列表、搜尋、分類篩選 |
+| line_replies_edit.html | 新增/編輯回覆內容 |
+
+#### 資料表
+```sql
+CREATE TABLE line_reply_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT,                -- 分類
+    keywords TEXT,                -- 關鍵字（逗號分隔）
+    title TEXT,                   -- 標題
+    content TEXT,                 -- 回覆內容
+    created_at DATETIME,
+    updated_at DATETIME
+);
+```
 
 
 ---
@@ -688,15 +747,12 @@ Gunicorn 日誌: dashboard-site/logs/
 ## 13. 版本歷史
 
 ### V2.0.4 (2026-03-27)
-- 督導紀錄表重構
-  - 環境整潔項目調整為 1-5 項
-  - 人員表現項目調整為 6-11 項，新增工作態度
-  - 新增員工姓名選擇欄位（依店別動態載入）
-  - 評分改為 0/1/2 分制，總分顯示為 100 分制百分比
-  - 門市業績頁面只顯示環境整潔評分（1-5項）
-  - 個人頁面新增督導評分區塊（6-11項）
-- 新增 API：/api/store/employees, /api/personal/supervision
-- 修復 Python 快取導致 API 未生效問題
+- 督導紀錄表重構 v4.3
+- 環境整潔與人員表現分開顯示
+- 新增工作態度評分項目
+- 評分改為 0/1/2 分制
+- LINE 回覆表功能上線
+- 白皮書 v4.3 更新
 
 ### V2.0.3 (2026-03-27)
 - 需求表取消後重打 Bug 修復
