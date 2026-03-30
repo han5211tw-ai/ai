@@ -315,6 +315,25 @@
         border: 1px solid rgba(244, 67, 54, 0.3);
     }
 
+    /* 排序按鈕 */
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+    .sortable:hover { color: #fff; }
+    .sort-icon {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: 0.7rem;
+        color: #64748b;
+        transition: color .2s;
+    }
+    .sortable.active .sort-icon { color: #FABF13; }
+    .sortable.asc .sort-icon::after { content: '▲'; }
+    .sortable.desc .sort-icon::after { content: '▼'; }
+    .sortable:not(.asc):not(.desc) .sort-icon::after { content: '▼'; opacity: .4; }
+
     /* 操作按鈕容器 */
     .action-btns {
         display: flex;
@@ -564,18 +583,22 @@
         document.getElementById('listBadge').textContent = `${needs.length} 筆`;
         document.getElementById('listBadge').className = 'badge warning';
 
+        // 排序狀態
+        window.bossSortCol = '';
+        window.bossSortDir = 'asc';
+
         const html = `
-            <table class="data-table">
+            <table class="data-table" id="needsTableMain">
                 <thead>
                     <tr>
                         <th>項次</th>
-                        <th>日期</th>
+                        <th class="sortable" data-col="date" onclick="handleBossSort('date')">日期<span class="sort-icon"></span></th>
                         <th>產品編號</th>
                         <th>產品名稱</th>
                         <th>數量</th>
                         <th>需求類型</th>
                         <th>需求用途</th>
-                        <th>需求單位</th>
+                        <th class="sortable" data-col="department" onclick="handleBossSort('department')">需求單位<span class="sort-icon"></span></th>
                         <th>填表人員</th>
                         <th>狀態</th>
                         <th>備註</th>
@@ -786,6 +809,65 @@
             console.error('儲存備註失敗:', error);
             showToast('儲存失敗，請檢查網路連線', 'error');
         }
+    }
+
+    // 排序處理函數
+    function handleBossSort(col) {
+        const table = document.getElementById('needsTableMain');
+        if (!table) return;
+        const headers = table.querySelectorAll('th.sortable');
+
+        // 切換排序方向
+        if (window.bossSortCol === col) {
+            window.bossSortDir = window.bossSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            window.bossSortCol = col;
+            window.bossSortDir = 'asc';
+        }
+
+        // 更新標題樣式
+        headers.forEach(th => {
+            th.classList.remove('active', 'asc', 'desc');
+            if (th.dataset.col === window.bossSortCol) {
+                th.classList.add('active', window.bossSortDir);
+            }
+        });
+
+        // 取得並排序資料
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        const colIndex = {
+            'date': 1,
+            'department': 7
+        }[col];
+
+        rows.sort((a, b) => {
+            let aVal = a.cells[colIndex].textContent.trim();
+            let bVal = b.cells[colIndex].textContent.trim();
+
+            // 日期排序（M/D HH:MM 格式）
+            if (col === 'date') {
+                const aMatch = aVal.match(/(\d+)\/(\d+)/);
+                const bMatch = bVal.match(/(\d+)\/(\d+)/);
+                if (aMatch && bMatch) {
+                    aVal = parseInt(aMatch[1]) * 100 + parseInt(aMatch[2]);
+                    bVal = parseInt(bMatch[1]) * 100 + parseInt(bMatch[2]);
+                }
+            }
+
+            if (aVal < bVal) return window.bossSortDir === 'asc' ? -1 : 1;
+            if (aVal > bVal) return window.bossSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // 重新排列 DOM
+        rows.forEach(row => tbody.appendChild(row));
+
+        // 更新項次編號
+        rows.forEach((row, idx) => {
+            row.cells[0].textContent = idx + 1;
+        });
     }
 
     // 頁面載入時執行

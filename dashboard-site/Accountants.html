@@ -113,6 +113,25 @@
     box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 }
 
+/* 排序按鈕 */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.sortable:hover { color: #fff; }
+.sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 0.7rem;
+    color: #64748b;
+    transition: color .2s;
+}
+.sortable.active .sort-icon { color: #FABF13; }
+.sortable.asc .sort-icon::after { content: '▲'; }
+.sortable.desc .sort-icon::after { content: '▼'; }
+.sortable:not(.asc):not(.desc) .sort-icon::after { content: '▼'; opacity: .4; }
+
 /* 狀態標籤 */
 .status {
     display: inline-block;
@@ -346,17 +365,21 @@
                 return;
             }
 
+            // 排序狀態
+            window.accSortCol = '';
+            window.accSortDir = 'asc';
+
             const html = `
-                <table class="items-table">
+                <table class="items-table" id="needsTableMain">
                     <thead>
                         <tr>
                             <th>項次</th>
-                            <th>日期</th>
+                            <th class="sortable" data-col="date" onclick="handleAccSort('date')">日期<span class="sort-icon"></span></th>
                             <th>產品編號</th>
                             <th>產品名稱</th>
                             <th>數量</th>
-                            <th>調撥來源</th>
-                            <th>需求部門</th>
+                            <th class="sortable" data-col="transfer_from" onclick="handleAccSort('transfer_from')">調撥來源<span class="sort-icon"></span></th>
+                            <th class="sortable" data-col="department" onclick="handleAccSort('department')">需求單位<span class="sort-icon"></span></th>
                             <th>填表人員</th>
                             <th style="width: 120px;">庫存狀況</th>
                             <th>備註</th>
@@ -774,6 +797,62 @@
             console.error('載入班表失敗:', error);
             container.innerHTML = '<div class="empty-state">班表資料載入失敗</div>';
         }
+    }
+
+    // 排序處理函數
+    function handleAccSort(col) {
+        const table = document.getElementById('needsTableMain');
+        if (!table) return;
+        const headers = table.querySelectorAll('th.sortable');
+
+        // 切換排序方向
+        if (window.accSortCol === col) {
+            window.accSortDir = window.accSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            window.accSortCol = col;
+            window.accSortDir = 'asc';
+        }
+
+        // 更新標題樣式
+        headers.forEach(th => {
+            th.classList.remove('active', 'asc', 'desc');
+            if (th.dataset.col === window.accSortCol) {
+                th.classList.add('active', window.accSortDir);
+            }
+        });
+
+        // 取得並排序資料
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        const colIndex = {
+            'date': 1,
+            'transfer_from': 5,
+            'department': 6
+        }[col];
+
+        rows.sort((a, b) => {
+            let aVal = a.cells[colIndex].textContent.trim();
+            let bVal = b.cells[colIndex].textContent.trim();
+
+            // 日期排序（轉換成可比較格式）
+            if (col === 'date') {
+                aVal = aVal.replace(/-/g, '');
+                bVal = bVal.replace(/-/g, '');
+            }
+
+            if (aVal < bVal) return window.accSortDir === 'asc' ? -1 : 1;
+            if (aVal > bVal) return window.accSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // 重新排列 DOM
+        rows.forEach(row => tbody.appendChild(row));
+
+        // 更新項次編號
+        rows.forEach((row, idx) => {
+            row.cells[0].textContent = idx + 1;
+        });
     }
 
 </script>

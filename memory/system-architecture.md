@@ -46,6 +46,46 @@
 | `TOOLS.md` | 工具與 API 設定 |
 | `AGENTS.md` | 工作區規則 |
 
+## Gunicorn 服務管理
+
+| 服務名稱 | Port | 路徑 | 用途 | 管理方式 |
+|---------|------|------|------|---------|
+| com.dashboard.gunicorn | 3000 | `~/.openclaw/workspace/dashboard-site/` | ERP v1 (舊系統) | launchctl |
+| com.computershop.erpv2 | 8800 | `~/srv/web-site/computershop-erp/` | ERP v2 (新系統) | launchctl |
+| com.computershop.website | 8000 | `~/srv/web-site/computershop-web/` | 電腦舖官網 | launchctl |
+| com.computershop.student-chat | 329 | `~/srv/web-site/student-chat/` | 學生 AI 聊天室 | launchctl |
+
+### 其他服務
+
+| 服務 | Port | 用途 | 管理方式 |
+|------|------|------|---------|
+| oMLX | 8001 | 本地 AI 模型 (Qwen3.5-9B-6bit) | 獨立運行 |
+
+### 管理指令
+
+```bash
+# 查看狀態
+launchctl list | grep -E "(dashboard|computershop)"
+
+# 啟動/停止/重啟
+launchctl start com.dashboard.gunicorn         # ERP v1 (3000)
+launchctl start com.computershop.erpv2         # ERP v2 (8800)
+launchctl start com.computershop.website       # 官網 (8000)
+launchctl start com.computershop.student-chat  # 學生聊天室 (329)
+
+launchctl stop com.dashboard.gunicorn
+launchctl stop com.computershop.erpv2
+launchctl stop com.computershop.website
+launchctl stop com.computershop.student-chat
+```
+
+### 設定檔位置
+
+- `~/Library/LaunchAgents/com.dashboard.gunicorn.plist`
+- `~/Library/LaunchAgents/com.computershop.erpv2.plist`
+- `~/Library/LaunchAgents/com.computershop.website.plist`
+- `~/Library/LaunchAgents/com.computershop.student-chat.plist`
+
 ## Dashboard 網站結構
 
 ```

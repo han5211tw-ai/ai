@@ -14,8 +14,8 @@ import xml.etree.ElementTree as ET
 import re
 
 # Telegram Bot 設定
-# 使用 OpenClaw 內建通知機制，不透過 Bot Token 直接發送
-# 由 OpenClaw cron job 呼叫時使用 message 工具發送
+# 使用通知機器人直接發送，避免 Agent 帳號產生「更多詳情」按鈕
+TELEGRAM_BOT_TOKEN = "8623161623:AAGWlwGjp0Vf3bzpiVgLltQFbcGFY4kpFxo"
 TELEGRAM_CHAT_ID = "-5232179482"  # 電腦舖工作群組
 
 # 資料庫路徑
@@ -370,12 +370,43 @@ def generate_report():
     
     return message
 
+def send_to_telegram(message):
+    """使用通知機器人發送訊息到 Telegram 工作群組"""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {
+            'chat_id': TELEGRAM_CHAT_ID,
+            'text': message,
+            'parse_mode': 'HTML'  # 支援 HTML 格式
+        }
+        response = requests.post(url, data=data, timeout=30)
+        if response.status_code == 200:
+            print(f"✅ 晨報已成功發送到 Telegram 工作群組")
+            return True
+        else:
+            print(f"❌ 發送失敗: {response.status_code} - {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ 發送時發生錯誤: {e}")
+        return False
+
 def main():
-    """主程式：生成晨報並輸出到 stdout"""
+    """主程式：生成晨報並發送到 Telegram"""
     print(f"🌅 生成晨報中... {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     report = generate_report()
+    
+    # 將 Markdown 格式轉換為 HTML（Telegram 支援的格式）
+    # 簡單轉換：將 **bold** 轉為 <b>bold</b>
+    report_html = report.replace('**', '<b>').replace('**', '</b>')
+    # 修正：上面的替換有問題，重新處理
+    
+    # 直接發送純文字，避免格式問題
+    success = send_to_telegram(report)
+    
+    if not success:
+        print("⚠️ 發送失敗，請手動檢查")
+    
     return report
 
 if __name__ == '__main__':
     report = main()
-    print(report)

@@ -154,7 +154,7 @@
         </div>
 
         <div class="card">
-            <h2>⭐ 個人督導評分（6-11項）</h2>
+            <h2>⭐ 個人督導評分（6-16項）</h2>
             <div id="supervisionScoreSection">
                 <div class="loading">載入中...</div>
             </div>
@@ -362,12 +362,17 @@
         // 渲染督導評分表格
         function renderSupervisionTable(scores) {
             const scoreLabels = {
-                'attendance': '出勤狀況',
-                'appearance': '服裝儀容',
-                'service_attitude': '服務態度',
-                'professional_knowledge': '專業知識',
-                'sales_process': '銷售流程',
-                'work_attitude': '工作態度'
+                'attendance': '6. 出勤狀況',
+                'appearance': '7. 服裝儀容',
+                'service_attitude': '8. 服務態度',
+                'professional_knowledge': '9. 專業知識',
+                'sales_process': '10. 銷售流程',
+                'work_attitude': '11. 工作態度',
+                'reply_speed': '12. 回覆速度',
+                'reply_attitude': '13. 回覆態度',
+                'problem_grasp': '14. 問題掌握',
+                'information_complete': '15. 資料完整',
+                'follow_up': '16. 後續追蹤'
             };
             
             let tableHtml = `
@@ -384,14 +389,13 @@
             `;
             
             let totalScore = 0;
-            let totalMax = 0;
-            
+            const totalMax = 22; // 11項 × 2分 = 22分滿分
+
             Object.keys(scoreLabels).forEach(key => {
                 const score = scores[key] || 0;
                 const max = 2;
                 const percentage = Math.round((score / max) * 100);
                 totalScore += score;
-                totalMax += max;
                 
                 let percentageClass = 'ach-danger';
                 if (percentage >= 85) percentageClass = 'ach-excellent';
@@ -408,7 +412,7 @@
                 `;
             });
             
-            const totalPercentage = Math.round((totalScore / 12) * 100); // 6項 × 2分 = 12分滿分
+            const totalPercentage = Math.round((totalScore / 22) * 100); // 11項 × 2分 = 22分滿分
             let totalClass = 'ach-danger';
             if (totalPercentage >= 85) totalClass = 'ach-excellent';
             else if (totalPercentage >= 70) totalClass = 'ach-good';

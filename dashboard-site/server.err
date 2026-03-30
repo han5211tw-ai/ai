@@ -3025,3 +3025,16 @@ SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
     _OMLX_SYSTEM_PROMPT = """你是電腦舖 ERP 系統的 AI 助理，可以查詢即時資料庫資料。
                           ^
 SyntaxError: unterminated triple-quoted string literal (detected at line 9705)
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3000
+ * Running on http://192.168.1.212:3000
+[33mPress CTRL+C to quit[0m
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-28 16:34:36 CST)" was missed by 0:00:01.889195
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-28 19:34:36 CST)" was missed by 0:00:02.147184
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-28 20:24:36 CST)" was missed by 0:00:04.181917
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-28 22:14:36 CST)" was missed by 0:00:02.086970
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-29 01:14:36 CST)" was missed by 0:00:02.141665
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-29 01:24:36 CST)" was missed by 0:00:01.848145
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-29 02:04:36 CST)" was missed by 0:00:02.110952
+Run time of job "health_monitor (trigger: interval[0:10:00], next run at: 2026-03-29 03:24:36 CST)" was missed by 0:00:04.123831

@@ -5320,10 +5320,11 @@ def save_supervision_score():
     except ValueError:
         return jsonify({'success': False, 'message': '日期格式錯誤，應為 YYYY-MM-DD'}), 400
 
-    # 新結構：11 項評分，每項 0-2 分
+    # 新結構：16 項評分，每項 0-2 分
     score_fields = ['attendance', 'appearance', 'service_attitude', 'professional_knowledge',
                    'sales_process', 'storefront_cleanliness', 'store_cleanliness', 'product_display',
-                   'cable_management', 'warehouse_organization', 'work_attitude']
+                   'cable_management', 'warehouse_organization', 'work_attitude',
+                   'reply_speed', 'reply_attitude', 'problem_grasp', 'information_complete', 'follow_up']
 
     for field in score_fields:
         value = data.get(field, 0)
@@ -5343,6 +5344,16 @@ def save_supervision_score():
             cursor.execute("ALTER TABLE supervision_scores ADD COLUMN employee_name TEXT")
         if 'work_attitude' not in columns:
             cursor.execute("ALTER TABLE supervision_scores ADD COLUMN work_attitude INTEGER DEFAULT 0")
+        if 'reply_speed' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN reply_speed INTEGER DEFAULT 0")
+        if 'reply_attitude' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN reply_attitude INTEGER DEFAULT 0")
+        if 'problem_grasp' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN problem_grasp INTEGER DEFAULT 0")
+        if 'information_complete' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN information_complete INTEGER DEFAULT 0")
+        if 'follow_up' not in columns:
+            cursor.execute("ALTER TABLE supervision_scores ADD COLUMN follow_up INTEGER DEFAULT 0")
         if 'issues' not in columns:
             cursor.execute("ALTER TABLE supervision_scores ADD COLUMN issues TEXT")
         if 'suggestions' not in columns:
@@ -5381,6 +5392,8 @@ def save_supervision_score():
                         storefront_cleanliness = ?, store_cleanliness = ?,
                         product_display = ?, cable_management = ?,
                         warehouse_organization = ?,
+                        reply_speed = ?, reply_attitude = ?, problem_grasp = ?,
+                        information_complete = ?, follow_up = ?,
                         total_score = ?, percentage = ?, issues = ?, suggestions = ?,
                         evaluator = ?, evaluator_title = ?, updated_at = ?
                     WHERE store_name = ? AND employee_name = ? AND date = ?
@@ -5391,6 +5404,9 @@ def save_supervision_score():
                     data.get('storefront_cleanliness', 0), data.get('store_cleanliness', 0),
                     data.get('product_display', 0), data.get('cable_management', 0),
                     data.get('warehouse_organization', 0),
+                    data.get('reply_speed', 0), data.get('reply_attitude', 0),
+                    data.get('problem_grasp', 0), data.get('information_complete', 0),
+                    data.get('follow_up', 0),
                     total_score, percentage,
                     data.get('issues', ''), data.get('suggestions', ''),
                     data.get('evaluator', ''), data.get('evaluator_title', ''),
@@ -5404,6 +5420,8 @@ def save_supervision_score():
                         storefront_cleanliness = ?, store_cleanliness = ?,
                         product_display = ?, cable_management = ?,
                         warehouse_organization = ?,
+                        reply_speed = ?, reply_attitude = ?, problem_grasp = ?,
+                        information_complete = ?, follow_up = ?,
                         total_score = ?, percentage = ?, issues = ?, suggestions = ?,
                         evaluator = ?, evaluator_title = ?, updated_at = ?
                     WHERE store_name = ? AND date = ?
@@ -5414,6 +5432,9 @@ def save_supervision_score():
                     data.get('storefront_cleanliness', 0), data.get('store_cleanliness', 0),
                     data.get('product_display', 0), data.get('cable_management', 0),
                     data.get('warehouse_organization', 0),
+                    data.get('reply_speed', 0), data.get('reply_attitude', 0),
+                    data.get('problem_grasp', 0), data.get('information_complete', 0),
+                    data.get('follow_up', 0),
                     total_score, percentage,
                     data.get('issues', ''), data.get('suggestions', ''),
                     data.get('evaluator', ''), data.get('evaluator_title', ''),
@@ -5428,9 +5449,10 @@ def save_supervision_score():
                     professional_knowledge, sales_process, work_attitude, storefront_cleanliness,
                     store_cleanliness, product_display, cable_management,
                     warehouse_organization,
+                    reply_speed, reply_attitude, problem_grasp, information_complete, follow_up,
                     total_score, percentage, issues, suggestions,
                     evaluator, evaluator_title, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 store_name, employee_name, date,
                 data.get('attendance', 0), data.get('appearance', 0),
@@ -5439,6 +5461,9 @@ def save_supervision_score():
                 data.get('storefront_cleanliness', 0), data.get('store_cleanliness', 0),
                 data.get('product_display', 0), data.get('cable_management', 0),
                 data.get('warehouse_organization', 0),
+                data.get('reply_speed', 0), data.get('reply_attitude', 0),
+                data.get('problem_grasp', 0), data.get('information_complete', 0),
+                data.get('follow_up', 0),
                 total_score, percentage,
                 data.get('issues', ''), data.get('suggestions', ''),
                 data.get('evaluator', ''), data.get('evaluator_title', ''),
@@ -5689,7 +5714,7 @@ def get_store_employees():
 
 @app.route('/api/personal/supervision', methods=['GET'])
 def get_personal_supervision():
-    """取得當前登入使用者的督導評分（6-11項：人員表現）"""
+    """取得當前登入使用者的督導評分（6-16項：人員表現 + LINE回覆）"""
     # 從請求中取得使用者名稱
     user_name = request.args.get('user', '').strip()
     
@@ -5709,7 +5734,7 @@ def get_personal_supervision():
         today = datetime.now()
         date_start = f"{today.year}-{today.month:02d}-01"
         
-        # 查詢該員工本月的平均督導評分（只取 6-11 項：人員表現）
+        # 查詢該員工本月的平均督導評分（6-16 項：人員表現 + LINE回覆）
         cursor.execute("""
             SELECT
                 AVG(CAST(COALESCE(attendance, '0') AS FLOAT)) as avg_attendance,
@@ -5717,7 +5742,12 @@ def get_personal_supervision():
                 AVG(CAST(COALESCE(service_attitude, '0') AS FLOAT)) as avg_service,
                 AVG(CAST(COALESCE(professional_knowledge, '0') AS FLOAT)) as avg_knowledge,
                 AVG(CAST(COALESCE(sales_process, '0') AS FLOAT)) as avg_sales,
-                AVG(CAST(COALESCE(work_attitude, '0') AS FLOAT)) as avg_work_attitude
+                AVG(CAST(COALESCE(work_attitude, '0') AS FLOAT)) as avg_work_attitude,
+                AVG(CAST(COALESCE(reply_speed, '0') AS FLOAT)) as avg_reply_speed,
+                AVG(CAST(COALESCE(reply_attitude, '0') AS FLOAT)) as avg_reply_attitude,
+                AVG(CAST(COALESCE(problem_grasp, '0') AS FLOAT)) as avg_problem_grasp,
+                AVG(CAST(COALESCE(information_complete, '0') AS FLOAT)) as avg_information_complete,
+                AVG(CAST(COALESCE(follow_up, '0') AS FLOAT)) as avg_follow_up
             FROM supervision_scores
             WHERE employee_name = ? AND date >= ?
         """, (user_name, date_start))
@@ -5731,12 +5761,17 @@ def get_personal_supervision():
                 'service_attitude': round(row['avg_service'] or 0, 1),
                 'professional_knowledge': round(row['avg_knowledge'] or 0, 1),
                 'sales_process': round(row['avg_sales'] or 0, 1),
-                'work_attitude': round(row['avg_work_attitude'] or 0, 1)
+                'work_attitude': round(row['avg_work_attitude'] or 0, 1),
+                'reply_speed': round(row['avg_reply_speed'] or 0, 1),
+                'reply_attitude': round(row['avg_reply_attitude'] or 0, 1),
+                'problem_grasp': round(row['avg_problem_grasp'] or 0, 1),
+                'information_complete': round(row['avg_information_complete'] or 0, 1),
+                'follow_up': round(row['avg_follow_up'] or 0, 1)
             }
-            
-            # 計算總分百分比
+
+            # 計算總分百分比 (11項 × 2分 = 22分滿分)
             total = sum(scores.values())
-            max_total = 60  # 6 項 × 10 分
+            max_total = 22
             percentage = round((total / max_total) * 100)
             
             return jsonify({

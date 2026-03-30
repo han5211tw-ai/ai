@@ -246,7 +246,7 @@
 
 <!-- 評分項目 1-5: 環境整潔 -->
 <div class="score-section">
-    <h3>環境整潔（滿分 10 分）</h3>
+    <h3>環境整潔（滿分 10 分）- 門市評分項目</h3>
     <div class="score-item">
         <div class="score-item-content">
             <span class="score-item-label">1. 門面整潔</span>
@@ -306,7 +306,7 @@
 
 <!-- 評分項目 6-11: 人員表現 -->
 <div class="score-section">
-    <h3>人員表現（滿分 12 分）</h3>
+    <h3>人員表現（滿分 12 分）- 個人評分項目</h3>
     <div class="score-item">
         <div class="score-item-content">
             <span class="score-item-label">6. 出勤狀況</span>
@@ -375,6 +375,66 @@
     </div>
 </div>
 
+<!-- 評分項目 12-16: LINE 回覆 -->
+<div class="score-section">
+    <h3>LINE 回覆（滿分 10 分）- 個人評分項目</h3>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">12. 回覆速度</span>
+            <span class="score-item-desc">檢查重點：即時回應、工單處理、訊息回覆</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="reply_speed" data-value="0" onclick="setScore('reply_speed', 0)">0</button>
+            <button class="score-btn" data-item="reply_speed" data-value="1" onclick="setScore('reply_speed', 1)">1</button>
+            <button class="score-btn" data-item="reply_speed" data-value="2" onclick="setScore('reply_speed', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">13. 回覆態度</span>
+            <span class="score-item-desc">檢查重點：語氣親切、積極協助、不推諉</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="reply_attitude" data-value="0" onclick="setScore('reply_attitude', 0)">0</button>
+            <button class="score-btn" data-item="reply_attitude" data-value="1" onclick="setScore('reply_attitude', 1)">1</button>
+            <button class="score-btn" data-item="reply_attitude" data-value="2" onclick="setScore('reply_attitude', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">14. 問題掌握</span>
+            <span class="score-item-desc">檢查重點：問題理解、原因分析、處理方向</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="problem_grasp" data-value="0" onclick="setScore('problem_grasp', 0)">0</button>
+            <button class="score-btn" data-item="problem_grasp" data-value="1" onclick="setScore('problem_grasp', 1)">1</button>
+            <button class="score-btn" data-item="problem_grasp" data-value="2" onclick="setScore('problem_grasp', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">15. 資料完整</span>
+            <span class="score-item-desc">檢查重點：維修單填寫、客戶資料、處理記錄</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="information_complete" data-value="0" onclick="setScore('information_complete', 0)">0</button>
+            <button class="score-btn" data-item="information_complete" data-value="1" onclick="setScore('information_complete', 1)">1</button>
+            <button class="score-btn" data-item="information_complete" data-value="2" onclick="setScore('information_complete', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">16. 後續追蹤</span>
+            <span class="score-item-desc">檢查重點：進度回報、完工通知、客戶確認</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="follow_up" data-value="0" onclick="setScore('follow_up', 0)">0</button>
+            <button class="score-btn" data-item="follow_up" data-value="1" onclick="setScore('follow_up', 1)">1</button>
+            <button class="score-btn" data-item="follow_up" data-value="2" onclick="setScore('follow_up', 2)">2</button>
+        </div>
+    </div>
+</div>
+
 <!-- 問題與建議 -->
 <div class="textarea-section">
     <label>問題描述</label>
@@ -395,12 +455,14 @@
 
 {% block scripts %}
 <script>
-    // 評分資料 - 新結構 11 項，每項 0-10 分，總分 100
+    // 評分資料 - 新結構 16 項，每項 0-2 分，總分 100
     let scores = {
         storefront_cleanliness: 0, store_cleanliness: 0, product_display: 0,
         cable_management: 0, warehouse_organization: 0,
         attendance: 0, appearance: 0, service_attitude: 0,
-        professional_knowledge: 0, sales_process: 0, work_attitude: 0
+        professional_knowledge: 0, sales_process: 0, work_attitude: 0,
+        reply_speed: 0, reply_attitude: 0, problem_grasp: 0,
+        information_complete: 0, follow_up: 0
     };
     
     let currentUser = null;
@@ -488,10 +550,10 @@
         updateTotal();
     }
     
-    // 更新總分顯示 - 11項 × 2分 = 22分滿分，顯示為 100 分制百分比
+    // 更新總分顯示 - 16項 × 2分 = 32分滿分，顯示為 100 分制百分比
     function updateTotal() {
         const total = Object.values(scores).reduce((a, b) => a + b, 0);
-        const maxScore = 22; // 11 項 × 2 分
+        const maxScore = 32; // 16 項 × 2 分
         const percentage = Math.round((total / maxScore) * 100);
         
         document.getElementById('totalScore').textContent = `${percentage} / 100`;
@@ -583,9 +645,9 @@
         }
         
         const total = Object.values(scores).reduce((a, b) => a + b, 0);
-        const maxScore = 22; // 11 項 × 2 分
+        const maxScore = 32; // 16 項 × 2 分
         const percentage = Math.round((total / maxScore) * 100);
-        
+
         // 確保所有分數都是數字
         const numericScores = {};
         Object.keys(scores).forEach(key => {
