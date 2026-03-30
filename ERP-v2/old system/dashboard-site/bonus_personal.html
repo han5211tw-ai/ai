@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}銷售獎金查詢 - 電腦舖營運系統{% endblock %}
+{% block page_title %}💰 銷售獎金查詢{% endblock %}
+
+{% block content %}
+<!-- 說明區塊 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 10px 14px; margin-bottom: 24px;">
+    <p style="color: #94a3b8; margin: 0;">
+        💡 查詢您在特定期間內達成的銷售獎金記錄。
+    </p>
+</div>
+
+<!-- 查詢條件 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">開始日期</label>
+            <input type="date" id="startDate" onchange="loadMyBonus()" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9em;">結束日期</label>
+            <input type="date" id="endDate" onchange="loadMyBonus()" style="padding: 10px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;">
+        </div>
+    </div>
+</div>
+
+<!-- 統計摘要 -->
+<div id="summarySection" style="display: none; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="color: #FABF13; margin-bottom: 16px;">📈 統計摘要</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">達成筆數</div>
+            <div id="totalCount" style="color: #fff; font-size: 24px; font-weight: 500;">0</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總銷售額</div>
+            <div id="totalSales" style="color: #FABF13; font-size: 24px; font-weight: 500;">NT$ 0</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 8px;">總獎金</div>
+            <div id="totalBonus" style="color: #fbbf24; font-size: 24px; font-weight: 500;">NT$ 0</div>
+        </div>
+    </div>
+</div>
+
+<!-- 獎金明細 -->
+<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 24px;">
+    <h3 style="color: #FABF13; margin-bottom: 20px;">📋 獎金明細</h3>
+    
+    <div id="bonusList">
+        <div style="text-align: center; padding: 40px; color: #64748b;">請選擇查詢日期範圍</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let myBonus = [];
+
+// 頁面初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 預設本月日期
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+    document.getElementById('endDate').value = lastDay.toISOString().split('T')[0];
+    
+    loadMyBonus();
+});
+
+// 載入我的獎金
+async function loadMyBonus() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) return;
+    
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    try {
+        let url = `/api/bonus-results?salesperson_id=${user.name || ''}&`;
+        url += `period_start=${startDate}&period_end=${endDate}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.success) {
+            myBonus = data.results;
+            renderBonusList();
+            updateSummary();
+        }
+    } catch (e) {
+        console.error('載入獎金失敗:', e);
+    }
+}
+
+// 渲染獎金列表
+function renderBonusList() {
+    const container = document.getElementById('bonusList');
+    if (myBonus.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">查無獎金記錄</div>';
+        document.getElementById('summarySection').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('summarySection').style.display = 'block';
+    
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">日期</th>
+                    <th style="text-align: left; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">產品</th>
+                    <th style="text-align: right; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">數量</th>
+                    <th style="text-align: right; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">銷售額</th>
+                    <th style="text-align: right; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">獎金</th>
+                    <th style="text-align: center; padding: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">狀態</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${myBonus.map(b => `
+                    <tr>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #94a3b8;">
+                            ${b.period_start} ~ ${b.period_end}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="color: #fff;">${b.product_name}</div>
+                            <div style="color: #64748b; font-size: 0.85em;">${b.product_code}</div>
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #94a3b8;">
+                            ${b.sales_quantity}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #FABF13;">
+                            NT$ ${b.sales_amount.toLocaleString()}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: #fbbf24; font-weight: 500;">
+                            NT$ ${b.bonus_amount.toLocaleString()}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            ${b.status === 'pending' ? 
+                                '<span style="color: #fbbf24; font-size: 0.85em;">🟡 待確認</span>' : 
+                                '<span style="color: #22c55e; font-size: 0.85em;">🟢 已確認</span>'}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+// 更新統計摘要
+function updateSummary() {
+    const totalCount = myBonus.length;
+    const totalSales = myBonus.reduce((sum, b) => sum + b.sales_amount, 0);
+    const totalBonus = myBonus.reduce((sum, b) => sum + b.bonus_amount, 0);
+    
+    document.getElementById('totalCount').textContent = totalCount;
+    document.getElementById('totalSales').textContent = 'NT$ ' + totalSales.toLocaleString();
+    document.getElementById('totalBonus').textContent = 'NT$ ' + totalBonus.toLocaleString();
+}
+</script>
+{% endblock %}

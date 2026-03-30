@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}員工管理 — COSH ERP{% endblock %}
+{% block page_title %}員工管理{% endblock %}
+
+{% block styles %}
+<style>
+.sm-layout { display: flex; flex-direction: column; gap: 20px; }
+
+.card {
+  background: #fff; border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; overflow: hidden;
+}
+.card-head {
+  padding: 12px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
+  display: flex; align-items: center; gap: 12px;
+}
+.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .12em; flex: 1; }
+
+/* 篩選 */
+.filter-bar {
+  display: flex; gap: 10px; align-items: center;
+  padding: 12px 20px; border-bottom: 1px solid rgba(107,95,82,.06); flex-wrap: wrap;
+}
+.filter-pill {
+  padding: 6px 14px; border-radius: 20px; font-size: .78rem; cursor: pointer;
+  border: 1px solid rgba(107,95,82,.2); color: #6b5f52; background: none;
+  font-family: 'Noto Serif TC', serif; transition: all .12s;
+}
+.filter-pill.active { background: #2c2720; color: #f5f0e8; border-color: #2c2720; }
+
+/* 表格 */
+.staff-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.staff-table th {
+  text-align: left; padding: 9px 12px;
+  font-weight: 300; color: #9a9188; font-size: .7rem; letter-spacing: .06em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.staff-table td { padding: 9px 12px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); vertical-align: middle; }
+.staff-table tr:last-child td { border-bottom: none; }
+
+.status-chip {
+  display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .72rem;
+}
+.status-1 { background: #e8f4e8; color: #3d7a3d; }
+.status-0 { background: #f5e8e8; color: #8b3a3a; }
+
+.edit-btn {
+  padding: 4px 12px; border: 1px solid rgba(107,95,82,.25); border-radius: 6px;
+  background: none; font-size: .75rem; color: #6b5f52; cursor: pointer;
+  font-family: 'Noto Serif TC', serif;
+}
+.edit-btn:hover { background: #f5f0e8; }
+
+/* 模態框 */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(44,39,32,.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; display: none;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 18px; padding: 28px 30px;
+  width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(44,39,32,.15);
+}
+.modal-title { font-size: 1rem; color: #2c2720; margin-bottom: 20px; letter-spacing: .04em; }
+.field-label { font-size: .74rem; color: #9a9188; letter-spacing: .04em; margin-bottom: 5px; }
+.f-input, .f-select {
+  width: 100%; padding: 8px 11px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
+  font-size: .84rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8; box-sizing: border-box; outline: none;
+  margin-bottom: 12px;
+}
+.f-input:focus, .f-select:focus { border-color: #6b5f52; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+.save-btn {
+  padding: 9px 20px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px; font-size: .82rem;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.cancel-btn {
+  padding: 9px 16px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
+  background: none; color: #6b5f52; font-size: .82rem;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.msg-ok  { font-size: .8rem; color: #4a7c59; }
+.msg-err { font-size: .8rem; color: #8b3a3a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sm-layout">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">員工列表</span>
+      <span id="msgEl"></span>
+    </div>
+    <!-- 部門篩選 -->
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-pill active" data-dept="" onclick="filterDept(this, '')">全部</button>
+      <button class="filter-pill" data-dept="門市部" onclick="filterDept(this, '門市部')">門市部</button>
+      <button class="filter-pill" data-dept="業務部" onclick="filterDept(this, '業務部')">業務部</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="staff-table">
+        <thead>
+          <tr>
+            <th>員工編號</th>
+            <th>姓名</th>
+            <th>職稱</th>
+            <th>部門</th>
+            <th>門市</th>
+            <th>手機</th>
+            <th>入職日</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="staffBody">
+          <tr><td colspan="9" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯模態框 -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <div class="modal-title">編輯員工資料</div>
+    <input type="hidden" id="editId">
+    <input type="hidden" id="editName">
+
+    <div class="form-row">
+      <div>
+        <div class="field-label">姓名</div>
+        <input class="f-input" id="eNameDisplay" readonly style="color:#9a9188;background:#eee9e0">
+      </div>
+      <div>
+        <div class="field-label">職稱</div>
+        <input class="f-input" id="eTitle" placeholder="例：門市工程師">
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <div class="field-label">部門</div>
+        <select class="f-select" id="eDept">
+          <option value="門市部">門市部</option>
+          <option value="業務部">業務部</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">門市</div>
+        <select class="f-select" id="eStore">
+          <option value="">（無）</option>
+          <option value="豐原">豐原</option>
+          <option value="潭子">潭子</option>
+          <option value="大雅">大雅</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <div class="field-label">手機</div>
+        <input class="f-input" id="eMobile" type="tel" placeholder="0912345678">
+      </div>
+      <div>
+        <div class="field-label">入職日</div>
+        <input class="f-input" id="eHire" type="date">
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <div class="field-label">狀態</div>
+        <select class="f-select" id="eActive">
+          <option value="1">在職</option>
+          <option value="0">離職</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">登入密碼</div>
+        <input class="f-input" id="ePwd" type="text" placeholder="留空則不修改" maxlength="10">
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="cancel-btn" onclick="closeModal()">取消</button>
+      <button class="save-btn" onclick="saveStaff()">儲存</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allStaff   = [];
+let currentDept = '';
+
+function filterDept(btn, dept) {
+  document.querySelectorAll('.filter-pill').forEach(el => el.classList.remove('active'));
+  btn.classList.add('active');
+  currentDept = dept;
+  renderTable();
+}
+
+function renderTable() {
+  const data = currentDept
+    ? allStaff.filter(s => (s.department || '').includes(currentDept))
+    : allStaff;
+
+  const tbody = document.getElementById('staffBody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#9a9188;padding:20px">暫無資料</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td style="font-size:.78rem;color:#9a9188">${s.staff_id || '—'}</td>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.title || '—'}</td>
+      <td>${s.department || '—'}</td>
+      <td>${s.store || '—'}</td>
+      <td style="font-size:.8rem">${s.mobile || '—'}</td>
+      <td style="font-size:.78rem;color:#9a9188">${s.hire_date || '—'}</td>
+      <td><span class="status-chip status-${s.is_active}">${s.is_active ? '在職' : '離職'}</span></td>
+      <td><button class="edit-btn" onclick="openEdit(${JSON.stringify(s).replace(/"/g,'&quot;')})">編輯</button></td>
+    </tr>`).join('');
+}
+
+function openEdit(s) {
+  document.getElementById('editId').value        = s.staff_id;
+  document.getElementById('editName').value      = s.name;
+  document.getElementById('eNameDisplay').value  = s.name;
+  document.getElementById('eTitle').value        = s.title || '';
+  document.getElementById('eDept').value         = s.department || '門市部';
+  document.getElementById('eStore').value        = s.store || '';
+  document.getElementById('eMobile').value       = s.mobile || '';
+  document.getElementById('eHire').value         = s.hire_date || '';
+  document.getElementById('eActive').value       = s.is_active ? '1' : '0';
+  document.getElementById('ePwd').value          = '';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+}
+
+async function saveStaff() {
+  const staffId = document.getElementById('editId').value;
+  const payload = {
+    name:       document.getElementById('editName').value,
+    title:      document.getElementById('eTitle').value.trim(),
+    department: document.getElementById('eDept').value,
+    store:      document.getElementById('eStore').value,
+    mobile:     document.getElementById('eMobile').value.trim(),
+    hire_date:  document.getElementById('eHire').value,
+    is_active:  parseInt(document.getElementById('eActive').value),
+    password:   document.getElementById('ePwd').value.trim(),
+  };
+
+  const res  = await fetch(`/api/staff/${staffId}`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.success) {
+    showMsg('儲存成功', true);
+    closeModal();
+    load();
+  } else {
+    showMsg(data.message || '儲存失敗', false);
+  }
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg; el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+async function load() {
+  const res  = await fetch('/api/staff/list');
+  const data = await res.json();
+  if (data.success) { allStaff = data.staff || []; renderTable(); }
+}
+
+// 點背景關閉
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('editModal')) closeModal();
+});
+
+onAppReady(user => { load(); });
+</script>
+{% endblock %}

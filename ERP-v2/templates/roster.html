@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}班表查詢 — COSH ERP{% endblock %}
+{% block page_title %}班表查詢{% endblock %}
+
+{% block styles %}
+<style>
+.roster-layout { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── 控制列 ── */
+.ctrl-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+.ctrl-sep { width: 1px; height: 20px; background: rgba(107,95,82,.18); }
+.ctl-sel {
+  padding: 7px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+}
+.loc-pills { display: flex; border: 1px solid rgba(107,95,82,.2); border-radius: 8px; overflow: hidden; }
+.loc-btn {
+  padding: 6px 14px; font-size: .8rem; background: none; border: none;
+  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+  font-weight: 300; letter-spacing: .04em;
+}
+.loc-btn + .loc-btn { border-left: 1px solid rgba(107,95,82,.2); }
+.loc-btn.active { background: #2c2720; color: #f5f0e8; }
+
+/* ── 月曆卡片 ── */
+.cal-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.cal-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #2c2720;
+}
+.cal-dow {
+  text-align: center;
+  padding: 10px 0;
+  font-size: .72rem;
+  color: #e8e2d8;
+  letter-spacing: .08em;
+}
+.cal-dow:nth-child(1) { color: #FABF13; }  /* 日 */
+.cal-dow:nth-child(7) { color: #a89f96; }  /* 六 */
+
+.cal-body { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-cell {
+  border-right: 1px solid rgba(107,95,82,.08);
+  border-bottom: 1px solid rgba(107,95,82,.08);
+  min-height: 90px;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.cal-cell:nth-child(7n) { border-right: none; }
+.cal-cell.empty { background: rgba(107,95,82,.02); }
+.cal-cell.today { background: rgba(250,191,19,.05); }
+
+.day-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .85rem;
+  color: #9a9188;
+  margin-bottom: 5px;
+  font-weight: 300;
+}
+.cal-cell.today .day-num { color: #FABF13; font-weight: 400; }
+.cal-cell.sunday .day-num { color: #c07070; }
+.cal-cell.saturday .day-num { color: #7090c0; }
+
+/* 每人班別標籤 */
+.shift-rows { display: flex; flex-direction: column; gap: 2px; }
+.shift-tag {
+  display: flex; align-items: center; gap: 4px;
+  font-size: .68rem; line-height: 1.3;
+}
+.shift-name { color: #2c2720; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shift-code {
+  font-size: .65rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 400;
+  flex-shrink: 0;
+}
+/* 班別色 */
+.sc-值  { background: #d4edda; color: #2d6a4f; }
+.sc-早  { background: #cfe2ff; color: #084298; }
+.sc-晚  { background: #e2d9f3; color: #432874; }
+.sc-全  { background: #fff3cd; color: #664d03; }
+.sc-休  { background: #f0f0f0; color: #9a9188; }
+.sc-特  { background: #fde8d8; color: #854d0e; }
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg, rgba(107,95,82,.07) 25%, rgba(107,95,82,.14) 50%, rgba(107,95,82,.07) 75%);
+  background-size: 200% 100%;
+  animation: skel-shine 1.4s infinite;
+  border-radius: 6px; height: 18px; margin: 6px 0;
+}
+@keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── 凡例 ── */
+.legend { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: .75rem; }
+.leg-item { display: flex; align-items: center; gap: 4px; }
+.leg-badge { padding: 2px 7px; border-radius: 3px; font-size: .7rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="roster-layout">
+  <!-- 控制列 -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">月份</span>
+    <select class="ctl-sel" id="yearSel"></select>
+    <select class="ctl-sel" id="monthSel"></select>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-label">門市</span>
+    <div class="loc-pills" id="locPills">
+      <button class="loc-btn active" data-loc="">全部</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <!-- 凡例 -->
+    <div class="legend">
+      <span class="leg-item"><span class="leg-badge sc-值">值</span> 值班</span>
+      <span class="leg-item"><span class="leg-badge sc-早">早</span> 早班</span>
+      <span class="leg-item"><span class="leg-badge sc-晚">晚</span> 晚班</span>
+      <span class="leg-item"><span class="leg-badge sc-全">全</span> 全天</span>
+      <span class="leg-item"><span class="leg-badge sc-休">休</span> 休假</span>
+      <span class="leg-item"><span class="leg-badge sc-特">特</span> 特休</span>
+    </div>
+  </div>
+
+  <!-- 月曆 -->
+  <div class="cal-card" id="calCard">
+    <div style="padding:30px;color:#9a9188;font-size:.85rem">載入中…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const now = new Date();
+let rYear  = now.getFullYear();
+let rMonth = now.getMonth() + 1;
+let rLoc   = '';
+
+const DOW = ['日','一','二','三','四','五','六'];
+
+/* ── 選擇器 ── */
+function initSelectors() {
+  const yS = document.getElementById('yearSel');
+  const mS = document.getElementById('monthSel');
+  for (let y = now.getFullYear(); y >= 2024; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y + '年';
+    if (y === rYear) o.selected = true;
+    yS.appendChild(o);
+  }
+  for (let m = 1; m <= 12; m++) {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m + '月';
+    if (m === rMonth) o.selected = true;
+    mS.appendChild(o);
+  }
+  yS.addEventListener('change', () => { rYear = +yS.value; load(); });
+  mS.addEventListener('change', () => { rMonth = +mS.value; load(); });
+}
+
+/* ── 載入 ── */
+async function load() {
+  const qs = `year=${rYear}&month=${rMonth}${rLoc ? '&location=' + encodeURIComponent(rLoc) : ''}`;
+  const res = await fetch(`/api/roster/monthly?${qs}`);
+  const data = await res.json();
+  if (!data.success) return;
+
+  // 門市 pills
+  const pillWrap = document.getElementById('locPills');
+  pillWrap.innerHTML = '<button class="loc-btn' + (!rLoc ? ' active' : '') + '" data-loc="">全部</button>';
+  (data.locations || []).forEach(loc => {
+    const btn = document.createElement('button');
+    btn.className = 'loc-btn' + (rLoc === loc ? ' active' : '');
+    btn.dataset.loc = loc;
+    btn.textContent = loc;
+    pillWrap.appendChild(btn);
+  });
+  pillWrap.addEventListener('click', e => {
+    const btn = e.target.closest('.loc-btn'); if (!btn) return;
+    rLoc = btn.dataset.loc;
+    pillWrap.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    load();
+  });
+
+  renderCalendar(data.roster, rYear, rMonth);
+}
+
+/* ── 月曆渲染 ── */
+function renderCalendar(roster, year, month) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+
+  const firstDay = new Date(year, month-1, 1).getDay(); // 0=日
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  let html = `<div class="cal-header">`;
+  DOW.forEach(d => { html += `<div class="cal-dow">${d}</div>`; });
+  html += `</div><div class="cal-body">`;
+
+  // 空白格
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="cal-cell empty"></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(year, month-1, d).getDay();
+    let cls = 'cal-cell';
+    if (dateStr === todayStr) cls += ' today';
+    if (dow === 0) cls += ' sunday';
+    if (dow === 6) cls += ' saturday';
+
+    const entries = roster[dateStr] || [];
+    const shiftRows = entries.map(e => {
+      const scClass = 'sc-' + (e.shift_code || '');
+      return `<div class="shift-tag">
+        <span class="shift-name">${e.staff_name}</span>
+        <span class="shift-code ${scClass}">${e.shift_code || '-'}</span>
+      </div>`;
+    }).join('');
+
+    html += `<div class="${cls}">
+      <div class="day-num">${d}</div>
+      <div class="shift-rows">${shiftRows}</div>
+    </div>`;
+  }
+  html += `</div>`;
+  document.getElementById('calCard').innerHTML = html;
+}
+
+initSelectors();
+onAppReady(user => { load(); });
+</script>
+{% endblock %}

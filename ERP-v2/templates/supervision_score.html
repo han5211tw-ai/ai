@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block title %}督導評分 — COSH ERP{% endblock %}
+{% block page_title %}督導評分{% endblock %}
+
+{% block styles %}
+<style>
+.sup-layout { display: flex; flex-direction: column; gap: 20px; }
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; padding: 24px 26px;
+}
+.card-title {
+  font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase;
+  margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+
+/* ── 頭部選擇 ── */
+.head-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px; margin-bottom: 24px;
+}
+.f-label { font-size: .74rem; color: #9a9188; letter-spacing: .06em; margin-bottom: 6px; }
+.f-label.req::after { content: ' *'; color: #8b3a3a; }
+.f-input, .f-select {
+  width: 100%; padding: 10px 14px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 10px;
+  font-size: .86rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
+}
+.f-input:focus, .f-select:focus { border-color: #6b5f52; }
+
+/* ── 評分區塊 ── */
+.score-section { margin-bottom: 22px; }
+.score-section-title {
+  font-size: .78rem; color: #6b5f52; letter-spacing: .08em;
+  margin-bottom: 12px; font-weight: 400;
+  display: flex; align-items: center; gap: 8px;
+}
+.score-section-title::after {
+  content: ''; flex: 1; height: 1px; background: rgba(107,95,82,.15);
+}
+
+.score-rows { display: flex; flex-direction: column; gap: 10px; }
+.score-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center; gap: 14px;
+}
+@media (max-width: 560px) { .score-row { grid-template-columns: 1fr; } }
+.score-item-label { font-size: .82rem; color: #2c2720; }
+.score-btns { display: flex; gap: 8px; }
+.sc-btn {
+  width: 44px; height: 36px;
+  border: 1px solid rgba(107,95,82,.25); border-radius: 8px;
+  background: none; font-size: .9rem; color: #6b5f52;
+  font-family: 'Cormorant Garamond', serif; font-weight: 300;
+  cursor: pointer; transition: all .15s;
+}
+.sc-btn.sel-0 { background: #fde8d8; border-color: #c07050; color: #7a3a10; }
+.sc-btn.sel-1 { background: #fff3cd; border-color: #a0763a; color: #664d03; }
+.sc-btn.sel-2 { background: #d4edda; border-color: #4a7c59; color: #1a4d30; }
+
+/* ── 總分顯示 ── */
+.total-bar {
+  background: #f5f0e8; border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.total-score-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem; font-weight: 300; color: #2c2720;
+}
+.total-score-max { font-size: .78rem; color: #9a9188; }
+.total-pct {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem; font-weight: 300;
+}
+.pct-good { color: #4a7c59; }
+.pct-warn { color: #a0763a; }
+.pct-bad  { color: #8b3a3a; }
+.pct-bar-wrap {
+  flex: 1; min-width: 120px;
+  height: 8px; background: rgba(107,95,82,.12); border-radius: 4px; overflow: hidden;
+}
+.pct-bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+/* ── 備註 ── */
+.f-textarea {
+  width: 100%; padding: 10px 14px; border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px; font-size: .85rem; font-family: 'Noto Serif TC', serif;
+  font-weight: 300; color: #2c2720; background: #f5f0e8;
+  outline: none; resize: vertical; min-height: 64px; box-sizing: border-box;
+}
+.f-textarea:focus { border-color: #6b5f52; }
+
+/* ── 按鈕 ── */
+.btn-row { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.submit-btn {
+  padding: 11px 28px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 10px; font-size: .84rem;
+  font-family: 'Noto Serif TC', serif; letter-spacing: .08em; cursor: pointer;
+}
+.submit-btn:disabled { opacity: .5; cursor: default; }
+.reset-btn {
+  padding: 11px 18px; border: 1px solid rgba(107,95,82,.3);
+  border-radius: 10px; background: none; font-size: .82rem; color: #6b5f52;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.msg-ok  { font-size: .82rem; color: #4a7c59; }
+.msg-err { font-size: .82rem; color: #8b3a3a; }
+
+/* ── 近期紀錄 ── */
+.rec-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.rec-table th {
+  text-align: left; padding: 9px 12px;
+  font-weight: 300; color: #9a9188; font-size: .73rem; letter-spacing: .06em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.rec-table td { padding: 10px 12px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.rec-table tr:last-child td { border-bottom: none; }
+.num { font-family: 'Cormorant Garamond', serif; font-size: .88rem; }
+#recentWrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sup-layout">
+
+  <!-- ── 評分表單 ── -->
+  <div class="card">
+    <div class="card-title">督導評分表單（16 項，滿分 32 分）</div>
+
+    <!-- 頭部 -->
+    <div class="head-grid">
+      <div>
+        <div class="f-label req">評分日期</div>
+        <input class="f-input" type="date" id="fDate">
+      </div>
+      <div>
+        <div class="f-label req">店別</div>
+        <select class="f-select" id="fStore" onchange="onStoreChange()">
+          <option value="">請選擇</option>
+          <option value="豐原">豐原</option>
+          <option value="潭子">潭子</option>
+          <option value="大雅">大雅</option>
+        </select>
+      </div>
+      <div>
+        <div class="f-label req">受評員工</div>
+        <select class="f-select" id="fEmployee" disabled>
+          <option value="">請先選擇店別</option>
+        </select>
+      </div>
+      <!-- 督導人員由登入者自動帶入，不顯示欄位 -->
+    </div>
+
+    <!-- 總分進度條 -->
+    <div class="total-bar">
+      <div>
+        <span class="total-score-val" id="totalVal">0</span>
+        <span class="total-score-max"> / 32</span>
+      </div>
+      <div class="total-pct" id="totalPct">0%</div>
+      <div class="pct-bar-wrap">
+        <div class="pct-bar-fill" id="pctBar" style="width:0%;background:#9a8f84"></div>
+      </div>
+    </div>
+
+    <!-- 環境評分 -->
+    <div class="score-section">
+      <div class="score-section-title">環境評分（1–5 項）</div>
+      <div class="score-rows" id="envRows"></div>
+    </div>
+
+    <!-- 個人評分 -->
+    <div class="score-section">
+      <div class="score-section-title">個人評分（6–16 項）</div>
+      <div class="score-rows" id="personRows"></div>
+    </div>
+
+    <!-- 備註 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <div class="f-label">問題紀錄</div>
+        <textarea class="f-textarea" id="fIssues" placeholder="本次督導發現的問題…"></textarea>
+      </div>
+      <div>
+        <div class="f-label">改善建議</div>
+        <textarea class="f-textarea" id="fSuggestions" placeholder="改善方向或建議…"></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="submit-btn" id="submitBtn" onclick="submitScore()">送出評分</button>
+      <button class="reset-btn" onclick="resetForm()">清除重填</button>
+      <span id="msgEl"></span>
+    </div>
+  </div>
+
+  <!-- ── 近期評分紀錄 ── -->
+  <div class="card">
+    <div class="card-title">近期督導紀錄</div>
+    <div id="recentWrap"><div style="color:#9a9188;font-size:.82rem">載入中…</div></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── 評分項目定義 ── */
+const ENV_FIELDS = [
+  { key: 'storefront_cleanliness', label: '1. 門面整潔' },
+  { key: 'store_cleanliness',      label: '2. 店內清潔' },
+  { key: 'product_display',        label: '3. 商品陳列' },
+  { key: 'cable_management',       label: '4. 線材整理' },
+  { key: 'warehouse_organization', label: '5. 倉庫整理' },
+];
+const PERSON_FIELDS = [
+  { key: 'attendance',             label: '6. 出勤狀況' },
+  { key: 'appearance',             label: '7. 服裝儀容' },
+  { key: 'service_attitude',       label: '8. 服務態度' },
+  { key: 'professional_knowledge', label: '9. 專業知識' },
+  { key: 'sales_process',          label: '10. 銷售流程' },
+  { key: 'work_attitude',          label: '11. 工作態度' },
+  { key: 'reply_speed',            label: '12. 回覆速度' },
+  { key: 'reply_attitude',         label: '13. 回覆態度' },
+  { key: 'problem_grasp',          label: '14. 問題掌握' },
+  { key: 'information_complete',   label: '15. 資料完整' },
+  { key: 'follow_up',              label: '16. 後續追蹤' },
+];
+
+const STORE_STAFF = {
+  '豐原': ['林榮祺', '林峙文'],
+  '潭子': ['劉育仕', '林煜捷'],
+  '大雅': ['張永承', '張家碩'],
+};
+const scores = {};
+
+/* ── 建立評分列 ── */
+function buildRows(fields, containerId) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = fields.map(f => `
+    <div class="score-row">
+      <span class="score-item-label">${f.label}</span>
+      <div class="score-btns">
+        ${[0,1,2].map(v =>
+          `<button class="sc-btn" data-key="${f.key}" data-val="${v}"
+                  onclick="setScore('${f.key}',${v})">${v}</button>`
+        ).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function setScore(key, val) {
+  scores[key] = val;
+  // 更新按鈕樣式
+  document.querySelectorAll(`.sc-btn[data-key="${key}"]`).forEach(btn => {
+    btn.className = 'sc-btn' + (parseInt(btn.dataset.val) === val ? ` sel-${val}` : '');
+  });
+  updateTotal();
+}
+
+function updateTotal() {
+  const all   = [...ENV_FIELDS, ...PERSON_FIELDS];
+  const total = all.reduce((s, f) => s + (scores[f.key] ?? 0), 0);
+  const pct   = Math.round((total / 32) * 100);
+  document.getElementById('totalVal').textContent = total;
+  document.getElementById('totalPct').textContent = pct + '%';
+  document.getElementById('totalPct').className =
+    'total-pct ' + (pct >= 80 ? 'pct-good' : pct >= 60 ? 'pct-warn' : 'pct-bad');
+  const bar = document.getElementById('pctBar');
+  bar.style.width = pct + '%';
+  bar.style.background = pct >= 80 ? '#4a7c59' : pct >= 60 ? '#a0763a' : '#8b3a3a';
+}
+
+/* ── 店別切換 ── */
+function onStoreChange() {
+  const store = document.getElementById('fStore').value;
+  const sel   = document.getElementById('fEmployee');
+  sel.innerHTML = '<option value="">請選擇</option>';
+  sel.disabled  = !store;
+  (STORE_STAFF[store] || []).forEach(name => {
+    const o = document.createElement('option');
+    o.value = name; o.textContent = name;
+    sel.appendChild(o);
+  });
+}
+
+/* ── 提交 ── */
+async function submitScore() {
+  const date  = document.getElementById('fDate').value;
+  const store = document.getElementById('fStore').value;
+  const emp   = document.getElementById('fEmployee').value;
+  if (!date || !store || !emp) {
+    showMsg('請填寫：日期、店別、受評員工', false); return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+
+  const payload = {
+    date, store_name: store, employee_name: emp,
+    evaluator: _currentUser ? _currentUser.name : '',
+    evaluator_title: '',
+    issues: document.getElementById('fIssues').value,
+    suggestions: document.getElementById('fSuggestions').value,
+    ...scores,
+  };
+
+  const res  = await fetch('/api/supervision/submit', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  btn.disabled = false;
+
+  if (data.success) {
+    showMsg(`送出成功！總分 ${data.total} / 32（${data.percentage}%）`, true);
+    resetForm();
+    loadRecent();
+  } else {
+    showMsg(data.message || '送出失敗', false);
+  }
+}
+
+function resetForm() {
+  document.getElementById('fStore').value    = '';
+  document.getElementById('fEmployee').value = '';
+  document.getElementById('fEmployee').disabled = true;
+  document.getElementById('fIssues').value   = '';
+  document.getElementById('fSuggestions').value = '';
+  Object.keys(scores).forEach(k => delete scores[k]);
+  document.querySelectorAll('.sc-btn').forEach(b => b.className = 'sc-btn');
+  updateTotal();
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg;
+  el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 5000);
+}
+
+/* ── 近期紀錄 ── */
+async function loadRecent() {
+  const res  = await fetch('/api/supervision/recent?limit=20');
+  const data = await res.json();
+  if (!data.length) {
+    document.getElementById('recentWrap').innerHTML =
+      '<div style="color:#9a9188;font-size:.82rem">暫無紀錄</div>';
+    return;
+  }
+  let html = `<table class="rec-table">
+    <thead><tr><th>日期</th><th>店別</th><th>員工</th><th>總分</th><th>百分比</th><th>督導</th></tr></thead><tbody>`;
+  data.forEach(r => {
+    const pct = r.percentage != null ? r.percentage.toFixed(1) + '%' : '—';
+    html += `<tr>
+      <td>${r.date}</td>
+      <td>${r.store_name || '—'}</td>
+      <td>${r.employee_name || '—'}</td>
+      <td class="num">${r.total_score != null ? r.total_score : '—'}</td>
+      <td class="num">${pct}</td>
+      <td>${r.evaluator || '—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('recentWrap').innerHTML = html;
+}
+
+/* ── 初始化 ── */
+buildRows(ENV_FIELDS,    'envRows');
+buildRows(PERSON_FIELDS, 'personRows');
+
+let _currentUser = null;
+onAppReady(user => {
+  _currentUser = user;
+  document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+  loadRecent();
+});
+</script>
+{% endblock %}

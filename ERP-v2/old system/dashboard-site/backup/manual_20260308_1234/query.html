@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}查詢 - 電腦舖{% endblock %}
+{% block page_title %}查詢{% endblock %}
+
+{% block styles %}
+<style>
+.query-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.query-card {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    text-align: center;
+    transition: all var(--transition-normal);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--color-text-primary);
+    display: block;
+}
+
+.query-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-cyan);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+}
+
+.query-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+.query-title {
+    font-size: 1.3em;
+    color: var(--color-accent-cyan);
+    margin-bottom: 10px;
+}
+
+.query-desc {
+    color: var(--color-text-secondary);
+    font-size: 0.95em;
+}
+
+/* 導航連結 */
+.nav {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.nav a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.nav a:hover {
+    color: var(--color-accent-cyan);
+    border-color: var(--color-accent-cyan);
+}
+
+/* 頁面標題 */
+.subtitle {
+    text-align: left;
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<p class="subtitle">Query Center</p>
+
+<div class="nav">
+    <a href="index.html">🏠 首頁</a>
+</div>
+
+<div class="query-grid">
+    <a href="customer_search.html" class="query-card" target="_blank">
+        <div class="query-icon">👤</div>
+        <div class="query-title">客戶查詢</div>
+        <div class="query-desc">搜尋客戶資料、聯絡資訊與交易紀錄</div>
+    </a>
+
+    <a href="inventory_query.html" class="query-card" target="_blank">
+        <div class="query-icon">📦</div>
+        <div class="query-title">庫存查詢</div>
+        <div class="query-desc">查詢商品庫存數量與各倉庫分佈</div>
+    </a>
+</div>
+{% endblock %}

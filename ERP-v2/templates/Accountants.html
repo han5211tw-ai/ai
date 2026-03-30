@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}會計專區 — COSH ERP{% endblock %}
+{% block page_title %}會計專區{% endblock %}
+
+{% block styles %}
+<style>
+.acc-layout { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── 控制列 ── */
+.ctrl-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+.ctrl-sep { width: 1px; height: 20px; background: rgba(107,95,82,.18); }
+.status-pills { display: flex; border: 1px solid rgba(107,95,82,.2); border-radius: 8px; overflow: hidden; }
+.pill-btn {
+  padding: 7px 14px; font-size: .8rem; background: none; border: none;
+  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+  font-weight: 300; letter-spacing: .04em;
+}
+.pill-btn + .pill-btn { border-left: 1px solid rgba(107,95,82,.2); }
+.pill-btn.active { background: #2c2720; color: #f5f0e8; }
+.dept-sel {
+  padding: 7px 12px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  color: #2c2720; background: #f5f0e8;
+}
+
+/* ── 統計卡 ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+.stat-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px; padding: 16px 20px;
+}
+.stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem; font-weight: 300; color: #2c2720;
+}
+.stat-lbl { font-size: .7rem; color: #9a9188; margin-top: 4px; letter-spacing: .05em; }
+
+/* ── 需求表 ── */
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; overflow: hidden;
+}
+.card-title {
+  font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase;
+  padding: 13px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
+}
+
+.needs-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.needs-table th {
+  text-align: left; padding: 9px 14px;
+  font-weight: 300; color: #9a9188; font-size: .73rem; letter-spacing: .06em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.needs-table td { padding: 10px 14px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.needs-table tr:last-child td { border-bottom: none; }
+
+.type-badge {
+  font-size: .7rem; padding: 2px 8px; border-radius: 4px; display: inline-block;
+}
+.tb-調撥 { background: rgba(80,110,155,.15); color: #3a5a8a; }
+.tb-請購 { background: rgba(250,191,19,.18); color: #7a5500; }
+
+.status-badge {
+  font-size: .7rem; padding: 2px 8px; border-radius: 4px; display: inline-block;
+}
+.sb-待處理 { background: rgba(250,191,19,.18); color: #7a5500; }
+.sb-已採購 { background: rgba(80,110,155,.15); color: #3a5a8a; }
+.sb-已調撥 { background: #e8f4e8; color: #3d7a3d; }
+.sb-已到貨 { background: #e8f4e8; color: #3d7a3d; }
+.sb-已完成 { background: #e8e2d8; color: #6b5f52; }
+.sb-已取消 { background: rgba(107,95,82,.08); color: #9a9188; }
+
+.action-btns { display: flex; gap: 6px; }
+.act-btn {
+  padding: 4px 10px; border-radius: 5px; font-size: .72rem;
+  border: 1px solid rgba(107,95,82,.25); background: none;
+  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+}
+.act-btn.transfer { border-color: #3a5a8a; color: #3a5a8a; }
+.act-btn.complete  { border-color: #6b5f52; background: #2c2720; color: #f5f0e8; }
+.act-btn:hover { opacity: .8; }
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg, rgba(107,95,82,.07) 25%, rgba(107,95,82,.14) 50%, rgba(107,95,82,.07) 75%);
+  background-size: 200% 100%; animation: skel-shine 1.4s infinite;
+  border-radius: 6px; height: 18px; margin: 6px 0;
+}
+@keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+#tableWrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="acc-layout">
+
+  <!-- 控制列 -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">狀態</span>
+    <div class="status-pills" id="statusPills">
+      <button class="pill-btn active" data-s="待處理">待調撥</button>
+      <button class="pill-btn" data-s="已調撥">已調撥</button>
+      <button class="pill-btn" data-s="已完成">已完成</button>
+      <button class="pill-btn" data-s="all">全部</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-label">門市</span>
+    <select class="dept-sel" id="deptSel">
+      <option value="">全部門市</option>
+      <option value="豐原門市">豐原門市</option>
+      <option value="潭子門市">潭子門市</option>
+      <option value="大雅門市">大雅門市</option>
+      <option value="業務部">業務部</option>
+    </select>
+  </div>
+
+  <!-- 統計卡 -->
+  <div class="stat-row" id="statRow">
+    <div class="stat-card"><div class="skel"></div></div>
+    <div class="stat-card"><div class="skel"></div></div>
+  </div>
+
+  <!-- 需求列表 -->
+  <div class="card">
+    <div class="card-title">調撥需求列表</div>
+    <div id="tableWrap">
+      <div class="skel" style="margin:16px"></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let curStatus = '待處理';
+let curDept   = '';
+
+/* ── 控制元件 ── */
+document.getElementById('statusPills').addEventListener('click', e => {
+  const btn = e.target.closest('.pill-btn'); if (!btn) return;
+  document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  curStatus = btn.dataset.s;
+  load();
+});
+document.getElementById('deptSel').addEventListener('change', e => {
+  curDept = e.target.value; load();
+});
+
+/* ── 載入 ── */
+async function load() {
+  const qs = `status=${encodeURIComponent(curStatus)}${curDept ? '&department=' + encodeURIComponent(curDept) : ''}`;
+  const res  = await fetch('/api/needs/transfers?' + qs);
+  const data = await res.json();
+  if (!data.success) return;
+
+  const needs = data.needs || [];
+
+  // 統計
+  const pending     = needs.filter(n => n.status === '待處理').length;
+  const transferred = needs.filter(n => n.status === '已調撥').length;
+  const completed   = needs.filter(n => n.status === '已完成').length;
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val">${pending}</div>
+      <div class="stat-lbl">待調撥</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${transferred}</div>
+      <div class="stat-lbl">已調撥</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${completed}</div>
+      <div class="stat-lbl">已完成</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${needs.length}</div>
+      <div class="stat-lbl">本次顯示</div>
+    </div>
+  `;
+
+  if (needs.length === 0) {
+    document.getElementById('tableWrap').innerHTML =
+      '<div style="padding:20px;color:#9a9188;font-size:.83rem">查無資料</div>';
+    return;
+  }
+
+  let html = `<table class="needs-table">
+    <thead><tr>
+      <th>日期</th><th>類型</th><th>產品</th><th>數量</th>
+      <th>門市</th><th>申請人</th><th>調撥來源</th><th>狀態</th><th>操作</th>
+    </tr></thead><tbody>`;
+
+  needs.forEach(n => {
+    const actions = buildActions(n);
+    html += `<tr id="nr-${n.id}">
+      <td>${n.date || n.created_at?.slice(0,10) || '—'}</td>
+      <td><span class="type-badge tb-${n.request_type || '調撥'}">${n.request_type || '調撥'}</span></td>
+      <td>
+        <div>${n.item_name || '—'}</div>
+        <div style="font-size:.72rem;color:#9a9188">${n.product_code || ''}</div>
+      </td>
+      <td>${n.quantity || '—'}</td>
+      <td>${n.department || '—'}</td>
+      <td>${n.requester || '—'}</td>
+      <td style="font-size:.78rem;color:#9a9188">${n.transfer_from || '—'}</td>
+      <td><span class="status-badge sb-${n.status || '待處理'}" id="st-${n.id}">${n.status || '待處理'}</span></td>
+      <td><div class="action-btns">${actions}</div></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+function buildActions(n) {
+  if (n.status === '待處理') {
+    return `<button class="act-btn transfer" onclick="doTransfer(${n.id})">調撥</button>`;
+  }
+  return '<span style="color:#9a9188;font-size:.74rem">—</span>';
+}
+
+async function doTransfer(id) {
+  const res = await fetch('/api/needs/' + id + '/transfer', { method: 'POST' });
+  const d   = await res.json();
+  if (d.success) {
+    document.getElementById('st-' + id).textContent = '已調撥';
+    document.getElementById('st-' + id).className = 'status-badge sb-已調撥';
+    const row = document.getElementById('nr-' + id);
+    row.querySelector('.action-btns').innerHTML = '<span style="color:#9a9188;font-size:.74rem">—</span>';
+  } else {
+    alert(d.message || '操作失敗');
+  }
+}
+
+function onAppReady(user) { load(); }
+</script>
+{% endblock %}

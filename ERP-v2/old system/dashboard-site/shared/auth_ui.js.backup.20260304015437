@@ -1,0 +1,336 @@
+/**
+ * 共用登入元件 auth_ui.js
+ * 統一所有頁面的登入介面與流程
+ * Version: 20250303-1400
+ * ChangeLog:
+ *   - 20250303: 新增自動過期機制（每天晚上9點自動登出）
+ *   - 20250303: 新增 getTonight9PM() 和 isAuthExpired() 函數
+ *   - 20250303: 修改 getAuthData() 自動檢查過期時間
+ * 顏色定義在 auth_ui.css 中使用 CSS 變數
+ */
+
+(function() {
+    'use strict';
+
+    // 權限等級定義
+    const ROLE_LEVELS = {
+        'staff': 1,      // 一般員工
+        'accountant': 2, // 會計/督導
+        'boss': 3        // 老闆/管理員
+    };
+
+    // 頁面權限對應表
+    const PAGE_PERMISSIONS = {
+        'needs_input.html': 'staff',
+        'needs_input_v2.html': 'staff',
+        'service_record.html': 'staff',
+        'roster_input.html': 'staff',
+        'supervision_score.html': 'accountant',
+        'admin.html': 'boss'
+    };
+
+    // 建立登入 Modal HTML（只使用 CSS 類，不寫死顏色）
+    function createLoginModal() {
+        if (document.getElementById('auth-login-modal')) return;
+
+        // 載入 CSS（如果還沒載入）
+        if (!document.getElementById('auth-ui-css')) {
+            const link = document.createElement('link');
+            link.id = 'auth-ui-css';
+            link.rel = 'stylesheet';
+            link.href = 'shared/auth_ui.css';
+            document.head.appendChild(link);
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'auth-login-modal';
+        modal.innerHTML = `
+            <div id="auth-login-overlay">
+                <div id="auth-login-box">
+                    <h2 id="auth-login-title">🔐 請輸入密碼</h2>
+                    <p id="auth-login-subtitle">身分證後四碼驗證</p>
+                    <input type="password" id="auth-password-input" maxlength="4" placeholder="請輸入4位數字" onkeypress="if(event.key==='Enter') window.authSubmitLogin()">
+                    <button id="auth-login-btn" onclick="window.authSubmitLogin()">登入</button>
+                    <div id="auth-login-error"></div>
+                    <div id="auth-login-loading">驗證中...</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // 顯示登入 Modal
+    function showLoginModal(options) {
+        createLoginModal();
+        const modal = document.getElementById('auth-login-modal');
+        const title = document.getElementById('auth-login-title');
+        const subtitle = document.getElementById('auth-login-subtitle');
+        const errorDiv = document.getElementById('auth-login-error');
+        
+        // 重置狀態
+        errorDiv.textContent = '';
+        document.getElementById('auth-password-input').value = '';
+        
+        // 設定標題
+        if (options.title) {
+            title.textContent = options.title;
+        }
+        if (options.subtitle) {
+            subtitle.textContent = options.subtitle;
+        }
+        
+        modal.style.display = 'block';
+        
+        // 自動聚焦
+        setTimeout(() => {
+            document.getElementById('auth-password-input').focus();
+        }, 100);
+    }
+
+    // 隱藏登入 Modal
+    function hideLoginModal() {
+        const modal = document.getElementById('auth-login-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // 顯示錯誤訊息
+    function showLoginError(message) {
+        const errorDiv = document.getElementById('auth-login-error');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+        }
+    }
+
+    // 顯示/隱藏 Loading
+    function setLoading(show) {
+        const loadingDiv = document.getElementById('auth-login-loading');
+        const btn = document.getElementById('auth-login-btn');
+        if (loadingDiv) {
+            loadingDiv.style.display = show ? 'block' : 'none';
+        }
+        if (btn) {
+            btn.disabled = show;
+        }
+    }
+
+    // 呼叫驗證 API
+    async function callVerifyAPI(password) {
+        const response = await fetch('/api/auth/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        return await response.json();
+    }
+
+    // 檢查權限
+    function checkPermission(userRole, requiredMinRole) {
+        const userLevel = ROLE_LEVELS[userRole] || 1;
+        const requiredLevel = ROLE_LEVELS[requiredMinRole] || 1;
+        return userLevel >= requiredLevel;
+    }
+
+    // 取得今天晚上9點的時間戳（自動過期時間）
+    function getTonight9PM() {
+        const now = new Date();
+        const tonight9PM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 0, 0);
+        // 如果現在已經過了晚上9點，則設定為明天晚上9點
+        if (now > tonight9PM) {
+            tonight9PM.setDate(tonight9PM.getDate() + 1);
+        }
+        return tonight9PM.getTime();
+    }
+
+    // 檢查是否已過期
+    function isAuthExpired(expireTime) {
+        if (!expireTime) return true;
+        return Date.now() > expireTime;
+    }
+
+    // 儲存登入資訊（含過期時間）
+    function saveAuthData(data) {
+        const authData = {
+            name: data.name,
+            department: data.department,
+            title: data.title,
+            loginTime: new Date().toISOString(),
+            expireTime: getTonight9PM() // 今天晚上9點自動過期
+        };
+        sessionStorage.setItem('currentUser', JSON.stringify(authData));
+        localStorage.setItem('currentUser', JSON.stringify(authData));
+    }
+
+    // 獲取登入資訊（檢查是否過期）
+    function getAuthData() {
+        const sessionData = sessionStorage.getItem('currentUser');
+        const localData = localStorage.getItem('currentUser');
+        const dataStr = sessionData || localData;
+        
+        if (!dataStr) return null;
+        
+        try {
+            const data = JSON.parse(dataStr);
+            
+            // 檢查是否過期
+            if (isAuthExpired(data.expireTime)) {
+                console.log('[AuthUI] 登入已過期（晚上9點自動登出）');
+                clearAuthData();
+                return null;
+            }
+            
+            return data;
+        } catch (e) {
+            console.error('[AuthUI] 解析登入資料失敗:', e);
+            clearAuthData();
+            return null;
+        }
+    }
+
+    // 清除登入資訊
+    function clearAuthData() {
+        sessionStorage.removeItem('currentUser');
+        localStorage.removeItem('currentUser');
+    }
+
+    // 判斷使用者角色
+    function getUserRole(title) {
+        if (!title) return 'staff';
+        const t = title.toLowerCase();
+        if (t.includes('老闆') || t.includes('老闆') || t.includes('管理員') || t.includes('boss')) {
+            return 'boss';
+        }
+        if (t.includes('會計') || t.includes('督導') || t.includes('accountant') || t.includes('主管')) {
+            return 'accountant';
+        }
+        return 'staff';
+    }
+
+    // 主要登入函數
+    window.authSubmitLogin = async function() {
+        const passwordInput = document.getElementById('auth-password-input');
+        const password = passwordInput.value.trim();
+        
+        // 驗證格式
+        if (!password || password.length !== 4 || !/^\d{4}$/.test(password)) {
+            showLoginError('請輸入4位數字密碼');
+            return;
+        }
+        
+        setLoading(true);
+        showLoginError('');
+        
+        try {
+            const result = await callVerifyAPI(password);
+            
+            if (result.success) {
+                // 儲存登入資訊
+                saveAuthData(result);
+                
+                // 隱藏登入框
+                hideLoginModal();
+                
+                // 觸發回調
+                if (window.authSuccessCallback) {
+                    window.authSuccessCallback(result);
+                }
+            } else {
+                showLoginError(result.message || '密碼錯誤');
+            }
+        } catch (e) {
+            console.error('Login error:', e);
+            showLoginError('登入失敗，請稍後再試');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 公開 API：requireLogin
+    window.requireLogin = function(options) {
+        options = options || {};
+        
+        return new Promise((resolve, reject) => {
+            // 檢查是否已登入
+            const authData = getAuthData();
+            
+            if (authData) {
+                // 已登入，檢查權限
+                const userRole = getUserRole(authData.title);
+                const requiredRole = options.minRole || 'staff';
+                
+                if (!checkPermission(userRole, requiredRole)) {
+                    // 權限不足
+                    alert('⚠️ 權限不足：您沒有權限訪問此頁面');
+                    reject(new Error('Permission denied'));
+                    return;
+                }
+                
+                // 有權限，直接返回
+                resolve(authData);
+                return;
+            }
+            
+            // 未登入，顯示登入框
+            window.authSuccessCallback = function(data) {
+                const userRole = getUserRole(data.title);
+                const requiredRole = options.minRole || 'staff';
+                
+                if (!checkPermission(userRole, requiredRole)) {
+                    alert('⚠️ 權限不足：您沒有權限訪問此頁面');
+                    clearAuthData();
+                    reject(new Error('Permission denied'));
+                    return;
+                }
+                
+                resolve(data);
+            };
+            
+            showLoginModal({
+                title: options.title || '🔐 請輸入密碼',
+                subtitle: options.subtitle || '身分證後四碼驗證'
+            });
+        });
+    };
+
+    // 公開 API：登出
+    window.authLogout = function() {
+        clearAuthData();
+        location.reload();
+    };
+
+    // 公開 API：獲取當前使用者
+    window.getCurrentUser = function() {
+        return getAuthData();
+    };
+
+    // 公開 API：檢查是否已登入
+    window.isLoggedIn = function() {
+        return getAuthData() !== null;
+    };
+
+    // 自動判斷當前頁面所需權限並執行登入
+    window.autoRequireLogin = function() {
+        const path = window.location.pathname;
+        const filename = path.split('/').pop() || 'index.html';
+        
+        // 根據頁面檔名決定權限
+        let minRole = 'staff';
+        for (const [page, role] of Object.entries(PAGE_PERMISSIONS)) {
+            if (filename.includes(page.replace('.html', ''))) {
+                minRole = role;
+                break;
+            }
+        }
+        
+        console.log('[AuthUI] Auto require login for:', filename, 'minRole:', minRole);
+        
+        return requireLogin({
+            minRole: minRole,
+            title: '🔐 請輸入密碼',
+            subtitle: '身分證後四碼驗證'
+        });
+    };
+
+    console.log('[AuthUI] Shared auth component loaded. Version: 20250303-1301 (staff permission fix)');
+})();

@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}獎金規則 — COSH ERP{% endblock %}
+{% block page_title %}獎金規則管理{% endblock %}
+
+{% block styles %}
+<style>
+.br-layout { display:flex; flex-direction:column; gap:20px; }
+.card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
+.card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; }
+.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+.form-body { padding:20px 22px; display:flex; flex-direction:column; gap:12px; }
+.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+.f-input, .f-select {
+  width:100%; padding:9px 12px;
+  border:1px solid rgba(107,95,82,.22); border-radius:8px;
+  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  color:#2c2720; background:#f5f0e8; box-sizing:border-box; outline:none;
+}
+.f-input:focus, .f-select:focus { border-color:#6b5f52; }
+.form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.submit-btn {
+  padding:9px 22px; background:#2c2720; color:#f5f0e8;
+  border:none; border-radius:8px; font-size:.82rem;
+  font-family:'Noto Serif TC',serif; cursor:pointer; align-self:flex-start;
+}
+.msg-ok  { font-size:.8rem; color:#4a7c59; }
+.msg-err { font-size:.8rem; color:#8b3a3a; }
+
+/* 規則表格 */
+.rules-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.rules-table th {
+  text-align:left; padding:9px 12px; font-weight:300; color:#9a9188;
+  font-size:.7rem; letter-spacing:.06em; background:#faf7f2;
+  border-bottom:1px solid rgba(107,95,82,.1);
+}
+.rules-table td { padding:9px 12px; color:#2c2720; border-bottom:1px solid rgba(107,95,82,.05); vertical-align:middle; }
+.rules-table tr:last-child td { border-bottom:none; }
+
+.active-chip { display:inline-block; padding:2px 9px; border-radius:20px; font-size:.7rem; }
+.active-1 { background:#e8f4e8; color:#3d7a3d; }
+.active-0 { background:#eee; color:#999; }
+
+.type-chip { display:inline-block; padding:2px 8px; border-radius:20px; font-size:.7rem; background:#e8eef8; color:#3a5a8b; }
+
+.action-btn {
+  padding:3px 10px; border-radius:5px; font-size:.74rem;
+  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
+  font-family:'Noto Serif TC',serif; margin-right:4px;
+}
+.action-btn.del { border-color:rgba(139,58,58,.25); color:#8b3a3a; }
+.action-btn:hover { background:#f5f0e8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="br-layout">
+
+  <!-- 新增表單 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">新增獎金規則</span>
+      <span id="msgEl"></span>
+    </div>
+    <div class="form-body">
+      <div>
+        <div class="field-label">規則名稱</div>
+        <input class="f-input" id="rName" placeholder="例：4月高階機活動">
+      </div>
+      <div class="form-row-2">
+        <div>
+          <div class="field-label">商品編號</div>
+          <input class="f-input" id="rCode" placeholder="例：CP-AM-0024">
+        </div>
+        <div>
+          <div class="field-label">商品名稱</div>
+          <input class="f-input" id="rProd" placeholder="例：RYZEN 7-9850X3D">
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div>
+          <div class="field-label">生效日</div>
+          <input class="f-input" id="rStart" type="date">
+        </div>
+        <div>
+          <div class="field-label">截止日</div>
+          <input class="f-input" id="rEnd" type="date">
+        </div>
+        <div>
+          <div class="field-label">最低數量</div>
+          <input class="f-input" id="rMinQty" type="number" value="1" min="1">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div>
+          <div class="field-label">獎金類型</div>
+          <select class="f-select" id="rType">
+            <option value="fixed">固定金額（元/件）</option>
+            <option value="percent">百分比（%）</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">獎金值</div>
+          <input class="f-input" id="rValue" type="number" value="0" min="0" step="0.01" placeholder="金額或百分比">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="createRule()">新增規則</button>
+    </div>
+  </div>
+
+  <!-- 規則列表 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">所有獎金規則</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th style="min-width:160px">規則名稱</th>
+            <th>商品編號</th>
+            <th>商品名稱</th>
+            <th>生效期間</th>
+            <th>類型</th>
+            <th>獎金值</th>
+            <th>最低件數</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="rulesBody">
+          <tr><td colspan="9" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadRules() {
+  const res  = await fetch('/api/bonus-rules');
+  const data = await res.json();
+  const rules = data.rules || [];
+
+  const tbody = document.getElementById('rulesBody');
+  if (!rules.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#9a9188;padding:20px">暫無規則</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rules.map(r => `
+    <tr>
+      <td><strong>${r.rule_name}</strong></td>
+      <td style="font-size:.78rem;color:#6b5f52">${r.product_code||'—'}</td>
+      <td style="font-size:.82rem">${r.product_name||'—'}</td>
+      <td style="font-size:.78rem;color:#9a9188;white-space:nowrap">${r.start_date||'—'} ～ ${r.end_date||'—'}</td>
+      <td><span class="type-chip">${r.bonus_type==='fixed'?'固定金額':'百分比'}</span></td>
+      <td style="text-align:right">
+        ${r.bonus_type==='fixed'
+          ? `<strong>${(r.bonus_value||0).toLocaleString()}</strong> 元`
+          : `<strong>${r.bonus_value}</strong> %`}
+      </td>
+      <td style="text-align:center">${r.min_quantity||1} 件</td>
+      <td><span class="active-chip active-${r.is_active}">${r.is_active?'啟用':'停用'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="toggleRule(${r.id},${r.is_active})">${r.is_active?'停用':'啟用'}</button>
+        <button class="action-btn del" onclick="deleteRule(${r.id})">刪除</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function createRule() {
+  const name  = document.getElementById('rName').value.trim();
+  const code  = document.getElementById('rCode').value.trim();
+  const prod  = document.getElementById('rProd').value.trim();
+  const start = document.getElementById('rStart').value;
+  const end   = document.getElementById('rEnd').value;
+  const val   = parseFloat(document.getElementById('rValue').value) || 0;
+
+  if (!name || !start || !end || val <= 0) {
+    showMsg('規則名稱、日期、獎金值為必填', false); return;
+  }
+
+  const res = await fetch('/api/bonus-rules', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      rule_name:    name,
+      product_code: code,
+      product_name: prod,
+      start_date:   start,
+      end_date:     end,
+      bonus_type:   document.getElementById('rType').value,
+      bonus_value:  val,
+      min_quantity: parseInt(document.getElementById('rMinQty').value)||1,
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showMsg('規則已新增', true);
+    ['rName','rCode','rProd','rStart','rEnd'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('rValue').value = '0';
+    loadRules();
+  } else {
+    showMsg(data.message||'新增失敗', false);
+  }
+}
+
+async function toggleRule(id, current) {
+  await fetch(`/api/bonus-rules/${id}`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ is_active: current ? 0 : 1 })
+  });
+  loadRules();
+}
+
+async function deleteRule(id) {
+  if (!confirm('確定刪除此獎金規則？')) return;
+  const res  = await fetch(`/api/bonus-rules/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) loadRules();
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg; el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+onAppReady(user => { loadRules(); });
+</script>
+{% endblock %}

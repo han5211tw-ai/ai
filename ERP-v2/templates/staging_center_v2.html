@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block title %}待建檔中心 — COSH ERP{% endblock %}
+{% block page_title %}待建檔中心{% endblock %}
+
+{% block styles %}
+<style>
+.sc-layout { display:flex; flex-direction:column; gap:20px; }
+
+.card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
+.card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+
+/* Tab 切換 */
+.tab-bar { display:flex; gap:0; border-bottom:1px solid rgba(107,95,82,.1); }
+.tab-btn {
+  padding:11px 22px; font-size:.8rem; color:#9a9188;
+  border:none; background:none; cursor:pointer;
+  font-family:'Noto Serif TC',serif; letter-spacing:.04em;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  transition:color .2s;
+}
+.tab-btn.active { color:#2c2720; border-bottom-color:#2c2720; }
+.tab-btn .badge {
+  display:inline-block; background:#e8d5a3; color:#6b4f00;
+  border-radius:20px; padding:1px 7px; font-size:.66rem; margin-left:5px;
+}
+.tab-btn.active .badge { background:#2c2720; color:#f5f0e8; }
+
+/* 篩選列 */
+.filter-bar {
+  display:flex; gap:10px; align-items:flex-end; padding:12px 20px;
+  border-bottom:1px solid rgba(107,95,82,.06); flex-wrap:wrap;
+}
+.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+.f-input, .f-select {
+  padding:7px 11px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
+  font-size:.83rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  color:#2c2720; background:#f5f0e8; outline:none;
+}
+.f-input:focus { border-color:#6b5f52; }
+.f-select:focus { border-color:#6b5f52; }
+
+/* 統計列 */
+.stat-row { display:flex; gap:10px; padding:10px 20px; flex-wrap:wrap; border-bottom:1px solid rgba(107,95,82,.06); }
+.stat-chip { background:#faf7f2; border-radius:8px; padding:8px 14px; font-size:.78rem; color:#6b5f52; }
+.stat-chip strong { color:#2c2720; font-size:.9rem; }
+
+/* 表格 */
+.sc-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.sc-table th {
+  text-align:left; padding:9px 12px; font-weight:300; color:#9a9188;
+  font-size:.7rem; letter-spacing:.06em; background:#faf7f2;
+  border-bottom:1px solid rgba(107,95,82,.1);
+}
+.sc-table td {
+  padding:9px 12px; color:#2c2720;
+  border-bottom:1px solid rgba(107,95,82,.05); vertical-align:top;
+}
+.sc-table tr:last-child td { border-bottom:none; }
+.sc-table tr:hover td { background:rgba(250,191,19,.03); }
+
+/* 類型標籤 */
+.type-chip {
+  display:inline-block; padding:2px 8px; border-radius:20px;
+  font-size:.7rem; white-space:nowrap;
+}
+.type-customer { background:#e0eaf8; color:#2a5090; }
+.type-product  { background:#f0e8ff; color:#6a30aa; }
+
+/* 狀態標籤 */
+.status-chip {
+  display:inline-block; padding:2px 8px; border-radius:20px;
+  font-size:.7rem; white-space:nowrap;
+}
+.status-pending  { background:#fff4e0; color:#a06a00; }
+.status-resolved { background:#e8f4e8; color:#3d7a3d; }
+
+/* 操作按鈕 */
+.action-btn {
+  padding:3px 10px; border-radius:5px; font-size:.74rem;
+  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
+  font-family:'Noto Serif TC',serif; white-space:nowrap;
+}
+.action-btn.resolve { border-color:rgba(61,122,61,.3); color:#3d7a3d; }
+.action-btn.resolve:hover { background:#e8f4e8; }
+.action-btn:hover { background:#f5f0e8; }
+
+/* 內容摺疊 */
+.code-text { font-size:.74rem; color:#6b5f52; font-family:monospace; word-break:break-all; max-width:160px; }
+.sub-text   { font-size:.74rem; color:#9a9188; }
+
+.empty-msg { text-align:center; color:#9a9188; padding:32px; font-size:.84rem; }
+.msg-ok  { font-size:.8rem; color:#4a7c59; }
+.msg-err { font-size:.8rem; color:#8b3a3a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sc-layout">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">待建檔管理</span>
+      <span id="msgEl"></span>
+    </div>
+
+    <!-- Tab 列 -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-sr" onclick="switchTab('sr')">
+        暫存記錄（客戶/商品）<span class="badge" id="badge-sr">…</span>
+      </button>
+      <button class="tab-btn" id="tab-ps" onclick="switchTab('ps')">
+        產品待建檔<span class="badge" id="badge-ps">…</span>
+      </button>
+    </div>
+
+    <!-- 篩選列 -->
+    <div class="filter-bar" id="filterBarSr">
+      <div>
+        <div class="field-label">類型</div>
+        <select class="f-select" id="fSrType" onchange="loadStagingRecords()">
+          <option value="">全部</option>
+          <option value="customer">客戶</option>
+          <option value="product">商品</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">狀態</div>
+        <select class="f-select" id="fSrStatus" onchange="loadStagingRecords()">
+          <option value="pending">待處理</option>
+          <option value="">全部</option>
+          <option value="resolved">已完成</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-bar" id="filterBarPs" style="display:none">
+      <div>
+        <div class="field-label">狀態</div>
+        <select class="f-select" id="fPsStatus" onchange="loadProductStaging()">
+          <option value="pending">待處理</option>
+          <option value="">全部</option>
+          <option value="resolved">已完成</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 統計列 -->
+    <div class="stat-row" id="statRow"></div>
+
+    <!-- 表格容器 -->
+    <div style="overflow-x:auto" id="tableWrap">
+      <!-- 暫存記錄表格 -->
+      <table class="sc-table" id="tblSr">
+        <thead>
+          <tr>
+            <th>類型</th>
+            <th style="min-width:120px">輸入名稱</th>
+            <th>手機</th>
+            <th>申請人</th>
+            <th>部門</th>
+            <th>建立時間</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="bodySr">
+          <tr><td colspan="8" class="empty-msg">載入中…</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 產品待建檔表格 -->
+      <table class="sc-table" id="tblPs" style="display:none">
+        <thead>
+          <tr>
+            <th style="min-width:200px">產品名稱</th>
+            <th>輸入料號</th>
+            <th>申請人</th>
+            <th>建立時間</th>
+            <th>ERP 料號</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="bodyPs">
+          <tr><td colspan="7" class="empty-msg">載入中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _activeTab = 'sr';
+
+function switchTab(tab) {
+  _activeTab = tab;
+  document.getElementById('tab-sr').classList.toggle('active', tab === 'sr');
+  document.getElementById('tab-ps').classList.toggle('active', tab === 'ps');
+  document.getElementById('tblSr').style.display      = tab === 'sr' ? '' : 'none';
+  document.getElementById('tblPs').style.display      = tab === 'ps' ? '' : 'none';
+  document.getElementById('filterBarSr').style.display = tab === 'sr' ? '' : 'none';
+  document.getElementById('filterBarPs').style.display = tab === 'ps' ? '' : 'none';
+  if (tab === 'sr') loadStagingRecords();
+  else              loadProductStaging();
+}
+
+// ── 暫存記錄 ─────────────────────────────────
+async function loadStagingRecords() {
+  const type   = document.getElementById('fSrType').value;
+  const status = document.getElementById('fSrStatus').value;
+  const params = new URLSearchParams({ status });
+  if (type) params.append('type', type);
+
+  const res  = await fetch(`/api/staging/list?${params}`);
+  const data = await res.json();
+  if (!data.success) { showMsg('載入失敗', false); return; }
+
+  const rows = data.rows;
+  const pending  = rows.filter(r => r.status === 'pending').length;
+  const resolved = rows.filter(r => r.status === 'resolved').length;
+  document.getElementById('badge-sr').textContent = pending;
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-chip">共 <strong>${rows.length}</strong> 筆</div>
+    <div class="stat-chip">待處理 <strong>${pending}</strong></div>
+    <div class="stat-chip">已完成 <strong>${resolved}</strong></div>
+  `;
+
+  const tbody = document.getElementById('bodySr');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">無記錄</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>
+        <span class="type-chip type-${r.type}">
+          ${r.type === 'customer' ? '客戶' : '商品'}
+        </span>
+      </td>
+      <td>
+        <div style="font-size:.84rem;font-weight:400">${r.raw_input || '—'}</div>
+        ${r.temp_customer_id ? `<div class="sub-text">${r.temp_customer_id}</div>` : ''}
+      </td>
+      <td>
+        <div class="code-text">${r.raw_mobile || '—'}</div>
+      </td>
+      <td style="white-space:nowrap">${r.requester || '—'}</td>
+      <td style="white-space:nowrap;font-size:.78rem;color:#6b5f52">${r.department || '—'}</td>
+      <td style="white-space:nowrap;font-size:.76rem;color:#9a9188">${(r.created_at||'').slice(0,10)}</td>
+      <td>
+        <span class="status-chip status-${r.status}">
+          ${r.status === 'pending' ? '待處理' : '已完成'}
+        </span>
+        ${r.resolved_name ? `<div class="sub-text" style="margin-top:3px">→ ${r.resolved_name}</div>` : ''}
+      </td>
+      <td style="white-space:nowrap">
+        ${r.status === 'pending' ? `
+          <button class="action-btn resolve" onclick="resolveSr(${r.id})">標記完成</button>
+        ` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+async function resolveSr(id) {
+  if (!confirm('確認此筆暫存記錄已處理完成？')) return;
+  const res  = await fetch(`/api/staging/${id}/resolve`, { method: 'PUT' });
+  const data = await res.json();
+  if (data.success) { showMsg('已標記完成', true); loadStagingRecords(); }
+  else showMsg(data.message || '操作失敗', false);
+}
+
+// ── 產品待建檔 ────────────────────────────────
+async function loadProductStaging() {
+  const status = document.getElementById('fPsStatus').value;
+  const params = new URLSearchParams({ status });
+
+  const res  = await fetch(`/api/product-staging/list?${params}`);
+  const data = await res.json();
+  if (!data.success) { showMsg('載入失敗', false); return; }
+
+  const rows = data.rows;
+  const pending  = rows.filter(r => r.status === 'pending').length;
+  const resolved = rows.filter(r => r.status === 'resolved').length;
+  document.getElementById('badge-ps').textContent = pending;
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-chip">共 <strong>${rows.length}</strong> 筆</div>
+    <div class="stat-chip">待處理 <strong>${pending}</strong></div>
+    <div class="stat-chip">已完成 <strong>${resolved}</strong></div>
+  `;
+
+  const tbody = document.getElementById('bodyPs');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">無記錄</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>
+        <div style="font-size:.84rem">${r.product_name || '—'}</div>
+        ${r.note ? `<div class="sub-text">${r.note}</div>` : ''}
+      </td>
+      <td><div class="code-text">${r.input_product_code || '—'}</div></td>
+      <td style="white-space:nowrap">${r.requested_by || '—'}</td>
+      <td style="white-space:nowrap;font-size:.76rem;color:#9a9188">${(r.created_at||'').slice(0,10)}</td>
+      <td>
+        ${r.erp_product_code
+          ? `<span style="color:#3d7a3d;font-size:.82rem">${r.erp_product_code}</span>`
+          : '<span style="color:#9a9188;font-size:.78rem">未對應</span>'}
+        ${r.match_reason ? `<div class="sub-text">${r.match_reason}</div>` : ''}
+      </td>
+      <td>
+        <span class="status-chip status-${r.status}">
+          ${r.status === 'pending' ? '待處理' : '已完成'}
+        </span>
+      </td>
+      <td style="white-space:nowrap">
+        ${r.status === 'pending' ? `
+          <button class="action-btn resolve" onclick="resolvePs(${r.id})">標記完成</button>
+        ` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+async function resolvePs(id) {
+  if (!confirm('確認此產品待建檔記錄已處理完成？')) return;
+  const res  = await fetch(`/api/product-staging/${id}/resolve`, { method: 'PUT' });
+  const data = await res.json();
+  if (data.success) { showMsg('已標記完成', true); loadProductStaging(); }
+  else showMsg(data.message || '操作失敗', false);
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg; el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+// ── 初始化：同時載入兩個 badge 數量 ───────────
+async function initBadges() {
+  const res  = await fetch('/api/staging/stats');
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('badge-sr').textContent = data.staging_records;
+    document.getElementById('badge-ps').textContent = data.product_staging;
+  }
+}
+
+onAppReady(user => {
+  initBadges();
+  loadStagingRecords();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,699 @@
+{% extends "base.html" %}
+
+{% block title %}督導紀錄表 - 電腦舖{% endblock %}
+
+{% block page_title %}督導紀錄表{% endblock %}
+
+{% block styles %}
+<style>
+    .score-header {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .score-display {
+        font-size: 3em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .score-display.green { color: #4caf50; }
+    .score-display.yellow { color: #ffc107; }
+    .score-display.red { color: #f44336; }
+    .score-label {
+        color: #8892b0;
+        font-size: 0.9em;
+    }
+    .filter-section {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    .form-row.three-col {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    .form-group label {
+        color: #8892b0;
+        font-size: 0.85em;
+        margin-bottom: 8px;
+    }
+    .form-group select,
+    .form-group input {
+        padding: 12px;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 8px;
+        background: rgba(0,0,0,0.3);
+        color: #fff;
+        font-size: 1em;
+    }
+    .form-group select:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+        color: #231815;
+        font-size: 1.05em;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+        background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+        color: #231815;
+    }
+    .btn-secondary {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        margin-left: 10px;
+    }
+    .score-section {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .score-section h3 {
+        color: #FABF13;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+    }
+    .score-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .score-item:last-child { border-bottom: none; }
+    .score-item-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .score-item-label {
+        font-size: 0.95em;
+    }
+    .score-item-desc {
+        font-size: 0.75em;
+        color: #8892b0;
+    }
+    .score-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    .score-btn {
+        width: 50px;
+        height: 40px;
+        border: 2px solid rgba(255,255,255,0.2);
+        border-radius: 8px;
+        background: rgba(0,0,0,0.3);
+        color: #fff;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .score-btn:hover {
+        border-color: #FABF13;
+    }
+    .score-btn.selected {
+        background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%);
+        border-color: transparent;
+    }
+    .textarea-section {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .textarea-section label {
+        display: block;
+        color: #8892b0;
+        font-size: 0.9em;
+        margin-bottom: 10px;
+    }
+    .textarea-section textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 12px;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 8px;
+        background: rgba(0,0,0,0.3);
+        color: #fff;
+        font-size: 1em;
+        resize: vertical;
+    }
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 8px;
+        color: #fff;
+        font-weight: 500;
+        z-index: 2000;
+        display: none;
+    }
+    .toast.success { background: rgba(76,175,80,0.95); }
+    .toast.error { background: rgba(244,67,54,0.95); }
+    .toast.show { display: block; }
+    
+    /* 子項目樣式 */
+    .sub-items {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 8px;
+        padding-left: 20px;
+    }
+    .sub-item {
+        font-size: 0.8em;
+        color: #64748b;
+    }
+    
+    @media (max-width: 600px) {
+        .form-row { grid-template-columns: 1fr; }
+        .form-row.three-col { grid-template-columns: 1fr; }
+        .score-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .score-buttons { width: 100%; justify-content: flex-end; }
+        .sub-items { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 總分顯示 -->
+<div class="score-header">
+    <div class="score-label">總分 / 滿分</div>
+    <div class="score-display" id="totalScore">0 / 100</div>
+    <div class="score-label" id="percentage">0%</div>
+</div>
+
+<!-- 篩選/輸入區 -->
+<div class="filter-section">
+    <div class="form-row three-col">
+        <div class="form-group">
+            <label>店別 *</label>
+            <select id="storeName" onchange="onStoreChange()">
+                <option value="">請選擇店別</option>
+                <option value="豐原">豐原</option>
+                <option value="潭子">潭子</option>
+                <option value="大雅">大雅</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>員工姓名 *</label>
+            <select id="employeeName" disabled>
+                <option value="">請先選擇店別</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>日期 *</label>
+            <input type="date" id="scoreDate">
+        </div>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="loadScore()">🔍 查詢</button>
+        <button class="btn btn-secondary" onclick="clearForm()">🔄 清空</button>
+    </div>
+</div>
+
+<!-- 評分項目 1-5: 環境整潔 -->
+<div class="score-section">
+    <h3>環境整潔（滿分 10 分）- 門市評分項目</h3>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">1. 門面整潔</span>
+            <span class="score-item-desc">檢查重點：門口乾淨、無雜物</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="storefront_cleanliness" data-value="0" onclick="setScore('storefront_cleanliness', 0)">0</button>
+            <button class="score-btn" data-item="storefront_cleanliness" data-value="1" onclick="setScore('storefront_cleanliness', 1)">1</button>
+            <button class="score-btn" data-item="storefront_cleanliness" data-value="2" onclick="setScore('storefront_cleanliness', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">2. 店內清潔</span>
+            <span class="score-item-desc">檢查重點：地板、櫃檯、展示桌整齊</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="store_cleanliness" data-value="0" onclick="setScore('store_cleanliness', 0)">0</button>
+            <button class="score-btn" data-item="store_cleanliness" data-value="1" onclick="setScore('store_cleanliness', 1)">1</button>
+            <button class="score-btn" data-item="store_cleanliness" data-value="2" onclick="setScore('store_cleanliness', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">3. 產品陳列</span>
+            <span class="score-item-desc">檢查重點：排列整齊、標價清楚</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="product_display" data-value="0" onclick="setScore('product_display', 0)">0</button>
+            <button class="score-btn" data-item="product_display" data-value="1" onclick="setScore('product_display', 1)">1</button>
+            <button class="score-btn" data-item="product_display" data-value="2" onclick="setScore('product_display', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">4. 線材管理</span>
+            <span class="score-item-desc">檢查重點：無雜亂線材、收納良好</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="cable_management" data-value="0" onclick="setScore('cable_management', 0)">0</button>
+            <button class="score-btn" data-item="cable_management" data-value="1" onclick="setScore('cable_management', 1)">1</button>
+            <button class="score-btn" data-item="cable_management" data-value="2" onclick="setScore('cable_management', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">5. 倉庫整齊</span>
+            <span class="score-item-desc">檢查重點：物品分類、通道暢通</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="warehouse_organization" data-value="0" onclick="setScore('warehouse_organization', 0)">0</button>
+            <button class="score-btn" data-item="warehouse_organization" data-value="1" onclick="setScore('warehouse_organization', 1)">1</button>
+            <button class="score-btn" data-item="warehouse_organization" data-value="2" onclick="setScore('warehouse_organization', 2)">2</button>
+        </div>
+    </div>
+</div>
+
+<!-- 評分項目 6-11: 人員表現 -->
+<div class="score-section">
+    <h3>人員表現（滿分 12 分）- 個人評分項目</h3>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">6. 出勤狀況</span>
+            <span class="score-item-desc">檢查重點：準時到班、無遲到早退</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="attendance" data-value="0" onclick="setScore('attendance', 0)">0</button>
+            <button class="score-btn" data-item="attendance" data-value="1" onclick="setScore('attendance', 1)">1</button>
+            <button class="score-btn" data-item="attendance" data-value="2" onclick="setScore('attendance', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">7. 服裝儀容</span>
+            <span class="score-item-desc">檢查重點：制服整齊、儀態精神</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="appearance" data-value="0" onclick="setScore('appearance', 0)">0</button>
+            <button class="score-btn" data-item="appearance" data-value="1" onclick="setScore('appearance', 1)">1</button>
+            <button class="score-btn" data-item="appearance" data-value="2" onclick="setScore('appearance', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">8. 服務態度</span>
+            <span class="score-item-desc">檢查重點：親切有禮、主動招呼</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="service_attitude" data-value="0" onclick="setScore('service_attitude', 0)">0</button>
+            <button class="score-btn" data-item="service_attitude" data-value="1" onclick="setScore('service_attitude', 1)">1</button>
+            <button class="score-btn" data-item="service_attitude" data-value="2" onclick="setScore('service_attitude', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">9. 專業知識</span>
+            <span class="score-item-desc">檢查重點：熟悉產品規格與價格</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="professional_knowledge" data-value="0" onclick="setScore('professional_knowledge', 0)">0</button>
+            <button class="score-btn" data-item="professional_knowledge" data-value="1" onclick="setScore('professional_knowledge', 1)">1</button>
+            <button class="score-btn" data-item="professional_knowledge" data-value="2" onclick="setScore('professional_knowledge', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">10. 銷售流程</span>
+            <span class="score-item-desc">檢查重點：依標準流程介紹與結帳</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="sales_process" data-value="0" onclick="setScore('sales_process', 0)">0</button>
+            <button class="score-btn" data-item="sales_process" data-value="1" onclick="setScore('sales_process', 1)">1</button>
+            <button class="score-btn" data-item="sales_process" data-value="2" onclick="setScore('sales_process', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">11. 工作態度</span>
+            <span class="score-item-desc">檢查重點：主動性、責任感、配合度、學習意願</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="work_attitude" data-value="0" onclick="setScore('work_attitude', 0)">0</button>
+            <button class="score-btn" data-item="work_attitude" data-value="1" onclick="setScore('work_attitude', 1)">1</button>
+            <button class="score-btn" data-item="work_attitude" data-value="2" onclick="setScore('work_attitude', 2)">2</button>
+        </div>
+    </div>
+</div>
+
+<!-- 評分項目 12-16: LINE 回覆 -->
+<div class="score-section">
+    <h3>LINE 回覆（滿分 10 分）- 個人評分項目</h3>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">12. 回覆速度</span>
+            <span class="score-item-desc">檢查重點：即時回應、工單處理、訊息回覆</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="reply_speed" data-value="0" onclick="setScore('reply_speed', 0)">0</button>
+            <button class="score-btn" data-item="reply_speed" data-value="1" onclick="setScore('reply_speed', 1)">1</button>
+            <button class="score-btn" data-item="reply_speed" data-value="2" onclick="setScore('reply_speed', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">13. 回覆態度</span>
+            <span class="score-item-desc">檢查重點：語氣親切、積極協助、不推諉</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="reply_attitude" data-value="0" onclick="setScore('reply_attitude', 0)">0</button>
+            <button class="score-btn" data-item="reply_attitude" data-value="1" onclick="setScore('reply_attitude', 1)">1</button>
+            <button class="score-btn" data-item="reply_attitude" data-value="2" onclick="setScore('reply_attitude', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">14. 問題掌握</span>
+            <span class="score-item-desc">檢查重點：問題理解、原因分析、處理方向</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="problem_grasp" data-value="0" onclick="setScore('problem_grasp', 0)">0</button>
+            <button class="score-btn" data-item="problem_grasp" data-value="1" onclick="setScore('problem_grasp', 1)">1</button>
+            <button class="score-btn" data-item="problem_grasp" data-value="2" onclick="setScore('problem_grasp', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">15. 資料完整</span>
+            <span class="score-item-desc">檢查重點：維修單填寫、客戶資料、處理記錄</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="information_complete" data-value="0" onclick="setScore('information_complete', 0)">0</button>
+            <button class="score-btn" data-item="information_complete" data-value="1" onclick="setScore('information_complete', 1)">1</button>
+            <button class="score-btn" data-item="information_complete" data-value="2" onclick="setScore('information_complete', 2)">2</button>
+        </div>
+    </div>
+    <div class="score-item">
+        <div class="score-item-content">
+            <span class="score-item-label">16. 後續追蹤</span>
+            <span class="score-item-desc">檢查重點：進度回報、完工通知、客戶確認</span>
+        </div>
+        <div class="score-buttons">
+            <button class="score-btn" data-item="follow_up" data-value="0" onclick="setScore('follow_up', 0)">0</button>
+            <button class="score-btn" data-item="follow_up" data-value="1" onclick="setScore('follow_up', 1)">1</button>
+            <button class="score-btn" data-item="follow_up" data-value="2" onclick="setScore('follow_up', 2)">2</button>
+        </div>
+    </div>
+</div>
+
+<!-- 問題與建議 -->
+<div class="textarea-section">
+    <label>問題描述</label>
+    <textarea id="issues" placeholder="請描述發現的問題..."></textarea>
+</div>
+<div class="textarea-section">
+    <label>建議事項</label>
+    <textarea id="suggestions" placeholder="請輸入改善建議..."></textarea>
+</div>
+
+<!-- 儲存按鈕 -->
+<div class="action-buttons">
+    <button class="btn btn-primary" onclick="saveScore()">💾 儲存評分</button>
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 評分資料 - 新結構 16 項，每項 0-2 分，總分 100
+    let scores = {
+        storefront_cleanliness: 0, store_cleanliness: 0, product_display: 0,
+        cable_management: 0, warehouse_organization: 0,
+        attendance: 0, appearance: 0, service_attitude: 0,
+        professional_knowledge: 0, sales_process: 0, work_attitude: 0,
+        reply_speed: 0, reply_attitude: 0, problem_grasp: 0,
+        information_complete: 0, follow_up: 0
+    };
+    
+    let currentUser = null;
+    let storeEmployees = {}; // 快取各店員工資料
+
+    // 從 localStorage 取得登入使用者資訊
+    function initCurrentUser() {
+        const storedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+        if (storedUser) {
+            try {
+                currentUser = JSON.parse(storedUser);
+            } catch (e) {
+                console.error('Failed to parse currentUser:', e);
+                currentUser = null;
+            }
+        }
+    }
+
+    // 頁面載入時初始化使用者
+    initCurrentUser();
+
+    // 檢查是否為主管或督導權限
+    function hasSupervisorPermission(user) {
+        if (!user || !user.title) return false;
+        const title = user.title.toLowerCase();
+        return title.includes('主管') || title.includes('督導') || title.includes('老闆') || title.includes('管理員');
+    }
+
+    // 設定日期預設為今天
+    document.getElementById('scoreDate').value = new Date().toISOString().split('T')[0];
+    
+    // 店別變更時載入員工列表
+    async function onStoreChange() {
+        const store = document.getElementById('storeName').value;
+        const employeeSelect = document.getElementById('employeeName');
+        
+        if (!store) {
+            employeeSelect.innerHTML = '<option value="">請先選擇店別</option>';
+            employeeSelect.disabled = true;
+            return;
+        }
+        
+        // 顯示載入中
+        employeeSelect.innerHTML = '<option value="">載入中...</option>';
+        employeeSelect.disabled = true;
+        
+        try {
+            // 從 API 載入該店員工
+            const response = await fetch(`/api/store/employees?store=${encodeURIComponent(store)}`);
+            const data = await response.json();
+            
+            if (data.success && data.employees) {
+                storeEmployees[store] = data.employees;
+                
+                let options = '<option value="">請選擇員工</option>';
+                data.employees.forEach(emp => {
+                    options += `<option value="${emp.name}">${emp.name} (${emp.title})</option>`;
+                });
+                
+                employeeSelect.innerHTML = options;
+                employeeSelect.disabled = false;
+            } else {
+                employeeSelect.innerHTML = '<option value="">該店暫無員工資料</option>';
+                employeeSelect.disabled = true;
+            }
+        } catch (e) {
+            console.error('載入員工失敗:', e);
+            employeeSelect.innerHTML = '<option value="">載入失敗，請重試</option>';
+            employeeSelect.disabled = true;
+        }
+    }
+    
+    // 設定分數
+    function setScore(item, value) {
+        scores[item] = value;
+        
+        // 更新按鈕樣式
+        document.querySelectorAll(`[data-item="${item}"]`).forEach(btn => {
+            btn.classList.remove('selected');
+            if (parseInt(btn.dataset.value) === value) {
+                btn.classList.add('selected');
+            }
+        });
+        
+        updateTotal();
+    }
+    
+    // 更新總分顯示 - 16項 × 2分 = 32分滿分，顯示為 100 分制百分比
+    function updateTotal() {
+        const total = Object.values(scores).reduce((a, b) => a + b, 0);
+        const maxScore = 32; // 16 項 × 2 分
+        const percentage = Math.round((total / maxScore) * 100);
+        
+        document.getElementById('totalScore').textContent = `${percentage} / 100`;
+        document.getElementById('percentage').textContent = `原始分數: ${total} / ${maxScore}`;
+        
+        // 更新燈號顏色
+        const scoreDisplay = document.getElementById('totalScore');
+        scoreDisplay.className = 'score-display';
+        if (percentage >= 85) scoreDisplay.classList.add('green');
+        else if (percentage >= 70) scoreDisplay.classList.add('yellow');
+        else scoreDisplay.classList.add('red');
+    }
+    
+    // 查詢評分
+    async function loadScore() {
+        const store = document.getElementById('storeName').value;
+        const employee = document.getElementById('employeeName').value;
+        const date = document.getElementById('scoreDate').value;
+        
+        if (!store || !employee || !date) {
+            showToast('請選擇店別、員工和日期', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/supervision/score?store=${encodeURIComponent(store)}&employee=${encodeURIComponent(employee)}&date=${date}`);
+            const data = await response.json();
+            
+            if (data.success && data.score) {
+                // 回填資料
+                const s = data.score;
+                
+                // 載入員工列表（如果需要）
+                if (!storeEmployees[store]) {
+                    await onStoreChange();
+                }
+                document.getElementById('employeeName').value = s.employee_name || '';
+                
+                // 回填分數
+                Object.keys(scores).forEach(key => {
+                    if (s[key] !== undefined && s[key] !== null) {
+                        setScore(key, parseInt(s[key]) || 0);
+                    }
+                });
+                
+                document.getElementById('issues').value = s.issues || '';
+                document.getElementById('suggestions').value = s.suggestions || '';
+                showToast('已載入現有評分', 'success');
+            } else {
+                clearScores();
+                showToast('暫無評分資料，請開始評分', 'success');
+            }
+        } catch (e) {
+            showToast('載入失敗', 'error');
+        }
+    }
+    
+    // 清空分數（保留店別、員工和日期）
+    function clearScores() {
+        Object.keys(scores).forEach(key => {
+            scores[key] = 0;
+        });
+        document.querySelectorAll('.score-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        document.getElementById('issues').value = '';
+        document.getElementById('suggestions').value = '';
+        updateTotal();
+    }
+    
+    // 清空全部
+    function clearForm() {
+        clearScores();
+        document.getElementById('storeName').value = '';
+        document.getElementById('employeeName').innerHTML = '<option value="">請先選擇店別</option>';
+        document.getElementById('employeeName').disabled = true;
+        document.getElementById('scoreDate').value = new Date().toISOString().split('T')[0];
+    }
+    
+    // 儲存評分
+    async function saveScore() {
+        const store = document.getElementById('storeName').value;
+        const employee = document.getElementById('employeeName').value;
+        const date = document.getElementById('scoreDate').value;
+        
+        if (!store || !employee || !date) {
+            showToast('請選擇店別、員工和日期', 'error');
+            return;
+        }
+        
+        const total = Object.values(scores).reduce((a, b) => a + b, 0);
+        const maxScore = 32; // 16 項 × 2 分
+        const percentage = Math.round((total / maxScore) * 100);
+
+        // 確保所有分數都是數字
+        const numericScores = {};
+        Object.keys(scores).forEach(key => {
+            numericScores[key] = parseInt(scores[key]) || 0;
+        });
+
+        const data = {
+            store_name: store,
+            employee_name: employee,
+            date: date,
+            ...numericScores,
+            total_score: total,
+            percentage: percentage,
+            issues: document.getElementById('issues').value || '',
+            suggestions: document.getElementById('suggestions').value || '',
+            evaluator: currentUser ? currentUser.name : '',
+            evaluator_title: currentUser ? (currentUser.title || '') : ''
+        };
+        
+        try {
+            const response = await fetch('/api/supervision/score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showToast('已儲存', 'success');
+            } else {
+                showToast(result.message || '儲存失敗', 'error');
+            }
+        } catch (e) {
+            showToast('儲存失敗', 'error');
+        }
+    }
+    
+    // 顯示提示
+    function showToast(msg, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast show ' + type;
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    // 初始化
+    updateTotal();
+</script>
+{% endblock %}

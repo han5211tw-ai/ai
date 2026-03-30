@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+
+{% block title %}老闆專區 — COSH ERP{% endblock %}
+{% block page_title %}老闆專區{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 版面 ─────────────────────────────── */
+.boss-layout { display: flex; flex-direction: column; gap: 24px; }
+
+/* ── 統計列 ──────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+.stat-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 24px 22px 20px;
+  text-align: center;
+}
+.stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: #2c2720;
+  line-height: 1.1;
+  margin: 8px 0 4px;
+  letter-spacing: .03em;
+}
+.stat-label { font-size: .72rem; color: #b8b0a6; letter-spacing: .10em; text-transform: uppercase; }
+
+/* ── 主卡片 ──────────────────────────── */
+.b-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 24px 26px;
+}
+.b-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.b-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: #2c2720;
+  letter-spacing: .06em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.count-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-family: 'Noto Serif TC', serif;
+  background: rgba(107,95,82,.1);
+  color: #6b5f52;
+}
+.count-badge.has-items { background: rgba(184,137,58,.15); color: #b8893a; }
+
+.btn-refresh {
+  background: none;
+  border: 1px solid rgba(107,95,82,.3);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: .82rem;
+  color: #6b5f52;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-refresh:hover { background: rgba(107,95,82,.06); }
+
+/* ── 表格 ─────────────────────────────── */
+.table-scroll { overflow-x: auto; }
+.b-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .84rem;
+  min-width: 760px;
+}
+.b-table th {
+  text-align: left;
+  padding: 8px 8px;
+  font-weight: 400;
+  font-size: .72rem;
+  color: #9a9188;
+  letter-spacing: .06em;
+  border-bottom: 1px solid rgba(107,95,82,.15);
+  white-space: nowrap;
+}
+.b-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid rgba(107,95,82,.07);
+  vertical-align: middle;
+  color: #2c2720;
+}
+.b-table tr:last-child td { border-bottom: none; }
+.b-table tr:hover td { background: rgba(245,240,232,.5); }
+
+.cell-no { color: #9a9188; font-size: .8rem; text-align: center; }
+.cell-date { white-space: nowrap; color: #9a9188; font-size: .82rem; }
+
+.cell-code {
+  font-family: 'Courier New', monospace;
+  font-size: .82rem;
+  color: #6b5f52;
+  white-space: nowrap;
+}
+.cell-code.temp { color: #a85c5c; }
+
+.product-name { font-weight: 400; color: #2c2720; line-height: 1.4; }
+.last-purchase {
+  font-size: .76rem;
+  color: #9a9188;
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.lp-vendor { color: #7a6f9a; }
+.lp-price { color: #b8893a; }
+.lp-none { font-style: italic; }
+
+.cell-qty { text-align: center; font-weight: 400; color: #2c2720; }
+
+.type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: .76rem;
+  background: rgba(122,111,154,.12);
+  color: #7a6f9a;
+  white-space: nowrap;
+}
+
+.cell-purpose-main { color: #2c2720; }
+.cell-purpose-cust { font-size: .76rem; color: #9a9188; margin-top: 2px; }
+.temp-cust { color: #a85c5c; }
+
+.s-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: .76rem;
+  white-space: nowrap;
+}
+.s-pending  { background: rgba(184,137,58,.12); color: #b8893a; }
+.s-purchased { background: rgba(107,95,82,.1); color: #6b5f52; }
+.s-done     { background: rgba(107,138,92,.12); color: #6b8a5c; }
+.s-cancelled { background: rgba(168,92,92,.1); color: #a85c5c; }
+
+/* ── 備注欄 ─────────────────────────── */
+.notes-wrap { display: flex; gap: 6px; align-items: center; }
+.notes-input {
+  flex: 1;
+  min-width: 90px;
+  padding: 5px 8px;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: inherit;
+  color: #2c2720;
+  background: #f5f0e8;
+  transition: border-color .2s;
+}
+.notes-input:focus { outline: none; border-color: #FABF13; background: #fff; }
+.btn-save-note {
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid rgba(107,95,82,.3);
+  border-radius: 6px;
+  font-size: .76rem;
+  color: #6b5f52;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.btn-save-note:hover { background: rgba(107,95,82,.07); }
+.note-saved {
+  font-size: .72rem;
+  color: #6b8a5c;
+  opacity: 0;
+  transition: opacity .3s;
+  white-space: nowrap;
+}
+.note-saved.show { opacity: 1; }
+
+/* ── 操作欄 ─────────────────────────── */
+.action-wrap { display: flex; gap: 6px; flex-wrap: nowrap; }
+.btn-purchased {
+  padding: 6px 12px;
+  background: #2c2720;
+  color: #f5f0e8;
+  border: none;
+  border-radius: 999px;
+  font-size: .76rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .2s;
+}
+.btn-purchased:hover { opacity: .8; }
+.btn-cancel-need {
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid rgba(168,92,92,.3);
+  border-radius: 999px;
+  font-size: .76rem;
+  color: #a85c5c;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.btn-cancel-need:hover { background: rgba(168,92,92,.07); }
+
+/* ── 空白/載入 ────────────────────────── */
+.empty-hint {
+  text-align: center;
+  padding: 40px 0;
+  color: #9a9188;
+  font-size: .88rem;
+}
+
+/* ── Toast ───────────────────────────── */
+.toast-wrap {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-msg {
+  padding: 11px 26px;
+  border-radius: 999px;
+  font-size: .88rem;
+  color: #fff;
+  opacity: 0;
+  transition: opacity .3s;
+  white-space: nowrap;
+}
+.toast-msg.show { opacity: 1; }
+.toast-msg.success { background: #5a7a4a; }
+.toast-msg.error   { background: #8a4a4a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="boss-layout">
+
+  <!-- ── 統計卡片 ── -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">待請購筆數</div>
+      <div class="stat-val" id="statPending">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">預估總額</div>
+      <div class="stat-val" id="statAmount">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">產品種類</div>
+      <div class="stat-val" id="statProducts">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最久待處理</div>
+      <div class="stat-val" id="statOldest">—</div>
+    </div>
+  </div>
+
+  <!-- ── 待請購清單 ── -->
+  <div class="b-card">
+    <div class="b-card-header">
+      <div class="b-card-title">
+        待請購清單
+        <span class="count-badge" id="listBadge">載入中</span>
+      </div>
+      <button class="btn-refresh" onclick="loadNeeds()">重新整理</button>
+    </div>
+    <div class="table-scroll">
+      <div id="tableWrap">
+        <div class="empty-hint">載入中…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap">
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+let currentUser = null;
+
+// ────────────────────────────────────
+// 初始化
+// ────────────────────────────────────
+function onAppReady(user) {
+  currentUser = user;
+
+  // 老闆專屬頁面
+  if (user.title !== '老闆') {
+    document.getElementById('tableWrap').innerHTML =
+      '<div class="empty-hint">此頁面僅限老闆查看。</div>';
+    return;
+  }
+
+  loadNeeds();
+}
+
+// ────────────────────────────────────
+// 載入待請購清單
+// ────────────────────────────────────
+async function loadNeeds() {
+  document.getElementById('tableWrap').innerHTML = '<div class="empty-hint">載入中…</div>';
+  try {
+    const res  = await fetch('/api/boss/pending-needs');
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    updateStats(json.stats);
+    renderTable(json.needs);
+  } catch (e) {
+    document.getElementById('tableWrap').innerHTML =
+      `<div class="empty-hint">載入失敗：${e.message}</div>`;
+  }
+}
+
+// ────────────────────────────────────
+// 統計
+// ────────────────────────────────────
+function updateStats(s) {
+  document.getElementById('statPending').textContent = s.pending_count ?? '—';
+  document.getElementById('statAmount').textContent  = s.total_amount
+    ? formatMoney(s.total_amount) : '—';
+  document.getElementById('statProducts').textContent = s.product_count ?? '—';
+  document.getElementById('statOldest').textContent  = s.oldest_days != null
+    ? `${s.oldest_days} 天` : '—';
+}
+
+function formatMoney(v) {
+  if (!v) return '—';
+  if (v >= 10000) return (v / 10000).toFixed(1) + ' 萬';
+  return v.toLocaleString();
+}
+
+// ────────────────────────────────────
+// 渲染表格
+// ────────────────────────────────────
+function renderTable(needs) {
+  const badge = document.getElementById('listBadge');
+
+  if (!needs || !needs.length) {
+    badge.textContent = '0 筆';
+    badge.className = 'count-badge';
+    document.getElementById('tableWrap').innerHTML =
+      '<div class="empty-hint">目前沒有待請購項目 ✓</div>';
+    return;
+  }
+
+  badge.textContent = `${needs.length} 筆`;
+  badge.className = 'count-badge has-items';
+
+  const rows = needs.map((n, i) => {
+    const isTemp = (n.product_code || '').startsWith('TEMP');
+    const codeClass = isTemp ? 'cell-code temp' : 'cell-code';
+    const isTempCust = (n.customer_code || '').startsWith('TEMP');
+    const dateStr = formatDate(n.created_at);
+
+    // 最近進貨
+    let lastPurchaseHtml = '';
+    if (n.last_vendor && n.last_price) {
+      lastPurchaseHtml = `<div class="last-purchase">
+        <span class="lp-vendor">${esc(n.last_vendor)}</span>
+        <span class="lp-price"> · NT$ ${formatMoney(n.last_price)}</span></div>`;
+    } else if (n.last_vendor) {
+      lastPurchaseHtml = `<div class="last-purchase">
+        <span class="lp-vendor">${esc(n.last_vendor)}</span>
+        <span class="lp-none"> · 無價格</span></div>`;
+    } else {
+      lastPurchaseHtml = `<div class="last-purchase"><span class="lp-none">無進貨紀錄</span></div>`;
+    }
+
+    // 狀態
+    const sCls = n.status === '已採購' ? 's-purchased'
+               : n.status === '已完成' ? 's-done'
+               : n.status === '已取消' ? 's-cancelled' : 's-pending';
+
+    // 操作按鈕（只有待處理才顯示）
+    const actionHtml = n.status === '待處理' ? `
+      <div class="action-wrap">
+        <button class="btn-purchased" onclick="markPurchased(${n.id})">已採購</button>
+        <button class="btn-cancel-need" onclick="cancelNeed(${n.id})">取消</button>
+      </div>` : '';
+
+    // 客戶
+    let purposeHtml = `<div class="cell-purpose-main">${esc(n.purpose || '備貨')}</div>`;
+    if (n.purpose === '客戶' && n.customer_code) {
+      purposeHtml += `<div class="cell-purpose-cust">
+        <span class="${isTempCust ? 'temp-cust' : ''}">${esc(n.customer_code)}</span>
+        ${n.customer_name ? ' ' + esc(n.customer_name) : ''}
+      </div>`;
+    }
+
+    return `<tr data-id="${n.id}">
+      <td class="cell-no">${i + 1}</td>
+      <td class="cell-date">${dateStr}</td>
+      <td>
+        <div class="product-name">${esc(n.product_name || '—')}</div>
+        ${lastPurchaseHtml}
+      </td>
+      <td class="cell-qty">${n.quantity || '—'}</td>
+      <td><span class="type-badge">${esc(n.request_type || '請購')}</span></td>
+      <td>${purposeHtml}</td>
+      <td style="white-space:nowrap;color:#6b5f52">${esc(n.department || '—')}</td>
+      <td style="white-space:nowrap">${esc(n.requester || '—')}</td>
+      <td><span class="s-badge ${sCls}">${esc(n.status || '待處理')}</span></td>
+      <td>
+        <div class="notes-wrap">
+          <input class="notes-input" id="notes-${n.id}"
+                 value="${esc(n.notes || '')}" placeholder="備注…">
+          <button class="btn-save-note" onclick="saveNotes(${n.id})">儲存</button>
+        </div>
+        <div class="note-saved" id="saved-${n.id}">已儲存</div>
+      </td>
+      <td>${actionHtml}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tableWrap').innerHTML = `
+    <table class="b-table">
+      <thead>
+        <tr>
+          <th>#</th><th>時間</th><th>品名 / 最近進貨</th>
+          <th style="text-align:center">量</th><th>類型</th><th>用途</th>
+          <th>部門</th><th>申請人</th><th>狀態</th><th>備注</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ────────────────────────────────────
+// 操作
+// ────────────────────────────────────
+async function markPurchased(id) {
+  if (!confirm('確定標記為已採購？')) return;
+  const res  = await fetch('/api/needs/purchase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, requester: currentUser.name })
+  });
+  const json = await res.json();
+  if (json.success) { toast('已標記為已採購', 'success'); loadNeeds(); }
+  else toast(json.message || '失敗', 'error');
+}
+
+async function cancelNeed(id) {
+  if (!confirm('確定取消此請購？')) return;
+  const res  = await fetch(`/api/boss/needs/${id}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'cancelled' })
+  });
+  const json = await res.json();
+  if (json.success) { toast('已取消', 'success'); loadNeeds(); }
+  else toast(json.message || '失敗', 'error');
+}
+
+async function saveNotes(id) {
+  const input  = document.getElementById(`notes-${id}`);
+  const saved  = document.getElementById(`saved-${id}`);
+  const notes  = input ? input.value : '';
+  const res    = await fetch(`/api/boss/needs/${id}/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes })
+  });
+  const json = await res.json();
+  if (json.success) {
+    saved.classList.add('show');
+    setTimeout(() => saved.classList.remove('show'), 2000);
+  } else {
+    toast('儲存失敗', 'error');
+  }
+}
+
+// ────────────────────────────────────
+// 工具
+// ────────────────────────────────────
+function formatDate(s) {
+  if (!s) return '—';
+  try {
+    const d = new Date(s);
+    if (isNaN(d)) return s;
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  } catch { return s; }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+
+let toastT = null;
+function toast(msg, type='success') {
+  const el = document.getElementById('toastMsg');
+  el.textContent = msg;
+  el.className = `toast-msg ${type} show`;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+{% endblock %}

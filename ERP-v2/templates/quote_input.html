@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+{% block title %}報價作業 — COSH ERP{% endblock %}
+{% block page_title %}報價作業{% endblock %}
+
+{% block styles %}
+<style>
+.q-layout { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── 卡片 ── */
+.q-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; overflow: hidden;
+}
+.q-card-hd {
+  font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase;
+  padding: 13px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.q-card-body { padding: 20px; }
+
+/* ── 表單行 ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+.form-field label { font-size: .72rem; color: #9a9188; letter-spacing: .04em; }
+.form-input {
+  padding: 9px 12px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
+  font-size: .84rem; font-family: 'Noto Serif TC', serif;
+  color: #2c2720; background: #f5f0e8;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.form-input:focus {
+  border-color: rgba(250,191,19,.6);
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12);
+}
+.form-input[readonly] { color: #9a9188; background: #faf7f2; cursor: default; }
+
+/* ── 明細表格 ── */
+.items-wrap { overflow-x: auto; }
+.items-table { width: 100%; border-collapse: collapse; font-size: .83rem; min-width: 640px; }
+.items-table th {
+  text-align: left; padding: 8px 12px;
+  font-weight: 300; color: #9a9188; font-size: .72rem; letter-spacing: .06em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.items-table td { padding: 7px 8px; border-bottom: 1px solid rgba(107,95,82,.06); }
+.items-table tr:last-child td { border-bottom: none; }
+.td-input {
+  width: 100%; padding: 7px 10px;
+  border: 1px solid rgba(107,95,82,.18); border-radius: 6px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  color: #2c2720; background: #fff; outline: none;
+}
+.td-input:focus { border-color: rgba(250,191,19,.5); box-shadow: 0 0 0 2px rgba(250,191,19,.1); }
+.td-sub {
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem;
+  font-weight: 300; color: #2c2720; text-align: right; padding-right: 12px;
+  white-space: nowrap;
+}
+.del-btn {
+  padding: 4px 9px; border-radius: 5px; font-size: .72rem;
+  border: 1px solid rgba(139,58,58,.3); background: none;
+  color: #8b3a3a; cursor: pointer;
+}
+.del-btn:hover { background: rgba(139,58,58,.06); }
+
+/* ── 新增列按鈕 ── */
+.add-row-btn {
+  margin-top: 12px;
+  padding: 7px 16px; border-radius: 8px; font-size: .8rem;
+  border: 1px dashed rgba(107,95,82,.3); background: none;
+  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+}
+.add-row-btn:hover { background: rgba(107,95,82,.05); }
+
+/* ── 合計列 ── */
+.total-row {
+  display: flex; justify-content: flex-end; align-items: baseline;
+  gap: 8px; padding: 14px 20px;
+  border-top: 1px solid rgba(107,95,82,.1);
+  background: #faf7f2;
+}
+.total-lbl { font-size: .75rem; color: #9a9188; letter-spacing: .06em; }
+.total-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.9rem; font-weight: 300; color: #2c2720;
+}
+.total-currency { font-size: .85rem; color: #6b5f52; margin-right: 2px; }
+
+/* ── 主要按鈕 ── */
+.btn-primary {
+  padding: 10px 28px; border-radius: 8px; font-size: .84rem;
+  border: none; background: #2c2720; color: #f5f0e8;
+  cursor: pointer; font-family: 'Noto Serif TC', serif; font-weight: 300;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-outline {
+  padding: 8px 18px; border-radius: 8px; font-size: .8rem;
+  border: 1px solid rgba(107,95,82,.25); background: none;
+  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+}
+.btn-outline:hover { background: rgba(107,95,82,.05); }
+
+/* ── 報價單列表 ── */
+.quote-row {
+  display: grid;
+  grid-template-columns: 140px 1fr auto auto;
+  align-items: center; gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(107,95,82,.06);
+  font-size: .83rem;
+}
+.quote-row:last-child { border-bottom: none; }
+.quote-no { font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 300; color: #2c2720; }
+.quote-meta { color: #6b5f52; font-size: .8rem; }
+.quote-amt {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem;
+  font-weight: 300; color: #2c2720; text-align: right; white-space: nowrap;
+}
+.quote-action { display: flex; gap: 6px; }
+.status-tag {
+  font-size: .68rem; padding: 2px 7px; border-radius: 4px; display: inline-block;
+  background: rgba(250,191,19,.15); color: #7a5500;
+}
+.status-tag.converted { background: #e8e2d8; color: #6b5f52; }
+
+/* ── Modal ── */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(44,39,32,.45); z-index: 900;
+  align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal-box {
+  background: #fff; border-radius: 16px;
+  border: 1px solid rgba(107,95,82,.18);
+  padding: 28px; width: 420px; max-width: 92vw;
+  box-shadow: 0 8px 40px rgba(44,39,32,.12);
+}
+.modal-title { font-size: .88rem; color: #2c2720; margin-bottom: 18px; font-weight: 300; letter-spacing: .04em; }
+.modal-info { font-size: .8rem; color: #6b5f52; margin-bottom: 18px; line-height: 1.8; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg,rgba(107,95,82,.07)25%,rgba(107,95,82,.14)50%,rgba(107,95,82,.07)75%);
+  background-size:200% 100%; animation:skel-shine 1.4s infinite;
+  border-radius:6px; height:18px; margin:6px 0;
+}
+@keyframes skel-shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="q-layout">
+
+  <!-- ── 新增報價單 ── -->
+  <div class="q-card">
+    <div class="q-card-hd">
+      <span>新增報價單</span>
+      <span id="quoteNoDisplay" style="font-family:'Cormorant Garamond',serif;font-size:1rem;color:#2c2720;letter-spacing:.06em">產生中…</span>
+    </div>
+    <div class="q-card-body">
+
+      <!-- 基本資訊 -->
+      <div class="form-grid" style="margin-bottom:18px">
+        <div class="form-field">
+          <label>報價單號</label>
+          <input class="form-input" id="quoteNo" readonly>
+        </div>
+        <div class="form-field">
+          <label>日期</label>
+          <input class="form-input" type="date" id="quoteDate">
+        </div>
+        <div class="form-field">
+          <label>客戶名稱</label>
+          <input class="form-input" id="customerName" placeholder="輸入客戶名稱或代號" list="customerList" autocomplete="off">
+          <datalist id="customerList"></datalist>
+        </div>
+        <div class="form-field">
+          <label>有效期限</label>
+          <input class="form-input" type="date" id="validUntil">
+        </div>
+        <div class="form-field" style="grid-column:1/-1">
+          <label>備註</label>
+          <input class="form-input" id="quoteNote" placeholder="選填">
+        </div>
+      </div>
+
+      <!-- 產品明細 -->
+      <div class="items-wrap">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width:36%">產品名稱</th>
+              <th style="width:10%">數量</th>
+              <th style="width:15%">單價</th>
+              <th style="width:15%">小計</th>
+              <th style="width:16%">備註</th>
+              <th style="width:8%"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+      <button class="add-row-btn" onclick="addRow()">＋ 新增產品列</button>
+
+    </div>
+
+    <!-- 合計 + 送出 -->
+    <div class="total-row">
+      <span class="total-lbl">合計</span>
+      <span class="total-currency">NT$</span>
+      <span class="total-val" id="totalVal">0</span>
+    </div>
+    <div style="padding:14px 20px;display:flex;justify-content:flex-end">
+      <button class="btn-primary" onclick="submitQuote()">儲存報價單</button>
+    </div>
+  </div>
+
+  <!-- ── 報價單列表 ── -->
+  <div class="q-card">
+    <div class="q-card-hd">
+      <span>報價單列表</span>
+      <input class="form-input" id="searchQ" style="width:180px;padding:5px 10px;font-size:.78rem" placeholder="搜尋單號或客戶…" oninput="searchDebounce()">
+    </div>
+    <div id="listWrap">
+      <div style="padding:14px 20px"><div class="skel"></div><div class="skel" style="width:70%"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── 轉訂單 Modal ── -->
+<div class="modal-bg" id="convertModal">
+  <div class="modal-box">
+    <div class="modal-title">轉換為訂單</div>
+    <div class="modal-info" id="modalInfo"></div>
+    <div class="form-field">
+      <label>訂金金額（選填）</label>
+      <input class="form-input" type="number" id="depositAmt" min="0" placeholder="0">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="confirmConvert()">確認轉換</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _user = null;
+let _convertDocNo = null;
+let _searchTimer = null;
+
+// ── 初始化 ──────────────────────────────────
+function onAppReady(user) {
+  _user = user;
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('quoteDate').value = today;
+  // 有效期限預設 +14 天
+  const exp = new Date(); exp.setDate(exp.getDate() + 14);
+  document.getElementById('validUntil').value = exp.toISOString().slice(0,10);
+
+  genQuoteNo(today.replace(/-/g,''));
+  addRow();
+  loadList();
+  loadCustomers();
+}
+
+// ── 單號 ──────────────────────────────────
+async function genQuoteNo(dateStr) {
+  const res = await fetch('/api/quote/next-no?date=' + dateStr);
+  const d   = await res.json();
+  if (d.success) {
+    document.getElementById('quoteNo').value = d.quote_no;
+    document.getElementById('quoteNoDisplay').textContent = d.quote_no;
+  }
+}
+
+document.getElementById('quoteDate').addEventListener('change', e => {
+  genQuoteNo(e.target.value.replace(/-/g,''));
+});
+
+// ── 客戶搜尋 ─────────────────────────────────
+async function loadCustomers() {
+  try {
+    const res = await fetch('/api/customers/search?q=&limit=200');
+    const d   = await res.json();
+    const dl  = document.getElementById('customerList');
+    (d.customers || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.short_name || c.customer_id;
+      dl.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+// ── 明細列 ─────────────────────────────────
+let _rowSeq = 0;
+function addRow() {
+  const id  = ++_rowSeq;
+  const tr  = document.createElement('tr');
+  tr.id = 'row-' + id;
+  tr.innerHTML = `
+    <td>
+      <input class="td-input" id="pname-${id}" list="productList"
+        placeholder="產品名稱" oninput="calcRow(${id})" autocomplete="off">
+      <datalist id="productList"></datalist>
+    </td>
+    <td><input class="td-input" id="qty-${id}" type="number" min="1" value="1"
+      style="width:70px" oninput="calcRow(${id})"></td>
+    <td><input class="td-input" id="price-${id}" type="number" min="0" placeholder="0"
+      oninput="calcRow(${id})"></td>
+    <td class="td-sub" id="sub-${id}">0</td>
+    <td><input class="td-input" id="note-${id}" placeholder="備註（選填）"></td>
+    <td><button class="del-btn" onclick="delRow(${id})">刪除</button></td>
+  `;
+  document.getElementById('itemsBody').appendChild(tr);
+  // 嘗試帶入產品搜尋 datalist
+  loadProductList(id);
+}
+
+async function loadProductList(rowId) {
+  try {
+    const res = await fetch('/api/products/search?q=&limit=200');
+    const d   = await res.json();
+    const dl  = document.getElementById('productList');
+    if (!dl.children.length) {
+      (d.products || d.results || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.product_name || p.item_spec || p.name || p.product_code;
+        dl.appendChild(opt);
+      });
+    }
+  } catch(e) {}
+}
+
+function delRow(id) {
+  const tr = document.getElementById('row-' + id);
+  if (tr) tr.remove();
+  calcTotal();
+}
+
+function calcRow(id) {
+  const qty   = parseInt(document.getElementById('qty-' + id)?.value)   || 0;
+  const price = parseInt(document.getElementById('price-' + id)?.value) || 0;
+  const sub   = qty * price;
+  const el    = document.getElementById('sub-' + id);
+  if (el) el.textContent = sub.toLocaleString();
+  calcTotal();
+}
+
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('[id^="sub-"]').forEach(el => {
+    total += parseInt(el.textContent.replace(/,/g,'')) || 0;
+  });
+  document.getElementById('totalVal').textContent = total.toLocaleString();
+}
+
+// ── 儲存 ─────────────────────────────────
+async function submitQuote() {
+  const items = [];
+  document.querySelectorAll('#itemsBody tr').forEach(tr => {
+    const rowId = tr.id.replace('row-','');
+    const pname = document.getElementById('pname-' + rowId)?.value.trim() || '';
+    const qty   = parseInt(document.getElementById('qty-' + rowId)?.value)   || 0;
+    const price = parseInt(document.getElementById('price-' + rowId)?.value) || 0;
+    const note  = document.getElementById('note-' + rowId)?.value.trim() || '';
+    if (pname && qty > 0) {
+      items.push({ product_name: pname, qty, unit_price: price, subtotal: qty * price, note });
+    }
+  });
+
+  if (!document.getElementById('customerName').value.trim()) {
+    alert('請填寫客戶名稱'); return;
+  }
+  if (items.length === 0) {
+    alert('請至少新增一筆產品'); return;
+  }
+
+  const total = items.reduce((s,i) => s + i.subtotal, 0);
+  const payload = {
+    doc_no:       document.getElementById('quoteNo').value,
+    doc_type:     'QUOTE',
+    target_name:  document.getElementById('customerName').value.trim(),
+    total_amount: total,
+    note:         document.getElementById('quoteNote').value.trim(),
+    valid_until:  document.getElementById('validUntil').value,
+    created_by:   _user?.name || '',
+    items,
+  };
+
+  const btn = document.querySelector('.btn-primary');
+  btn.textContent = '儲存中…'; btn.disabled = true;
+  try {
+    const res = await fetch('/api/sales-doc/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await res.json();
+    if (d.success) {
+      resetForm();
+      loadList();
+    } else {
+      alert('儲存失敗：' + (d.message || ''));
+    }
+  } catch(e) {
+    alert('儲存失敗：' + e.message);
+  } finally {
+    btn.textContent = '儲存報價單'; btn.disabled = false;
+  }
+}
+
+function resetForm() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('customerName').value = '';
+  document.getElementById('quoteNote').value    = '';
+  document.getElementById('quoteDate').value    = today;
+  document.getElementById('itemsBody').innerHTML = '';
+  _rowSeq = 0;
+  genQuoteNo(today.replace(/-/g,''));
+  addRow();
+}
+
+// ── 列表 ─────────────────────────────────
+async function loadList(q) {
+  const qs  = q ? `&q=${encodeURIComponent(q)}` : '';
+  const res = await fetch('/api/sales-doc/list?type=QUOTE&limit=30' + qs);
+  const d   = await res.json();
+  const wrap = document.getElementById('listWrap');
+  if (!d.success || !d.documents.length) {
+    wrap.innerHTML = '<div style="padding:24px 20px;color:#9a9188;font-size:.83rem">暫無報價單</div>';
+    return;
+  }
+  wrap.innerHTML = d.documents.map(doc => {
+    const tag = doc.status === 'CONVERTED'
+      ? '<span class="status-tag converted">已轉訂單</span>'
+      : '<span class="status-tag">草稿</span>';
+    const validStr = doc.valid_until ? `有效至 ${doc.valid_until}` : '';
+    const itemCount = (doc.items||[]).length;
+    const convertBtn = doc.status !== 'CONVERTED'
+      ? `<button class="btn-outline" style="font-size:.75rem;padding:5px 12px"
+           onclick='openConvert(${JSON.stringify(doc)})'>轉訂單</button>`
+      : '';
+    return `
+      <div class="quote-row">
+        <div>
+          <div class="quote-no">${doc.doc_no}</div>
+          <div style="font-size:.7rem;color:#9a9188;margin-top:2px">${doc.created_at?.slice(0,10) || ''}</div>
+        </div>
+        <div>
+          <div style="color:#2c2720;font-size:.84rem">${doc.target_name || '—'}</div>
+          <div class="quote-meta">${itemCount} 項${validStr ? '・' + validStr : ''}${doc.note ? '・' + doc.note : ''}</div>
+        </div>
+        <div>${tag}</div>
+        <div class="quote-action">
+          ${convertBtn}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function searchDebounce() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => {
+    loadList(document.getElementById('searchQ').value.trim());
+  }, 350);
+}
+
+// ── 轉訂單 ─────────────────────────────────
+function openConvert(doc) {
+  _convertDocNo = doc.doc_no;
+  document.getElementById('depositAmt').value = '';
+  document.getElementById('modalInfo').innerHTML =
+    `報價單號：<strong>${doc.doc_no}</strong><br>` +
+    `客戶：${doc.target_name || '—'}<br>` +
+    `總金額：NT$ ${(doc.total_amount||0).toLocaleString()}`;
+  document.getElementById('convertModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('convertModal').classList.remove('open');
+  _convertDocNo = null;
+}
+
+async function confirmConvert() {
+  if (!_convertDocNo) return;
+  const deposit = parseInt(document.getElementById('depositAmt').value) || 0;
+  const res = await fetch('/api/sales-doc/convert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source_doc_no: _convertDocNo, target_type: 'ORDER', deposit_amount: deposit, created_by: _user?.name || '' }),
+  });
+  const d = await res.json();
+  if (d.success) {
+    closeModal();
+    loadList();
+    alert(`已轉換為訂單 ${d.new_doc_no}`);
+  } else {
+    alert('轉換失敗：' + (d.message || ''));
+  }
+}
+</script>
+{% endblock %}

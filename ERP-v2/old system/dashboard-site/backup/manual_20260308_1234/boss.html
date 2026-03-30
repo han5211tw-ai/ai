@@ -1,0 +1,569 @@
+{% extends "base.html" %}
+
+{% block title %}老闆專屬控制台 - 電腦舖營運系統{% endblock %}
+{% block page_title %}👑 老闆專屬控制台{% endblock %}
+
+{% block styles %}
+<style>
+    /* 統計卡片 */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stat-icon {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+    
+    .stat-value {
+        font-size: 1.8em;
+        font-weight: 600;
+        color: #38bdf8;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #94a3b8;
+        font-size: 0.9em;
+    }
+    
+    /* 待請購清單 */
+    .section-card {
+        background: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    
+    .section-title {
+        font-size: 1.3em;
+        font-weight: 600;
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .badge {
+        background: rgba(56, 189, 248, 0.2);
+        color: #38bdf8;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    
+    .badge.warning {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+    
+    .badge.success {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+    
+    .badge.danger {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    
+    /* 表格樣式 */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table th {
+        text-align: left;
+        padding: 12px;
+        color: #94a3b8;
+        font-weight: 500;
+        font-size: 0.9em;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    
+    .data-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        vertical-align: top;
+    }
+    
+    .data-table tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    
+    .data-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* 產品資訊 */
+    .product-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .product-name {
+        font-weight: 500;
+        color: #e2e8f0;
+    }
+    
+    .product-meta {
+        font-size: 0.85em;
+        color: #64748b;
+    }
+    
+    .product-meta .vendor {
+        color: #94a3b8;
+    }
+    
+    .product-meta .price {
+        color: #22c55e;
+    }
+    
+    /* 狀態標籤 */
+    .status-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    
+    .status-tag.pending {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    
+    .status-tag.purchased {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    
+    .status-tag.cancelled {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    /* 操作按鈕 */
+    .action-btns {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-success {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+    
+    .btn-success:hover:not(:disabled) {
+        background: rgba(34, 197, 94, 0.3);
+    }
+    
+    .btn-danger {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    
+    .btn-danger:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.3);
+    }
+
+    /* 紅色粗體 - TEMP 標記 */
+    .text-danger {
+        color: #ef4444 !important;
+    }
+
+    .fw-bold {
+        font-weight: 600 !important;
+    }
+
+    /* 備註輸入框 */
+    .notes-input:focus {
+        outline: none;
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    /* 空狀態 */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #64748b;
+    }
+    
+    .empty-state-icon {
+        font-size: 3em;
+        margin-bottom: 16px;
+    }
+    
+    /* 載入中 */
+    .loading-state {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 2px solid rgba(56, 189, 248, 0.3);
+        border-top-color: #38bdf8;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* 響應式 */
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .data-table {
+            font-size: 0.9em;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px 8px;
+        }
+        
+        .action-btns {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 統計卡片 -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value" id="pendingCount">-</div>
+        <div class="stat-label">待請購筆數</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" id="totalAmount">-</div>
+        <div class="stat-label">預估總額</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="productCount">-</div>
+        <div class="stat-label">產品種類</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-value" id="oldestDays">-</div>
+        <div class="stat-label">最久天數</div>
+    </div>
+</div>
+
+<!-- 待請購清單 -->
+<div class="section-card">
+    <div class="section-header">
+        <div class="section-title">
+            📋 待請購清單
+            <span class="badge" id="listBadge">載入中...</span>
+        </div>
+        <button class="btn" onclick="loadPendingNeeds()" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4);">
+            🔄 重新整理
+        </button>
+    </div>
+    
+    <div id="needsTableContainer">
+        <div class="loading-state">
+            <span class="loading-spinner"></span>
+            載入待請購資料中...
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 載入待請購清單
+    async function loadPendingNeeds() {
+        const container = document.getElementById('needsTableContainer');
+        container.innerHTML = `
+            <div class="loading-state">
+                <span class="loading-spinner"></span>
+                載入待請購資料中...
+            </div>
+        `;
+        
+        try {
+            const response = await fetch('/api/boss/pending-needs');
+            const data = await response.json();
+            
+            if (data.success) {
+                renderNeedsTable(data.needs);
+                updateStats(data.stats);
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <div>載入失敗：${data.message || '未知錯誤'}</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('載入待請購資料失敗:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <div>載入失敗，請檢查網路連線</div>
+                </div>
+            `;
+        }
+    }
+    
+    // 渲染待請購表格
+    function renderNeedsTable(needs) {
+        const container = document.getElementById('needsTableContainer');
+        
+        if (!needs || needs.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">✅</div>
+                    <div>目前沒有待請購項目</div>
+                </div>
+            `;
+            document.getElementById('listBadge').textContent = '0 筆';
+            document.getElementById('listBadge').className = 'badge success';
+            return;
+        }
+        
+        document.getElementById('listBadge').textContent = `${needs.length} 筆`;
+        document.getElementById('listBadge').className = 'badge warning';
+        
+        const html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>請購單號</th>
+                        <th>需求單位</th>
+                        <th>產品編號</th>
+                        <th>產品名稱</th>
+                        <th>數量</th>
+                        <th>需求用途</th>
+                        <th>備註</th>
+                        <th>申請人</th>
+                        <th>申請日期</th>
+                        <th>狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${needs.map(need => `
+                        <tr data-id="${need.id}">
+                            <td>${need.invoice_no || '-'}</td>
+                            <td>${need.department || '-'}</td>
+                            <td class="${need.product_code && need.product_code.startsWith('TEMP') ? 'text-danger fw-bold' : ''}">${need.product_code || '-'}</td>
+                            <td>
+                                <div class="product-info">
+                                    <span class="product-name">${need.product_name || '-'}</span>
+                                    ${need.last_vendor ? `
+                                        <span class="product-meta">
+                                            <span class="vendor">最後進貨：${need.last_vendor}</span>
+                                            ${need.last_price ? `<span class="price">｜金額：NT$ ${formatMoney(need.last_price)}</span>` : ''}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </td>
+                            <td>${need.quantity || '-'}</td>
+                            <td>${renderPurpose(need)}</td>
+                            <td>
+                                <textarea class="notes-input" data-id="${need.id}" rows="2" style="min-width: 180px; width: 100%; min-height: 40px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px; border-radius: 4px; resize: vertical; font-size: 0.9em;" onblur="saveNotes(${need.id}, this.value)">${need.notes || ''}</textarea>
+                            </td>
+                            <td>${need.requester || '-'}</td>
+                            <td>${formatDate(need.created_at)}</td>
+                            <td>
+                                <span class="status-tag pending">⏳ 待採購</span>
+                            </td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn btn-success" onclick="updateNeedStatus(${need.id}, 'purchased')">
+                                        ✓ 已採購
+                                    </button>
+                                    <button class="btn btn-danger" onclick="updateNeedStatus(${need.id}, 'cancelled')">
+                                        ✕ 取消
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        
+        container.innerHTML = html;
+    }
+    
+    // 更新統計數據
+    function updateStats(stats) {
+        document.getElementById('pendingCount').textContent = stats?.pending_count || 0;
+        document.getElementById('totalAmount').textContent = stats?.total_amount ? formatMoney(stats.total_amount) : '-';
+        document.getElementById('productCount').textContent = stats?.product_count || 0;
+        document.getElementById('oldestDays').textContent = stats?.oldest_days ? `${stats.oldest_days}天` : '-';
+    }
+    
+    // 更新請購狀態
+    async function updateNeedStatus(needId, status) {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.textContent = '處理中...';
+        
+        try {
+            const response = await fetch(`/api/boss/needs/${needId}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // 重新載入清單
+                loadPendingNeeds();
+            } else {
+                alert('更新失敗：' + (data.message || '未知錯誤'));
+                btn.disabled = false;
+                btn.textContent = status === 'purchased' ? '✓ 已採購' : '✕ 取消';
+            }
+        } catch (error) {
+            console.error('更新狀態失敗:', error);
+            alert('更新失敗，請檢查網路連線');
+            btn.disabled = false;
+            btn.textContent = status === 'purchased' ? '✓ 已採購' : '✕ 取消';
+        }
+    }
+    
+    // 格式化金額
+    function formatMoney(value) {
+        if (!value || isNaN(value)) return '-';
+        if (value >= 10000) {
+            return (value / 10000).toFixed(1) + '萬';
+        }
+        return value.toLocaleString();
+    }
+    
+    // 格式化日期
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('zh-TW', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // 渲染需求用途
+    function renderPurpose(need) {
+        let purpose = need.purpose || '-';
+
+        if (purpose === '客戶' && need.customer_code) {
+            let customerClass = need.customer_code.startsWith('TEMP') ? 'text-danger fw-bold' : '';
+            purpose = `客戶 <span class="${customerClass}">${need.customer_code}</span>`;
+            if (need.customer_name) {
+                purpose += ` ${need.customer_name}`;
+            }
+        }
+        return purpose;
+    }
+
+    // 儲存備註
+    async function saveNotes(needId, notes) {
+        try {
+            const response = await fetch(`/api/boss/needs/${needId}/notes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes })
+            });
+            const data = await response.json();
+            if (!data.success) {
+                console.error('儲存備註失敗:', data.message);
+            }
+        } catch (error) {
+            console.error('儲存備註失敗:', error);
+        }
+    }
+
+    // 頁面載入時執行
+    document.addEventListener('DOMContentLoaded', function() {
+        // 等待登入完成後載入資料
+        if (window.currentUserRole) {
+            loadPendingNeeds();
+        } else {
+            // 監聽登入成功事件
+            const originalOnLoginSuccess = window.onLoginSuccess;
+            window.onLoginSuccess = function(user) {
+                if (originalOnLoginSuccess) originalOnLoginSuccess(user);
+                loadPendingNeeds();
+            };
+        }
+    });
+</script>
+{% endblock %}

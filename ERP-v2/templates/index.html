@@ -1,0 +1,593 @@
+{% extends "base.html" %}
+{% block title %}首頁 — COSH ERP{% endblock %}
+{% block page_title %}首頁{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 統計卡 ─────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: var(--text-light);
+  letter-spacing: 0.14em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.6rem;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+}
+
+.stat-value small {
+  font-size: 0.9rem;
+  color: var(--text-sub);
+  margin-left: 4px;
+}
+
+/* ── 公告 ───────────────── */
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.announcement-item {
+  background: transparent;
+  border: none;
+  border-left: 2px solid var(--border-mid);
+  border-radius: 0;
+  padding: 8px 14px;
+}
+
+.announcement-item.info    { border-left-color: rgba(107,95,82,.3); }
+.announcement-item.warning { border-left-color: rgba(184,137,58,.4); }
+.announcement-item.urgent  { border-left-color: rgba(139,85,85,.4); }
+
+.announcement-title {
+  font-size: 0.84rem;
+  font-weight: 300;
+  color: var(--text-sub);
+  margin-bottom: 2px;
+}
+
+.announcement-content {
+  font-size: 0.80rem;
+  font-weight: 200;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+.announcement-meta {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  margin-top: 4px;
+  letter-spacing: 0.04em;
+}
+
+.pinned-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-light);
+  letter-spacing: 0.06em;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* ── 逾期提醒 ────────────── */
+.overdue-banner {
+  background: rgba(184, 137, 58, 0.06);
+  border: 1px solid rgba(184, 137, 58, 0.20);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 28px;
+  display: none;
+}
+
+.overdue-banner-title {
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: #8a6030;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.overdue-item {
+  font-size: 0.82rem;
+  font-weight: 200;
+  color: var(--text-sub);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+.overdue-item:last-of-type {
+  border-bottom: none;
+}
+
+.overdue-dismiss {
+  display: block;
+  text-align: right;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+}
+
+.overdue-dismiss:hover { color: var(--text-sub); }
+
+/* ── 圖表區 ─────────────── */
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 30px 32px;
+  margin-bottom: 28px;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 18px;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 200;
+  color: var(--text-sub);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.chart-wrap {
+  height: 360px;
+  position: relative;
+}
+
+/* ── 需求表 ─────────────── */
+.needs-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  margin-bottom: 28px;
+}
+
+.needs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.needs-title {
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+
+.needs-count {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  font-weight: 200;
+}
+
+/* 需求表格客製 */
+.needs-table th { font-size: 0.72rem; }
+.needs-table td { font-size: 0.85rem; }
+
+.product-code-temp { color: #8b5555; }
+
+.btn-arrive {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 300;
+  border: 1px solid rgba(107, 95, 82, 0.30);
+  border-radius: 999px;
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-arrive:hover {
+  background: rgba(107, 95, 82, 0.08);
+  border-color: var(--accent);
+}
+
+/* ── 底部時間戳 ─────────── */
+.timestamp {
+  font-size: 0.75rem;
+  font-weight: 200;
+  color: var(--text-light);
+  letter-spacing: 0.06em;
+  text-align: right;
+  padding-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .stats-row { grid-template-columns: 1fr; }
+  .chart-legend { display: none; }
+}
+.table-wrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- 逾期收貨提醒 -->
+<div class="overdue-banner" id="overdueBanner">
+  <div class="overdue-banner-title">待確認收貨提醒</div>
+  <div id="overdueItems"></div>
+  <span class="overdue-dismiss" onclick="document.getElementById('overdueBanner').style.display='none'">已知悉，暫時關閉</span>
+</div>
+
+<!-- ① 本季統計（第一視覺焦點） -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">本季總營收</div>
+    <div class="stat-value" id="statTotal">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">平均日營收</div>
+    <div class="stat-value" id="statAvg">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">最高單日</div>
+    <div class="stat-value" id="statMax">—</div>
+  </div>
+</div>
+
+<!-- ② 每日銷售圖表 -->
+<div class="chart-card">
+  <div class="chart-header">
+    <div class="chart-title" id="chartTitle">本季每日銷售趨勢</div>
+    <div class="chart-legend">
+      <div class="chart-legend-item">
+        <div class="legend-dot" style="background:#6b5f52"></div>
+        <span>門市部</span>
+      </div>
+      <div class="chart-legend-item">
+        <div class="legend-dot" style="background:#c0b8b0"></div>
+        <span>業務部</span>
+      </div>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="salesChart"></canvas>
+  </div>
+</div>
+
+<!-- ③ 待處理需求清單 -->
+<div class="needs-card">
+  <div class="needs-header">
+    <div class="needs-title">待處理需求清單</div>
+    <div class="needs-count" id="needsCount"></div>
+  </div>
+  <div id="needsContent">
+    <div class="loading">載入中…</div>
+  </div>
+</div>
+
+<!-- ④ 系統公告（弱化至底部） -->
+<div id="announcementSection" style="margin-top:8px;display:none">
+  <div class="section-label" style="margin-bottom:10px">系統公告</div>
+  <div class="announcement-list" id="announcementList"></div>
+</div>
+
+<div class="timestamp">資料即時讀取自資料庫 · 最後載入：<span id="loadTime">—</span></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ── 格式化金額 ───────────────────────────────
+function fmtMoney(v) {
+  if (v == null || isNaN(v)) return '—';
+  if (v >= 10000000) return 'NT$ ' + (v / 10000000).toFixed(1) + ' 千萬';
+  if (v >= 10000)    return 'NT$ ' + (v / 10000).toFixed(1) + ' 萬';
+  return 'NT$ ' + Number(v).toLocaleString();
+}
+
+// ── 載入統計 ─────────────────────────────────
+async function loadSummary() {
+  try {
+    const r = await fetch('/api/summary');
+    const d = await r.json();
+    document.getElementById('statTotal').textContent = fmtMoney(d.total);
+    document.getElementById('statAvg').textContent   = fmtMoney(d.avg);
+    document.getElementById('statMax').textContent   = fmtMoney(d.max);
+    if (d.start) {
+      const q = Math.ceil(new Date(d.start).getMonth() / 3 + 1) || 'Q?';
+      document.getElementById('chartTitle').textContent =
+        `${d.start.slice(0,4)} 年 Q${Math.floor(new Date(d.start).getMonth()/3)+1} 每日銷售趨勢`;
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── 載入圖表 ─────────────────────────────────
+let salesChart = null;
+async function loadChart() {
+  try {
+    const r = await fetch('/api/sales/daily');
+    const data = await r.json();
+    if (!data.length) return;
+
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    if (salesChart) salesChart.destroy();
+
+    salesChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.date.slice(5)),
+        datasets: [
+          {
+            label: '門市部',
+            data: data.map(d => d.store),
+            backgroundColor: '#6b5f52',
+            borderRadius: 3,
+            borderWidth: 0,
+            stack: 's',
+          },
+          {
+            label: '業務部',
+            data: data.map(d => d.business),
+            backgroundColor: '#c0b8b0',
+            borderRadius: 3,
+            borderWidth: 0,
+            stack: 's',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${fmtMoney(ctx.raw)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: {
+              color: '#b8b0a6',
+              font: { size: 11 },
+              maxRotation: 45,
+              minRotation: 45,
+              maxTicksLimit: 20,
+            }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            grid: { color: 'rgba(107,95,82,0.08)' },
+            ticks: {
+              color: '#b8b0a6',
+              font: { size: 11 },
+              callback: v => v >= 10000 ? (v/10000).toFixed(0)+'萬' : v,
+            }
+          }
+        }
+      }
+    });
+  } catch(e) { console.error(e); }
+}
+
+// ── 載入需求清單 ─────────────────────────────
+async function loadNeeds() {
+  const user = JSON.parse(localStorage.getItem('erp_v2_user') || '{}');
+  try {
+    const r    = await fetch('/api/needs/latest');
+    const data = await r.json();
+    const items = (data.items || []).filter(i =>
+      ['待處理','已採購','已調撥'].includes(i.status)
+    );
+
+    document.getElementById('needsCount').textContent =
+      items.length ? `共 ${items.length} 筆` : '';
+
+    if (!items.length) {
+      document.getElementById('needsContent').innerHTML =
+        '<div class="empty-state"><span class="empty-state-icon">·</span>' +
+        '<div class="empty-state-text">目前沒有待處理需求</div></div>';
+      return;
+    }
+
+    const statusBadge = s => ({
+      '待處理': '<span class="badge badge-pending">待處理</span>',
+      '已採購': '<span class="badge badge-process">已採購</span>',
+      '已調撥': '<span class="badge badge-process">已調撥</span>',
+    }[s] || `<span class="badge">${s}</span>`);
+
+    const rows = items.map((item, i) => {
+      const canArrive = (item.status === '已採購' || item.status === '已調撥')
+                        && item.department === (user.department || '');
+      const codeClass = item.product_code?.startsWith('TEMP') ? ' product-code-temp' : '';
+      const purpose = item.purpose === '客戶'
+        ? `客戶：${item.customer_code || '-'}${item.customer_name ? ' ' + item.customer_name : ''}`
+        : '備貨';
+      return `<tr>
+        <td class="text-center text-sub">${i+1}</td>
+        <td class="text-center text-sub" style="white-space:nowrap">${item.date||'-'}</td>
+        <td class="${codeClass}" style="font-size:0.78rem">${item.product_code||'-'}</td>
+        <td>${item.display_name||item.item_name||'-'}</td>
+        <td class="text-center">${item.quantity}</td>
+        <td class="text-center text-sub">${item.request_type}</td>
+        <td class="text-sub" style="font-size:0.82rem">${purpose}</td>
+        <td class="text-center text-sub">${item.department||'-'}</td>
+        <td class="text-center text-sub">${item.requester||'-'}</td>
+        <td class="text-center">${statusBadge(item.status)}</td>
+        <td style="font-size:0.82rem;color:${item.remark?.includes('缺貨')||item.remark?.includes('缺货')?'#8b5555':'var(--text-sub)'}">${item.remark||''}</td>
+        <td class="text-center">
+          ${canArrive
+            ? `<button class="btn-arrive" onclick="markArrived(${item.id})">確認到貨</button>`
+            : '<span class="text-light">—</span>'}
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('needsContent').innerHTML = `
+      <div class="table-wrap">
+        <table class="needs-table">
+          <thead>
+            <tr>
+              <th class="text-center" style="width:40px">#</th>
+              <th class="text-center" style="width:80px">日期</th>
+              <th style="width:100px">產品編號</th>
+              <th>產品名稱</th>
+              <th class="text-center" style="width:48px">數量</th>
+              <th class="text-center" style="width:64px">類型</th>
+              <th style="width:140px">需求用途</th>
+              <th class="text-center" style="width:72px">單位</th>
+              <th class="text-center" style="width:72px">填表人</th>
+              <th class="text-center" style="width:72px">狀態</th>
+              <th style="width:150px">備註</th>
+              <th class="text-center" style="width:80px">操作</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    document.getElementById('needsContent').innerHTML =
+      '<div class="notice notice-error">需求表載入失敗</div>';
+    console.error(e);
+  }
+}
+
+// ── 標記到貨 ─────────────────────────────────
+async function markArrived(id) {
+  const user = JSON.parse(localStorage.getItem('erp_v2_user') || '{}');
+  if (!confirm('確認標記為「已到貨」？\n\n請先確認：數量正確、品項無誤、外觀完好。\n此操作無法復原。')) return;
+  try {
+    const r = await fetch('/api/needs/arrive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, requester: user.name || '' })
+    });
+    const d = await r.json();
+    if (d.success) { loadNeeds(); }
+    else { alert(d.message || '標記失敗'); }
+  } catch(e) { alert('操作失敗，請稍後再試'); }
+}
+
+// ── 載入公告 ─────────────────────────────────
+async function loadAnnouncements() {
+  const el = document.getElementById('announcementList');
+  try {
+    const r    = await fetch('/api/system/announcements');
+    const data = await r.json();
+    const items = data.data || [];
+
+    if (!items.length) {
+      return;  // 無公告時隱藏整個區塊
+    }
+
+    el.innerHTML = items.map(item => `
+      <div class="announcement-item ${item.level || 'info'}">
+        <div class="announcement-title">
+          ${item.is_pinned ? '<span class="pinned-tag">置頂</span> ' : ''}${item.title}
+        </div>
+        ${item.content ? `<div class="announcement-content">${item.content}</div>` : ''}
+        <div class="announcement-meta">${new Date(item.created_at).toLocaleDateString('zh-TW')}</div>
+      </div>`).join('');
+    // 有公告才顯示區塊
+    document.getElementById('announcementSection').style.display = '';
+  } catch(e) { /* 靜默失敗 */ }
+}
+
+// ── 載入逾期提醒 ─────────────────────────────
+async function loadOverdue() {
+  const user = JSON.parse(localStorage.getItem('erp_v2_user') || '{}');
+  if (!user.name) return;
+  try {
+    const r    = await fetch('/api/needs/overdue-arrival?requester=' + encodeURIComponent(user.name));
+    const data = await r.json();
+    if (!data.success || !data.count) return;
+
+    document.getElementById('overdueItems').innerHTML = data.items.map(item => {
+      const src     = item.request_type === '調撥' ? (item.transfer_from || '-') : (item.vendor_name || '-');
+      const days    = Math.floor(item.overdue_days || 0);
+      const dateStr = (item.action_date || '').slice(5, 10);
+      return `<div class="overdue-item">${item.item_name} — ${item.request_type} · ${src} · ${dateStr} · 已過 ${days} 天</div>`;
+    }).join('');
+    document.getElementById('overdueBanner').style.display = 'block';
+  } catch(e) { console.error(e); }
+}
+
+// ── 初始化（登入後由 base.html 呼叫） ────────
+function onAppReady(user) {
+  loadAnnouncements();
+  loadOverdue();
+  loadSummary();
+  loadChart();
+  loadNeeds();
+  document.getElementById('loadTime').textContent =
+    new Date().toLocaleString('zh-TW');
+}
+
+// 每小時自動刷新
+setTimeout(() => location.reload(), 3600000);
+</script>
+{% endblock %}

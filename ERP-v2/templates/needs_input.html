@@ -1,0 +1,1140 @@
+{% extends "base.html" %}
+
+{% block title %}需求表輸入 — COSH ERP{% endblock %}
+{% block page_title %}需求表輸入{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 版面 ─────────────────────────────── */
+.needs-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+}
+
+/* ── 區塊卡片 ────────────────────────── */
+.n-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,0.15);
+  border-radius: 14px;
+  padding: 24px 28px;
+}
+.n-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  letter-spacing: .12em;
+  color: #9a9188;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(107,95,82,0.12);
+}
+
+/* ── 表單列 ──────────────────────────── */
+.n-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.n-field {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.n-field label {
+  font-size: .85rem;
+  color: #9a9188;
+  letter-spacing: .04em;
+}
+.n-field input,
+.n-field select {
+  padding: 10px 14px;
+  border: 1px solid rgba(107,95,82,0.25);
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+  transition: border-color .2s, box-shadow .2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.n-field input:focus {
+  outline: none;
+  border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12);
+  background: #fff;
+}
+.n-field select:focus {
+  outline: none;
+  border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12);
+  /* 不改背景色，保持 #f5f0e8 避免選後殘留白色 */
+}
+
+/* ── 客戶區塊 ─────────────────────────── */
+.customer-zone {
+  display: none;
+  background: rgba(107,95,82,.04);
+  border: 1px solid rgba(107,95,82,.15);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-top: 6px;
+}
+.customer-zone.show { display: block; }
+
+.search-wrap { position: relative; }
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(44,39,32,.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 200;
+  display: none;
+}
+.autocomplete-dropdown.show { display: block; }
+.ac-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: .9rem;
+  border-bottom: 1px solid rgba(107,95,82,.07);
+  color: #2c2720;
+  transition: background .15s;
+}
+.ac-item:last-child { border-bottom: none; }
+.ac-item:hover { background: rgba(250,191,19,.08); }
+.ac-item .ac-sub { font-size: .8rem; color: #9a9188; margin-top: 2px; }
+
+.selected-badge {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(107,95,82,.06);
+  border: 1px solid rgba(107,95,82,.18);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 8px;
+  font-size: .9rem;
+}
+.selected-badge.show { display: flex; }
+.selected-badge .badge-clear {
+  background: none;
+  border: none;
+  color: #9a9188;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+.badge-new-btn {
+  background: none;
+  border: 1px solid rgba(107,95,82,.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: .82rem;
+  color: #6b5f52;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background .15s;
+}
+.badge-new-btn:hover { background: rgba(107,95,82,.08); }
+
+/* ── 品項表格 ─────────────────────────── */
+.products-wrap { overflow-x: auto; }
+.prod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+}
+.prod-table th {
+  text-align: left;
+  padding: 10px 10px;
+  font-weight: 400;
+  color: #9a9188;
+  font-size: .8rem;
+  letter-spacing: .06em;
+  border-bottom: 1px solid rgba(107,95,82,.15);
+  white-space: nowrap;
+}
+.prod-table td {
+  padding: 8px 6px;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(107,95,82,.07);
+}
+.prod-table tr:last-child td { border-bottom: none; }
+
+.cell-wrap { position: relative; }
+.prod-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+  box-sizing: border-box;
+  transition: border-color .2s, box-shadow .2s;
+}
+.prod-input:focus {
+  outline: none;
+  border-color: #FABF13;
+  box-shadow: 0 0 0 2px rgba(250,191,19,.12);
+  background: #fff;
+}
+.prod-input.error { border-color: #a85c5c; background: #fdf5f5; }
+
+.prod-autocomplete {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(44,39,32,.1);
+  max-height: 160px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+.prod-autocomplete.show { display: block; }
+
+.stock-hint {
+  font-size: .75rem;
+  color: #9a9188;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.stock-ok { color: #6b8a5c; }
+.stock-low { color: #a88a5c; }
+
+.new-prod-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: .78rem;
+  color: #9a9188;
+  cursor: pointer;
+}
+.new-prod-check input[type=checkbox] {
+  accent-color: #FABF13;
+}
+
+.btn-del-row {
+  background: none;
+  border: 1px solid rgba(168,92,92,.3);
+  border-radius: 6px;
+  color: #a85c5c;
+  padding: 5px 8px;
+  cursor: pointer;
+  font-size: .9rem;
+  line-height: 1;
+  transition: background .15s;
+}
+.btn-del-row:hover { background: rgba(168,92,92,.08); }
+
+.btn-add-row {
+  background: none;
+  border: 1px solid rgba(107,95,82,.3);
+  border-radius: 8px;
+  color: #6b5f52;
+  padding: 8px 16px;
+  font-size: .85rem;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background .15s;
+}
+.btn-add-row:hover { background: rgba(107,95,82,.06); }
+
+/* ── 提交按鈕 ─────────────────────────── */
+.submit-zone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.btn-submit {
+  padding: 12px 36px;
+  background: #2c2720;
+  color: #f5f0e8;
+  border: none;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: opacity .2s, transform .2s;
+}
+.btn-submit:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
+.btn-submit:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── 近期提交 ─────────────────────────── */
+.recent-list { display: flex; flex-direction: column; gap: 10px; }
+.recent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f5f0e8;
+  border-radius: 10px;
+  font-size: .88rem;
+}
+.recent-info { flex: 1; line-height: 1.7; }
+.recent-info .ri-name { font-weight: 400; color: #2c2720; }
+.recent-info .ri-sub { font-size: .8rem; color: #9a9188; }
+.badge-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: .75rem;
+  background: rgba(107,95,82,.12);
+  color: #6b5f52;
+}
+.badge-status.done { background: rgba(107,138,92,.15); color: #6b8a5c; }
+.badge-status.cancelled { background: rgba(168,92,92,.12); color: #a85c5c; }
+.badge-status.purchased { background: rgba(184,137,58,.15); color: #b8893a; }
+
+.btn-cancel-item {
+  background: none;
+  border: 1px solid rgba(168,92,92,.3);
+  border-radius: 6px;
+  color: #a85c5c;
+  padding: 4px 10px;
+  font-size: .8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.btn-cancel-item:hover { background: rgba(168,92,92,.08); }
+
+/* ── 歷史篩選 ─────────────────────────── */
+.history-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  align-items: center;
+}
+.history-bar select,
+.history-bar input {
+  padding: 8px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px;
+  font-size: .85rem;
+  font-family: 'Noto Serif TC', serif;
+  background: #f5f0e8;
+  color: #2c2720;
+}
+.history-bar input { min-width: 160px; }
+.btn-search-hist {
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid rgba(107,95,82,.35);
+  border-radius: 8px;
+  font-size: .85rem;
+  color: #6b5f52;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-search-hist:hover { background: rgba(107,95,82,.07); }
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .86rem;
+}
+.history-table th {
+  text-align: left;
+  padding: 9px 10px;
+  font-weight: 400;
+  font-size: .78rem;
+  color: #9a9188;
+  letter-spacing: .05em;
+  border-bottom: 1px solid rgba(107,95,82,.15);
+}
+.history-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(107,95,82,.07);
+  color: #2c2720;
+  vertical-align: middle;
+}
+.history-table tr:last-child td { border-bottom: none; }
+
+.hist-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: .85rem;
+}
+.hist-pagination button {
+  background: none;
+  border: 1px solid rgba(107,95,82,.25);
+  border-radius: 6px;
+  padding: 5px 12px;
+  color: #6b5f52;
+  cursor: pointer;
+  transition: background .15s;
+}
+.hist-pagination button:hover:not(:disabled) { background: rgba(107,95,82,.08); }
+.hist-pagination button:disabled { opacity: .35; cursor: not-allowed; }
+.hist-pagination .pg-info { color: #9a9188; }
+
+/* ── Modal ───────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(44,39,32,.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 30px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(44,39,32,.18);
+}
+.modal-box h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-weight: 300;
+  color: #2c2720;
+  margin-bottom: 18px;
+  letter-spacing: .06em;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.modal-actions button { flex: 1; }
+.btn-outline {
+  padding: 10px 0;
+  background: none;
+  border: 1px solid rgba(107,95,82,.35);
+  border-radius: 999px;
+  color: #6b5f52;
+  cursor: pointer;
+  font-size: .9rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  transition: background .15s;
+}
+.btn-outline:hover { background: rgba(107,95,82,.06); }
+
+/* ── Toast ───────────────────────────── */
+.toast-wrap {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-msg {
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-size: .9rem;
+  color: #fff;
+  opacity: 0;
+  transition: opacity .3s;
+  white-space: nowrap;
+}
+.toast-msg.show { opacity: 1; }
+.toast-msg.success { background: #5a7a4a; }
+.toast-msg.error   { background: #8a4a4a; }
+
+/* ── 空白提示 ─────────────────────────── */
+.empty-hint {
+  text-align: center;
+  padding: 24px 0;
+  color: #9a9188;
+  font-size: .88rem;
+}
+
+@media (max-width: 640px) {
+  .n-card { padding: 18px 16px; }
+  .prod-table th:nth-child(3),
+  .prod-table td:nth-child(3) { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="needs-layout">
+
+  <!-- ── 表單頭 ── -->
+  <div class="n-card" id="formCard">
+    <div class="n-card-title">表單資訊</div>
+
+    <div class="n-row">
+      <div class="n-field" style="max-width:150px">
+        <label>日期</label>
+        <input type="date" id="reqDate">
+      </div>
+      <div class="n-field" style="max-width:150px">
+        <label>需求類型</label>
+        <select id="reqType" onchange="onTypeChange()">
+          <option value="請購">請購</option>
+          <option value="調撥">調撥</option>
+        </select>
+      </div>
+      <div class="n-field" style="max-width:150px">
+        <label>用途</label>
+        <select id="reqPurpose" onchange="onPurposeChange()">
+          <option value="備貨">備貨</option>
+          <option value="客戶">客戶</option>
+        </select>
+      </div>
+      <!-- 主管代送門市 -->
+      <div class="n-field" style="max-width:150px;display:none" id="proxyStoreField">
+        <label>代送門市</label>
+        <select id="proxyStore">
+          <option value="豐原門市">豐原門市</option>
+          <option value="潭子門市">潭子門市</option>
+          <option value="大雅門市">大雅門市</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 調撥來源（調撥時出現） -->
+    <div id="transferZone" style="display:none">
+      <div class="n-row">
+        <div class="n-field" style="max-width:200px">
+          <label>調撥來源</label>
+          <select id="transferFrom">
+            <option value="">選擇來源門市</option>
+            <option value="豐原門市">豐原門市</option>
+            <option value="潭子門市">潭子門市</option>
+            <option value="大雅門市">大雅門市</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 客戶區塊（客戶用途時出現） -->
+    <div class="customer-zone" id="customerZone">
+      <div style="font-size:.82rem;color:#9a9188;margin-bottom:10px;letter-spacing:.04em">客戶資訊</div>
+      <div class="search-wrap">
+        <input type="text" class="n-field input" id="customerSearch"
+               placeholder="搜尋客戶姓名、手機、統編…"
+               style="padding:10px 14px;border:1px solid rgba(107,95,82,.25);border-radius:10px;font-size:16px;font-family:inherit;font-weight:300;color:#2c2720;background:#f5f0e8;width:100%;box-sizing:border-box;"
+               oninput="onCustomerSearch(this.value)" autocomplete="off">
+        <div class="autocomplete-dropdown" id="customerDropdown"></div>
+      </div>
+      <div class="selected-badge" id="selectedCustomer">
+        <span id="selectedCustomerText">—</span>
+        <button class="badge-clear" onclick="clearCustomer()" title="清除">×</button>
+      </div>
+      <button class="badge-new-btn" onclick="openNewCustomerModal()">＋ 新客戶（暫存）</button>
+    </div>
+  </div>
+
+  <!-- ── 品項 ── -->
+  <div class="n-card">
+    <div class="n-card-title">品項明細</div>
+    <div class="products-wrap">
+      <table class="prod-table">
+        <thead>
+          <tr>
+            <th style="width:130px">產品代碼</th>
+            <th>品名 / 規格</th>
+            <th style="width:70px">數量</th>
+            <th style="width:130px">備注</th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="prodBody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add-row" onclick="addRow()">＋ 新增品項</button>
+
+    <div class="submit-zone" style="margin-top:20px">
+      <button class="btn-submit" id="submitBtn" onclick="submitForm()">送出需求</button>
+      <span id="submitHint" style="font-size:.82rem;color:#9a9188"></span>
+    </div>
+  </div>
+
+  <!-- ── 近期提交 ── -->
+  <div class="n-card">
+    <div class="n-card-title">近期提交（30 分鐘內）</div>
+    <div class="recent-list" id="recentList">
+      <div class="empty-hint">載入中…</div>
+    </div>
+  </div>
+
+  <!-- ── 歷史紀錄 ── -->
+  <div class="n-card">
+    <div class="n-card-title">歷史紀錄</div>
+    <div class="history-bar">
+      <select id="histStatus" onchange="loadHistory(1)">
+        <option value="all">全部</option>
+        <option value="active">待處理中</option>
+        <option value="done">已完成</option>
+        <option value="cancelled">已取消</option>
+      </select>
+      <input type="text" id="histSearch" placeholder="搜尋品名/代碼…"
+             onkeydown="if(event.key==='Enter') loadHistory(1)">
+      <button class="btn-search-hist" onclick="loadHistory(1)">搜尋</button>
+    </div>
+    <div id="historyBody">
+      <div class="empty-hint">載入中…</div>
+    </div>
+    <div class="hist-pagination" id="histPager" style="display:none">
+      <button id="pgPrev" onclick="loadHistory(histPage-1)">‹ 上一頁</button>
+      <span class="pg-info" id="pgInfo"></span>
+      <button id="pgNext" onclick="loadHistory(histPage+1)">下一頁 ›</button>
+    </div>
+  </div>
+
+</div><!-- /.needs-layout -->
+
+<!-- ── 新客戶 Modal ── -->
+<div class="modal-overlay" id="newCustomerModal">
+  <div class="modal-box">
+    <h3>新客戶（暫存）</h3>
+    <div class="n-field" style="margin-bottom:14px">
+      <label>客戶姓名 / 公司名稱 *</label>
+      <input type="text" id="newCustName"
+             style="padding:10px 14px;border:1px solid rgba(107,95,82,.25);border-radius:10px;font-size:16px;font-family:inherit;font-weight:300;color:#2c2720;background:#f5f0e8;width:100%;box-sizing:border-box;">
+    </div>
+    <div class="n-field" style="margin-bottom:14px">
+      <label>手機</label>
+      <input type="text" id="newCustMobile"
+             style="padding:10px 14px;border:1px solid rgba(107,95,82,.25);border-radius:10px;font-size:16px;font-family:inherit;font-weight:300;color:#2c2720;background:#f5f0e8;width:100%;box-sizing:border-box;">
+    </div>
+    <div class="n-field">
+      <label>備注</label>
+      <input type="text" id="newCustRemark"
+             style="padding:10px 14px;border:1px solid rgba(107,95,82,.25);border-radius:10px;font-size:16px;font-family:inherit;font-weight:300;color:#2c2720;background:#f5f0e8;width:100%;box-sizing:border-box;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeNewCustomerModal()">取消</button>
+      <button class="btn-submit" style="flex:1;padding:10px 0;font-size:.9rem" onclick="confirmNewCustomer()">確認暫存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap">
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+// ────────────────────────────────────
+// 全域狀態
+// ────────────────────────────────────
+let currentUser = null;
+let selectedCustomer = null;   // { id, name }
+let histPage = 1;
+let customerTimer = null;
+const ROWS_DEFAULT = 5;
+
+// ────────────────────────────────────
+// 初始化
+// ────────────────────────────────────
+function onAppReady(user) {
+  currentUser = user;
+
+  // 今天日期
+  document.getElementById('reqDate').value = todayStr();
+
+  // 主管代送
+  if (user.name === '莊圍迪') {
+    document.getElementById('proxyStoreField').style.display = '';
+  }
+
+  // 動態排除本門市（調撥來源不含自己）
+  updateTransferOptions();
+
+  // 預設品項列
+  for (let i = 0; i < ROWS_DEFAULT; i++) addRow();
+
+  loadRecent();
+  loadHistory(1);
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ────────────────────────────────────
+// 表單頭邏輯
+// ────────────────────────────────────
+function onTypeChange() {
+  const t = document.getElementById('reqType').value;
+  document.getElementById('transferZone').style.display = t === '調撥' ? '' : 'none';
+}
+
+function onPurposeChange() {
+  const p = document.getElementById('reqPurpose').value;
+  const cz = document.getElementById('customerZone');
+  if (p === '客戶') cz.classList.add('show');
+  else { cz.classList.remove('show'); clearCustomer(); }
+}
+
+function updateTransferOptions() {
+  if (!currentUser) return;
+  const dept = currentUser.department || '';
+  const sel = document.getElementById('transferFrom');
+  const all = ['豐原門市', '潭子門市', '大雅門市'];
+  sel.innerHTML = '<option value="">選擇來源門市</option>';
+  all.forEach(store => {
+    if (store !== dept) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = store;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+// ────────────────────────────────────
+// 客戶搜尋
+// ────────────────────────────────────
+let custDebounce = null;
+function onCustomerSearch(val) {
+  clearTimeout(custDebounce);
+  if (val.length < 1) { closeDropdown('customerDropdown'); return; }
+  custDebounce = setTimeout(() => doCustomerSearch(val), 300);
+}
+
+async function doCustomerSearch(q) {
+  const res = await fetch(`/api/customers/search?q=${encodeURIComponent(q)}`);
+  const json = await res.json();
+  const dd = document.getElementById('customerDropdown');
+  if (!json.success || !json.data.length) { dd.innerHTML = '<div class="ac-item" style="color:#9a9188">查無結果</div>'; dd.classList.add('show'); return; }
+  dd.innerHTML = json.data.map(c => `
+    <div class="ac-item" onclick="selectCustomer('${c.customer_id}','${escHtml(c.short_name || c.full_name)}')">
+      <div>${escHtml(c.short_name || c.full_name)}</div>
+      <div class="ac-sub">${c.customer_id}${c.mobile ? ' · ' + c.mobile : ''}</div>
+    </div>`).join('');
+  dd.classList.add('show');
+}
+
+function selectCustomer(id, name) {
+  selectedCustomer = { id, name };
+  document.getElementById('selectedCustomerText').textContent = `${name}（${id}）`;
+  document.getElementById('selectedCustomer').classList.add('show');
+  document.getElementById('customerSearch').value = '';
+  closeDropdown('customerDropdown');
+}
+
+function clearCustomer() {
+  selectedCustomer = null;
+  document.getElementById('selectedCustomer').classList.remove('show');
+  document.getElementById('customerSearch').value = '';
+}
+
+function closeDropdown(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+// ────────────────────────────────────
+// 新客戶 Modal
+// ────────────────────────────────────
+function openNewCustomerModal() {
+  document.getElementById('newCustName').value = '';
+  document.getElementById('newCustMobile').value = '';
+  document.getElementById('newCustRemark').value = '';
+  document.getElementById('newCustomerModal').classList.add('show');
+  setTimeout(() => document.getElementById('newCustName').focus(), 100);
+}
+function closeNewCustomerModal() {
+  document.getElementById('newCustomerModal').classList.remove('show');
+}
+function confirmNewCustomer() {
+  const name = document.getElementById('newCustName').value.trim();
+  if (!name) { toast('請輸入客戶姓名', 'error'); return; }
+  const mobile = document.getElementById('newCustMobile').value.trim();
+  const ts = Date.now().toString().slice(-8);
+  const tempId = `TEMP-C-${ts}`;
+  selectCustomer(tempId, name);
+  closeNewCustomerModal();
+  toast('暫存客戶已建立', 'success');
+}
+
+// ────────────────────────────────────
+// 品項列
+// ────────────────────────────────────
+let rowCounter = 0;
+
+function addRow() {
+  rowCounter++;
+  const id = rowCounter;
+  const tr = document.createElement('tr');
+  tr.id = `row-${id}`;
+  tr.innerHTML = `
+    <td>
+      <div class="cell-wrap">
+        <input type="text" class="prod-input" id="code-${id}" placeholder="如 PCB-123"
+               oninput="onCodeInput(${id}, this.value)" autocomplete="off">
+        <div class="prod-autocomplete" id="codeAc-${id}"></div>
+        <div class="stock-hint" id="stock-${id}"></div>
+        <label class="new-prod-check">
+          <input type="checkbox" id="newProd-${id}" onchange="onNewProdCheck(${id})">
+          <span>新品（暫存）</span>
+        </label>
+      </div>
+    </td>
+    <td>
+      <div class="cell-wrap">
+        <input type="text" class="prod-input" id="name-${id}" placeholder="品名規格"
+               oninput="onNameInput(${id}, this.value)" autocomplete="off">
+        <div class="prod-autocomplete" id="nameAc-${id}"></div>
+      </div>
+    </td>
+    <td>
+      <input type="number" class="prod-input" id="qty-${id}" value="1" min="1"
+             style="text-align:center;width:60px">
+    </td>
+    <td>
+      <input type="text" class="prod-input" id="remark-${id}" placeholder="選填">
+    </td>
+    <td>
+      <button class="btn-del-row" onclick="delRow(${id})" title="刪除">×</button>
+    </td>`;
+  document.getElementById('prodBody').appendChild(tr);
+}
+
+function delRow(id) {
+  const row = document.getElementById(`row-${id}`);
+  const tbody = document.getElementById('prodBody');
+  if (tbody.children.length <= 1) { toast('至少保留一列', 'error'); return; }
+  row.remove();
+}
+
+// 代碼輸入 & autocomplete
+let codeTimers = {};
+function onCodeInput(id, val) {
+  clearTimeout(codeTimers[id]);
+  document.getElementById(`stock-${id}`).textContent = '';
+  if (!val.trim()) { closeAc(`codeAc-${id}`); return; }
+  codeTimers[id] = setTimeout(() => {
+    fetchProductAc(id, 'code', val);
+    if (val.length >= 3) fetchStock(id, val);
+  }, 280);
+}
+
+let nameTimers = {};
+function onNameInput(id, val) {
+  clearTimeout(nameTimers[id]);
+  if (!val.trim()) { closeAc(`nameAc-${id}`); return; }
+  nameTimers[id] = setTimeout(() => fetchProductAc(id, 'name', val), 300);
+}
+
+async function fetchProductAc(id, field, q) {
+  const res = await fetch(`/api/products/search?q=${encodeURIComponent(q)}`);
+  const json = await res.json();
+  const acId = field === 'code' ? `codeAc-${id}` : `nameAc-${id}`;
+  const ac = document.getElementById(acId);
+  if (!json.success || !json.data.length) { closeAc(acId); return; }
+  ac.innerHTML = json.data.map(p => `
+    <div class="ac-item" onclick="fillProduct(${id},'${escHtml(p.product_code)}','${escHtml(p.product_name)}')">
+      <span style="color:#6b5f52;font-size:.82rem">${escHtml(p.product_code)}</span>
+      <span style="margin-left:8px">${escHtml(p.product_name)}</span>
+    </div>`).join('');
+  ac.classList.add('show');
+}
+
+function fillProduct(id, code, name) {
+  document.getElementById(`code-${id}`).value = code;
+  document.getElementById(`name-${id}`).value = name;
+  closeAc(`codeAc-${id}`);
+  closeAc(`nameAc-${id}`);
+  fetchStock(id, code);
+}
+
+async function fetchStock(id, code) {
+  const el = document.getElementById(`stock-${id}`);
+  if (!code || document.getElementById(`newProd-${id}`).checked) { el.textContent=''; return; }
+  const res = await fetch(`/api/inventory/product/${encodeURIComponent(code)}`);
+  const json = await res.json();
+  if (!json.success || !json.data.length) { el.textContent = '庫存：查無'; return; }
+  const parts = json.data.map(r => `${r.warehouse} ${r.quantity}`).join(' · ');
+  el.innerHTML = `<span class="stock-ok">庫存：${parts}</span>`;
+}
+
+function onNewProdCheck(id) {
+  const checked = document.getElementById(`newProd-${id}`).checked;
+  const codeInput = document.getElementById(`code-${id}`);
+  if (checked) {
+    const ts = Date.now().toString().slice(-8);
+    codeInput.value = `TEMP-P-${ts}`;
+    codeInput.readOnly = true;
+    document.getElementById(`stock-${id}`).textContent = '';
+  } else {
+    codeInput.value = '';
+    codeInput.readOnly = false;
+  }
+}
+
+function closeAc(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+
+// 點擊外部關閉下拉
+document.addEventListener('click', e => {
+  if (!e.target.closest('.cell-wrap') && !e.target.closest('.search-wrap')) {
+    document.querySelectorAll('.prod-autocomplete, .autocomplete-dropdown')
+      .forEach(el => el.classList.remove('show'));
+  }
+});
+
+// ────────────────────────────────────
+// 送出
+// ────────────────────────────────────
+async function submitForm() {
+  const btn = document.getElementById('submitBtn');
+  const hint = document.getElementById('submitHint');
+  btn.disabled = true;
+  hint.textContent = '送出中…';
+
+  const items = collectItems();
+  if (!items.length) {
+    toast('請至少填寫一筆有效品項', 'error');
+    btn.disabled = false; hint.textContent = '';
+    return;
+  }
+
+  // 調撥需選來源
+  if (document.getElementById('reqType').value === '調撥' &&
+      !document.getElementById('transferFrom').value) {
+    toast('請選擇調撥來源門市', 'error');
+    btn.disabled = false; hint.textContent = '';
+    return;
+  }
+
+  // 客戶用途需選客戶
+  if (document.getElementById('reqPurpose').value === '客戶' && !selectedCustomer) {
+    toast('客戶用途請先選擇或建立客戶', 'error');
+    btn.disabled = false; hint.textContent = '';
+    return;
+  }
+
+  // 決定 department：主管代送時用代送門市
+  let dept = currentUser.department || '';
+  const reqType = document.getElementById('reqType').value;
+  if (currentUser.name === '莊圍迪') {
+    dept = document.getElementById('proxyStore').value;
+  }
+
+  const payload = {
+    header: {
+      date:          document.getElementById('reqDate').value,
+      request_type:  reqType,
+      purpose:       document.getElementById('reqPurpose').value,
+      requester:     currentUser.name,
+      department:    dept,
+      customer_code: selectedCustomer ? selectedCustomer.id : '',
+      transfer_from: document.getElementById('transferFrom').value || '',
+    },
+    items
+  };
+
+  try {
+    const res = await fetch('/api/needs/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast(`已送出 ${json.count} 筆需求`, 'success');
+      resetForm();
+      setTimeout(() => { loadRecent(); loadHistory(1); }, 500);
+    } else {
+      toast(json.message || '送出失敗', 'error');
+    }
+  } catch {
+    toast('連線失敗', 'error');
+  } finally {
+    btn.disabled = false;
+    hint.textContent = '';
+  }
+}
+
+function collectItems() {
+  const tbody = document.getElementById('prodBody');
+  const result = [];
+  for (const tr of tbody.children) {
+    const rowId = tr.id.replace('row-', '');
+    const code = (document.getElementById(`code-${rowId}`)?.value || '').trim();
+    const name = (document.getElementById(`name-${rowId}`)?.value || '').trim();
+    const qty  = parseInt(document.getElementById(`qty-${rowId}`)?.value) || 1;
+    const rem  = (document.getElementById(`remark-${rowId}`)?.value || '').trim();
+    const isNew = document.getElementById(`newProd-${rowId}`)?.checked;
+    if (!code && !name) continue;
+    result.push({ product_code: code, item_name: name, quantity: qty, remark: rem, is_new_product: isNew });
+  }
+  return result;
+}
+
+function resetForm() {
+  document.getElementById('reqDate').value = todayStr();
+  document.getElementById('reqType').value = '請購';
+  document.getElementById('reqPurpose').value = '備貨';
+  document.getElementById('transferZone').style.display = 'none';
+  document.getElementById('customerZone').classList.remove('show');
+  clearCustomer();
+  // 清空品項
+  document.getElementById('prodBody').innerHTML = '';
+  rowCounter = 0;
+  for (let i = 0; i < ROWS_DEFAULT; i++) addRow();
+}
+
+// ────────────────────────────────────
+// 近期提交
+// ────────────────────────────────────
+async function loadRecent() {
+  if (!currentUser) return;
+  const url = `/api/needs/recent?requester=${encodeURIComponent(currentUser.name)}&department=${encodeURIComponent(currentUser.department||'')}&title=${encodeURIComponent(currentUser.title)}`;
+  const res = await fetch(url);
+  const json = await res.json();
+  const el = document.getElementById('recentList');
+  if (!json.success || !json.data.length) {
+    el.innerHTML = '<div class="empty-hint">近 30 分鐘無提交記錄</div>';
+    return;
+  }
+  el.innerHTML = json.data.map(item => {
+    const statusCls = item.status === '已完成' ? 'done'
+                    : item.status === '已取消' ? 'cancelled'
+                    : item.status === '已採購' || item.status === '已調撥' ? 'purchased' : '';
+    const canCancel = item.can_cancel && item.status === '待處理';
+    return `
+      <div class="recent-row">
+        <div class="recent-info">
+          <div class="ri-name">${escHtml(item.item_name || item.product_code || '—')}</div>
+          <div class="ri-sub">
+            ${item.request_type} · ${item.purpose} · ×${item.quantity}
+            ${item.remark ? '· ' + escHtml(item.remark) : ''}
+            <span style="margin-left:6px;color:#b8b0a8">${(item.created_at||'').slice(11,16)}</span>
+          </div>
+        </div>
+        <span class="badge-status ${statusCls}">${item.status || '待處理'}</span>
+        ${canCancel ? `<button class="btn-cancel-item" onclick="cancelItem(${item.id})">取消</button>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function cancelItem(id) {
+  if (!confirm('確定取消此需求？')) return;
+  const res = await fetch('/api/needs/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, requester: currentUser.name, title: currentUser.title })
+  });
+  const json = await res.json();
+  if (json.success) { toast('已取消', 'success'); loadRecent(); loadHistory(histPage); }
+  else toast(json.message || '取消失敗', 'error');
+}
+
+// ────────────────────────────────────
+// 歷史記錄
+// ────────────────────────────────────
+async function loadHistory(page) {
+  histPage = page;
+  if (!currentUser) return;
+  const status = document.getElementById('histStatus').value;
+  const search = document.getElementById('histSearch').value.trim();
+  const params = new URLSearchParams({
+    requester:  currentUser.name,
+    department: currentUser.department || '',
+    title:      currentUser.title,
+    status:     status,
+    search,
+    page
+  });
+  const res = await fetch('/api/needs/history?' + params);
+  const json = await res.json();
+  const body = document.getElementById('historyBody');
+  const pager = document.getElementById('histPager');
+
+  if (!json.success) { body.innerHTML = '<div class="empty-hint">載入失敗</div>'; return; }
+  if (!json.data.items.length) {
+    body.innerHTML = '<div class="empty-hint">無記錄</div>';
+    pager.style.display = 'none';
+    return;
+  }
+
+  body.innerHTML = `
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>類型</th>
+          <th>品名</th>
+          <th>數量</th>
+          <th>提交人</th>
+          <th>狀態</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${json.data.items.map(item => {
+          const statusCls = item.status === '已完成' ? 'done'
+                          : item.cancelled_at ? 'cancelled'
+                          : item.status === '已採購' || item.status === '已調撥' ? 'purchased' : '';
+          return `<tr>
+            <td style="color:#9a9188;white-space:nowrap">${(item.date||'').slice(5)}</td>
+            <td><span style="font-size:.8rem;color:#9a9188">${item.request_type||'請購'}</span></td>
+            <td>${escHtml(item.item_name || item.product_code || '—')}</td>
+            <td style="text-align:center">${item.quantity}</td>
+            <td style="color:#9a9188">${escHtml(item.requester||'')}</td>
+            <td><span class="badge-status ${statusCls}">${item.cancelled_at ? '已取消' : (item.status||'待處理')}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+
+  const total = json.data.total;
+  const pages = json.data.pages;
+  if (pages > 1) {
+    pager.style.display = 'flex';
+    document.getElementById('pgInfo').textContent = `第 ${page} / ${pages} 頁，共 ${total} 筆`;
+    document.getElementById('pgPrev').disabled = page <= 1;
+    document.getElementById('pgNext').disabled = page >= pages;
+  } else {
+    pager.style.display = 'none';
+  }
+}
+
+// ────────────────────────────────────
+// 工具
+// ────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer = null;
+function toast(msg, type='success') {
+  const el = document.getElementById('toastMsg');
+  el.textContent = msg;
+  el.className = `toast-msg ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+{% endblock %}

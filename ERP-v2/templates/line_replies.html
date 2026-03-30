@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% block title %}LINE 回覆表 — COSH ERP{% endblock %}
+{% block page_title %}LINE 回覆表{% endblock %}
+
+{% block styles %}
+<style>
+.lr-layout { display:flex; flex-direction:column; gap:20px; }
+
+/* 工具列 */
+.toolbar {
+  display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
+  padding:14px 20px; border-bottom:1px solid rgba(107,95,82,.08);
+}
+.f-input, .f-select {
+  padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
+  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  color:#2c2720; background:#f5f0e8; outline:none;
+}
+.f-input:focus { border-color:#6b5f52; }
+.f-select:focus { border-color:#6b5f52; }
+.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+
+.add-btn {
+  padding:8px 18px; background:#2c2720; color:#f5f0e8;
+  border:none; border-radius:8px; font-size:.82rem;
+  font-family:'Noto Serif TC',serif; cursor:pointer; white-space:nowrap;
+}
+.add-btn:hover { background:#3d342c; }
+
+/* 統計列 */
+.stat-row {
+  display:flex; gap:10px; padding:10px 20px; flex-wrap:wrap;
+  border-bottom:1px solid rgba(107,95,82,.06);
+}
+.stat-chip {
+  background:#faf7f2; border-radius:8px; padding:8px 14px;
+  font-size:.78rem; color:#6b5f52;
+}
+.stat-chip strong { color:#2c2720; font-size:.9rem; }
+
+/* 回覆表格 */
+.lr-table { width:100%; border-collapse:collapse; font-size:.83rem; }
+.lr-table th {
+  text-align:left; padding:9px 12px; font-weight:300; color:#9a9188;
+  font-size:.7rem; letter-spacing:.06em; background:#faf7f2;
+  border-bottom:1px solid rgba(107,95,82,.1);
+}
+.lr-table td {
+  padding:9px 12px; color:#2c2720;
+  border-bottom:1px solid rgba(107,95,82,.05);
+  vertical-align:top;
+}
+.lr-table tr:last-child td { border-bottom:none; }
+.lr-table tr:hover td { background:rgba(250,191,19,.04); }
+
+.resolved-chip {
+  display:inline-block; padding:2px 8px; border-radius:20px;
+  font-size:.7rem; white-space:nowrap;
+}
+.chip-done { background:#e8f4e8; color:#3d7a3d; }
+.chip-pending { background:#fff4e0; color:#a06a00; }
+
+.action-btn {
+  padding:3px 9px; border-radius:5px; font-size:.74rem;
+  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
+  font-family:'Noto Serif TC',serif; margin-right:4px; white-space:nowrap;
+}
+.action-btn.del { border-color:rgba(139,58,58,.25); color:#8b3a3a; }
+.action-btn:hover { background:#f5f0e8; }
+
+/* 分頁 */
+.pager { display:flex; gap:6px; justify-content:center; padding:16px; }
+.pager-btn {
+  padding:5px 11px; border-radius:6px; font-size:.8rem;
+  border:1px solid rgba(107,95,82,.2); cursor:pointer; background:none; color:#6b5f52;
+  font-family:'Noto Serif TC',serif;
+}
+.pager-btn.active { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
+.pager-btn:disabled { opacity:.4; cursor:default; }
+
+/* 新增 / 編輯 Modal */
+.modal-backdrop {
+  position:fixed; inset:0; background:rgba(44,39,32,.45); display:flex;
+  align-items:center; justify-content:center; z-index:900;
+}
+.modal-box {
+  background:#fff; border-radius:16px; padding:28px 28px 20px;
+  width:min(640px,94vw); max-height:90vh; overflow-y:auto;
+  box-shadow:0 8px 32px rgba(44,39,32,.18);
+}
+.modal-title { font-size:.9rem; color:#2c2720; letter-spacing:.06em; margin-bottom:20px; }
+.modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.modal-full { grid-column:1/-1; }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
+.btn-cancel {
+  padding:8px 18px; background:none; border:1px solid rgba(107,95,82,.25);
+  border-radius:8px; font-size:.82rem; font-family:'Noto Serif TC',serif;
+  color:#6b5f52; cursor:pointer;
+}
+.f-textarea {
+  width:100%; padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
+  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  color:#2c2720; background:#f5f0e8; outline:none; resize:vertical;
+  min-height:72px; box-sizing:border-box;
+}
+.f-textarea:focus { border-color:#6b5f52; }
+
+.card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
+.card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; }
+.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+.msg-ok  { font-size:.8rem; color:#4a7c59; }
+.msg-err { font-size:.8rem; color:#8b3a3a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lr-layout">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">LINE 客服回覆記錄</span>
+      <span id="msgEl"></span>
+      <button class="add-btn" onclick="openAdd()">＋ 新增回覆</button>
+    </div>
+
+    <!-- 篩選工具列 -->
+    <div class="toolbar">
+      <div>
+        <div class="field-label">關鍵字</div>
+        <input class="f-input" id="fKeyword" placeholder="LINE名稱 / 詢問內容…" style="width:200px"
+               oninput="debounceLoad()">
+      </div>
+      <div>
+        <div class="field-label">處理狀態</div>
+        <select class="f-select" id="fResolved" onchange="loadList()">
+          <option value="">全部</option>
+          <option value="0">未結案</option>
+          <option value="1">已結案</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">門市</div>
+        <select class="f-select" id="fStore" onchange="loadList()">
+          <option value="">全部</option>
+          <option value="豐原">豐原</option>
+          <option value="潭子">潭子</option>
+          <option value="大雅">大雅</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 統計列 -->
+    <div class="stat-row" id="statRow"></div>
+
+    <!-- 列表 -->
+    <div style="overflow-x:auto">
+      <table class="lr-table">
+        <thead>
+          <tr>
+            <th style="min-width:100px">回覆日期</th>
+            <th style="min-width:100px">LINE 名稱</th>
+            <th style="min-width:160px">詢問內容</th>
+            <th style="min-width:160px">回覆內容</th>
+            <th>門市</th>
+            <th>負責人員</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="listBody">
+          <tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 分頁 -->
+    <div class="pager" id="pagerEl"></div>
+  </div>
+</div>
+
+<!-- 新增 / 編輯 Modal -->
+<div class="modal-backdrop" id="modalBackdrop" style="display:none" onclick="handleBackdropClick(event)">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">新增回覆記錄</div>
+    <input type="hidden" id="editId">
+    <div class="modal-grid">
+      <div>
+        <div class="field-label">回覆日期時間</div>
+        <input class="f-input" type="datetime-local" id="mDatetime" style="width:100%">
+      </div>
+      <div>
+        <div class="field-label">LINE 名稱</div>
+        <input class="f-input" id="mLineName" placeholder="客戶 LINE 顯示名稱" style="width:100%">
+      </div>
+      <div class="modal-full">
+        <div class="field-label">詢問內容</div>
+        <textarea class="f-textarea" id="mInquiry" placeholder="客戶詢問的內容…"></textarea>
+      </div>
+      <div class="modal-full">
+        <div class="field-label">回覆內容</div>
+        <textarea class="f-textarea" id="mReply" placeholder="實際回覆給客戶的內容…"></textarea>
+      </div>
+      <div>
+        <div class="field-label">回覆門市</div>
+        <select class="f-select" id="mStore" style="width:100%">
+          <option value="">請選擇</option>
+          <option value="豐原">豐原</option>
+          <option value="潭子">潭子</option>
+          <option value="大雅">大雅</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">負責人員</div>
+        <input class="f-input" id="mStaff" style="width:100%" readonly>
+      </div>
+      <div>
+        <div class="field-label">處理狀態</div>
+        <select class="f-select" id="mResolved" style="width:100%">
+          <option value="0">未結案</option>
+          <option value="1">已結案</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="add-btn" id="saveBtn" onclick="saveRecord()">儲存</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _user = null;
+let _currentPage = 1;
+let _debounceTimer = null;
+
+// ── 載入列表 ─────────────────────────────────
+async function loadList(page) {
+  _currentPage = page || 1;
+  const keyword  = document.getElementById('fKeyword').value.trim();
+  const resolved = document.getElementById('fResolved').value;
+  const store    = document.getElementById('fStore').value;
+
+  const params = new URLSearchParams({
+    page: _currentPage, per_page: 30,
+    keyword, resolved, store
+  });
+
+  const res  = await fetch(`/api/line-replies?${params}`);
+  const data = await res.json();
+  if (!data.success) { showMsg('載入失敗', false); return; }
+
+  renderStats(data);
+  renderList(data.rows);
+  renderPager(data.page, data.pages);
+}
+
+function debounceLoad() {
+  clearTimeout(_debounceTimer);
+  _debounceTimer = setTimeout(() => loadList(), 350);
+}
+
+function renderStats(data) {
+  const el = document.getElementById('statRow');
+  const pending  = data.rows.filter(r => !r.is_resolved).length;
+  const resolved = data.rows.filter(r => r.is_resolved).length;
+  el.innerHTML = `
+    <div class="stat-chip">總計 <strong>${data.total}</strong> 筆</div>
+    <div class="stat-chip">本頁未結案 <strong>${pending}</strong></div>
+    <div class="stat-chip">本頁已結案 <strong>${resolved}</strong></div>
+  `;
+}
+
+function renderList(rows) {
+  const tbody = document.getElementById('listBody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">無記錄</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="white-space:nowrap;font-size:.8rem;color:#6b5f52">
+        ${(r.reply_datetime||'').replace('T',' ').slice(0,16)}
+      </td>
+      <td><strong>${r.customer_line_name||'—'}</strong></td>
+      <td style="max-width:200px;word-break:break-all;font-size:.8rem">${r.inquiry_content||'—'}</td>
+      <td style="max-width:200px;word-break:break-all;font-size:.8rem">${r.reply_content||'—'}</td>
+      <td style="white-space:nowrap">${r.reply_store||'—'}</td>
+      <td style="white-space:nowrap">${r.reply_staff||'—'}</td>
+      <td>
+        <span class="resolved-chip ${r.is_resolved ? 'chip-done' : 'chip-pending'}">
+          ${r.is_resolved ? '已結案' : '未結案'}
+        </span>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="openEdit(${JSON.stringify(r).replace(/"/g,'&quot;')})">編輯</button>
+        ${!r.is_resolved ? `<button class="action-btn" onclick="quickResolve(${r.id})">結案</button>` : ''}
+        <button class="action-btn del" onclick="deleteRecord(${r.id})">刪除</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderPager(page, pages) {
+  const el = document.getElementById('pagerEl');
+  if (pages <= 1) { el.innerHTML = ''; return; }
+  let html = `<button class="pager-btn" onclick="loadList(${page-1})" ${page<=1?'disabled':''}>‹</button>`;
+  const start = Math.max(1, page - 2);
+  const end   = Math.min(pages, page + 2);
+  for (let i = start; i <= end; i++) {
+    html += `<button class="pager-btn ${i===page?'active':''}" onclick="loadList(${i})">${i}</button>`;
+  }
+  html += `<button class="pager-btn" onclick="loadList(${page+1})" ${page>=pages?'disabled':''}>›</button>`;
+  el.innerHTML = html;
+}
+
+// ── Modal ────────────────────────────────────
+function openAdd() {
+  document.getElementById('modalTitle').textContent = '新增回覆記錄';
+  document.getElementById('editId').value = '';
+  document.getElementById('mDatetime').value = new Date().toISOString().slice(0,16);
+  document.getElementById('mLineName').value = '';
+  document.getElementById('mInquiry').value  = '';
+  document.getElementById('mReply').value    = '';
+  document.getElementById('mStore').value    = '';
+  document.getElementById('mStaff').value    = _user ? _user.name : '';
+  document.getElementById('mResolved').value = '0';
+  document.getElementById('modalBackdrop').style.display = 'flex';
+}
+
+function openEdit(r) {
+  document.getElementById('modalTitle').textContent = '編輯回覆記錄';
+  document.getElementById('editId').value    = r.id;
+  document.getElementById('mDatetime').value = (r.reply_datetime||'').slice(0,16);
+  document.getElementById('mLineName').value = r.customer_line_name || '';
+  document.getElementById('mInquiry').value  = r.inquiry_content || '';
+  document.getElementById('mReply').value    = r.reply_content || '';
+  document.getElementById('mStore').value    = r.reply_store || '';
+  document.getElementById('mStaff').value    = r.reply_staff || '';
+  document.getElementById('mResolved').value = r.is_resolved ? '1' : '0';
+  document.getElementById('modalBackdrop').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').style.display = 'none';
+}
+
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('modalBackdrop')) closeModal();
+}
+
+async function saveRecord() {
+  const id       = document.getElementById('editId').value;
+  const payload  = {
+    reply_datetime:    document.getElementById('mDatetime').value,
+    customer_line_name:document.getElementById('mLineName').value.trim(),
+    inquiry_content:   document.getElementById('mInquiry').value.trim(),
+    reply_content:     document.getElementById('mReply').value.trim(),
+    reply_store:       document.getElementById('mStore').value,
+    reply_staff:       document.getElementById('mStaff').value.trim(),
+    is_resolved:       parseInt(document.getElementById('mResolved').value)
+  };
+
+  if (!payload.customer_line_name) { showMsg('請輸入 LINE 名稱', false); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  try {
+    const url    = id ? `/api/line-replies/${id}` : '/api/line-replies';
+    const method = id ? 'PUT' : 'POST';
+    const res    = await fetch(url, {
+      method, headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showMsg(id ? '已更新' : '已新增', true);
+      closeModal();
+      loadList(_currentPage);
+    } else {
+      showMsg(data.message || '儲存失敗', false);
+    }
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function quickResolve(id) {
+  const res  = await fetch(`/api/line-replies/${id}`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ is_resolved: 1 })
+  });
+  const data = await res.json();
+  if (data.success) { showMsg('已標記結案', true); loadList(_currentPage); }
+}
+
+async function deleteRecord(id) {
+  if (!confirm('確定刪除這筆回覆記錄？')) return;
+  const res  = await fetch(`/api/line-replies/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) { showMsg('已刪除', true); loadList(_currentPage); }
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg; el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+onAppReady(user => {
+  _user = user;
+  loadList();
+});
+</script>
+{% endblock %}

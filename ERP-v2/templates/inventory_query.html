@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block title %}庫存查詢 — COSH ERP{% endblock %}
+{% block page_title %}庫存查詢{% endblock %}
+
+{% block styles %}
+<style>
+.inv-layout { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── 控制列 ── */
+.ctrl-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.search-input {
+  flex: 1; min-width: 180px;
+  padding: 9px 14px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px;
+  font-size: .86rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+  outline: none;
+}
+.search-input:focus { border-color: #6b5f52; }
+.wh-sel {
+  padding: 9px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  color: #2c2720;
+  background: #f5f0e8;
+}
+.search-btn {
+  padding: 9px 20px;
+  background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 10px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  letter-spacing: .06em; cursor: pointer;
+}
+.info-badge {
+  font-size: .74rem; color: #9a9188;
+  background: #f5f0e8; padding: 5px 12px; border-radius: 20px;
+}
+
+/* ── 倉庫統計卡 ── */
+.wh-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+.wh-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 16px 18px;
+  border-left: 3px solid #9a8f84;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.wh-card.active { border-left-color: #2c2720; }
+.wh-card:hover { border-left-color: #6b5f52; }
+.wh-name { font-size: .8rem; color: #6b5f52; letter-spacing: .04em; margin-bottom: 8px; }
+.wh-count {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem; font-weight: 300; color: #2c2720;
+}
+.wh-lbl { font-size: .68rem; color: #9a9188; margin-top: 2px; }
+
+/* ── 結果表格 ── */
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; overflow: hidden;
+}
+.card-head {
+  padding: 12px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid rgba(107,95,82,.08);
+}
+.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase; }
+.page-btns { display: flex; gap: 8px; }
+.page-btn {
+  padding: 5px 14px; border: 1px solid rgba(107,95,82,.2);
+  border-radius: 6px; background: none; font-size: .78rem;
+  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+}
+.page-btn:disabled { opacity: .4; cursor: default; }
+
+.inv-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.inv-table th {
+  text-align: left; padding: 9px 14px;
+  font-weight: 300; color: #9a9188; font-size: .73rem; letter-spacing: .06em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.inv-table td { padding: 10px 14px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.inv-table tr:last-child td { border-bottom: none; }
+.num { font-family: 'Cormorant Garamond', serif; font-size: .9rem; }
+.prod-code { font-size: .75rem; color: #9a9188; display: block; }
+.qty-hi { color: #4a7c59; font-weight: 400; }
+.qty-lo { color: #a0763a; }
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg, rgba(107,95,82,.07) 25%, rgba(107,95,82,.14) 50%, rgba(107,95,82,.07) 75%);
+  background-size: 200% 100%; animation: skel-shine 1.4s infinite;
+  border-radius: 6px; height: 18px; margin: 6px 0;
+}
+@keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+#tableWrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="inv-layout">
+
+  <!-- 控制列 -->
+  <div class="ctrl-bar">
+    <input class="search-input" id="searchInput" type="text"
+           placeholder="產品名稱 或 產品代碼…" autocomplete="off">
+    <select class="wh-sel" id="whSel">
+      <option value="">所有倉庫</option>
+    </select>
+    <button class="search-btn" onclick="doSearch(1)">搜尋</button>
+    <span class="info-badge" id="infoBadge">載入中…</span>
+  </div>
+
+  <!-- 倉庫統計卡 -->
+  <div class="wh-cards" id="whCards"></div>
+
+  <!-- 庫存表格 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">庫存列表</span>
+      <div class="page-btns">
+        <button class="page-btn" id="prevBtn" onclick="changePage(-1)" disabled>上一頁</button>
+        <span id="pageInfo" style="font-size:.75rem;color:#9a9188;align-self:center"></span>
+        <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一頁</button>
+      </div>
+    </div>
+    <div id="tableWrap">
+      <div class="skel" style="margin:16px"></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let curPage = 1;
+let totalItems = 0;
+const PER = 50;
+const fmt = n => n ? 'NT$\u00a0' + Math.round(n).toLocaleString('zh-TW') : '—';
+
+/* ── 搜尋 ── */
+async function doSearch(page) {
+  curPage = page || curPage;
+  const q  = document.getElementById('searchInput').value.trim();
+  const wh = document.getElementById('whSel').value;
+  const qs = `page=${curPage}${q ? '&q=' + encodeURIComponent(q) : ''}${wh ? '&warehouse=' + encodeURIComponent(wh) : ''}`;
+
+  document.getElementById('tableWrap').innerHTML = '<div class="skel" style="margin:16px"></div>';
+
+  const res  = await fetch('/api/inventory/list?' + qs);
+  const data = await res.json();
+  if (!data.success) return;
+
+  totalItems = data.total || 0;
+  const totalPages = Math.ceil(totalItems / PER) || 1;
+
+  document.getElementById('infoBadge').textContent =
+    `報告日期 ${data.report_date || '—'} · 共 ${totalItems} 筆`;
+  document.getElementById('pageInfo').textContent =
+    `第 ${curPage} / ${totalPages} 頁`;
+  document.getElementById('prevBtn').disabled = curPage <= 1;
+  document.getElementById('nextBtn').disabled = curPage >= totalPages;
+
+  // 倉庫下拉更新（只第一次）
+  if (page === 1 && data.warehouses) {
+    const sel = document.getElementById('whSel');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">所有倉庫</option>';
+    data.warehouses.forEach(w => {
+      const o = document.createElement('option');
+      o.value = w; o.textContent = w;
+      if (w === cur) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  renderTable(data.data || []);
+}
+
+/* ── 倉庫卡片 ── */
+async function loadWhCards() {
+  const res  = await fetch('/api/inventory/list?page=1');
+  const data = await res.json();
+  if (!data.success) return;
+
+  // 統計各倉庫數量
+  // 需要再拉全量統計 — 用 warehouse filter 逐一查詢
+  // 簡化：直接從頁面資料計算在當頁的分佈，顯示 top 倉庫
+  const whs = data.warehouses || [];
+  const cards = whs.map(w => `
+    <div class="wh-card" onclick="filterWh('${w}')">
+      <div class="wh-name">${w}</div>
+      <div class="wh-count">—</div>
+      <div class="wh-lbl">點擊篩選</div>
+    </div>`).join('');
+  document.getElementById('whCards').innerHTML = cards;
+
+  // 背景查詢各倉庫數量
+  whs.forEach(async w => {
+    const r = await fetch('/api/inventory/list?warehouse=' + encodeURIComponent(w));
+    const d = await r.json();
+    // 更新對應卡片
+    const cards = document.querySelectorAll('.wh-card');
+    cards.forEach(card => {
+      if (card.querySelector('.wh-name')?.textContent === w) {
+        card.querySelector('.wh-count').textContent = (d.total || 0).toLocaleString();
+        card.querySelector('.wh-lbl').textContent = '種產品';
+      }
+    });
+  });
+}
+
+function filterWh(wh) {
+  document.getElementById('whSel').value = wh;
+  document.querySelectorAll('.wh-card').forEach(c => {
+    c.classList.toggle('active', c.querySelector('.wh-name')?.textContent === wh);
+  });
+  doSearch(1);
+}
+
+/* ── 表格渲染 ── */
+function renderTable(rows) {
+  if (!rows.length) {
+    document.getElementById('tableWrap').innerHTML =
+      '<div style="padding:20px;color:#9a9188;font-size:.83rem">查無庫存資料</div>';
+    return;
+  }
+  let html = `<table class="inv-table">
+    <thead><tr>
+      <th>產品代碼 / 名稱</th><th>倉庫</th><th>倉庫類型</th>
+      <th>數量</th><th>單位</th><th>單位成本</th><th>總金額</th>
+    </tr></thead><tbody>`;
+  rows.forEach(r => {
+    const qtyClass = r.stock_quantity >= 5 ? 'qty-hi' : r.stock_quantity <= 1 ? 'qty-lo' : '';
+    html += `<tr>
+      <td>
+        <span class="prod-code">${r.product_id}</span>
+        ${r.item_spec || '—'}
+      </td>
+      <td>${r.warehouse}</td>
+      <td>${r.wh_type || '—'}</td>
+      <td class="num ${qtyClass}">${r.stock_quantity}</td>
+      <td>${r.unit || '—'}</td>
+      <td class="num">${r.unit_cost ? fmt(r.unit_cost) : '—'}</td>
+      <td class="num">${r.total_cost ? fmt(r.total_cost) : '—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+function changePage(delta) {
+  const totalPages = Math.ceil(totalItems / PER) || 1;
+  curPage = Math.max(1, Math.min(curPage + delta, totalPages));
+  doSearch();
+}
+
+/* Enter 搜尋 */
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch(1);
+});
+document.getElementById('whSel').addEventListener('change', () => doSearch(1));
+
+function onAppReady(user) {
+  loadWhCards();
+  doSearch(1);
+}
+</script>
+{% endblock %}

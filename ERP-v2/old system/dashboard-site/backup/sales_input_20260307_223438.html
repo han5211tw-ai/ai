@@ -1,0 +1,1139 @@
+{% extends "base.html" %}
+
+{% block title %}銷貨輸入 - 電腦舖營運系統{% endblock %}
+
+{% block page_title %}銷貨輸入營運系統{% endblock %}
+
+{% block styles %}
+<style>
+/* 頁面特定樣式 - 使用 global.css 標準 */
+.container { 
+    width: 100%; 
+    margin: 0 auto; 
+    padding: 20px 40px; 
+}
+
+/* 搜尋建議下拉 - 頁面特定 */
+.search-wrapper {
+    position: relative;
+}
+
+.suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(30, 30, 50, 0.95);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    margin-top: 5px;
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.suggestion-item:hover {
+    background: rgba(0, 212, 255, 0.1);
+}
+
+/* 利潤顯示 */
+.amount-display {
+    color: #00d4ff;
+    font-weight: 600;
+}
+
+.profit-positive {
+    color: #4caf50;
+}
+
+.profit-negative {
+    color: #f44336;
+    font-weight: bold;
+}
+
+/* 成本欄位隱藏 */
+.hidden-cost {
+    display: none;
+}
+
+/* 導航連結 */
+.nav {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.nav a {
+    color: #8892b0;
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.nav a:hover {
+    color: #00d4ff;
+    border-color: #00d4ff;
+}
+
+/* 頁面標題 */
+.subtitle {
+    text-align: left;
+    color: #8892b0;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+/* Toast 通知 - 頁面特定位置 */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 500;
+    z-index: 9999;
+    animation: slideIn 0.3s ease;
+}
+
+.toast.success { background: #4caf50; }
+.toast.error { background: #f44336; }
+.toast.warning { background: #ff9800; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* 彈窗樣式 - 頁面特定 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.modal-overlay.active { 
+    display: flex; 
+}
+
+.modal {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 30px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.items-list {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9em;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+    justify-content: flex-end;
+}
+
+.btn-edit {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    color: #ffc107;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="container">
+        <div class="header-row">
+            
+            <div class="user-info">
+                <span id="userDisplay" class="user-name"></span>
+                <button onclick="window.authLogout && window.authLogout()" class="btn-logout">登出</button>
+            </div>
+        </div>
+        <p class="subtitle">Sales Order Entry</p>
+
+        <div class="nav">
+            <a href="index.html">🏠 首頁</a>
+        </div>
+
+        <!-- 帶入訂單區塊 -->
+        <div class="card" id="orderImportSection">
+            
+            <div class="form-group">
+                <div class="search-wrapper">
+                    <input type="text" id="orderSearch" class="form-control" placeholder="🔍 搜尋訂單號碼或客戶名稱..." oninput="searchOrders(this)">
+                    <input type="hidden" id="sourceDocNo">
+                    <input type="hidden" id="orderDepositAmount" value="0">
+                    <div id="orderSuggestions" class="suggestions"></div>
+                </div>
+            </div>
+            <div id="orderInfo" style="display:none; margin-top:15px; padding:15px; background:rgba(0,212,255,0.05); border:1px solid rgba(0,212,255,0.2); border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <span>訂單號：<span id="displayOrderNo" style="color:#00d4ff;"></span></span>
+                    <span>訂金已收：<span id="displayDeposit" style="color:#4caf50;"></span> 元</span>
+                    <span>應收尾款：<span id="displayBalance" style="color:#ffc107;"></span> 元</span>
+                </div>
+                <button class="btn-delete" onclick="clearOrderImport()" style="margin-top:10px;">清除訂單</button>
+            </div>
+        </div>
+
+        <!-- 銷貨單表單 -->
+        <div class="card">
+            
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>銷貨單號</label>
+                    <input type="text" id="salesOrderNo" class="form-control" readonly>
+                    <input type="hidden" id="storeCode">
+                    <input type="hidden" id="department">
+                </div>
+                <div class="form-group">
+                    <label>發票號碼</label>
+                    <input type="text" id="invoiceNo" class="form-control" placeholder="請輸入發票號碼">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="salesDate" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: #8892b0; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>業務員</label>
+                    <input type="text" id="salesperson" class="form-control" readonly>
+                    <input type="hidden" id="salespersonId">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>客戶 <span class="required">*</span></label>
+                <div class="search-wrapper">
+                    <input type="text" id="customerSearch" class="form-control" placeholder="搜尋客戶名稱" oninput="searchCustomers(this)">
+                    <input type="hidden" id="customerId">
+                    <input type="hidden" id="customerName">
+                    <div id="customerSuggestions" class="suggestions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 產品明細 -->
+        <div class="card">
+            
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>產品名稱</th>
+                        <th>數量</th>
+                        <th>單價</th>
+                        <th>金額</th>
+                        <th class="hidden-cost">成本</th>
+                        <th class="hidden-cost">利潤</th>
+                        <th class="hidden-cost">毛利率</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    <!-- 動態生成 -->
+                </tbody>
+            </table>
+            
+            <button class="btn-add" onclick="addRow()">+ 新增產品</button>
+            
+            <div style="margin-top: 20px; text-align: right; font-size: 1.2em;">
+                <span>總金額：</span>
+                <span id="totalAmount" class="amount-display">0</span>
+                <span> 元</span>
+            </div>
+            
+            <div id="profitWarning" style="display: none; margin-top: 10px; padding: 10px; background: rgba(244,67,54,0.2); border: 1px solid rgba(244,67,54,0.5); border-radius: 8px; color: #f44336;">
+                ⚠️ 存在虧損或持平的品項，請調整單價後再儲存
+            </div>
+        </div>
+
+        <!-- 付款方式與提交 -->
+        <div class="card">
+            
+            
+            <!-- 訂金資訊顯示（帶入訂單時顯示） -->
+            <div id="depositInfoSection" style="display:none; margin-bottom:20px; padding:15px; background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:15px; font-size:1.1em;">
+                    <span>總金額：<span id="paymentTotalAmount" class="amount-display">0</span> 元</span>
+                    <span style="color:#4caf50;">訂金已收：<span id="paymentDepositAmount">0</span> 元</span>
+                    <span style="color:#ffc107; font-weight:bold;">應收尾款：<span id="paymentBalanceAmount">0</span> 元</span>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>付款方式 <span class="required">*</span></label>
+                    <select id="paymentMethod" class="form-control" onchange="onPaymentMethodChange()">
+                        <option value="">請選擇付款方式</option>
+                        <option value="現金">💵 現金</option>
+                        <option value="匯款">🏦 匯款</option>
+                        <option value="刷卡">💳 刷卡</option>
+                        <option value="支票">📄 支票</option>
+                        <option value="月結">📅 月結</option>
+                    </select>
+                </div>
+                <div class="form-group" id="dueDateGroup" style="display:none;">
+                    <label>應收款日 <span class="required">*</span></label>
+                    <input type="date" id="dueDate" class="form-control">
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="submitBtn" class="btn-submit" onclick="submitForm()">💾 儲存銷貨單</button>
+            </div>
+        </div>
+
+        <!-- 資料列表區塊 -->
+        <div class="data-section">
+            
+            <div class="data-filters">
+                <input type="text" id="searchInput" placeholder="搜尋單號、客戶..." onkeyup="if(event.key==='Enter')searchSales()">
+                <button onclick="searchSales()">🔍 搜尋</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>銷貨單號</th>
+                        <th>日期</th>
+                        <th>客戶</th>
+                        <th>業務員</th>
+                        <th>品項數</th>
+                        <th>總金額</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTableBody">
+                    <tr><td colspan="6" style="text-align:center;color:#8892b0;padding:30px;">載入中...</td></tr>
+                </tbody>
+            </table>
+            <div class="data-pagination">
+                <button onclick="changePage(-1)" id="prevBtn">← 上一頁</button>
+                <span id="pageInfo">第 1 頁</span>
+                <button onclick="changePage(1)" id="nextBtn">下一頁 →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 檢視/編修彈窗 -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            
+            <div id="modalContent"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">關閉</button>
+                <button class="btn-edit" id="editBtn" onclick="enableEdit()" style="display:none;">✏️ 編修</button>
+            </div>
+        </div>
+    </div>
+
+    </script>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 全域變數
+let currentUser = null;
+        let canEdit = false;
+        let canViewCost = false;
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentSale = null;
+        let rowCount = 3;
+
+        // 頁面載入時檢查權限
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (window.checkAuth) {
+                const authResult = await window.checkAuth({ minRole: 'staff' });
+                if (!authResult.success) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                currentUser = authResult;
+                const userTitle = authResult.title || '';
+                
+                // 老闆和會計可以查看成本、編輯全部資料
+                canEdit = (userTitle === '老闆' || userTitle.includes('會計'));
+                canViewCost = canEdit;
+                
+                document.getElementById('userDisplay').textContent = authResult.name || '';
+                document.getElementById('salesperson').value = authResult.name || '';
+                document.getElementById('salespersonId').value = authResult.staff_code || '';
+                
+                // 設定單位代號
+                const dept = authResult.department || '';
+                const storeCode = getStoreCode(dept);
+                document.getElementById('storeCode').value = storeCode;
+                document.getElementById('department').value = dept;
+                
+                // 顯示/隱藏成本欄位
+                if (canViewCost) {
+                    document.querySelectorAll('.hidden-cost').forEach(el => {
+                        el.style.display = 'table-cell';
+                    });
+                }
+                
+                // 產生銷貨單號
+                await generateSalesOrderNo();
+                
+                // 設定日期為今天且不可修改
+                document.getElementById('salesDate').value = new Date().toISOString().slice(0, 10);
+            }
+            
+            // 初始化預設3列
+            initDefaultRows();
+            loadSalesList();
+        });
+
+        // 取得單位代號
+        function getStoreCode(department) {
+            const map = {
+                '豐原門市': 'FY',
+                '潭子門市': 'TZ',
+                '大雅門市': 'DY',
+                '業務部': 'OW',
+                '總公司': 'HQ'
+            };
+            return map[department] || 'FY';
+        }
+
+        // 產生銷貨單號
+        async function generateSalesOrderNo() {
+            const storeCode = document.getElementById('storeCode').value;
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            
+            try {
+                const response = await fetch(`/api/sales/next-order-no?store=${storeCode}&date=${today}`);
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('salesOrderNo').value = data.order_no;
+                }
+            } catch (error) {
+                console.error('產生銷貨單號失敗:', error);
+            }
+        }
+
+        // 初始化預設3列
+        function initDefaultRows() {
+            const tbody = document.getElementById('itemsBody');
+            tbody.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                addRow();
+            }
+        }
+
+        // 新增列
+        function addRow() {
+            const tbody = document.getElementById('itemsBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="search-wrapper">
+                        <input type="text" class="form-control product-search" placeholder="搜尋產品名稱" oninput="searchProducts(this)">
+                        <input type="hidden" class="product-code">
+                        <div class="suggestions"></div>
+                    </div>
+                </td>
+                <td><input type="number" class="form-control quantity" placeholder="數量" min="1" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="form-control price" placeholder="單價" min="0" onchange="calculateRow(this)"></td>
+                <td class="amount-display amount">0</td>
+                <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="cost">-</span></td>
+                <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="profit">-</span></td>
+                <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="margin">-</span></td>
+                <td><button class="btn-delete" onclick="deleteRow(this)">刪除</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        // 刪除列
+        function deleteRow(btn) {
+            const tbody = document.getElementById('itemsBody');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+                calculateTotal();
+            } else {
+                alert('至少需要保留一筆明細');
+            }
+        }
+
+        // 搜尋產品
+        async function searchProducts(input) {
+            const keyword = input.value.trim();
+            const suggestions = input.parentElement.querySelector('.suggestions');
+            
+            if (keyword.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/product/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await response.json();
+                
+                if (data.success && data.products.length > 0) {
+                    suggestions.innerHTML = data.products.map(p => 
+                        `<div class="suggestion-item" onclick="selectProduct(this, '${p.product_code}', '${p.product_name.replace(/'/g, "\\'")}')">${p.product_name}</div>`
+                    ).join('');
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('搜尋產品失敗:', error);
+            }
+        }
+
+        // 搜尋訂單
+        async function searchOrders(input) {
+            const keyword = input.value.trim();
+            const suggestions = document.getElementById('orderSuggestions');
+            
+            if (keyword.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/sales-doc/list?type=ORDER&search=${encodeURIComponent(keyword)}&limit=10`);
+                const data = await response.json();
+                
+                if (data.success && data.documents.length > 0) {
+                    // 過濾掉已結案的訂單
+                    const activeOrders = data.documents.filter(d => d.status !== 'CLOSED');
+                    
+                    if (activeOrders.length > 0) {
+                        suggestions.innerHTML = activeOrders.map(o => 
+                            `<div class="suggestion-item" onclick="selectOrder('${o.doc_no}', '${o.target_id}', '${o.target_name.replace(/'/g, "\\'")}', ${o.deposit_amount || 0}, ${o.total_amount})">${o.doc_no} - ${o.target_name} (訂金:${o.deposit_amount || 0}元)</div>`
+                        ).join('');
+                        suggestions.style.display = 'block';
+                    } else {
+                        suggestions.style.display = 'none';
+                    }
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('搜尋訂單失敗:', error);
+            }
+        }
+
+        // 選擇訂單
+        async function selectOrder(docNo, targetId, targetName, depositAmount, totalAmount) {
+            document.getElementById('orderSearch').value = docNo + ' - ' + targetName;
+            document.getElementById('sourceDocNo').value = docNo;
+            document.getElementById('orderDepositAmount').value = depositAmount;
+            document.getElementById('orderSuggestions').style.display = 'none';
+            
+            // 帶入客戶資訊
+            document.getElementById('customerId').value = targetId;
+            document.getElementById('customerName').value = targetName;
+            document.getElementById('customerSearch').value = targetName;
+            
+            // 計算餘額
+            const balanceAmount = totalAmount - depositAmount;
+            
+            // 顯示訂單資訊
+            document.getElementById('displayOrderNo').textContent = docNo;
+            document.getElementById('displayDeposit').textContent = depositAmount.toLocaleString();
+            document.getElementById('displayBalance').textContent = balanceAmount.toLocaleString();
+            document.getElementById('orderInfo').style.display = 'block';
+            
+            // 顯示付款區塊的訂金資訊
+            document.getElementById('paymentTotalAmount').textContent = totalAmount.toLocaleString();
+            document.getElementById('paymentDepositAmount').textContent = depositAmount.toLocaleString();
+            document.getElementById('paymentBalanceAmount').textContent = balanceAmount.toLocaleString();
+            document.getElementById('depositInfoSection').style.display = 'block';
+            
+            // 載入訂單明細
+            await loadOrderItems(docNo);
+        }
+
+        // 載入訂單明細
+        async function loadOrderItems(docNo) {
+            try {
+                const response = await fetch(`/api/sales-doc/detail?doc_no=${encodeURIComponent(docNo)}`);
+                const data = await response.json();
+                
+                if (data.success && data.document.items) {
+                    const tbody = document.getElementById('itemsBody');
+                    tbody.innerHTML = '';
+                    
+                    data.document.items.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <div class="search-wrapper">
+                                    <input type="text" class="form-control product-search" value="${item.product_name}" readonly>
+                                    <input type="hidden" class="product-code" value="${item.product_code}">
+                                </div>
+                            </td>
+                            <td><input type="number" class="form-control quantity" value="${item.qty}" min="1" onchange="calculateRow(this)"></td>
+                            <td><input type="number" class="form-control price" value="${item.unit_price}" min="0" onchange="calculateRow(this)" data-cost="0"></td>
+                            <td class="amount-display amount">${item.subtotal.toLocaleString()}</td>
+                            <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="cost">-</span></td>
+                            <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="profit">-</span></td>
+                            <td class="hidden-cost" style="display:${canViewCost ? 'table-cell' : 'none'}"><span class="margin">-</span></td>
+                            <td><button class="btn-delete" onclick="deleteRow(this)">刪除</button></td>
+                        `;
+                        tbody.appendChild(row);
+                        
+                        // 載入成本
+                        if (canViewCost) {
+                            loadProductCost(row, item.product_code);
+                        }
+                    });
+                    
+                    calculateTotal();
+                }
+            } catch (error) {
+                console.error('載入訂單明細失敗:', error);
+            }
+        }
+
+        // 清除訂單帶入
+        function clearOrderImport() {
+            document.getElementById('orderSearch').value = '';
+            document.getElementById('sourceDocNo').value = '';
+            document.getElementById('orderDepositAmount').value = '0';
+            document.getElementById('orderInfo').style.display = 'none';
+            document.getElementById('depositInfoSection').style.display = 'none';
+            
+            // 清空客戶
+            document.getElementById('customerId').value = '';
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerSearch').value = '';
+            
+            // 重置明細
+            initDefaultRows();
+            calculateTotal();
+        }
+
+        // 選擇產品
+        async function selectProduct(el, code, name) {
+            const row = el.closest('tr');
+            const searchInput = row.querySelector('.product-search');
+            const codeInput = row.querySelector('.product-code');
+            
+            searchInput.value = name;
+            codeInput.value = code;
+            el.parentElement.style.display = 'none';
+            
+            // 取得產品成本並計算建議售價
+            await loadProductCost(row, code);
+        }
+
+        // 載入產品成本
+        async function loadProductCost(row, productCode) {
+            try {
+                const response = await fetch(`/api/product/cost?code=${encodeURIComponent(productCode)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const cost = data.cost || 0;
+                    const suggestedPrice = Math.round(cost * 1.2 * 1.05); // 成本 × 1.2 × 1.05稅
+                    
+                    row.querySelector('.cost').textContent = cost.toLocaleString();
+                    row.querySelector('.price').value = suggestedPrice;
+                    row.querySelector('.price').dataset.cost = cost;
+                    
+                    calculateRow(row.querySelector('.price'));
+                }
+            } catch (error) {
+                console.error('載入產品成本失敗:', error);
+            }
+        }
+
+        // 計算單列
+        function calculateRow(input) {
+            const row = input.closest('tr');
+            const quantity = parseInt(row.querySelector('.quantity').value) || 0;
+            const price = parseInt(row.querySelector('.price').value) || 0;
+            const cost = parseInt(row.querySelector('.price').dataset.cost) || 0;
+            
+            const amount = quantity * price;
+            const totalCost = quantity * cost;
+            const profit = amount - totalCost;
+            const margin = amount > 0 ? ((profit / amount) * 100).toFixed(1) : 0;
+            
+            row.querySelector('.amount').textContent = amount.toLocaleString();
+            
+            if (canViewCost) {
+                row.querySelector('.profit').textContent = profit.toLocaleString();
+                row.querySelector('.margin').textContent = margin + '%';
+                
+                // 利潤檢查
+                const profitEl = row.querySelector('.profit');
+                if (profit <= 0) {
+                    profitEl.classList.add('profit-negative');
+                    profitEl.classList.remove('profit-positive');
+                } else {
+                    profitEl.classList.add('profit-positive');
+                    profitEl.classList.remove('profit-negative');
+                }
+            }
+            
+            calculateTotal();
+        }
+
+        // 計算總計
+        function calculateTotal() {
+            let totalAmount = 0;
+            let hasNegativeProfit = false;
+            
+            document.querySelectorAll('#itemsBody tr').forEach(row => {
+                const amountText = row.querySelector('.amount').textContent.replace(/,/g, '');
+                totalAmount += parseInt(amountText) || 0;
+                
+                if (canViewCost) {
+                    const profitText = row.querySelector('.profit').textContent.replace(/,/g, '');
+                    if (parseInt(profitText) <= 0) {
+                        hasNegativeProfit = true;
+                    }
+                }
+            });
+            
+            document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
+            
+            // 檢查利潤
+            if (hasNegativeProfit) {
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('profitWarning').style.display = 'block';
+            } else {
+                updateSubmitButton();
+            }
+        }
+
+        // 付款方式變更處理
+        function onPaymentMethodChange() {
+            const method = document.getElementById('paymentMethod').value;
+            const dueDateGroup = document.getElementById('dueDateGroup');
+            
+            if (method === '月結') {
+                dueDateGroup.style.display = 'block';
+                // 預設30天後
+                const today = new Date();
+                today.setDate(today.getDate() + 30);
+                document.getElementById('dueDate').value = today.toISOString().slice(0, 10);
+            } else {
+                dueDateGroup.style.display = 'none';
+                document.getElementById('dueDate').value = '';
+            }
+            
+            updateSubmitButton();
+        }
+
+        // 更新提交按鈕狀態
+        function updateSubmitButton() {
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const dueDate = document.getElementById('dueDate').value;
+            
+            let isValid = true;
+            
+            // 檢查付款方式
+            if (!paymentMethod) {
+                isValid = false;
+            }
+            
+            // 月結必須有應收款日
+            if (paymentMethod === '月結' && !dueDate) {
+                isValid = false;
+            }
+            
+            // 檢查利潤
+            const hasNegativeProfit = document.getElementById('profitWarning').style.display === 'block';
+            if (hasNegativeProfit) {
+                isValid = false;
+            }
+            
+            document.getElementById('submitBtn').disabled = !isValid;
+        }
+
+        // 搜尋客戶
+        async function searchCustomers(input) {
+            const keyword = input.value.trim();
+            const suggestions = document.getElementById('customerSuggestions');
+            
+            if (keyword.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/customer/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await response.json();
+                
+                if (data.success && data.customers.length > 0) {
+                    suggestions.innerHTML = data.customers.map(c => 
+                        `<div class="suggestion-item" onclick="selectCustomer('${c.customer_id}', '${c.short_name.replace(/'/g, "\\'")}')">${c.short_name} (${c.customer_id})</div>`
+                    ).join('');
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('搜尋客戶失敗:', error);
+            }
+        }
+
+        // 選擇客戶
+        function selectCustomer(id, name) {
+            document.getElementById('customerSearch').value = name;
+            document.getElementById('customerId').value = id;
+            document.getElementById('customerName').value = name;
+            document.getElementById('customerSuggestions').style.display = 'none';
+        }
+
+        // 提交表單
+        async function submitForm() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            
+            const orderNo = document.getElementById('salesOrderNo').value;
+            const date = document.getElementById('salesDate').value;
+            const customerId = document.getElementById('customerId').value;
+            const customerName = document.getElementById('customerName').value;
+            const invoiceNo = document.getElementById('invoiceNo').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const dueDate = document.getElementById('dueDate').value;
+            
+            if (!date || !customerId) {
+                alert('請填寫必填欄位（日期、客戶）');
+                btn.disabled = false;
+                return;
+            }
+            
+            if (!paymentMethod) {
+                alert('請選擇付款方式');
+                btn.disabled = false;
+                return;
+            }
+            
+            if (paymentMethod === '月結' && !dueDate) {
+                alert('月結請款請填寫應收款日');
+                btn.disabled = false;
+                return;
+            }
+            
+            // 收集明細
+            const items = [];
+            let hasError = false;
+            
+            document.querySelectorAll('#itemsBody tr').forEach(row => {
+                const productCode = row.querySelector('.product-code').value;
+                const productName = row.querySelector('.product-search').value;
+                const quantity = parseInt(row.querySelector('.quantity').value) || 0;
+                const price = parseInt(row.querySelector('.price').value) || 0;
+                const cost = parseInt(row.querySelector('.price').dataset.cost) || 0;
+                
+                if (productName && quantity > 0 && price >= 0) {
+                    const amount = quantity * price;
+                    const profit = amount - (quantity * cost);
+                    const margin = amount > 0 ? profit / amount : 0;
+                    
+                    items.push({
+                        product_code: productCode,
+                        product_name: productName,
+                        quantity: quantity,
+                        price: price,
+                        amount: amount,
+                        cost: cost * quantity,
+                        profit: profit,
+                        margin: margin
+                    });
+                } else if (productName || quantity > 0 || price > 0) {
+                    hasError = true;
+                }
+            });
+            
+            if (hasError) {
+                alert('請完整填寫所有明細（產品名稱、數量、單價）');
+                btn.disabled = false;
+                return;
+            }
+            
+            if (items.length === 0) {
+                alert('請至少輸入一筆產品明細');
+                btn.disabled = false;
+                return;
+            }
+            
+            // 檢查利潤
+            const hasNegativeProfit = items.some(item => item.profit <= 0);
+            if (hasNegativeProfit) {
+                alert('❌ 存在虧損或持平的品項，請調整單價後再儲存');
+                btn.disabled = false;
+                return;
+            }
+            
+            const totalAmount = parseInt(document.getElementById('totalAmount').textContent.replace(/,/g, ''));
+            
+            // 取得訂單相關資訊
+            const sourceDocNo = document.getElementById('sourceDocNo').value;
+            const depositAmount = parseInt(document.getElementById('orderDepositAmount').value) || 0;
+            
+            const payload = {
+                sales_order_no: orderNo,
+                date: date,
+                customer_id: customerId,
+                customer_name: customerName,
+                invoice_no: invoiceNo,
+                salesperson: document.getElementById('salesperson').value,
+                salesperson_id: document.getElementById('salespersonId').value,
+                items: items,
+                total_amount: totalAmount,
+                payment_method: paymentMethod,
+                due_date: dueDate,
+                source_doc_no: sourceDocNo,
+                deposit_amount: depositAmount
+            };
+            
+            try {
+                const response = await fetch('/api/sales/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`銷貨單 ${orderNo} 儲存成功！`, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(data.message || '儲存失敗', 'error');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                showToast('系統錯誤，請稍後再試', 'error');
+                btn.disabled = false;
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        // 載入銷貨列表
+        async function loadSalesList(page = 1, search = '') {
+            currentPage = page;
+            const storeCode = document.getElementById('storeCode').value;
+            
+            try {
+                let url = `/api/sales/list?page=${page}&limit=50`;
+                if (search) url += `&search=${encodeURIComponent(search)}`;
+                if (!canEdit) url += `&store=${storeCode}`; // 非管理員只看自己單位
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderSalesTable(data.sales);
+                    totalPages = data.total_pages;
+                    updatePagination(data.page, data.total_pages, data.total);
+                }
+            } catch (error) {
+                console.error('載入銷貨列表失敗:', error);
+                document.getElementById('salesTableBody').innerHTML = 
+                    '<tr><td colspan="6" style="text-align:center;color:#f44336;padding:30px;">載入失敗</td></tr>';
+            }
+        }
+
+        // 渲染表格
+        function renderSalesTable(sales) {
+            const tbody = document.getElementById('salesTableBody');
+            if (sales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8892b0;padding:30px;">暫無資料</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sales.map(s => `
+                <tr onclick="viewSale('${s.sales_order_no}')">
+                    <td>${s.sales_order_no}</td>
+                    <td>${s.date}</td>
+                    <td>${s.customer_name}</td>
+                    <td>${s.salesperson}</td>
+                    <td>${s.item_count} 項</td>
+                    <td>${s.total_amount.toLocaleString()} 元</td>
+                </tr>
+            `).join('');
+        }
+
+        // 更新分頁
+        function updatePagination(page, totalPages, total) {
+            document.getElementById('pageInfo').textContent = `第 ${page} / ${totalPages} 頁 (共 ${total} 筆)`;
+            document.getElementById('prevBtn').disabled = page <= 1;
+            document.getElementById('nextBtn').disabled = page >= totalPages;
+        }
+
+        // 切換頁面
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                const search = document.getElementById('searchInput').value.trim();
+                loadSalesList(newPage, search);
+            }
+        }
+
+        // 搜尋
+        function searchSales() {
+            const search = document.getElementById('searchInput').value.trim();
+            loadSalesList(1, search);
+        }
+
+        // 檢視銷貨詳情
+        async function viewSale(orderNo) {
+            try {
+                const response = await fetch(`/api/sales/detail?order_no=${encodeURIComponent(orderNo)}`);
+                const data = await response.json();
+                if (data.success) {
+                    currentSale = data.sale;
+                    showModal(currentSale);
+                }
+            } catch (error) {
+                console.error('載入銷貨詳情失敗:', error);
+            }
+        }
+
+        // 顯示彈窗
+        function showModal(sale) {
+            const itemsHtml = sale.items.map(item => {
+                const profitClass = item.profit > 0 ? 'profit-positive' : 'profit-negative';
+                const costCol = canViewCost ? `<td>${item.cost.toLocaleString()}</td><td class="${profitClass}">${item.profit.toLocaleString()}</td><td>${(item.margin * 100).toFixed(1)}%</td>` : '';
+                return `
+                    <tr>
+                        <td>${item.product_name}</td>
+                        <td>${item.quantity}</td>
+                        <td>${item.price.toLocaleString()}</td>
+                        <td>${item.amount.toLocaleString()}</td>
+                        ${costCol}
+                    </tr>
+                `;
+            }).join('');
+
+            const costHeader = canViewCost ? '<th>成本</th><th>利潤</th><th>毛利率</th>' : '';
+
+            const content = document.getElementById('modalContent');
+            content.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>銷貨單號</label>
+                        <input type="text" class="form-control" value="${sale.sales_order_no}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="text" class="form-control" value="${sale.date}" readonly>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>客戶</label>
+                        <input type="text" class="form-control" value="${sale.customer_name}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>業務員</label>
+                        <input type="text" class="form-control" value="${sale.salesperson}" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>發票號碼</label>
+                    <input type="text" class="form-control" value="${sale.invoice_no || '-'}" readonly>
+                </div>
+                <div class="items-list">
+                    <h4>📦 產品明細</h4>
+                    <table style="width:100%;margin-top:10px;">
+                        <thead>
+                            <tr>
+                                <th>產品名稱</th>
+                                <th>數量</th>
+                                <th>單價</th>
+                                <th>金額</th>
+                                ${costHeader}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                            <tr style="border-top:2px solid rgba(0,212,255,0.3);font-weight:bold;">
+                                <td colspan="3">總計</td>
+                                <td style="color:#00d4ff;">${sale.total_amount.toLocaleString()} 元</td>
+                                ${canViewCost ? `<td colspan="3"></td>` : ''}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('viewModal').classList.add('active');
+            document.getElementById('editBtn').style.display = canEdit ? 'inline-block' : 'none';
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('viewModal').classList.remove('active');
+            currentSale = null;
+        }
+
+        // 啟用編輯（僅限老闆/會計）
+        function enableEdit() {
+            if (!currentSale || !canEdit) return;
+            // 編輯功能待實作
+            showToast('編輯功能開發中', 'warning');
+        }
+
+        // 點擊外部關閉建議
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrapper')) {
+                document.querySelectorAll('.suggestions').forEach(el => el.style.display = 'none');
+            }
+            if (!e.target.closest('#customerSearch')) {
+                document.getElementById('customerSuggestions').style.display = 'none';
+            }
+        });
+</script>
+{% endblock %}

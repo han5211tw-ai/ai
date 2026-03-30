@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+{% block title %}單據查詢 — COSH ERP{% endblock %}
+{% block page_title %}單據查詢{% endblock %}
+
+{% block styles %}
+<style>
+.q-layout { display: flex; flex-direction: column; gap: 16px; }
+
+/* 頁籤 */
+.tabs {
+  display: flex; gap: 0;
+  background: #fff; border: 1px solid rgba(107,95,82,.14);
+  border-radius: 12px; overflow: hidden;
+}
+.tab-btn {
+  flex: 1; padding: 11px 0; border: none; background: none; cursor: pointer;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif; color: #9a9188;
+  border-right: 1px solid rgba(107,95,82,.1); transition: background .12s, color .12s;
+}
+.tab-btn:last-child { border-right: none; }
+.tab-btn.active { background: #2c2720; color: #f5f0e8; }
+.tab-btn:not(.active):hover { background: #f5f0e8; color: #2c2720; }
+
+/* 篩選列 */
+.filter-bar {
+  background: #fff; border: 1px solid rgba(107,95,82,.14);
+  border-radius: 12px; padding: 13px 18px;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+.f-input, .f-select {
+  padding: 7px 11px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none;
+}
+.f-input:focus, .f-select:focus { border-color: #6b5f52; }
+.f-wide { min-width: 180px; flex: 1; }
+.search-btn {
+  padding: 7px 18px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px; font-size: .8rem;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.reset-btn {
+  padding: 7px 12px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
+  background: none; font-size: .8rem; color: #6b5f52;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+
+/* 結果卡片 */
+.card {
+  background: #fff; border: 1px solid rgba(107,95,82,.13);
+  border-radius: 14px; overflow: hidden;
+}
+.card-head {
+  padding: 11px 18px; border-bottom: 1px solid rgba(107,95,82,.08);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .1em; }
+.result-count { font-size: .75rem; color: #9a9188; }
+
+/* 表格 */
+.r-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.r-table th {
+  text-align: left; padding: 8px 14px;
+  font-weight: 300; color: #9a9188; font-size: .72rem; letter-spacing: .05em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+  white-space: nowrap;
+}
+.r-table td {
+  padding: 9px 14px; color: #2c2720;
+  border-bottom: 1px solid rgba(107,95,82,.05);
+}
+.r-table tr:last-child td { border-bottom: none; }
+.r-table tr:hover td { background: rgba(245,240,232,.4); }
+.r-table .num { text-align: right; }
+.r-table .muted { color: #9a9188; font-size: .78rem; }
+
+/* 狀態 badge */
+.s-badge {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: .7rem; white-space: nowrap;
+}
+.tag-draft     { background: rgba(107,95,82,.1);   color: #6b5f52; }
+.tag-confirmed { background: rgba(74,124,89,.12);  color: #4a7c59; }
+.tag-converted { background: rgba(184,137,58,.12); color: #b8893a; }
+.tag-cancelled { background: rgba(139,58,58,.1);   color: #8b3a3a; }
+.tag-quote     { background: rgba(122,111,154,.12); color: #7a6f9a; }
+.tag-order     { background: rgba(74,124,89,.1);   color: #4a7c59; }
+
+/* 展開明細（報價/訂單） */
+.expandable { cursor: pointer; }
+.expandable:hover td { background: rgba(245,240,232,.6); }
+.detail-row td { padding: 0; background: #faf7f2; }
+.detail-inner { padding: 10px 18px 14px; display: none; }
+.detail-inner.open { display: block; }
+.sub-table { width: 100%; border-collapse: collapse; font-size: .78rem; margin-top: 6px; }
+.sub-table th { padding: 5px 10px; color: #9a9188; font-weight: 300; border-bottom: 1px solid rgba(107,95,82,.08); font-size: .7rem; text-align: left; }
+.sub-table td { padding: 5px 10px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.04); }
+.sub-table tr:last-child td { border-bottom: none; }
+.sub-table .num { text-align: right; }
+
+/* 分頁 */
+.page-bar {
+  display: flex; gap: 8px; align-items: center; justify-content: center; padding: 10px 0;
+}
+.page-btn { padding: 6px 14px; border: 1px solid rgba(107,95,82,.22); border-radius: 6px; background: none; font-size: .78rem; color: #6b5f52; cursor: pointer; }
+.page-btn:disabled { opacity: .4; cursor: default; }
+.page-info { font-size: .78rem; color: #9a9188; }
+
+.empty-hint { text-align: center; color: #9a9188; padding: 36px; font-size: .84rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="q-layout">
+
+  <!-- 頁籤 -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-sales"    onclick="switchTab('sales')">銷貨單</button>
+    <button class="tab-btn"        id="tab-purchase" onclick="switchTab('purchase')">進貨單</button>
+    <button class="tab-btn"        id="tab-doc"      onclick="switchTab('doc')">報價 / 訂單</button>
+  </div>
+
+  <!-- 篩選列（動態切換） -->
+  <div class="filter-bar" id="filterBar"></div>
+
+  <!-- 結果 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title" id="cardTitle">銷貨紀錄</span>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div style="overflow-x:auto" id="tableWrap">
+      <div class="empty-hint">載入中…</div>
+    </div>
+    <div class="page-bar" id="pageBar" style="display:none">
+      <button class="page-btn" id="prevBtn" onclick="changePage(-1)">← 上頁</button>
+      <span class="page-info" id="pageInfo"></span>
+      <button class="page-btn" id="nextBtn" onclick="changePage(1)">下頁 →</button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let curTab    = 'sales';
+let curPage   = 1;
+let totalPages= 1;
+let canViewCost = false;
+let canDelete   = false;
+
+const fmt = n => (n != null && n !== '') ? Math.round(n).toLocaleString('zh-TW') : '—';
+const ST_LABEL = { DRAFT:'草稿', CONFIRMED:'已確認', CONVERTED:'已轉換', CANCELLED:'已取消' };
+const ST_CLASS = { DRAFT:'tag-draft', CONFIRMED:'tag-confirmed', CONVERTED:'tag-converted', CANCELLED:'tag-cancelled' };
+const TYPE_LABEL = { QUOTE:'報價單', ORDER:'訂單' };
+const TYPE_CLASS = { QUOTE:'tag-quote', ORDER:'tag-order' };
+
+/* ── 頁籤切換 ── */
+function switchTab(tab) {
+  curTab  = tab;
+  curPage = 1;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  renderFilter();
+  doSearch(1);
+}
+
+/* ── 篩選列 ── */
+function renderFilter() {
+  const bar = document.getElementById('filterBar');
+  if (curTab === 'sales') {
+    bar.innerHTML = `
+      <input class="f-input" type="date" id="fFrom" title="日期起">
+      <input class="f-input" type="date" id="fTo"   title="日期迄">
+      <input class="f-input f-wide" type="text" id="fQ"
+             placeholder="客戶 / 業務員 / 產品名稱…"
+             onkeydown="if(event.key==='Enter')doSearch(1)">
+      <button class="search-btn" onclick="doSearch(1)">搜尋</button>
+      <button class="reset-btn"  onclick="resetFilter()">清除</button>`;
+    document.getElementById('cardTitle').textContent = '銷貨紀錄';
+  } else if (curTab === 'purchase') {
+    bar.innerHTML = `
+      <input class="f-input" type="date" id="fFrom" title="日期起">
+      <input class="f-input" type="date" id="fTo"   title="日期迄">
+      <input class="f-input f-wide" type="text" id="fQ"
+             placeholder="供應商 / 單號 / 產品名稱…"
+             onkeydown="if(event.key==='Enter')doSearch(1)">
+      <button class="search-btn" onclick="doSearch(1)">搜尋</button>
+      <button class="reset-btn"  onclick="resetFilter()">清除</button>`;
+    document.getElementById('cardTitle').textContent = '進貨紀錄';
+  } else {
+    bar.innerHTML = `
+      <select class="f-select" id="fDocType">
+        <option value="">全部類型</option>
+        <option value="QUOTE">報價單</option>
+        <option value="ORDER">訂單</option>
+      </select>
+      <select class="f-select" id="fStatus">
+        <option value="">全部狀態</option>
+        <option value="DRAFT">草稿</option>
+        <option value="CONFIRMED">已確認</option>
+        <option value="CONVERTED">已轉換</option>
+        <option value="CANCELLED">已取消</option>
+      </select>
+      <input class="f-input" type="date" id="fFrom" title="建立日期起">
+      <input class="f-input" type="date" id="fTo"   title="建立日期迄">
+      <input class="f-input f-wide" type="text" id="fQ"
+             placeholder="單號 / 客戶…"
+             onkeydown="if(event.key==='Enter')doSearch(1)">
+      <button class="search-btn" onclick="doSearch(1)">搜尋</button>
+      <button class="reset-btn"  onclick="resetFilter()">清除</button>`;
+    document.getElementById('cardTitle').textContent = '報價 / 訂單';
+  }
+}
+
+function resetFilter() {
+  ['fFrom','fTo','fQ','fDocType','fStatus'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  doSearch(1);
+}
+
+function gv(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+/* ── 搜尋 ── */
+async function doSearch(page) {
+  curPage = page || curPage;
+  if      (curTab === 'sales')    await loadSales();
+  else if (curTab === 'purchase') await loadPurchase();
+  else                            await loadDocs();
+}
+
+/* 銷貨單 */
+async function loadSales() {
+  const p = new URLSearchParams({
+    q: gv('fQ'), page: curPage,
+    from: gv('fFrom'), to: gv('fTo'),
+  });
+  const res  = await fetch('/api/query/sales?' + p);
+  const data = await res.json();
+  if (!data.success) { showError(data.message); return; }
+  updatePager(data.total, data.pages);
+
+  if (!data.rows?.length) { showEmpty(); return; }
+
+  const costCols = canViewCost
+    ? `<th class="num">成本</th><th class="num">毛利</th><th class="num">毛利率</th>` : '';
+
+  let html = `<table class="r-table"><thead><tr>
+    <th>日期</th><th>客戶</th><th>業務員</th>
+    <th>產品名稱</th><th class="num">數量</th><th class="num">金額</th>
+    ${costCols}<th></th>
+  </tr></thead><tbody>`;
+
+  html += data.rows.map(r => {
+    const costTds = canViewCost ? `
+      <td class="num muted">${fmt(r.cost ? r.cost * r.quantity : null)}</td>
+      <td class="num" style="color:${r.profit>0?'#4a7c59':r.profit<0?'#8b3a3a':'inherit'}">${fmt(r.profit)}</td>
+      <td class="num muted">${r.margin != null ? r.margin + '%' : '—'}</td>` : '';
+    const delBtn = canDelete
+      ? `<td><button onclick="delSaleRow(${r.id})" style="padding:2px 8px;border:1px solid rgba(139,58,58,.3);border-radius:4px;background:none;font-size:.7rem;color:#8b3a3a;cursor:pointer">刪除</button></td>`
+      : '<td></td>';
+    return `<tr>
+      <td class="muted">${r.date || '—'}</td>
+      <td>${r.customer_name || '—'}</td>
+      <td class="muted">${r.salesperson || '—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.product_name || '—'}</td>
+      <td class="num">${r.quantity ?? '—'}</td>
+      <td class="num">${fmt(r.amount)}</td>
+      ${costTds}${delBtn}
+    </tr>`;
+  }).join('');
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+/* 進貨單 */
+async function loadPurchase() {
+  const p = new URLSearchParams({
+    q: gv('fQ'), page: curPage,
+    from: gv('fFrom'), to: gv('fTo'),
+  });
+  const res  = await fetch('/api/purchase/list?' + p);
+  const data = await res.json();
+  if (!data.success) { showError(data.message); return; }
+  updatePager(data.total, data.pages);
+
+  if (!data.rows?.length) { showEmpty(); return; }
+
+  let lastPo = null;
+  let html = `<table class="r-table"><thead><tr>
+    <th>日期</th><th>單號</th><th>供應商</th>
+    <th>產品名稱</th><th class="num">數量</th><th class="num">金額</th><th></th>
+  </tr></thead><tbody>`;
+  html += data.rows.map(r => {
+    const isFirst = r.order_no !== lastPo;
+    lastPo = r.order_no;
+    const delBtn = canDelete
+      ? `<button onclick="delPurchaseRow(${r.id})" style="padding:2px 8px;border:1px solid rgba(139,58,58,.3);border-radius:4px;background:none;font-size:.7rem;color:#8b3a3a;cursor:pointer">刪除</button>`
+      : '';
+    return `<tr style="${isFirst?'border-top:1px solid rgba(107,95,82,.08)':''}">
+      <td class="muted">${isFirst ? (r.date||'—') : ''}</td>
+      <td class="muted" style="font-family:monospace;font-size:.78rem">${isFirst ? (r.order_no||'—') : ''}</td>
+      <td class="muted">${isFirst ? (r.supplier_name||'—') : ''}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.product_name||'—'}</td>
+      <td class="num">${r.quantity??'—'}</td>
+      <td class="num">${fmt(r.amount)}</td>
+      <td>${delBtn}</td>
+    </tr>`;
+  }).join('');
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+/* 報價/訂單 */
+async function loadDocs() {
+  const p = new URLSearchParams({
+    type: gv('fDocType'), status: gv('fStatus'),
+    q: gv('fQ'), from: gv('fFrom'), to: gv('fTo'), page: curPage,
+  });
+  const res  = await fetch('/api/sales-doc/query?' + p);
+  const data = await res.json();
+  if (!data.success) { showError(data.message); return; }
+  updatePager(data.total, data.pages);
+
+  if (!data.documents?.length) { showEmpty(); return; }
+
+  let html = `<table class="r-table"><thead><tr>
+    <th>單號</th><th>類型</th><th>狀態</th><th>客戶</th>
+    <th class="num">總金額</th><th class="num">訂金</th><th>建立時間</th><th>建立者</th>
+  </tr></thead><tbody>`;
+
+  data.documents.forEach(d => {
+    const typeTag = `<span class="s-badge ${TYPE_CLASS[d.doc_type]||'tag-draft'}">${TYPE_LABEL[d.doc_type]||d.doc_type}</span>`;
+    const stTag   = `<span class="s-badge ${ST_CLASS[d.status]||'tag-draft'}">${ST_LABEL[d.status]||d.status}</span>`;
+    const rowId   = `doc-${d.doc_no.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    html += `<tr class="expandable" onclick="toggleDetail('${rowId}')">
+      <td style="font-family:monospace;font-size:.8rem">${d.doc_no}</td>
+      <td>${typeTag}</td><td>${stTag}</td>
+      <td>${d.target_name||'—'}</td>
+      <td class="num">${fmt(d.total_amount)}</td>
+      <td class="num muted">${d.deposit_amount ? fmt(d.deposit_amount) : '—'}</td>
+      <td class="muted">${(d.created_at||'').slice(0,10)}</td>
+      <td class="muted">${d.created_by||'—'}</td>
+    </tr>
+    <tr class="detail-row"><td colspan="8">
+      <div class="detail-inner" id="${rowId}">
+        <table class="sub-table"><thead><tr>
+          <th>產品名稱</th><th>代碼</th><th class="num">數量</th><th class="num">單價</th><th class="num">小計</th>
+        </tr></thead><tbody>
+        ${(d.items||[]).map(it=>`<tr>
+          <td>${it.product_name||'—'}</td>
+          <td class="muted">${it.product_code||''}</td>
+          <td class="num">${it.qty??'—'}</td>
+          <td class="num">$${fmt(it.unit_price)}</td>
+          <td class="num"><strong>$${fmt(it.subtotal)}</strong></td>
+        </tr>`).join('') || '<tr><td colspan="5" style="color:#9a9188">無品項</td></tr>'}
+        </tbody></table>
+        ${d.note ? `<div style="font-size:.76rem;color:#9a9188;margin-top:8px">備注：${d.note}</div>` : ''}
+      </div>
+    </td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+function toggleDetail(id) {
+  document.getElementById(id)?.classList.toggle('open');
+}
+
+/* 銷貨逐筆刪 */
+async function delSaleRow(id) {
+  if (!confirm('確定刪除這筆銷貨紀錄？')) return;
+  const res = await fetch(`/api/sales/row/${id}`, {method:'DELETE'});
+  const d   = await res.json();
+  if (d.success) doSearch(); else alert(d.message||'刪除失敗');
+}
+
+/* 進貨逐筆刪 */
+async function delPurchaseRow(id) {
+  if (!confirm('確定刪除這筆進貨紀錄？')) return;
+  const res = await fetch(`/api/purchase/row/${id}`, {method:'DELETE'});
+  const d   = await res.json();
+  if (d.success) doSearch(); else alert(d.message||'刪除失敗');
+}
+
+/* 工具 */
+function updatePager(total, pages) {
+  totalPages = pages || 1;
+  const bar  = document.getElementById('pageBar');
+  document.getElementById('resultCount').textContent = `共 ${total} 筆`;
+  document.getElementById('pageInfo').textContent    = `第 ${curPage} / ${totalPages} 頁`;
+  document.getElementById('prevBtn').disabled = curPage <= 1;
+  document.getElementById('nextBtn').disabled = curPage >= totalPages;
+  bar.style.display = totalPages > 1 ? 'flex' : 'none';
+}
+
+function showEmpty() {
+  document.getElementById('tableWrap').innerHTML = '<div class="empty-hint">查無資料</div>';
+  document.getElementById('resultCount').textContent = '';
+  document.getElementById('pageBar').style.display = 'none';
+}
+
+function showError(msg) {
+  document.getElementById('tableWrap').innerHTML =
+    `<div class="empty-hint" style="color:#8b3a3a">${msg||'載入失敗'}</div>`;
+}
+
+function changePage(dir) {
+  const next = curPage + dir;
+  if (next < 1 || next > totalPages) return;
+  curPage = next;
+  doSearch();
+}
+
+/* ── 初始化 ── */
+function onAppReady(user) {
+  canViewCost = (user.title === '老闆' || user.title === '會計');
+  canDelete   = (user.title === '老闆');
+  renderFilter();
+  doSearch(1);
+}
+</script>
+{% endblock %}

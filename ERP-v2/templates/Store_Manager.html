@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}門市主管控制台 — COSH ERP{% endblock %}
+{% block page_title %}門市主管控制台{% endblock %}
+
+{% block styles %}
+<style>
+.sm-layout { display: flex; flex-direction: column; gap: 22px; }
+
+/* ── 頂部資訊列 ── */
+.top-bar {
+  background: #2c2720;
+  border-radius: 14px;
+  padding: 16px 22px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.top-store { font-size: 1rem; color: #f5f0e8; letter-spacing: .08em; font-weight: 300; }
+.top-date  { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+
+/* ── 今日統計卡 ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.stat-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem; font-weight: 300; color: #2c2720;
+}
+.stat-lbl { font-size: .7rem; color: #9a9188; margin-top: 4px; letter-spacing: .05em; }
+
+/* ── 今日班表 ── */
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; overflow: hidden;
+}
+.card-title {
+  font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase;
+  padding: 13px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
+}
+.roster-grid {
+  display: flex; gap: 10px; padding: 16px 20px; flex-wrap: wrap;
+}
+.roster-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: #f5f0e8; border-radius: 10px; padding: 10px 16px;
+}
+.roster-name { font-size: .86rem; color: #2c2720; }
+.shift-badge {
+  font-size: .72rem; padding: 2px 8px; border-radius: 4px;
+}
+.sc-值  { background: #e8f4e8; color: #3d7a3d; }
+.sc-早  { background: rgba(250,191,19,.18); color: #7a5500; }
+.sc-晚  { background: rgba(120,90,155,.12); color: #6a4090; }
+.sc-全  { background: rgba(80,110,155,.15); color: #3a5a8a; }
+.sc-休  { background: rgba(107,95,82,.08); color: #9a9188; }
+.sc-特  { background: rgba(180,100,50,.14); color: #7a4020; }
+
+/* ── 今日銷售 ── */
+.sales-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.sales-table th {
+  text-align: left; padding: 9px 16px;
+  font-weight: 300; color: #9a9188; font-size: .73rem; letter-spacing: .06em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.sales-table td { padding: 10px 16px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.sales-table tr:last-child td { border-bottom: none; }
+.num { font-family: 'Cormorant Garamond', serif; font-size: .9rem; }
+
+/* ── 待處理需求 ── */
+.needs-list { display: flex; flex-direction: column; }
+.need-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 13px 20px; border-bottom: 1px solid rgba(107,95,82,.06);
+}
+.need-row:last-child { border-bottom: none; }
+.need-type {
+  font-size: .7rem; padding: 3px 9px; border-radius: 4px; flex-shrink: 0; margin-top: 2px;
+}
+.nt-調撥 { background: rgba(80,110,155,.15); color: #3a5a8a; }
+.nt-請購 { background: rgba(250,191,19,.18); color: #7a5500; }
+.need-info { flex: 1; }
+.need-product { font-size: .86rem; color: #2c2720; }
+.need-meta { font-size: .73rem; color: #9a9188; margin-top: 3px; }
+.need-status {
+  font-size: .72rem; padding: 3px 9px; border-radius: 4px; flex-shrink: 0;
+}
+.ns-待處理 { background: rgba(250,191,19,.18); color: #7a5500; }
+.ns-已到貨 { background: #e8f4e8; color: #3d7a3d; }
+.arrive-btn {
+  padding: 5px 12px; border: 1px solid rgba(107,95,82,.3); border-radius: 6px;
+  background: none; font-size: .74rem; color: #6b5f52; cursor: pointer; flex-shrink: 0;
+}
+.arrive-btn:hover { background: rgba(107,95,82,.08); }
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg, rgba(107,95,82,.07) 25%, rgba(107,95,82,.14) 50%, rgba(107,95,82,.07) 75%);
+  background-size: 200% 100%; animation: skel-shine 1.4s infinite;
+  border-radius: 6px; height: 18px; margin: 6px 0;
+}
+@keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+#todaySalesWrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sm-layout">
+
+  <!-- 頂部 -->
+  <div class="top-bar">
+    <div>
+      <div class="top-store" id="topStore">載入中…</div>
+      <div class="top-date" id="topDate"></div>
+    </div>
+  </div>
+
+  <!-- 統計卡 -->
+  <div class="stat-row" id="statRow">
+    <div class="stat-card"><div class="skel"></div></div>
+    <div class="stat-card"><div class="skel"></div></div>
+    <div class="stat-card"><div class="skel"></div></div>
+  </div>
+
+  <!-- 今日班表 -->
+  <div class="card">
+    <div class="card-title">今日班表</div>
+    <div class="roster-grid" id="rosterGrid">
+      <div class="skel" style="width:120px;margin:8px"></div>
+    </div>
+  </div>
+
+  <!-- 今日各人業績 -->
+  <div class="card">
+    <div class="card-title">今日銷售</div>
+    <div id="todaySalesWrap">
+      <div class="skel" style="margin:16px"></div>
+    </div>
+  </div>
+
+  <!-- 待處理需求 -->
+  <div class="card">
+    <div class="card-title">待處理需求</div>
+    <div class="needs-list" id="needsList">
+      <div class="skel" style="margin:16px"></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fmt = n => n ? 'NT$\u00a0' + Math.round(n).toLocaleString('zh-TW') : 'NT$\u00a00';
+
+onAppReady(async user => {
+  // 門市主管只能看自己門市
+  const dept = user.department || '';
+  const location = dept.replace('門市', '').trim();
+
+  document.getElementById('topStore').textContent = dept || '門市控制台';
+  document.getElementById('topDate').textContent = new Date().toLocaleDateString('zh-TW', {
+    year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+  });
+
+  const res  = await fetch('/api/store-manager/today?department=' + encodeURIComponent(dept));
+  const data = await res.json();
+  if (!data.success) return;
+
+  // ── 統計卡 ──
+  const todayRev = (data.today_sales || []).reduce((s, r) => s + (r.revenue || 0), 0);
+  const todayOrd = (data.today_sales || []).reduce((s, r) => s + (r.orders || 0), 0);
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val">${fmt(todayRev)}</div>
+      <div class="stat-lbl">今日業績</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${todayOrd}</div>
+      <div class="stat-lbl">今日筆數</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${fmt(data.month_revenue)}</div>
+      <div class="stat-lbl">本月累計</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${data.month_orders}</div>
+      <div class="stat-lbl">本月筆數</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${(data.pending_needs || []).filter(n=>n.status==='待處理').length}</div>
+      <div class="stat-lbl">待處理需求</div>
+    </div>
+  `;
+
+  // ── 班表 ──
+  const roster = data.roster || [];
+  if (roster.length === 0) {
+    document.getElementById('rosterGrid').innerHTML =
+      '<span style="color:#9a9188;font-size:.82rem;padding:8px">今日無班表資料</span>';
+  } else {
+    document.getElementById('rosterGrid').innerHTML = roster.map(r => `
+      <div class="roster-chip">
+        <span class="roster-name">${r.staff_name}</span>
+        <span class="shift-badge sc-${r.shift_code || ''}">${r.shift_code || '—'}</span>
+      </div>`).join('');
+  }
+
+  // ── 今日銷售 ──
+  const sales = data.today_sales || [];
+  if (sales.length === 0) {
+    document.getElementById('todaySalesWrap').innerHTML =
+      '<div style="padding:16px;color:#9a9188;font-size:.82rem">今日尚無銷售</div>';
+  } else {
+    let html = `<table class="sales-table">
+      <thead><tr><th>業務員</th><th>筆數</th><th>業績</th></tr></thead><tbody>`;
+    sales.forEach(r => {
+      html += `<tr>
+        <td><strong>${r.salesperson}</strong></td>
+        <td class="num">${r.orders}</td>
+        <td class="num">${fmt(r.revenue)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('todaySalesWrap').innerHTML = html;
+  }
+
+  // ── 待處理需求 ──
+  const needs = data.pending_needs || [];
+  if (needs.length === 0) {
+    document.getElementById('needsList').innerHTML =
+      '<div style="padding:16px;color:#9a9188;font-size:.82rem">目前無待處理需求</div>';
+  } else {
+    document.getElementById('needsList').innerHTML = needs.map(n => `
+      <div class="need-row" id="need-${n.id}">
+        <span class="need-type nt-${n.request_type || '請購'}">${n.request_type || '請購'}</span>
+        <div class="need-info">
+          <div class="need-product">${n.item_name || n.product_code || '—'}
+            ${n.quantity ? ' × ' + n.quantity : ''}
+          </div>
+          <div class="need-meta">申請人：${n.requester} · ${n.created_at?.slice(0,10)}</div>
+          ${n.remark ? `<div class="need-meta">${n.remark}</div>` : ''}
+        </div>
+        <span class="need-status ns-${n.status}">${n.status}</span>
+        ${n.status === '待處理' ? `<button class="arrive-btn" onclick="markArrive(${n.id})">標記到貨</button>` : ''}
+      </div>`).join('');
+  }
+});
+
+async function markArrive(id) {
+  const res = await fetch('/api/needs/' + id + '/arrive', { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    const row = document.getElementById('need-' + id);
+    if (row) {
+      row.querySelector('.need-status').textContent = '已到貨';
+      row.querySelector('.need-status').className = 'need-status ns-已到貨';
+      const btn = row.querySelector('.arrive-btn');
+      if (btn) btn.remove();
+    }
+  }
+}
+</script>
+{% endblock %}

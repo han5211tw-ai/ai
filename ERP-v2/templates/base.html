@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>{% block title %}COSH ERP{% endblock %}</title>
+
+  <!-- Google Fonts（連外網失敗時 fallback 到系統字體） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Serif+TC:wght@200;300;400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block styles %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     登入遮罩（驗證未通過時覆蓋整個頁面）
+     ═══════════════════════════════════════════ -->
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="login-brand-en">COSH</span>
+      <span class="login-brand-sub">內部營運系統</span>
+    </div>
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>姓名</label>
+        <input type="text" id="loginName" placeholder="請輸入姓名" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label>密碼</label>
+        <input type="password" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password" required>
+      </div>
+      <div id="loginError" class="login-error" style="display:none"></div>
+      <button type="submit" class="btn-primary btn-full" id="loginBtn">登入</button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     App Shell
+     ═══════════════════════════════════════════ -->
+<div class="app-shell" id="appShell" style="display:none">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar-header">
+      <a href="/" class="logo">
+        <span class="logo-en">COSH</span>
+        <span class="logo-label">ERP</span>
+      </a>
+    </div>
+
+    <!-- 使用者資訊 -->
+    <div class="sidebar-user">
+      <div class="sidebar-user-name" id="sidebarUserName">—</div>
+      <div class="sidebar-user-role" id="sidebarUserRole">—</div>
+      <div class="sidebar-user-actions">
+        <a href="/" class="sidebar-action-btn">首頁</a>
+        <button onclick="logout()" class="sidebar-action-btn sidebar-action-logout">登出</button>
+      </div>
+    </div>
+
+    <!-- 導航 -->
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- JS 動態生成 -->
+    </nav>
+  </aside>
+
+  <!-- 手機版遮罩 -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+  <!-- ── Main ── -->
+  <main class="main-content">
+    <header class="top-bar">
+      <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()">☰</button>
+      <h1 class="page-title">{% block page_title %}首頁{% endblock %}</h1>
+      {% block top_bar_extra %}{% endblock %}
+    </header>
+
+    <div class="content-area" id="contentArea">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div><!-- /.app-shell -->
+
+
+<!-- ═══════════════════════════════════════════
+     導航選單定義
+     ═══════════════════════════════════════════ -->
+<script>
+const MENU_STANDALONE = [
+  { id: 'boss',       icon: '◈', label: '老闆控制台', route: '/boss',        roles: ['老闆'] },
+  { id: 'accountant', icon: '◈', label: '會計專區',   route: '/Accountants', roles: ['老闆', '會計'] },
+];
+
+const MENU_GROUPS = [
+  {
+    id: 'business', title: '進銷存作業', items: [
+      { id: 'quote',     icon: '·', label: '報價作業', route: '/quote_input',     roles: ['老闆', '會計'] },
+      { id: 'sales',     icon: '·', label: '銷貨輸入', route: '/sales_input',     roles: ['老闆', '會計'] },
+      { id: 'purchase',  icon: '·', label: '進貨輸入', route: '/purchase_input',  roles: ['老闆', '會計'] },
+      { id: 'inventory', icon: '·', label: '庫存查詢', route: '/inventory_query', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+    ]
+  },
+  {
+    id: 'documents', title: '單據與需求', items: [
+      { id: 'doc-query', icon: '·', label: '單據查詢', route: '/query',       roles: ['老闆', '會計'] },
+      { id: 'needs',     icon: '·', label: '需求作業', route: '/needs_input', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+    ]
+  },
+  {
+    id: 'customers', title: '客戶與廠商', items: [
+      { id: 'customer-create',  icon: '·', label: '客戶建檔', route: '/customer_create',  roles: ['老闆', '會計'] },
+      { id: 'customer-search',  icon: '·', label: '客戶查詢', route: '/customer_search',  roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'product-create',   icon: '·', label: '產品建檔', route: '/product_create',   roles: ['老闆', '會計'] },
+      { id: 'supplier-create',  icon: '·', label: '廠商建檔', route: '/supplier_create',  roles: ['老闆', '會計'] },
+    ]
+  },
+  {
+    id: 'pending', title: '待辦清單', items: [
+      { id: 'staging', icon: '·', label: '待建檔中心', route: '/staging_center_v2', roles: ['老闆', '會計'] },
+    ]
+  },
+  {
+    id: 'reports', title: '業績報表', items: [
+      { id: 'dept',     icon: '·', label: '部門業績', route: '/department', roles: ['老闆', '會計', '業務部主管', '門市部主管'] },
+      { id: 'biz',      icon: '·', label: '業務業績', route: '/business',   roles: ['老闆', '會計', '業務人員', '業務部主管'] },
+      { id: 'store',    icon: '·', label: '門市業績', route: '/store',      roles: ['老闆', '會計', '工程師', '門市部主管'] },
+      { id: 'personal', icon: '·', label: '個人業績', route: '/personal',   roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+    ]
+  },
+  {
+    id: 'records', title: '工作紀錄', items: [
+      { id: 'line',       icon: '·', label: 'LINE 回覆表', route: '/line_replies',   roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'supervision',icon: '·', label: '督導評分',   route: '/supervision_score', roles: ['老闆', '門市部主管'] },
+      { id: 'service',    icon: '·', label: '外勤服務表', route: '/service_record',  roles: ['老闆', '業務人員', '業務部主管'] },
+      { id: 'roster',     icon: '·', label: '排班表',     route: '/roster',          roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+    ]
+  },
+  {
+    id: 'stock', title: '備貨推薦', items: [
+      { id: 'rec-products', icon: '·', label: '推薦備貨商品', route: '/recommended_products',       roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'rec-admin',    icon: '·', label: '商品管理',     route: '/admin/recommended_products', roles: ['老闆', '會計'] },
+    ]
+  },
+  {
+    id: 'bonus', title: '銷售獎金', items: [
+      { id: 'bonus-rules',    icon: '·', label: '獎金規則',   route: '/admin/bonus_rules',   roles: ['老闆', '會計'] },
+      { id: 'bonus-report',   icon: '·', label: '獎金報表',   route: '/admin/bonus_report',  roles: ['老闆', '會計'] },
+      { id: 'bonus-personal', icon: '·', label: '我的獎金',   route: '/bonus_personal',      roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+    ]
+  },
+  {
+    id: 'system', title: '系統管理', items: [
+      { id: 'announcement', icon: '·', label: '系統公告',   route: '/admin/announcement_management', roles: ['老闆'] },
+      { id: 'targets',      icon: '·', label: '業績目標',   route: '/target_input',                  roles: ['老闆'] },
+      { id: 'staff-mgmt',   icon: '·', label: '員工管理',   route: '/staff_management',              roles: ['老闆'] },
+      { id: 'sys-health',   icon: '·', label: '系統健康',   route: '/admin/health',                  roles: ['老闆'] },
+    ]
+  },
+];
+</script>
+
+<!-- ═══════════════════════════════════════════
+     認證與選單邏輯
+     ═══════════════════════════════════════════ -->
+<script>
+// ── 認證 ──────────────────────────────────────
+const AUTH_KEY  = 'erp_v2_user';
+const AUTH_EXP  = 'erp_v2_exp';
+
+function getUser() {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return null;
+    const exp = localStorage.getItem(AUTH_EXP);
+    if (exp && Date.now() > parseInt(exp)) {
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(AUTH_EXP);
+      return null;
+    }
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveUser(user) {
+  // 每天 21:00 過期
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 0, 0);
+  const exp   = today <= now ? today.getTime() + 86400000 : today.getTime();
+  localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+  localStorage.setItem(AUTH_EXP, exp.toString());
+}
+
+function logout() {
+  localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_EXP);
+  location.reload();
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '登入中…';
+
+  const name     = document.getElementById('loginName').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+
+  try {
+    const res  = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      saveUser(data.user);
+      initApp(data.user);
+    } else {
+      errEl.textContent = data.message || '登入失敗';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = '連線失敗，請重試';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '登入';
+  }
+}
+
+// ── 選單渲染 ─────────────────────────────────
+function hasRole(roles, userRole) {
+  if (!userRole) return false;
+  if (userRole === '老闆' || userRole === '會計') return true;
+  return roles.includes(userRole);
+}
+
+function currentPath() {
+  return location.pathname.replace(/\.html$/, '');
+}
+
+function renderMenu(userRole) {
+  const nav = document.getElementById('sidebarNav');
+  nav.innerHTML = '';
+
+  // 獨立項目
+  MENU_STANDALONE.forEach(item => {
+    if (!hasRole(item.roles, userRole)) return;
+    const a = document.createElement('a');
+    a.href = item.route;
+    a.className = 'nav-standalone' + (currentPath() === item.route ? ' active' : '');
+    a.innerHTML = `<span class="nav-icon">${item.icon}</span><span>${item.label}</span>`;
+    nav.appendChild(a);
+  });
+
+  // 群組
+  MENU_GROUPS.forEach(group => {
+    const visible = group.items.filter(i => hasRole(i.roles, userRole));
+    if (visible.length === 0) return;
+
+    const isGroupActive = visible.some(i => currentPath() === i.route);
+
+    const div = document.createElement('div');
+    div.className = 'nav-group' + (isGroupActive ? ' expanded' : '');
+    div.innerHTML = `
+      <div class="nav-group-header" onclick="toggleGroup(this)">
+        <span class="nav-group-title">${group.title}</span>
+        <span class="nav-group-arrow">›</span>
+      </div>
+      <div class="nav-group-items"></div>
+    `;
+    const itemsEl = div.querySelector('.nav-group-items');
+    visible.forEach(item => {
+      const a = document.createElement('a');
+      a.href = item.route;
+      a.className = 'nav-item' + (currentPath() === item.route ? ' active' : '');
+      a.innerHTML = `<span class="nav-item-dot">${item.icon}</span><span>${item.label}</span>`;
+      itemsEl.appendChild(a);
+    });
+    nav.appendChild(div);
+  });
+}
+
+function toggleGroup(header) {
+  header.closest('.nav-group').classList.toggle('expanded');
+}
+
+// ── 初始化 ───────────────────────────────────
+function initApp(user) {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+
+  document.getElementById('sidebarUserName').textContent = user.name;
+  document.getElementById('sidebarUserRole').textContent = user.title;
+
+  renderMenu(user.title);
+
+  // 觸發頁面自訂初始化
+  if (typeof onAppReady === 'function') onAppReady(user);
+}
+
+// ── 啟動 ────────────────────────────────────
+(function () {
+  const user = getUser();
+  if (user) {
+    // 先把 UI 架構顯示出來（不需要等 scripts）
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    document.getElementById('sidebarUserName').textContent = user.name;
+    document.getElementById('sidebarUserRole').textContent = user.title;
+    renderMenu(user.title);
+    // onAppReady 定義在頁面底部的 scripts block（比此段晚載入），
+    // 必須等所有 scripts 跑完才能呼叫
+    window.addEventListener('load', function () {
+      if (typeof onAppReady === 'function') onAppReady(user);
+    });
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+})();
+
+// ── Sidebar RWD ──────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+}
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

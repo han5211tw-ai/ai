@@ -1,0 +1,145 @@
+{#
+  使用範例：如何引用 macros.html 的 UI 元件
+  這個檔案展示全站統一的表單設計標準
+#}
+
+{% extends "base.html" %}
+{% import "macros.html" as ui %}
+
+{% block title %}UI 元件範例 - 電腦舖{% endblock %}
+{% block page_title %}UI 元件標準庫{% endblock %}
+
+{% block content %}
+
+{# 表單區塊範例 #}
+{% call ui.form_section('📋 基本資料') %}
+    {% call ui.form_row() %}
+        {{ ui.input_text('customerName', '客戶姓名', placeholder='請輸入姓名', required=true) }}
+        {{ ui.input_text('customerPhone', '聯絡電話', placeholder='09xx-xxx-xxx', type='tel') }}
+        {{ ui.input_date('orderDate', '訂單日期', required=true) }}
+    {% endcall %}
+    
+    {% call ui.form_row() %}
+        {{ ui.select('productType', '產品類別', [
+            ('', '請選擇'),
+            ('laptop', '筆記型電腦'),
+            ('desktop', '桌上型電腦'),
+            ('component', '零組件'),
+            ('accessory', '週邊配件')
+        ], required=true) }}
+        {{ ui.input_number('quantity', '數量', min=1, value=1, required=true) }}
+        {{ ui.input_currency('unitPrice', '單價', required=true) }}
+    {% endcall %}
+{% endcall %}
+
+{# 產品明細表格範例 #}
+{% call ui.form_section('📦 產品明細') %}
+    {% call ui.data_table(['產品編號', '產品名稱', '數量', '單價', '小計', '操作']) %}
+        <tr>
+            <td><input type="text" placeholder="輸入編號"></td>
+            <td><input type="text" placeholder="輸入名稱"></td>
+            <td><input type="number" value="1" style="width:60px"></td>
+            <td><input type="number" placeholder="0" style="width:100px"></td>
+            <td>NT$ 0</td>
+            <td>{{ ui.button_delete('deleteRow(this)') }}</td>
+        </tr>
+    {% endcall %}
+    
+    {{ ui.button_add('addProductRow()') }}
+    
+    {{ ui.total_section('訂單總計', 'totalAmount') }}
+{% endcall %}
+
+{# 按鈕群組範例 #}
+{% call ui.form_section('🔘 按鈕樣式') %}
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+        {{ ui.button_primary('btnSave', '💾 儲存') }}
+        {{ ui.button_secondary('btnCancel', '❌ 取消') }}
+        {{ ui.button_danger('btnDelete', '🗑️ 刪除') }}
+    </div>
+    
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+        {{ ui.button_add('addItem()') }}
+        {{ ui.button_delete('removeItem()') }}
+    </div>
+{% endcall %}
+
+{# 狀態標籤範例 #}
+{% call ui.form_section('🏷️ 狀態標籤') %}
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+        {{ ui.status_badge('待處理') }}
+        {{ ui.status_badge('已完成') }}
+        {{ ui.status_badge('已取消') }}
+        {{ ui.status_badge('urgent') }}
+    </div>
+{% endcall %}
+
+{# 搜尋與分頁範例 #}
+{% call ui.form_section('🔍 搜尋與分頁') %}
+    <div style="margin-bottom:20px">
+        {{ ui.input_search('searchInput', '搜尋客戶、產品...', 'doSearch()') }}
+    </div>
+    
+    {{ ui.pagination(1, 10, 'prevPage()', 'nextPage()') }}
+{% endcall %}
+
+{# 空白狀態範例 #}
+{% call ui.form_section('📭 空白狀態') %}
+    {{ ui.empty_state('📭', '暫無資料，請點選「新增」按鈕建立') }}
+{% endcall %}
+
+{# 錯誤訊息範例 #}
+{% call ui.form_section('⚠️ 錯誤提示') %}
+    {{ ui.error_message('連線失敗，請檢查網路連線後重試') }}
+{% endcall %}
+
+{# 載入中範例 #}
+{{ ui.loading_overlay() }}
+
+{# Toast 容器 #}
+{{ ui.toast_container() }}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addProductRow() {
+    showToast('新增產品列', 'success');
+}
+
+function deleteRow(btn) {
+    if(confirm('確定要刪除嗎？')) {
+        btn.closest('tr').remove();
+        showToast('已刪除', 'success');
+    }
+}
+
+function addItem() {
+    showToast('新增項目', 'success');
+}
+
+function removeItem() {
+    showToast('移除項目', 'success');
+}
+
+function doSearch() {
+    const keyword = document.getElementById('searchInput').value;
+    showToast('搜尋: ' + keyword, 'success');
+}
+
+function prevPage() {
+    showToast('上一頁', 'success');
+}
+
+function nextPage() {
+    showToast('下一頁', 'success');
+}
+
+function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type + ' show';
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+</script>
+{% endblock %}

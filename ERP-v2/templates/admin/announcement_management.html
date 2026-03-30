@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}公告管理 — COSH ERP{% endblock %}
+{% block page_title %}公告管理{% endblock %}
+
+{% block styles %}
+<style>
+.am-layout { display: flex; flex-direction: column; gap: 20px; }
+.card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
+.card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; }
+.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+
+/* 新增表單 */
+.form-body { padding:20px 22px; display:flex; flex-direction:column; gap:12px; }
+.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+.f-input, .f-select, .f-textarea {
+  width:100%; padding:9px 12px;
+  border:1px solid rgba(107,95,82,.22); border-radius:8px;
+  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  color:#2c2720; background:#f5f0e8; box-sizing:border-box; outline:none;
+}
+.f-input:focus, .f-select:focus, .f-textarea:focus { border-color:#6b5f52; }
+.f-textarea { resize:vertical; min-height:80px; }
+.form-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+/* 按鈕 */
+.submit-btn {
+  padding:9px 22px; background:#2c2720; color:#f5f0e8;
+  border:none; border-radius:8px; font-size:.82rem;
+  font-family:'Noto Serif TC',serif; cursor:pointer; align-self:flex-start;
+}
+.msg-ok  { font-size:.8rem; color:#4a7c59; }
+.msg-err { font-size:.8rem; color:#8b3a3a; }
+
+/* 公告列表 */
+.ann-table { width:100%; border-collapse:collapse; font-size:.83rem; }
+.ann-table th {
+  text-align:left; padding:9px 12px;
+  font-weight:300; color:#9a9188; font-size:.7rem; letter-spacing:.06em;
+  background:#faf7f2; border-bottom:1px solid rgba(107,95,82,.1);
+}
+.ann-table td { padding:9px 12px; color:#2c2720; border-bottom:1px solid rgba(107,95,82,.05); vertical-align:middle; }
+.ann-table tr:last-child td { border-bottom:none; }
+
+.level-chip { display:inline-block; padding:2px 9px; border-radius:20px; font-size:.7rem; }
+.level-info    { background:#e8eef8; color:#3a5a8b; }
+.level-warning { background:#fdf5e0; color:#8b6a10; }
+.level-danger  { background:#f5e8e8; color:#8b3a3a; }
+.level-success { background:#e8f4e8; color:#3d7a3d; }
+
+.active-chip { display:inline-block; padding:2px 9px; border-radius:20px; font-size:.7rem; }
+.active-1 { background:#e8f4e8; color:#3d7a3d; }
+.active-0 { background:#eee; color:#999; }
+
+.pin-icon { color:#FABF13; font-size:.9rem; }
+
+.action-btn {
+  padding:3px 10px; border-radius:5px; font-size:.74rem;
+  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
+  font-family:'Noto Serif TC',serif;
+}
+.action-btn.del { border-color:rgba(139,58,58,.25); color:#8b3a3a; }
+.action-btn:hover { background:#f5f0e8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="am-layout">
+
+  <!-- 新增表單 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">新增公告</span>
+      <span id="msgEl"></span>
+    </div>
+    <div class="form-body">
+      <div>
+        <div class="field-label">標題</div>
+        <input class="f-input" id="aTitle" placeholder="請輸入公告標題" maxlength="100">
+      </div>
+      <div>
+        <div class="field-label">內容</div>
+        <textarea class="f-textarea" id="aContent" placeholder="請輸入公告內容"></textarea>
+      </div>
+      <div class="form-row">
+        <div>
+          <div class="field-label">類型</div>
+          <select class="f-select" id="aLevel">
+            <option value="info">一般（藍）</option>
+            <option value="warning">注意（黃）</option>
+            <option value="danger">緊急（紅）</option>
+            <option value="success">完成（綠）</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">置頂</div>
+          <select class="f-select" id="aPinned">
+            <option value="0">否</option>
+            <option value="1">是</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">到期日（選填）</div>
+          <input class="f-input" id="aExpires" type="date">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="createAnn()">新增公告</button>
+    </div>
+  </div>
+
+  <!-- 公告列表 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">所有公告</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="ann-table">
+        <thead>
+          <tr>
+            <th>置頂</th>
+            <th style="min-width:160px">標題</th>
+            <th style="min-width:200px">內容</th>
+            <th>類型</th>
+            <th>狀態</th>
+            <th>到期日</th>
+            <th>建立時間</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="annBody">
+          <tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadAnns() {
+  const res  = await fetch('/api/system/announcements/all');
+  const data = await res.json();
+  const list = Array.isArray(data) ? data : [];
+
+  const tbody = document.getElementById('annBody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9a9188;padding:20px">暫無公告</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td style="text-align:center">${a.is_pinned ? '<span class="pin-icon">📌</span>' : ''}</td>
+      <td><strong>${a.title}</strong></td>
+      <td style="font-size:.8rem;color:#6b5f52;max-width:220px;white-space:pre-wrap">${a.content || ''}</td>
+      <td><span class="level-chip level-${a.level||'info'}">${
+        {info:'一般',warning:'注意',danger:'緊急',success:'完成'}[a.level]||a.level
+      }</span></td>
+      <td>
+        <span class="active-chip active-${a.is_active}">${a.is_active?'啟用':'停用'}</span>
+      </td>
+      <td style="font-size:.78rem;color:#9a9188">${a.expires_at||'—'}</td>
+      <td style="font-size:.78rem;color:#9a9188">${(a.created_at||'').slice(0,16)}</td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="toggleActive(${a.id},${a.is_active})">
+          ${a.is_active?'停用':'啟用'}
+        </button>
+        <button class="action-btn del" onclick="deleteAnn(${a.id})">刪除</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function createAnn() {
+  const title   = document.getElementById('aTitle').value.trim();
+  const content = document.getElementById('aContent').value.trim();
+  if (!title) { showMsg('請輸入標題', false); return; }
+
+  const res = await fetch('/api/system/announcements', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      title, content,
+      level:      document.getElementById('aLevel').value,
+      is_pinned:  parseInt(document.getElementById('aPinned').value),
+      expires_at: document.getElementById('aExpires').value || null,
+      is_active: 1,
+    })
+  });
+  const data = await res.json();
+  if (data.success || data.message === '公告已新增') {
+    showMsg('公告已新增', true);
+    document.getElementById('aTitle').value   = '';
+    document.getElementById('aContent').value = '';
+    loadAnns();
+  } else {
+    showMsg(data.message || '新增失敗', false);
+  }
+}
+
+async function toggleActive(id, current) {
+  const res = await fetch(`/api/system/announcements/${id}`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ is_active: current ? 0 : 1 })
+  });
+  const data = await res.json();
+  if (data.success) loadAnns();
+}
+
+async function deleteAnn(id) {
+  if (!confirm('確定刪除此公告？')) return;
+  const res  = await fetch(`/api/system/announcements/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) loadAnns();
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg; el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+onAppReady(user => { loadAnns(); });
+</script>
+{% endblock %}

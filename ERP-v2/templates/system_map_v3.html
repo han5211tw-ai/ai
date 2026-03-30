@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+{% block title %}系統架構圖 — COSH ERP{% endblock %}
+{% block page_title %}系統架構圖{% endblock %}
+
+{% block styles %}
+<style>
+.sm-layout { display:flex; flex-direction:column; gap:20px; }
+
+.card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
+.card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+
+/* 版本徽章 */
+.ver-badge {
+  font-size:.7rem; color:#6b5f52; background:#f5f0e8;
+  border:1px solid rgba(107,95,82,.2); border-radius:20px; padding:2px 10px;
+}
+
+/* Tab 列 */
+.tab-bar { display:flex; gap:0; border-bottom:1px solid rgba(107,95,82,.1); padding:0 20px; }
+.tab-btn {
+  padding:10px 18px; font-size:.78rem; color:#9a9188;
+  border:none; background:none; cursor:pointer;
+  font-family:'Noto Serif TC',serif; letter-spacing:.04em;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.tab-btn.active { color:#2c2720; border-bottom-color:#2c2720; }
+
+/* 視圖容器 */
+.view { display:none; padding:24px 20px; }
+.view.active { display:block; }
+
+/* ─── Phase 地圖（六角/卡片群組）─────────────── */
+.phase-map { display:flex; flex-direction:column; gap:16px; }
+.phase-row {
+  display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;
+}
+.phase-label {
+  width:68px; min-width:68px; font-size:.66rem; color:#9a9188;
+  letter-spacing:.06em; padding-top:10px; text-align:right;
+}
+.page-chips { display:flex; flex-wrap:wrap; gap:8px; flex:1; }
+.page-chip {
+  padding:8px 14px; border-radius:10px; font-size:.78rem;
+  border:1px solid rgba(107,95,82,.2); cursor:pointer;
+  font-family:'Noto Serif TC',serif; color:#2c2720;
+  transition:all .18s; background:#faf7f2;
+  display:flex; flex-direction:column; gap:2px;
+}
+.page-chip:hover { border-color:#6b5f52; background:#f0ebe2; }
+.page-chip.selected { border-color:#FABF13; background:#fffae8; box-shadow:0 0 0 2px rgba(250,191,19,.18); }
+.chip-name { font-size:.8rem; }
+.chip-route { font-size:.66rem; color:#9a9188; font-family:monospace; }
+.chip-role { font-size:.64rem; color:#b0a898; margin-top:1px; }
+
+/* ─── 技術堆疊 ──────────────────────────────── */
+.tech-grid {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:14px;
+}
+.tech-card {
+  border:1px solid rgba(107,95,82,.14); border-radius:12px; padding:16px;
+  background:#faf7f2;
+}
+.tech-card-title { font-size:.7rem; color:#9a9188; letter-spacing:.1em; margin-bottom:10px; }
+.tech-item { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:.8rem; color:#2c2720; }
+.tech-dot { width:7px; height:7px; border-radius:50%; background:#FABF13; flex-shrink:0; }
+.tech-item.sub { padding-left:15px; font-size:.74rem; color:#6b5f52; }
+.tech-item.sub .tech-dot { width:5px; height:5px; background:#c8bfb0; }
+
+/* ─── API 分組 ──────────────────────────────── */
+.api-grid {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px;
+}
+.api-group {
+  border:1px solid rgba(107,95,82,.12); border-radius:12px; overflow:hidden;
+}
+.api-group-head {
+  padding:10px 14px; background:#f5f0e8;
+  font-size:.72rem; color:#6b5f52; letter-spacing:.06em;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.api-count { font-size:.68rem; color:#9a9188; }
+.api-list { padding:8px 14px; }
+.api-route {
+  font-family:monospace; font-size:.72rem; color:#2c2720; padding:3px 0;
+  border-bottom:1px solid rgba(107,95,82,.05);
+}
+.api-route:last-child { border-bottom:none; }
+.method-tag {
+  display:inline-block; padding:1px 5px; border-radius:3px;
+  font-size:.62rem; margin-right:4px; font-weight:600;
+}
+.get  { background:#e8f4e8; color:#3d7a3d; }
+.post { background:#e0eaf8; color:#2a5090; }
+.put  { background:#fff4e0; color:#a06a00; }
+.del  { background:#fde8e8; color:#8b3a3a; }
+
+/* ─── DB 總覽 ──────────────────────────────── */
+.db-section { margin-bottom:20px; }
+.db-section-title {
+  font-size:.72rem; color:#9a9188; letter-spacing:.1em;
+  padding-bottom:8px; border-bottom:1px solid rgba(107,95,82,.08);
+  margin-bottom:10px;
+}
+.db-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.db-chip {
+  padding:4px 11px; border-radius:20px; font-size:.73rem;
+  background:#faf7f2; border:1px solid rgba(107,95,82,.15); color:#6b5f52;
+  font-family:monospace;
+}
+
+/* ─── 統計橫幅 ──────────────────────────────── */
+.stat-banner {
+  display:flex; gap:24px; padding:16px 20px; flex-wrap:wrap;
+  border-bottom:1px solid rgba(107,95,82,.06);
+}
+.stat-item .n {
+  font-family:'Cormorant Garamond',serif; font-size:2rem;
+  font-weight:300; color:#2c2720; letter-spacing:.04em;
+}
+.stat-item .l { font-size:.68rem; color:#9a9188; text-transform:uppercase; letter-spacing:.08em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sm-layout">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">OpenClaw ERP 系統架構圖</span>
+      <span class="ver-badge">v2.0 · Port 8800</span>
+    </div>
+
+    <!-- 統計數字 -->
+    <div class="stat-banner">
+      <div class="stat-item"><div class="n">6</div><div class="l">Phases</div></div>
+      <div class="stat-item"><div class="n">28</div><div class="l">頁面</div></div>
+      <div class="stat-item"><div class="n">49</div><div class="l">DB Tables</div></div>
+      <div class="stat-item"><div class="n">180+</div><div class="l">API 路由</div></div>
+    </div>
+
+    <!-- Tab 列 -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchView('pages', this)">頁面架構</button>
+      <button class="tab-btn" onclick="switchView('api', this)">API 分組</button>
+      <button class="tab-btn" onclick="switchView('db', this)">資料庫</button>
+      <button class="tab-btn" onclick="switchView('tech', this)">技術堆疊</button>
+    </div>
+
+    <!-- ──── 頁面架構視圖 ──── -->
+    <div class="view active" id="view-pages">
+      <div class="phase-map" id="phaseMap"></div>
+    </div>
+
+    <!-- ──── API 視圖 ──── -->
+    <div class="view" id="view-api">
+      <div class="api-grid" id="apiGrid"></div>
+    </div>
+
+    <!-- ──── 資料庫視圖 ──── -->
+    <div class="view" id="view-db">
+      <div id="dbView"></div>
+    </div>
+
+    <!-- ──── 技術堆疊視圖 ──── -->
+    <div class="view" id="view-tech">
+      <div class="tech-grid" id="techView"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── 資料定義 ──────────────────────────────────
+
+const PHASES = [
+  {
+    label: 'Phase 0\n基礎架構',
+    pages: [
+      { name: 'base.html', route: '（母版）', roles: '所有角色' },
+      { name: 'login / auth', route: '/api/auth/verify', roles: '所有角色' },
+      { name: '404.html', route: '/404', roles: '所有角色' },
+    ]
+  },
+  {
+    label: 'Phase 1\n核心每日',
+    pages: [
+      { name: '首頁', route: '/', roles: '所有角色' },
+      { name: '需求表輸入', route: '/needs_input', roles: '所有角色' },
+      { name: '老闆控制台', route: '/boss', roles: '老闆' },
+    ]
+  },
+  {
+    label: 'Phase 2\n業績分析',
+    pages: [
+      { name: '部門業績', route: '/department', roles: '老闆, 主管' },
+      { name: '門市業績', route: '/store', roles: '老闆, 主管' },
+      { name: '個人業績', route: '/personal', roles: '所有角色' },
+      { name: '業務部績效', route: '/business', roles: '老闆, 業務' },
+      { name: '月會報告', route: '/monthly_report', roles: '老闆, 主管' },
+    ]
+  },
+  {
+    label: 'Phase 3\n控制台查詢',
+    pages: [
+      { name: '門市主管控制台', route: '/Store_Manager', roles: '老闆, 主管' },
+      { name: '會計專區', route: '/Accountants', roles: '老闆, 會計' },
+      { name: '客戶查詢', route: '/customer_search', roles: '所有角色' },
+      { name: '庫存查詢', route: '/inventory_query', roles: '所有角色' },
+      { name: '班表查詢', route: '/roster', roles: '所有角色' },
+    ]
+  },
+  {
+    label: 'Phase 4\n輸入頁面',
+    pages: [
+      { name: '外勤服務紀錄', route: '/service_record', roles: '業務人員' },
+      { name: '督導評分', route: '/supervision_score', roles: '老闆, 主管' },
+      { name: '班表輸入', route: '/roster_input', roles: '老闆, 會計' },
+      { name: '銷貨輸入', route: '/sales_input', roles: '老闆, 會計' },
+      { name: '業績目標管理', route: '/target_input', roles: '老闆, 會計' },
+    ]
+  },
+  {
+    label: 'Phase 5\n後台管理',
+    pages: [
+      { name: '資料管理中心', route: '/admin', roles: '老闆' },
+      { name: '員工管理', route: '/staff_management', roles: '老闆' },
+      { name: '公告管理', route: '/admin/announcement_management', roles: '老闆' },
+      { name: '獎金規則', route: '/admin/bonus_rules', roles: '老闆' },
+      { name: '獎金報表', route: '/admin/bonus_report', roles: '老闆' },
+      { name: '推薦備貨（後台）', route: '/admin/recommended_products', roles: '老闆, 會計' },
+    ]
+  },
+  {
+    label: 'Phase 6\n特殊功能',
+    pages: [
+      { name: 'LINE 回覆表', route: '/line_replies', roles: '所有角色' },
+      { name: '個人獎金查詢', route: '/bonus_personal', roles: '所有角色' },
+      { name: '推薦備貨選購', route: '/recommended_products', roles: '所有角色' },
+      { name: '待建檔中心', route: '/staging_center_v2', roles: '老闆, 會計' },
+      { name: '系統架構圖', route: '/system_map_v3', roles: '老闆' },
+    ]
+  },
+];
+
+const API_GROUPS = [
+  { name: '銷售資料', routes: [
+    ['GET','/api/sales/daily'],['GET','/api/sales/daily/store'],['GET','/api/sales/daily/by-store'],
+    ['GET','/api/sales/list'],['POST','/api/sales/submit'],['DELETE','/api/sales/<invoice_no>'],
+  ]},
+  { name: '績效分析', routes: [
+    ['GET','/api/performance/department'],['GET','/api/performance/store'],
+    ['GET','/api/performance/personal'],['GET','/api/performance/business'],
+  ]},
+  { name: '需求表', routes: [
+    ['GET','/api/needs/latest'],['POST','/api/needs/batch'],['POST','/api/needs/cancel'],
+    ['POST','/api/needs/purchase'],['POST','/api/needs/transfer'],
+    ['POST','/api/needs/arrive'],['POST','/api/needs/complete'],['GET','/api/needs/history'],
+  ]},
+  { name: '客戶', routes: [
+    ['GET','/api/customer/search'],['GET','/api/customer/detail'],
+    ['GET','/api/customer/lookup'],['GET','/api/customers/search'],['GET','/api/customer/count'],
+  ]},
+  { name: '員工 / 班表', routes: [
+    ['GET','/api/roster/weekly'],['GET','/api/roster/today'],['GET','/api/roster/monthly'],
+    ['POST','/api/roster/save'],['GET','/api/staff/list'],['PUT','/api/staff/<id>'],
+  ]},
+  { name: '認證', routes: [
+    ['POST','/api/auth/verify'],['POST','/api/boss/verify'],['POST','/api/accountant/verify'],
+  ]},
+  { name: '公告 / 推薦', routes: [
+    ['GET','/api/system/announcements'],['GET','/api/system/announcements/all'],
+    ['PUT','/api/system/announcements/<id>'],['DELETE','/api/system/announcements/<id>'],
+    ['GET','/api/recommended-categories'],['POST','/api/recommended-categories'],
+    ['GET','/api/recommended-products'],['POST','/api/recommended-products'],
+  ]},
+  { name: '獎金', routes: [
+    ['GET','/api/bonus-rules'],['POST','/api/bonus-rules'],
+    ['PUT','/api/bonus-rules/<id>'],['DELETE','/api/bonus-rules/<id>'],
+    ['POST','/api/bonus-calculate'],['GET','/api/bonus-results'],['GET','/api/bonus-personal'],
+  ]},
+  { name: 'LINE 回覆', routes: [
+    ['GET','/api/line-replies'],['POST','/api/line-replies'],
+    ['PUT','/api/line-replies/<id>'],['DELETE','/api/line-replies/<id>'],
+  ]},
+  { name: '督導 / 評分', routes: [
+    ['GET','/api/store/supervision'],['GET','/api/personal/supervision'],
+    ['POST','/api/supervision/score'],['GET','/api/supervision/recent'],
+  ]},
+  { name: '待建檔', routes: [
+    ['GET','/api/staging/list'],['PUT','/api/staging/<id>/resolve'],['GET','/api/staging/stats'],
+    ['GET','/api/product-staging/list'],['PUT','/api/product-staging/<id>/resolve'],
+  ]},
+  { name: '評論 / 產品 / 系統', routes: [
+    ['GET','/api/google-reviews'],['GET','/api/store/reviews'],
+    ['GET','/api/products/search'],['GET','/api/products/list'],
+    ['GET','/api/health'],['GET','/api/summary'],['POST','/api/chat'],
+  ]},
+];
+
+const DB_GROUPS = [
+  { title: '核心業務', tables: ['sales_history','customers','customer_master','inventory','needs','purchase_history','products','suppliers','service_records','sales','sales_documents','sales_document_items'] },
+  { title: '人員 / 班表', tables: ['staff','staff_passwords','staff_roster','supervision_scores'] },
+  { title: '獎金', tables: ['bonus_rules','bonus_results','bonus_payments'] },
+  { title: '系統 / 管理', tables: ['system_announcements','notification_logs','login_attempts','boss_password','admin_audit_log','chat_logs','api_metrics','ops_events'] },
+  { title: '暫存 / 備份', tables: ['customer_staging','product_staging','staging_records','sales_history_deleted_backup','staging_records_backup'] },
+  { title: '特殊功能', tables: ['google_reviews','google_reviews_stats','store_reviews','line_replies','recommended_products','recommended_categories','crm_tasks','finance_ledger'] },
+  { title: '目錄 / 快取', tables: ['product_categories','_deprecated_product_master','freshness_cache','performance_metrics','sqlite_sequence'] },
+];
+
+const TECH_GROUPS = [
+  { title: 'BACKEND', items: [
+    { name: 'Python 3', sub: false },
+    { name: 'Flask 3.x', sub: true },
+    { name: 'SQLite 3（WAL 模式）', sub: true },
+    { name: 'Gunicorn（WSGI）', sub: true },
+  ]},
+  { title: 'FRONTEND', items: [
+    { name: 'Vanilla JS (ES6+)', sub: false },
+    { name: 'Jinja2 模板', sub: true },
+    { name: 'Chart.js 4.x', sub: true },
+    { name: 'CSS Custom Properties', sub: true },
+  ]},
+  { title: 'DESIGN SYSTEM', items: [
+    { name: 'Noto Serif TC 200/300', sub: false },
+    { name: 'Cormorant Garamond 300', sub: true },
+    { name: '主色 #2c2720 / #f5f0e8', sub: true },
+    { name: '焦點色 #FABF13', sub: true },
+  ]},
+  { title: 'AUTH / CONFIG', items: [
+    { name: 'localStorage JWT（無 Server Session）', sub: false },
+    { name: '角色：老闆/會計/主管/業務/工程師', sub: true },
+    { name: '.env 環境變數', sub: true },
+    { name: 'Port 8800', sub: true },
+  ]},
+  { title: 'RESPONSIVE', items: [
+    { name: 'max-width 1160px 留白', sub: false },
+    { name: 'max() CSS 函數自適應', sub: true },
+    { name: 'Mobile fallback: 18px padding', sub: true },
+  ]},
+  { title: 'DATA SOURCES', items: [
+    { name: 'company.db（主資料庫）', sub: false },
+    { name: '49 張表，手動建立/匯入', sub: true },
+    { name: '舊系統 API 相容介面', sub: true },
+  ]},
+];
+
+// ── 渲染函數 ────────────────────────────────────
+
+function renderPhaseMap() {
+  const el = document.getElementById('phaseMap');
+  el.innerHTML = PHASES.map(ph => `
+    <div class="phase-row">
+      <div class="phase-label">${ph.label.replace('\n','<br>')}</div>
+      <div class="page-chips">
+        ${ph.pages.map(p => `
+          <div class="page-chip">
+            <span class="chip-name">${p.name}</span>
+            <span class="chip-route">${p.route}</span>
+            <span class="chip-role">${p.roles}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderApiGrid() {
+  const el = document.getElementById('apiGrid');
+  el.innerHTML = API_GROUPS.map(g => `
+    <div class="api-group">
+      <div class="api-group-head">
+        ${g.name}
+        <span class="api-count">${g.routes.length} 個路由</span>
+      </div>
+      <div class="api-list">
+        ${g.routes.map(([method, route]) => `
+          <div class="api-route">
+            <span class="method-tag ${method.toLowerCase()}">${method}</span>${route}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderDbView() {
+  const el = document.getElementById('dbView');
+  el.innerHTML = DB_GROUPS.map(g => `
+    <div class="db-section">
+      <div class="db-section-title">${g.title}</div>
+      <div class="db-chips">
+        ${g.tables.map(t => `<span class="db-chip">${t}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderTechView() {
+  const el = document.getElementById('techView');
+  el.innerHTML = TECH_GROUPS.map(g => `
+    <div class="tech-card">
+      <div class="tech-card-title">${g.title}</div>
+      ${g.items.map(i => `
+        <div class="tech-item ${i.sub ? 'sub' : ''}">
+          <span class="tech-dot"></span>${i.name}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ── Tab 切換 ─────────────────────────────────────
+
+function switchView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── 初始化 ──────────────────────────────────────
+onAppReady(() => {
+  renderPhaseMap();
+  renderApiGrid();
+  renderDbView();
+  renderTechView();
+});
+</script>
+{% endblock %}

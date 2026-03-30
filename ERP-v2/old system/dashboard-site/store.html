@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}門市業績分析 - 電腦舖營運系統{% endblock %}
+
+{% block page_title %}門市業績分析{% endblock %}
+
+{% block content %}
+<!-- 原始內容開始 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>門市業績分析 - 電腦舖營運系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/shared/global-background.css">
+    <script src="/static/shared/global-background.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { width: 100%; margin: 0 auto; padding: 20px 40px; }
+        h1 {
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .nav a:hover, .nav a.active, .nav span.active {
+            color: #FABF13;
+            border-color: #FABF13;
+            background: rgba(250, 191, 19, 0.1);
+        }
+        .nav span.active {
+            cursor: default;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #FABF13;
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            color: #FABF13;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        td { color: #ccd6f6; }
+        tr:hover { background: rgba(255, 255, 255, 0.03); }
+        .number { font-family: 'Courier New', monospace; }
+        .highlight { color: #FABF13; font-weight: bold; }
+        /* 達成率顏色 */
+        .ach-excellent { color: #4caf50; font-weight: bold; }  /* ≥80% 綠色 */
+        .ach-good { color: #ffc107; font-weight: bold; }       /* ≥60% 黃色 */
+        .ach-warning { color: #ff9800; font-weight: bold; }    /* ≥40% 橘色 */
+        .ach-danger { color: #f44336; font-weight: bold; }     /* <40% 紅色 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            color: #8892b0;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        .stat-card .number {
+            font-size: 2.5em;
+            color: #FABF13;
+            font-weight: bold;
+        }
+        .stat-card .stars {
+            color: #ffd700;
+            font-size: 1.5em;
+            margin-top: 10px;
+        }
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .loading {
+            color: #8892b0;
+            text-align: center;
+            padding: 40px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #FABF13;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+        /* 功能表單樣式 */
+        .section-title {
+            color: #FABF13;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        .btn-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .btn-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #FABF13;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(250, 191, 19, 0.2);
+        }
+        .btn-icon { font-size: 2em; margin-bottom: 10px; }
+        .btn-title { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        
+
+
+        <div class="section-title">📂 功能表單</div>
+        <div class="btn-grid">
+            <a href="roster.html" class="btn-card">
+                <div class="btn-icon">📅</div>
+                <div class="btn-title">班表</div>
+            </a>
+            <a href="https://1drv.ms/x/c/6480de932f72b94e/IQCdDxO_Nke0SYeYjet7Z1ZhAevA1hWTrfGgCJ8EQc6SMT8?e=8uxM9p" class="btn-card" target="_blank">
+                <div class="btn-icon">✅</div>
+                <div class="btn-title">LINE 回覆紀錄</div>
+            </a>
+        </div>
+
+        <div class="section-title">⭐ 五星好評統計 <span id="reviewPeriod" style="font-size: 0.7em; color: #64748b;"></span></div>
+        <div class="stats-grid" id="reviewStats">
+            <div class="stat-card">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
+        <div class="card" id="recentReviewsCard" style="display: none;">
+            <h2>📝 最近五星評論</h2>
+            <div id="recentReviewsList">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 門市業績總表</h2>
+            <div id="storeTable">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⭐ 環境整潔評分（1-5項）</h2>
+            <div id="supervisionScoreTable">
+                <div class="loading">載入中...</div>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="card">
+                <h2>🎯 門市達成率</h2>
+                <div class="chart-container">
+                    <canvas id="achievementChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2>💰 門市毛利率</h2>
+                <div class="chart-container">
+                    <canvas id="marginChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <a href="index.html" class="back-link">← 返回首頁</a>
+    </div>
+
+    <script>
+        // 格式化金額
+        function formatMoney(value) {
+            return 'NT$ ' + value.toLocaleString();
+        }
+
+        // 載入門市資料
+        async function loadStoreData() {
+            try {
+                // 載入門市業績
+                const perfResponse = await fetch('/api/performance/store');
+                const perfData = await perfResponse.json();
+                
+                // 載入五星好評
+                const reviewResponse = await fetch('/api/store/reviews');
+                const reviewData = await reviewResponse.json();
+                
+                // 載入環境整潔評分（1-5項）
+                const supervisionResponse = await fetch('/api/store/supervision?type=environment');
+                const supervisionData = await supervisionResponse.json();
+                
+                // 建立環境整潔評分對照表
+                const supervisionMap = {};
+                supervisionData.forEach(s => {
+                    supervisionMap[s.store] = s.percentage || 0; // 使用百分比
+                });
+                
+                // 填充五星好評統計
+                const storeOrder = ['豐原', '潭子', '大雅'];
+                const reviewHtml = storeOrder.map(name => {
+                    const store = reviewData.find(s => (s.store || '').includes(name));
+                    const count = store ? store.reviews : 0;
+                    return `
+                    <div class="stat-card">
+                        <h3>${name}店</h3>
+                        <div class="number">${count}</div>
+                        <div class="stars">${'⭐'.repeat(count > 0 ? 5 : 0)}</div>
+                    </div>
+                `}).join('');
+                document.getElementById('reviewStats').innerHTML = reviewHtml;
+                
+                // 載入最近五星評論（新系統）
+                await loadRecentReviews();
+                
+                // 處理 API 回傳格式（支援陣列或物件）
+                const rawData = Array.isArray(perfData) ? perfData : (perfData.data || []);
+
+                // 使用已宣告的 storeOrder 進行排序
+                
+                // 按指定順序排序
+                const storeData = storeOrder.map(name => {
+                    return rawData.find(s => (s.store_name || s.name || '').includes(name));
+                }).filter(s => s); // 過濾掉 undefined
+                
+                // 填充表格
+                const tableHtml = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>門市名稱</th>
+                                <th>目標業績</th>
+                                <th>實際業績</th>
+                                <th>達成率</th>
+                                <th>毛利率</th>
+                                <th>督導評分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${storeData.map(row => {
+                                const ach = row.achievement_rate * 100;
+                                let achClass = 'ach-danger';
+                                if (ach >= 80) achClass = 'ach-excellent';
+                                else if (ach >= 60) achClass = 'ach-good';
+                                else if (ach >= 40) achClass = 'ach-warning';
+                                
+                                const storeName = row.store_name || row.name || '';
+                                const envScore = supervisionMap[storeName] || 0;
+                                let envClass = 'ach-danger';
+                                if (envScore >= 85) envClass = 'ach-excellent';
+                                else if (envScore >= 70) envClass = 'ach-good';
+                                else if (envScore >= 50) envClass = 'ach-warning';
+                                
+                                return `
+                                <tr>
+                                    <td class="highlight">${storeName}</td>
+                                    <td class="number">${formatMoney(row.target)}</td>
+                                    <td class="number">${formatMoney(row.revenue)}</td>
+                                    <td class="number ${achClass}">${ach.toFixed(2)}%</td>
+                                    <td class="number">${(row.margin_rate * 100).toFixed(2)}%</td>
+                                    <td class="number ${envClass}">${envScore > 0 ? envScore + '%' : '--'}</td>
+                                </tr>
+                            `}).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('storeTable').innerHTML = tableHtml;
+                
+                // 繪製達成率圖表
+                const ctx1 = document.getElementById('achievementChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: storeData.map(d => d.store_name || d.name),
+                        datasets: [{
+                            label: '達成率 (%)',
+                            data: storeData.map(d => d.achievement_rate * 100),
+                            backgroundColor: storeData.map(d => {
+                                const name = d.store_name || d.name || '';
+                                if (name.includes('豐原')) return '#ff9800';
+                                if (name.includes('潭子')) return '#9c27b0';
+                                if (name.includes('大雅')) return '#4caf50';
+                                return '#FABF13';
+                            }),
+                            borderRadius: 8,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#8892b0' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#ccd6f6' }
+                            }
+                        }
+                    }
+                });
+
+                // 繪製毛利率圖表（顏色對照達成率圖表）
+                const ctx2 = document.getElementById('marginChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: storeData.map(d => d.store_name || d.name),
+                        datasets: [{
+                            label: '毛利率 (%)',
+                            data: storeData.map(d => d.margin_rate * 100),
+                            backgroundColor: storeData.map(d => {
+                                const name = d.store_name || d.name || '';
+                                if (name.includes('豐原')) return '#ff9800';
+                                if (name.includes('潭子')) return '#9c27b0';
+                                if (name.includes('大雅')) return '#4caf50';
+                                return '#FABF13';
+                            }),
+                            borderRadius: 8,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#8892b0' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#ccd6f6' }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('載入門市資料失敗:', error);
+                document.getElementById('storeTable').innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        // 載入最近五星評論
+        async function loadRecentReviews() {
+            try {
+                const response = await fetch('/api/google-reviews?min_stars=5&limit=5');
+                const reviews = await response.json();
+                
+                if (reviews && reviews.length > 0) {
+                    document.getElementById('recentReviewsCard').style.display = 'block';
+                    
+                    const reviewsHtml = reviews.map(r => `
+                        <div class="review-item" style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="color: #FABF13; font-weight: 600;">${r.store}店</span>
+                                <span style="color: #ffd700;">${'⭐'.repeat(r.stars)}</span>
+                            </div>
+                            <div style="color: #fff; margin-bottom: 4px;">${r.reviewer || '匿名'}</div>
+                            <div style="color: #94a3b8; font-size: 0.9em; line-height: 1.4;">${r.snippet || ''}</div>
+                            <div style="color: #64748b; font-size: 0.8em; margin-top: 4px;">${r.date || ''}</div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('recentReviewsList').innerHTML = reviewsHtml;
+                    
+                    // 顯示統計期間說明
+                    const firstReview = reviews[0];
+                    if (firstReview && firstReview.received_at) {
+                        document.getElementById('reviewPeriod').textContent = '(2026/4起自動統計)';
+                    }
+                } else {
+                    document.getElementById('recentReviewsCard').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('載入最近評論失敗:', error);
+                document.getElementById('recentReviewsCard').style.display = 'none';
+            }
+        }
+
+        loadStoreData();
+    </script>
+</html>
+<!-- 原始內容結束 -->
+{% endblock %}

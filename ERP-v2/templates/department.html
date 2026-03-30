@@ -1,0 +1,634 @@
+{% extends "base.html" %}
+
+{% block title %}部門業績 — COSH ERP{% endblock %}
+{% block page_title %}部門業績{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 版面 ─────────────────────────────── */
+.dept-layout { display: flex; flex-direction: column; gap: 24px; }
+
+/* ── 期間選擇 ────────────────────────── */
+.period-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.period-label { font-size: .82rem; color: #9a9188; letter-spacing: .04em; }
+
+.period-pills {
+  display: flex;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pill-btn {
+  padding: 7px 16px;
+  font-size: .82rem;
+  background: none;
+  border: none;
+  color: #6b5f52;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  letter-spacing: .04em;
+}
+.pill-btn + .pill-btn { border-left: 1px solid rgba(107,95,82,.2); }
+.pill-btn.active {
+  background: #2c2720;
+  color: #f5f0e8;
+}
+
+.year-sel, .month-sel {
+  padding: 7px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+}
+
+/* ── 卡片 ─────────────────────────────── */
+.d-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 22px 26px;
+}
+.d-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 300;
+  color: #9a9188;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+}
+
+/* ── 統計行 ──────────────────────────── */
+.dept-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+@media (max-width: 600px) { .dept-stats { grid-template-columns: 1fr; } }
+
+.dept-stat-card {
+  border: 1px solid rgba(107,95,82,.12);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.dept-stat-card.store { border-left: 4px solid #6b5f52; }
+.dept-stat-card.biz   { border-left: 4px solid #c0b8b0; }
+
+.dsc-name {
+  font-size: .78rem;
+  color: #9a9188;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.dsc-body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+}
+.dsc-item .dsc-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 300;
+  color: #2c2720;
+  line-height: 1.1;
+  letter-spacing: .02em;
+}
+.dsc-item .dsc-sub {
+  font-size: .74rem;
+  color: #9a9188;
+  margin-top: 2px;
+}
+
+/* 達成率色 */
+.ach { font-weight: 400; }
+.ach.excellent { color: #6b8a5c; }
+.ach.good      { color: #b8893a; }
+.ach.warn      { color: #a87a4a; }
+.ach.danger    { color: #a85c5c; }
+
+/* ── 表格 ─────────────────────────────── */
+.d-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+}
+.d-table th {
+  text-align: left;
+  padding: 9px 12px;
+  font-weight: 400;
+  font-size: .76rem;
+  color: #9a9188;
+  letter-spacing: .06em;
+  border-bottom: 1px solid rgba(107,95,82,.15);
+  white-space: nowrap;
+}
+.d-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid rgba(107,95,82,.07);
+  vertical-align: middle;
+}
+.d-table tr:last-child td { border-bottom: none; }
+
+.dept-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* ── 圖表列 ──────────────────────────── */
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 800px) { .chart-row { grid-template-columns: 1fr; } }
+
+.chart-box {
+  position: relative;
+  height: 340px;
+}
+
+/* ── 趨勢圖 ──────────────────────────── */
+.trend-box {
+  position: relative;
+  height: 300px;
+}
+
+/* ── 進度條 ──────────────────────────── */
+.progress-wrap {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.prog-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.prog-label {
+  width: 48px;
+  font-size: .78rem;
+  color: #6b5f52;
+  text-align: right;
+  flex-shrink: 0;
+}
+.prog-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(107,95,82,.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .5s ease;
+}
+.prog-fill.store   { background: #6b5f52; }
+.prog-fill.biz     { background: #c0b8b0; }
+.prog-pct {
+  width: 42px;
+  font-size: .78rem;
+  color: #9a9188;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+/* ── 空白/Loading ─────────────────────── */
+.empty-hint {
+  text-align: center;
+  padding: 30px 0;
+  color: #9a9188;
+  font-size: .88rem;
+}
+#tableWrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dept-layout">
+
+  <!-- ── 期間選擇 ── -->
+  <div class="period-bar">
+    <span class="period-label">期間</span>
+    <div class="period-pills">
+      <button class="pill-btn" data-p="monthly"  onclick="setPeriod('monthly')">本月</button>
+      <button class="pill-btn active" data-p="quarterly" onclick="setPeriod('quarterly')">本季</button>
+      <button class="pill-btn" data-p="yearly"   onclick="setPeriod('yearly')">本年</button>
+    </div>
+    <select class="year-sel" id="yearSel" onchange="load()">
+      <!-- filled by JS -->
+    </select>
+    <select class="month-sel" id="monthSel" onchange="load()" style="display:none">
+      <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+      <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+      <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+      <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+    </select>
+  </div>
+
+  <!-- ── 部門卡片 ── -->
+  <div class="dept-stats" id="deptStats">
+    <div class="empty-hint" style="grid-column:1/-1">載入中…</div>
+  </div>
+
+  <!-- ── 總表 ── -->
+  <div class="d-card">
+    <div class="d-card-title">業績總表</div>
+    <div id="tableWrap"><div class="empty-hint">載入中…</div></div>
+    <div class="progress-wrap" id="progressWrap" style="display:none;margin-top:18px">
+      <div class="prog-row">
+        <span class="prog-label">門市部</span>
+        <div class="prog-track"><div class="prog-fill store" id="progStore" style="width:0%"></div></div>
+        <span class="prog-pct" id="progStorePct">—</span>
+      </div>
+      <div class="prog-row">
+        <span class="prog-label">業務部</span>
+        <div class="prog-track"><div class="prog-fill biz" id="progBiz" style="width:0%"></div></div>
+        <span class="prog-pct" id="progBizPct">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 圖表 ── -->
+  <div class="chart-row">
+    <div class="d-card">
+      <div class="d-card-title">達成率</div>
+      <div class="chart-box"><canvas id="achChart"></canvas></div>
+    </div>
+    <div class="d-card">
+      <div class="d-card-title">毛利率</div>
+      <div class="chart-box"><canvas id="marChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── 每日趨勢 ── -->
+  <div class="d-card">
+    <div class="d-card-title">每日業績趨勢</div>
+    <div class="trend-box"><canvas id="trendChart"></canvas></div>
+    <div style="display:flex;gap:18px;margin-top:12px;font-size:.78rem;color:#9a9188;justify-content:center">
+      <span><span style="display:inline-block;width:12px;height:3px;background:#6b5f52;vertical-align:middle;border-radius:2px;margin-right:5px"></span>門市部</span>
+      <span><span style="display:inline-block;width:12px;height:3px;background:#c0b8b0;vertical-align:middle;border-radius:2px;margin-right:5px"></span>業務部</span>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ────────────────────────────────────
+// 狀態
+// ────────────────────────────────────
+let periodType = 'quarterly';
+let achChartInst = null;
+let marChartInst = null;
+let trendChartInst = null;
+
+// ────────────────────────────────────
+// 初始化
+// ────────────────────────────────────
+function onAppReady(user) {
+  initYearSel();
+  initMonthSel();
+  load();
+}
+
+function initYearSel() {
+  const sel = document.getElementById('yearSel');
+  const now = new Date().getFullYear();
+  for (let y = now; y >= now - 3; y--) {
+    const o = document.createElement('option');
+    o.value = o.textContent = y;
+    if (y === now) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function initMonthSel() {
+  const sel = document.getElementById('monthSel');
+  const now = new Date().getMonth() + 1;
+  sel.value = now;
+}
+
+function setPeriod(p) {
+  periodType = p;
+  document.querySelectorAll('.pill-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.p === p);
+  });
+  // 月選擇器只在 monthly 模式顯示
+  document.getElementById('monthSel').style.display = p === 'monthly' ? '' : 'none';
+  load();
+}
+
+// ────────────────────────────────────
+// 載入
+// ────────────────────────────────────
+async function load() {
+  const year  = document.getElementById('yearSel').value;
+  const month = document.getElementById('monthSel').value;
+  const params = `year=${year}&month=${month}&period_type=${periodType}`;
+
+  const [deptRes, dailyRes] = await Promise.all([
+    fetch(`/api/performance/department?${params}`),
+    fetch(`/api/performance/department/daily?${params}`)
+  ]);
+
+  const deptData  = await deptRes.json();
+  const dailyData = await dailyRes.json();
+
+  renderStatCards(deptData);
+  renderTable(deptData);
+  renderProgress(deptData);
+  renderAchChart(deptData);
+  renderMarChart(deptData);
+  renderTrendChart(dailyData);
+}
+
+// ────────────────────────────────────
+// 部門統計卡
+// ────────────────────────────────────
+function renderStatCards(data) {
+  const el = document.getElementById('deptStats');
+  if (!data || !data.length) { el.innerHTML = '<div class="empty-hint" style="grid-column:1/-1">無資料</div>'; return; }
+
+  el.innerHTML = data.map(d => {
+    const ach = d.achievement_rate * 100;
+    const achCls = ach >= 80 ? 'excellent' : ach >= 60 ? 'good' : ach >= 40 ? 'warn' : 'danger';
+    const cls = d.name === '門市部' ? 'store' : 'biz';
+    return `
+      <div class="dept-stat-card ${cls}">
+        <div class="dsc-name">${d.name}</div>
+        <div class="dsc-body">
+          <div class="dsc-item">
+            <div class="dsc-val">${fmtM(d.revenue)}</div>
+            <div class="dsc-sub">實際業績</div>
+          </div>
+          <div class="dsc-item">
+            <div class="dsc-val">${fmtM(d.target || 0)}</div>
+            <div class="dsc-sub">期間目標</div>
+          </div>
+          <div class="dsc-item">
+            <div class="dsc-val ach ${achCls}">${ach.toFixed(1)}%</div>
+            <div class="dsc-sub">達成率</div>
+          </div>
+          <div class="dsc-item">
+            <div class="dsc-val">${(d.margin_rate * 100).toFixed(1)}%</div>
+            <div class="dsc-sub">毛利率</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ────────────────────────────────────
+// 總表
+// ────────────────────────────────────
+function renderTable(data) {
+  const el = document.getElementById('tableWrap');
+  if (!data || !data.length) { el.innerHTML = '<div class="empty-hint">無資料</div>'; return; }
+
+  const colors = { '門市部': '#6b5f52', '業務部': '#c0b8b0' };
+
+  el.innerHTML = `
+    <table class="d-table">
+      <thead>
+        <tr>
+          <th>部門</th>
+          <th style="text-align:right">目標</th>
+          <th style="text-align:right">實際業績</th>
+          <th style="text-align:right">毛利</th>
+          <th style="text-align:right">達成率</th>
+          <th style="text-align:right">毛利率</th>
+          <th style="text-align:right">訂單數</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(d => {
+          const ach = d.achievement_rate * 100;
+          const achCls = ach >= 80 ? 'excellent' : ach >= 60 ? 'good' : ach >= 40 ? 'warn' : 'danger';
+          const color = colors[d.name] || '#9a9188';
+          return `<tr>
+            <td><span class="dept-dot" style="background:${color}"></span>${d.name}</td>
+            <td style="text-align:right;color:#9a9188">${fmtN(d.target)}</td>
+            <td style="text-align:right;font-weight:400">${fmtN(d.revenue)}</td>
+            <td style="text-align:right;color:#6b8a5c">${fmtN(d.profit)}</td>
+            <td style="text-align:right"><span class="ach ${achCls}">${ach.toFixed(1)}%</span></td>
+            <td style="text-align:right;color:#9a9188">${(d.margin_rate*100).toFixed(1)}%</td>
+            <td style="text-align:right;color:#9a9188">${d.order_count}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ────────────────────────────────────
+// 達成進度條
+// ────────────────────────────────────
+function renderProgress(data) {
+  const pw = document.getElementById('progressWrap');
+  if (!data || !data.length) { pw.style.display = 'none'; return; }
+  pw.style.display = '';
+  data.forEach(d => {
+    const pct = Math.min(100, d.achievement_rate * 100);
+    const isStore = d.name === '門市部';
+    const fillId  = isStore ? 'progStore' : 'progBiz';
+    const pctId   = isStore ? 'progStorePct' : 'progBizPct';
+    document.getElementById(fillId).style.width = pct + '%';
+    document.getElementById(pctId).textContent  = pct.toFixed(0) + '%';
+  });
+}
+
+// ────────────────────────────────────
+// 達成率圖表
+// ────────────────────────────────────
+function renderAchChart(data) {
+  if (achChartInst) { achChartInst.destroy(); achChartInst = null; }
+  if (!data || !data.length) return;
+
+  const colors = data.map(d => d.name === '門市部' ? '#6b5f52' : '#c0b8b0');
+  achChartInst = new Chart(document.getElementById('achChart'), {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.name),
+      datasets: [{
+        data: data.map(d => Math.min(100, +(d.achievement_rate * 100).toFixed(1))),
+        backgroundColor: colors,
+        borderRadius: 10,
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `達成率 ${(data[ctx.dataIndex].achievement_rate * 100).toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true, max: 100,
+          grid: { color: 'rgba(107,95,82,.07)' },
+          ticks: { color: '#9a9188', callback: v => v + '%', font: { size: 11 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#6b5f52', font: { size: 12 } }
+        }
+      }
+    }
+  });
+}
+
+// ────────────────────────────────────
+// 毛利率圖表
+// ────────────────────────────────────
+function renderMarChart(data) {
+  if (marChartInst) { marChartInst.destroy(); marChartInst = null; }
+  if (!data || !data.length) return;
+
+  const colors = data.map(d => d.name === '門市部' ? '#6b5f52' : '#c0b8b0');
+  marChartInst = new Chart(document.getElementById('marChart'), {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.name),
+      datasets: [{
+        data: data.map(d => +(d.margin_rate * 100).toFixed(1)),
+        backgroundColor: colors,
+        borderRadius: 10,
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `毛利率 ${(data[ctx.dataIndex].margin_rate * 100).toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(107,95,82,.07)' },
+          ticks: { color: '#9a9188', callback: v => v + '%', font: { size: 11 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#6b5f52', font: { size: 12 } }
+        }
+      }
+    }
+  });
+}
+
+// ────────────────────────────────────
+// 每日趨勢
+// ────────────────────────────────────
+function renderTrendChart(data) {
+  if (trendChartInst) { trendChartInst.destroy(); trendChartInst = null; }
+  if (!data || !data.length) return;
+
+  const labels = data.map(d => d.date.slice(5));  // MM-DD
+  trendChartInst = new Chart(document.getElementById('trendChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '門市部',
+          data: data.map(d => d.store),
+          backgroundColor: 'rgba(107,95,82,.75)',
+          borderRadius: 4,
+          borderWidth: 0,
+          stack: 'dept',
+        },
+        {
+          label: '業務部',
+          data: data.map(d => d.business),
+          backgroundColor: 'rgba(192,184,176,.75)',
+          borderRadius: 4,
+          borderWidth: 0,
+          stack: 'dept',
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}：${fmtN(ctx.raw)}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true, stacked: true,
+          grid: { color: 'rgba(107,95,82,.06)' },
+          ticks: { color: '#9a9188', font: { size: 10 }, callback: v => fmtShort(v) }
+        },
+        x: {
+          stacked: true,
+          grid: { display: false },
+          ticks: {
+            color: '#9a9188', font: { size: 10 },
+            maxTicksLimit: 20,
+            maxRotation: 45,
+          }
+        }
+      }
+    }
+  });
+}
+
+// ────────────────────────────────────
+// 工具
+// ────────────────────────────────────
+function fmtN(v) {
+  if (v == null) return '—';
+  return 'NT$ ' + Math.round(v).toLocaleString();
+}
+function fmtM(v) {
+  if (v == null || v === 0) return '—';
+  if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M';
+  if (v >= 10000)   return (v / 10000).toFixed(1) + '萬';
+  return v.toLocaleString();
+}
+function fmtShort(v) {
+  if (v >= 1000000) return (v/1000000).toFixed(1) + 'M';
+  if (v >= 10000)   return (v/10000).toFixed(0) + '萬';
+  return v;
+}
+</script>
+{% endblock %}

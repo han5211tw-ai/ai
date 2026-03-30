@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+{% block title %}進貨輸入 — COSH ERP{% endblock %}
+{% block page_title %}進貨輸入{% endblock %}
+
+{% block styles %}
+<style>
+.pi-layout { display: flex; flex-direction: column; gap: 20px; }
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; overflow: hidden;
+}
+.card-head {
+  padding: 12px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase; }
+.card-body { padding: 20px 22px; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+.form-full { grid-column: 1 / -1; }
+.field-label { font-size: .74rem; color: #9a9188; letter-spacing: .06em; margin-bottom: 5px; }
+.field-label.required::after { content: ' *'; color: #8b3a3a; }
+.f-input, .f-select {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
+  font-size: .84rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
+  transition: border .15s;
+}
+.f-input:focus, .f-select:focus { border-color: #6b5f52; }
+.f-readonly { color: #9a9188; background: #eee9e0; }
+
+/* 產品明細表格 */
+.items-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.items-table th {
+  padding: 9px 10px; font-size: .7rem; font-weight: 300; color: #9a9188;
+  letter-spacing: .04em; border-bottom: 1px solid rgba(107,95,82,.1);
+  background: #faf7f2; text-align: center; white-space: nowrap;
+}
+.items-table th:first-child, .items-table td:first-child { text-align: center; width: 32px; }
+.items-table td {
+  padding: 5px 6px; border-bottom: 1px solid rgba(107,95,82,.05);
+  vertical-align: middle;
+}
+.items-table tr:last-child td { border-bottom: none; }
+
+.cell-input {
+  width: 100%; padding: 5px 7px;
+  border: 1px solid rgba(107,95,82,.15); border-radius: 6px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
+}
+.cell-input:focus { border-color: #6b5f52; }
+.cell-input.num { text-align: right; width: 90px; }
+.cell-input.code { width: 110px; }
+
+/* 產品搜尋下拉 */
+.prod-wrap { position: relative; }
+.prod-list {
+  position: absolute; top: 100%; left: 0; min-width: 260px; z-index: 20;
+  background: #fff; border: 1px solid rgba(107,95,82,.2); border-radius: 8px;
+  margin-top: 2px; max-height: 200px; overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(44,39,32,.12); display: none;
+}
+.prod-item { padding: 8px 12px; cursor: pointer; font-size: .82rem; }
+.prod-item:hover { background: #f5f0e8; }
+.prod-item .pid { font-size: .72rem; color: #9a9188; }
+
+/* 合計列 */
+.total-bar {
+  display: flex; justify-content: flex-end; align-items: center; gap: 16px;
+  padding: 12px 0 0; border-top: 1px solid rgba(107,95,82,.08); margin-top: 8px;
+}
+.total-label { font-size: .78rem; color: #9a9188; }
+.total-amount { font-size: 1.1rem; color: #2c2720; font-weight: 300; letter-spacing: .04em; }
+
+/* 按鈕 */
+.btn-row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+.submit-btn {
+  padding: 10px 26px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px; font-size: .82rem;
+  font-family: 'Noto Serif TC', serif; letter-spacing: .06em; cursor: pointer;
+}
+.submit-btn:disabled { opacity: .5; cursor: default; }
+.add-row-btn {
+  padding: 7px 16px; border: 1px dashed rgba(107,95,82,.3); border-radius: 7px;
+  background: none; font-size: .8rem; color: #6b5f52; cursor: pointer;
+  font-family: 'Noto Serif TC', serif;
+}
+.add-row-btn:hover { background: #f5f0e8; }
+.del-row-btn {
+  padding: 3px 7px; border: 1px solid rgba(139,58,58,.2); border-radius: 5px;
+  background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer;
+}
+.reset-btn {
+  padding: 10px 16px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
+  background: none; font-size: .8rem; color: #6b5f52;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.msg-ok  { font-size: .82rem; color: #4a7c59; }
+.msg-err { font-size: .82rem; color: #8b3a3a; }
+
+/* 列表 */
+.list-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.list-table th {
+  text-align: left; padding: 9px 12px;
+  font-weight: 300; color: #9a9188; font-size: .72rem; letter-spacing: .06em;
+  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.list-table td { padding: 9px 12px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.list-table tr:last-child td { border-bottom: none; }
+.list-table .num-cell { text-align: right; }
+
+.list-bar {
+  display: flex; gap: 10px; align-items: center; padding: 12px 20px;
+  border-bottom: 1px solid rgba(107,95,82,.08);
+}
+.list-search {
+  flex: 1; padding: 8px 12px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none; max-width: 280px;
+}
+.list-search:focus { border-color: #6b5f52; }
+.search-btn {
+  padding: 8px 16px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px; font-size: .78rem;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.del-row-btn-sm {
+  padding: 3px 9px; border: 1px solid rgba(139,58,58,.3);
+  border-radius: 5px; background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer;
+}
+.page-bar {
+  display: flex; gap: 8px; align-items: center; padding: 10px 20px;
+  border-top: 1px solid rgba(107,95,82,.06); justify-content: center;
+}
+.page-btn {
+  padding: 6px 14px; border: 1px solid rgba(107,95,82,.22); border-radius: 6px;
+  background: none; font-size: .78rem; color: #6b5f52; cursor: pointer;
+}
+.page-btn:disabled { opacity: .4; cursor: default; }
+.page-info { font-size: .78rem; color: #9a9188; }
+.tag-po {
+  display: inline-block; padding: 1px 7px; border-radius: 4px;
+  font-size: .72rem; background: #eee9e0; color: #6b5f52;
+  font-family: monospace; letter-spacing: .02em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pi-layout">
+
+  <!-- 輸入表單 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">新增進貨單</span>
+      <span id="msgEl"></span>
+    </div>
+    <div class="card-body">
+
+      <div class="form-grid" style="margin-bottom:16px">
+
+        <div>
+          <div class="field-label required">日期</div>
+          <input class="f-input" type="date" id="fDate" onchange="fetchNextNo()">
+        </div>
+
+        <div>
+          <div class="field-label required">單號</div>
+          <input class="f-input f-readonly" type="text" id="fOrderNo" readonly placeholder="選日期後自動產生">
+        </div>
+
+        <div>
+          <div class="field-label required">供應商</div>
+          <input class="f-input" type="text" id="fSupplier" list="supplierList" placeholder="輸入或選擇供應商" autocomplete="off">
+          <datalist id="supplierList"></datalist>
+        </div>
+
+        <div>
+          <div class="field-label">發票號碼</div>
+          <input class="f-input" type="text" id="fInvoice" placeholder="選填">
+        </div>
+
+        <div>
+          <div class="field-label">入庫倉庫</div>
+          <select class="f-select" id="fWarehouse">
+            <option value="">請選擇（選填）</option>
+            <option value="台中總倉">台中總倉</option>
+            <option value="潭子門市">潭子門市</option>
+            <option value="台中門市">台中門市</option>
+            <option value="台北門市">台北門市</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- 產品明細 -->
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th style="min-width:100px">產品編號</th>
+            <th style="min-width:180px;text-align:left">產品名稱</th>
+            <th style="width:70px">數量</th>
+            <th style="width:100px">單價</th>
+            <th style="width:100px">小計</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+
+      <div style="margin-top:8px">
+        <button class="add-row-btn" onclick="addRow()">＋ 新增品項</button>
+      </div>
+
+      <div class="total-bar">
+        <span class="total-label">總金額</span>
+        <span class="total-amount" id="totalAmount">0</span>
+        <span class="total-label">元</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="submit-btn" id="submitBtn" onclick="submitPurchase()">儲存進貨單</button>
+        <button class="reset-btn" onclick="resetForm()">清除</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 近期進貨紀錄 -->
+  <div class="card">
+    <div class="list-bar">
+      <span class="card-title" style="margin-right:auto">近期進貨紀錄</span>
+      <input class="list-search" type="text" id="listQ" placeholder="搜尋單號/供應商/產品…"
+             onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="search-btn" onclick="doSearch()">搜尋</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="list-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>單號</th>
+            <th>供應商</th>
+            <th style="text-align:left">產品名稱</th>
+            <th style="text-align:right">數量</th>
+            <th style="text-align:right">金額</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="listBody">
+          <tr><td colspan="7" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="page-bar">
+      <button class="page-btn" id="prevBtn" onclick="changePage(-1)">← 上頁</button>
+      <span class="page-info" id="pageInfo">第 1 頁</span>
+      <button class="page-btn" id="nextBtn" onclick="changePage(1)">下頁 →</button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let canDelete   = false;
+let rowCount    = 0;
+let listPage    = 1;
+let listTotal   = 1;
+let prodTimers  = {};
+
+/* ── 供應商清單 ── */
+async function loadSuppliers() {
+  const res  = await fetch('/api/purchase/suppliers');
+  const data = await res.json();
+  if (!data.success) return;
+  const dl = document.getElementById('supplierList');
+  dl.innerHTML = data.suppliers.map(s => `<option value="${s}">`).join('');
+}
+
+/* ── 自動取得 PO 號碼 ── */
+async function fetchNextNo() {
+  const date = document.getElementById('fDate').value.replace(/-/g, '');
+  if (!date) return;
+  const res  = await fetch('/api/purchase/next-no?date=' + date);
+  const data = await res.json();
+  if (data.success) document.getElementById('fOrderNo').value = data.order_no;
+}
+
+/* ── 產品列 ── */
+function addRow(code='', name='', qty=1, price=0) {
+  rowCount++;
+  const n = rowCount;
+  const tr = document.createElement('tr');
+  tr.id = `row-${n}`;
+  tr.innerHTML = `
+    <td style="text-align:center;color:#9a9188;font-size:.78rem">${n}</td>
+    <td>
+      <div class="prod-wrap">
+        <input class="cell-input code" id="code-${n}" value="${code}"
+               placeholder="產品編號" oninput="searchProd(${n})" autocomplete="off">
+        <div class="prod-list" id="plist-${n}"></div>
+      </div>
+    </td>
+    <td>
+      <input class="cell-input" id="name-${n}" value="${name}"
+             placeholder="產品名稱" style="width:100%;min-width:160px">
+    </td>
+    <td><input class="cell-input num" id="qty-${n}"   type="number" value="${qty}"   min="1" oninput="calcRow(${n})"></td>
+    <td><input class="cell-input num" id="price-${n}" type="number" value="${price}" min="0" oninput="calcRow(${n})"></td>
+    <td style="text-align:right;color:#2c2720;font-size:.84rem" id="sub-${n}">
+      ${formatNum(qty * price)}
+    </td>
+    <td style="text-align:center">
+      <button class="del-row-btn" onclick="removeRow(${n})">✕</button>
+    </td>`;
+  document.getElementById('itemsBody').appendChild(tr);
+  calcRow(n);
+}
+
+function removeRow(n) {
+  const tr = document.getElementById(`row-${n}`);
+  if (tr) tr.remove();
+  calcTotal();
+}
+
+function calcRow(n) {
+  const qty   = parseFloat(document.getElementById(`qty-${n}`)?.value)   || 0;
+  const price = parseFloat(document.getElementById(`price-${n}`)?.value) || 0;
+  document.getElementById(`sub-${n}`).textContent = formatNum(qty * price);
+  calcTotal();
+}
+
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('#itemsBody tr').forEach(tr => {
+    const id = tr.id?.replace('row-', '');
+    if (!id) return;
+    const qty   = parseFloat(document.getElementById(`qty-${id}`)?.value)   || 0;
+    const price = parseFloat(document.getElementById(`price-${id}`)?.value) || 0;
+    total += qty * price;
+  });
+  document.getElementById('totalAmount').textContent = formatNum(total);
+}
+
+/* ── 產品搜尋 ── */
+async function searchProd(n) {
+  const q = (document.getElementById(`code-${n}`)?.value || '').trim();
+  if (q.length < 2) { closeProdList(n); return; }
+  clearTimeout(prodTimers[n]);
+  prodTimers[n] = setTimeout(async () => {
+    const res  = await fetch('/api/products/search?q=' + encodeURIComponent(q));
+    const list = await res.json();
+    if (!Array.isArray(list) || !list.length) { closeProdList(n); return; }
+    const el = document.getElementById(`plist-${n}`);
+    el.style.display = 'block';
+    el.innerHTML = list.slice(0,20).map(p =>
+      `<div class="prod-item" onclick="selectProd(${n},'${(p.product_code||'').replace(/'/g,"\\'")}','${(p.product_name||'').replace(/'/g,"\\'")}')">
+        <div>${p.product_name || p.item_spec || ''}</div>
+        <div class="pid">${p.product_code || ''}</div>
+      </div>`
+    ).join('');
+  }, 250);
+}
+
+function selectProd(n, code, name) {
+  document.getElementById(`code-${n}`).value = code;
+  document.getElementById(`name-${n}`).value = name;
+  closeProdList(n);
+  calcRow(n);
+}
+
+function closeProdList(n) {
+  const el = document.getElementById(`plist-${n}`);
+  if (el) el.style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.prod-wrap'))
+    document.querySelectorAll('.prod-list').forEach(el => { el.style.display = 'none'; });
+});
+
+/* ── 提交 ── */
+async function submitPurchase() {
+  const date     = document.getElementById('fDate').value;
+  const order_no = document.getElementById('fOrderNo').value.trim();
+  const supplier = document.getElementById('fSupplier').value.trim();
+  if (!date || !order_no || !supplier) {
+    showMsg('日期、單號、供應商為必填', false); return;
+  }
+
+  const items = [];
+  let hasError = false;
+  document.querySelectorAll('#itemsBody tr').forEach(tr => {
+    const id = tr.id?.replace('row-', ''); if (!id) return;
+    const code  = document.getElementById(`code-${id}`)?.value.trim() || '';
+    const name  = document.getElementById(`name-${id}`)?.value.trim() || '';
+    const qty   = parseInt(document.getElementById(`qty-${id}`)?.value) || 0;
+    const price = parseFloat(document.getElementById(`price-${id}`)?.value) || 0;
+    if (!name || qty <= 0) { hasError = true; return; }
+    items.push({ product_code: code, product_name: name, quantity: qty, price });
+  });
+
+  if (!items.length) { showMsg('請至少填寫一項完整的品項（名稱、數量）', false); return; }
+  if (hasError) showMsg('部分品項資料不完整，已略過', false);
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+
+  const payload = {
+    order_no, date,
+    supplier_name:  supplier,
+    invoice_number: document.getElementById('fInvoice').value.trim(),
+    warehouse:      document.getElementById('fWarehouse').value,
+    created_by:     currentUser?.name || '',
+    items,
+  };
+
+  const res  = await fetch('/api/purchase/submit', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  btn.disabled = false;
+
+  if (data.success) {
+    showMsg(`儲存成功！${data.order_no}，共 ${data.item_count} 品項`, true);
+    resetForm();
+    loadList();
+  } else {
+    showMsg(data.message || '儲存失敗', false);
+  }
+}
+
+function resetForm() {
+  document.getElementById('fDate').value     = new Date().toISOString().slice(0,10);
+  document.getElementById('fOrderNo').value  = '';
+  document.getElementById('fSupplier').value = '';
+  document.getElementById('fInvoice').value  = '';
+  document.getElementById('fWarehouse').value= '';
+  document.getElementById('itemsBody').innerHTML = '';
+  rowCount = 0;
+  fetchNextNo();
+  addRow(); addRow(); addRow();
+  calcTotal();
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg;
+  el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 5000);
+}
+
+function formatNum(n) {
+  return Math.round(n).toLocaleString('zh-TW');
+}
+
+/* ── 列表 ── */
+async function loadList() {
+  const q = document.getElementById('listQ').value.trim();
+  const tbody = document.getElementById('listBody');
+  let data;
+  try {
+    const res = await fetch(`/api/purchase/list?page=${listPage}&q=${encodeURIComponent(q)}`);
+    data = await res.json();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#8b3a3a;padding:24px">載入失敗：${e.message}</td></tr>`;
+    return;
+  }
+  if (!data.success) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#8b3a3a;padding:24px">${data.message || '載入失敗'}</td></tr>`;
+    return;
+  }
+
+  listTotal = data.pages || 1;
+  document.getElementById('pageInfo').textContent = `第 ${listPage} / ${listTotal} 頁`;
+  document.getElementById('prevBtn').disabled = listPage <= 1;
+  document.getElementById('nextBtn').disabled = listPage >= listTotal;
+
+  if (!data.rows?.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9a9188;padding:24px">暫無紀錄</td></tr>';
+    return;
+  }
+
+  let lastPo = null;
+  tbody.innerHTML = data.rows.map(r => {
+    const isFirst = r.order_no !== lastPo;
+    lastPo = r.order_no;
+    const delCell = canDelete
+      ? `<td><button class="del-row-btn-sm" onclick="deleteRow(${r.id})">刪除</button></td>`
+      : '<td></td>';
+    return `<tr style="${isFirst ? 'border-top:1px solid rgba(107,95,82,.1)' : ''}">
+      <td style="white-space:nowrap;color:#9a9188;font-size:.8rem">${isFirst ? (r.date || '—') : ''}</td>
+      <td>${isFirst ? `<span class="tag-po">${r.order_no || '—'}</span>` : ''}</td>
+      <td style="font-size:.82rem">${isFirst ? (r.supplier_name || '—') : ''}</td>
+      <td style="font-size:.82rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.product_name || '—'}</td>
+      <td class="num-cell" style="font-size:.82rem">${r.quantity ?? '—'}</td>
+      <td class="num-cell">${formatNum(r.amount || 0)}</td>
+      ${delCell}
+    </tr>`;
+  }).join('');
+}
+
+function doSearch() { listPage = 1; loadList(); }
+
+function changePage(dir) {
+  const next = listPage + dir;
+  if (next < 1 || next > listTotal) return;
+  listPage = next;
+  loadList();
+}
+
+async function deleteRow(rowId) {
+  if (!confirm('確定刪除這筆進貨紀錄？')) return;
+  const res  = await fetch(`/api/purchase/row/${rowId}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) loadList();
+  else alert(data.message || '刪除失敗');
+}
+
+/* ── 初始化 ── */
+function onAppReady(user) {
+  currentUser = user;
+  canDelete   = (user.title === '老闆');
+
+  document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+
+  loadSuppliers();
+  fetchNextNo();
+  addRow(); addRow(); addRow();
+  loadList();
+}
+</script>
+{% endblock %}

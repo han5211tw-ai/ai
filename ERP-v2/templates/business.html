@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+
+{% block title %}業務部績效 — COSH ERP{% endblock %}
+{% block page_title %}業務部績效{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 版面 ─────────────────────────────── */
+.biz-layout { display: flex; flex-direction: column; gap: 24px; }
+
+/* ── 期間選擇列 ───────────────────────── */
+.ctrl-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ctrl-sep { width: 1px; height: 22px; background: rgba(107,95,82,.18); flex-shrink: 0; }
+.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+
+.period-pills {
+  display: flex;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pill-btn {
+  padding: 7px 15px;
+  font-size: .82rem;
+  background: none;
+  border: none;
+  color: #6b5f52;
+  cursor: pointer;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  letter-spacing: .04em;
+  transition: background .15s;
+}
+.pill-btn + .pill-btn { border-left: 1px solid rgba(107,95,82,.2); }
+.pill-btn.active { background: #2c2720; color: #f5f0e8; }
+
+.year-sel, .month-sel {
+  padding: 7px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+}
+
+/* ── 業務員卡片 ───────────────────────── */
+.person-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+.person-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px;
+  padding: 22px 24px;
+  border-left: 4px solid #6b5f52;
+}
+.person-card:last-child { border-left-color: #b0a899; }
+.person-name {
+  font-size: 1.05rem;
+  font-weight: 300;
+  letter-spacing: .08em;
+  color: #2c2720;
+  margin-bottom: 16px;
+}
+.person-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pstat { text-align: center; }
+.pstat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: #2c2720;
+  letter-spacing: .02em;
+}
+.pstat-lbl { font-size: .72rem; color: #9a9188; margin-top: 2px; letter-spacing: .04em; }
+.ach-bar-wrap {
+  margin-top: 14px;
+  background: rgba(107,95,82,.1);
+  border-radius: 4px;
+  height: 6px;
+  overflow: hidden;
+}
+.ach-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .4s ease;
+}
+
+/* ── 表格卡片 ─────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px;
+  padding: 22px 24px;
+}
+.card-title {
+  font-size: .78rem;
+  font-weight: 300;
+  letter-spacing: .1em;
+  color: #9a9188;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+/* ── 匯總表格 ─────────────────────────── */
+.summary-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.summary-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 300;
+  color: #9a9188;
+  letter-spacing: .06em;
+  font-size: .75rem;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.summary-table td {
+  padding: 11px 12px;
+  color: #2c2720;
+  border-bottom: 1px solid rgba(107,95,82,.06);
+}
+.summary-table tr:last-child td { border-bottom: none; }
+.num { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: .95rem; }
+.tag-good { color: #4a7c59; }
+.tag-warn { color: #a0763a; }
+.tag-bad  { color: #8b3a3a; }
+
+/* ── 圖表列 ───────────────────────────── */
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 680px) { .chart-row { grid-template-columns: 1fr; } }
+.chart-wrap { height: 300px; position: relative; }
+
+/* ── 服務記錄區塊 ─────────────────────── */
+.service-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.svc-card {
+  background: #f5f0e8;
+  border-radius: 12px;
+  padding: 16px 18px;
+  text-align: center;
+}
+.svc-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: #2c2720;
+}
+.svc-lbl { font-size: .72rem; color: #9a9188; margin-top: 3px; letter-spacing: .04em; }
+
+.per-person-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 14px;
+}
+@media (max-width: 560px) { .per-person-row { grid-template-columns: 1fr; } }
+
+.type-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.type-row { display: flex; align-items: center; gap: 10px; font-size: .82rem; }
+.type-label { width: 64px; color: #6b5f52; flex-shrink: 0; text-align: right; font-size: .78rem; }
+.type-bar-bg {
+  flex: 1;
+  background: rgba(107,95,82,.1);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+.type-bar-fill { height: 100%; border-radius: 4px; background: #6b5f52; }
+.type-count { width: 28px; text-align: right; color: #9a9188; font-size: .78rem; }
+
+.trend-wrap { height: 240px; position: relative; margin-top: 16px; }
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg, rgba(107,95,82,.07) 25%, rgba(107,95,82,.14) 50%, rgba(107,95,82,.07) 75%);
+  background-size: 200% 100%;
+  animation: skel-shine 1.4s infinite;
+  border-radius: 6px;
+  height: 18px;
+  margin: 6px 0;
+}
+@keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+#summaryTableWrap, #svcPersonTable { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="biz-layout">
+
+  <!-- ── 期間選擇列 ── -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">期間</span>
+    <div class="period-pills" id="periodPills">
+      <button class="pill-btn active" data-p="monthly">本月</button>
+      <button class="pill-btn" data-p="quarterly">本季</button>
+      <button class="pill-btn" data-p="yearly">本年</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <select class="year-sel" id="yearSel"></select>
+    <select class="month-sel" id="monthSel"></select>
+  </div>
+
+  <!-- ── 業務員卡片 ── -->
+  <div class="person-cards" id="personCards">
+    <div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div></div>
+    <div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div></div>
+  </div>
+
+  <!-- ── 業績匯總表 ── -->
+  <div class="card">
+    <div class="card-title">業績匯總</div>
+    <div id="summaryTableWrap"><div class="skel"></div><div class="skel"></div></div>
+  </div>
+
+  <!-- ── 達成率 / 毛利率 圖表 ── -->
+  <div class="chart-row">
+    <div class="card">
+      <div class="card-title">達成率比較</div>
+      <div class="chart-wrap"><canvas id="achChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">毛利率比較</div>
+      <div class="chart-wrap"><canvas id="marginChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── 服務記錄 ── -->
+  <div class="card">
+    <div class="card-title">服務記錄統計</div>
+
+    <!-- 總量卡片 -->
+    <div class="service-cards" id="svcCards">
+      <div class="skel" style="height:70px"></div>
+    </div>
+
+    <!-- 每人明細 + 類型分布 -->
+    <div class="per-person-row">
+      <!-- 左：每人明細表 -->
+      <div>
+        <div class="card-title" style="margin-bottom:10px">業務員明細</div>
+        <div id="svcPersonTable"><div class="skel"></div></div>
+      </div>
+      <!-- 右：服務類型橫條 -->
+      <div>
+        <div class="card-title" style="margin-bottom:10px">服務類型</div>
+        <div class="type-bars" id="typeBarWrap"><div class="skel"></div></div>
+      </div>
+    </div>
+
+    <!-- 趨勢折線圖 -->
+    <div style="margin-top:18px">
+      <div class="card-title">近 30 天服務趨勢</div>
+      <div class="trend-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* ── 狀態 ───────────────────────────────────────── */
+const now = new Date();
+let state = {
+  periodType: 'monthly',
+  year:  now.getFullYear(),
+  month: now.getMonth() + 1,
+};
+let achChartInst = null, marginChartInst = null, trendChartInst = null;
+
+/* ── 工具 ───────────────────────────────────────── */
+const fmt  = n => n ? 'NT$\u00a0' + Math.round(n).toLocaleString('zh-TW') : 'NT$\u00a00';
+const fmtP = n => (n * 100).toFixed(1) + '%';
+const achColor = r => r >= 1 ? '#4a7c59' : r >= .8 ? '#a0763a' : '#8b3a3a';
+const achClass = r => r >= 1 ? 'tag-good' : r >= .8 ? 'tag-warn' : 'tag-bad';
+const BAR_COLORS = ['#6b5f52','#c0b8b0','#9a8f84','#2c2720'];
+
+/* ── 期間選擇器初始化 ────────────────────────────── */
+function initSelectors() {
+  const ySel = document.getElementById('yearSel');
+  const mSel = document.getElementById('monthSel');
+  for (let y = now.getFullYear(); y >= 2023; y--) {
+    const o = document.createElement('option'); o.value = y; o.textContent = y + '年';
+    if (y === state.year) o.selected = true;
+    ySel.appendChild(o);
+  }
+  for (let m = 1; m <= 12; m++) {
+    const o = document.createElement('option'); o.value = m; o.textContent = m + '月';
+    if (m === state.month) o.selected = true;
+    mSel.appendChild(o);
+  }
+  ySel.addEventListener('change', () => { state.year = +ySel.value; loadAll(); });
+  mSel.addEventListener('change', () => { state.month = +mSel.value; loadAll(); });
+
+  document.getElementById('periodPills').addEventListener('click', e => {
+    const btn = e.target.closest('.pill-btn'); if (!btn) return;
+    document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.periodType = btn.dataset.p;
+    loadAll();
+  });
+}
+
+/* ── API ─────────────────────────────────────────── */
+function apiUrl(endpoint) {
+  return `${endpoint}?year=${state.year}&month=${state.month}&period_type=${state.periodType}`;
+}
+
+/* ── 主載入 ─────────────────────────────────────── */
+async function loadAll() {
+  const [perfRes, svcRes] = await Promise.all([
+    fetch(apiUrl('/api/performance/business')),
+    fetch(apiUrl('/api/service-records/detail')),
+  ]);
+  const perf = await perfRes.json();
+  const svc  = await svcRes.json();
+  renderPerf(perf);
+  renderService(svc);
+}
+
+/* ── 業績渲染 ───────────────────────────────────── */
+function renderPerf(data) {
+  if (!Array.isArray(data)) data = [];
+
+  // ── 個人卡片 ──
+  const COLORS = ['#6b5f52','#b0a899'];
+  const cardsHtml = data.map((p, i) => {
+    const pct = Math.min(p.achievement_rate * 100, 100);
+    const barColor = achColor(p.achievement_rate);
+    return `
+      <div class="person-card" style="border-left-color:${COLORS[i % COLORS.length]}">
+        <div class="person-name">${p.name}</div>
+        <div class="person-stats">
+          <div class="pstat">
+            <div class="pstat-val">${fmtP(p.achievement_rate)}</div>
+            <div class="pstat-lbl">達成率</div>
+          </div>
+          <div class="pstat">
+            <div class="pstat-val">${fmtP(p.margin_rate)}</div>
+            <div class="pstat-lbl">毛利率</div>
+          </div>
+          <div class="pstat">
+            <div class="pstat-val">${fmt(p.total)}</div>
+            <div class="pstat-lbl">實際業績</div>
+          </div>
+          <div class="pstat">
+            <div class="pstat-val">${p.orders}</div>
+            <div class="pstat-lbl">筆數</div>
+          </div>
+        </div>
+        <div class="ach-bar-wrap">
+          <div class="ach-bar-fill" style="width:${pct}%;background:${barColor}"></div>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('personCards').innerHTML = cardsHtml || '<div style="color:#9a9188;font-size:.85rem">暫無資料</div>';
+
+  // ── 匯總表格 ──
+  let tbl = `<table class="summary-table">
+    <thead><tr>
+      <th>業務員</th><th>目標</th><th>實際業績</th><th>達成率</th><th>毛利率</th><th>筆數</th><th>均單</th>
+    </tr></thead><tbody>`;
+  data.forEach(p => {
+    tbl += `<tr>
+      <td><strong>${p.name}</strong></td>
+      <td class="num">${fmt(p.target)}</td>
+      <td class="num">${fmt(p.total)}</td>
+      <td class="num ${achClass(p.achievement_rate)}">${fmtP(p.achievement_rate)}</td>
+      <td class="num">${fmtP(p.margin_rate)}</td>
+      <td class="num">${p.orders}</td>
+      <td class="num">${fmt(p.avg)}</td>
+    </tr>`;
+  });
+  tbl += '</tbody></table>';
+  document.getElementById('summaryTableWrap').innerHTML = tbl;
+
+  // ── 達成率圖表 ──
+  const achCtx = document.getElementById('achChart').getContext('2d');
+  if (achChartInst) achChartInst.destroy();
+  achChartInst = new Chart(achCtx, {
+    type: 'bar',
+    data: {
+      labels: data.map(p => p.name),
+      datasets: [{
+        label: '達成率 %',
+        data: data.map(p => +(p.achievement_rate * 100).toFixed(1)),
+        backgroundColor: data.map(p => achColor(p.achievement_rate)),
+        borderRadius: 6, borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#9a9188', font: { family: 'Cormorant Garamond', size: 13 },
+                   callback: v => v + '%' },
+          grid: { color: 'rgba(107,95,82,.08)' },
+        },
+        x: { ticks: { color: '#6b5f52', font: { family: 'Noto Serif TC', size: 13 } },
+             grid: { display: false } }
+      }
+    }
+  });
+
+  // ── 毛利率圖表 ──
+  const mgCtx = document.getElementById('marginChart').getContext('2d');
+  if (marginChartInst) marginChartInst.destroy();
+  marginChartInst = new Chart(mgCtx, {
+    type: 'bar',
+    data: {
+      labels: data.map(p => p.name),
+      datasets: [{
+        label: '毛利率 %',
+        data: data.map(p => +(p.margin_rate * 100).toFixed(1)),
+        backgroundColor: BAR_COLORS,
+        borderRadius: 6, borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#9a9188', font: { family: 'Cormorant Garamond', size: 13 },
+                   callback: v => v + '%' },
+          grid: { color: 'rgba(107,95,82,.08)' },
+        },
+        x: { ticks: { color: '#6b5f52', font: { family: 'Noto Serif TC', size: 13 } },
+             grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* ── 服務記錄渲染 ────────────────────────────────── */
+function renderService(svc) {
+  if (!svc.success) {
+    document.getElementById('svcCards').innerHTML = '<span style="color:#9a9188;font-size:.82rem">暫無服務記錄</span>';
+    return;
+  }
+
+  const summary = svc.salesperson_summary || [];
+  const types   = svc.service_types || [];
+  const daily   = svc.daily_stats || [];
+
+  // 總量統計卡片
+  const total    = summary.reduce((s, r) => s + (r.total_count || 0), 0);
+  const unique   = summary.reduce((s, r) => s + (r.unique_customers || 0), 0);
+  const contract = summary.reduce((s, r) => s + (r.contract_count || 0), 0);
+  const conRate  = total > 0 ? (contract / total * 100).toFixed(1) : 0;
+  document.getElementById('svcCards').innerHTML = `
+    <div class="svc-card"><div class="svc-val">${total}</div><div class="svc-lbl">服務總筆數</div></div>
+    <div class="svc-card"><div class="svc-val">${unique}</div><div class="svc-lbl">服務客戶數</div></div>
+    <div class="svc-card"><div class="svc-val">${contract}</div><div class="svc-lbl">合約客戶</div></div>
+    <div class="svc-card"><div class="svc-val">${conRate}%</div><div class="svc-lbl">合約比例</div></div>
+  `;
+
+  // 每人明細表
+  let personHtml = `<table class="summary-table">
+    <thead><tr><th>業務員</th><th>筆數</th><th>客戶數</th><th>合約</th><th>合約率</th></tr></thead><tbody>`;
+  summary.forEach(r => {
+    const cr = r.total_count > 0 ? (r.contract_count / r.total_count * 100).toFixed(1) : 0;
+    personHtml += `<tr>
+      <td><strong>${r.salesperson}</strong></td>
+      <td class="num">${r.total_count}</td>
+      <td class="num">${r.unique_customers}</td>
+      <td class="num">${r.contract_count}</td>
+      <td class="num">${cr}%</td>
+    </tr>`;
+  });
+  personHtml += '</tbody></table>';
+  document.getElementById('svcPersonTable').innerHTML = personHtml;
+
+  // 服務類型橫條（最多顯示 8 種）
+  const maxCount = types.length > 0 ? Math.max(...types.map(t => t.count)) : 1;
+  const typeHtml = types.slice(0, 8).map(t => `
+    <div class="type-row">
+      <span class="type-label">${t.type}</span>
+      <div class="type-bar-bg">
+        <div class="type-bar-fill" style="width:${(t.count / maxCount * 100).toFixed(0)}%"></div>
+      </div>
+      <span class="type-count">${t.count}</span>
+    </div>`).join('');
+  document.getElementById('typeBarWrap').innerHTML = typeHtml || '<span style="color:#9a9188;font-size:.8rem">暫無資料</span>';
+
+  // 趨勢折線圖（最近 30 天 per 業務員）
+  const names = [...new Set(daily.map(d => d.salesperson))];
+  const dates = [...new Set(daily.map(d => d.date))].sort();
+  const TREND_COLORS = ['#6b5f52','#c0b8b0'];
+  const datasets = names.map((name, i) => ({
+    label: name,
+    data: dates.map(date => {
+      const r = daily.find(d => d.date === date && d.salesperson === name);
+      return r ? r.count : 0;
+    }),
+    borderColor: TREND_COLORS[i % TREND_COLORS.length],
+    backgroundColor: TREND_COLORS[i % TREND_COLORS.length] + '22',
+    fill: true, tension: 0.35, borderWidth: 2, pointRadius: 2,
+  }));
+
+  const tCtx = document.getElementById('trendChart').getContext('2d');
+  if (trendChartInst) trendChartInst.destroy();
+  trendChartInst = new Chart(tCtx, {
+    type: 'line',
+    data: { labels: dates.map(d => d.slice(5)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', align: 'end',
+          labels: { color: '#6b5f52', font: { family: 'Noto Serif TC', size: 12 },
+                    boxWidth: 12, usePointStyle: true } }
+      },
+      scales: {
+        y: { beginAtZero: true,
+             ticks: { color: '#9a9188', precision: 0, font: { family: 'Cormorant Garamond', size: 12 } },
+             grid: { color: 'rgba(107,95,82,.08)' } },
+        x: { ticks: { color: '#9a9188', font: { size: 11 }, maxRotation: 45 },
+             grid: { display: false } },
+      }
+    }
+  });
+}
+
+/* ── 啟動 ─────────────────────────────────────────── */
+initSelectors();
+onAppReady(user => {
+  loadAll();
+});
+</script>
+{% endblock %}

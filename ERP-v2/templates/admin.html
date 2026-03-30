@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}後台管理中心 — COSH ERP{% endblock %}
+{% block page_title %}後台管理中心{% endblock %}
+
+{% block styles %}
+<style>
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+.admin-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px;
+  padding: 22px 24px;
+  cursor: pointer;
+  transition: box-shadow .15s, transform .12s;
+  text-decoration: none; color: inherit;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.admin-card:hover { box-shadow: 0 4px 18px rgba(44,39,32,.1); transform: translateY(-2px); }
+.card-icon { font-size: 1.4rem; }
+.card-label { font-size: 1rem; color: #2c2720; letter-spacing: .04em; }
+.card-desc { font-size: .78rem; color: #9a9188; line-height: 1.6; }
+.card-badge {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 20px; font-size: .7rem; letter-spacing: .04em;
+  align-self: flex-start;
+}
+.badge-staff  { background: #e8f4e8; color: #3d7a3d; }
+.badge-data   { background: #e8eef8; color: #3a5a8b; }
+.badge-system { background: #f5eee8; color: #7a4a2a; }
+.badge-bonus  { background: #fdf5e0; color: #8b6a10; }
+
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px; margin-bottom: 28px;
+}
+.stat-chip {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.12);
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.stat-chip .n { font-size: 1.4rem; color: #2c2720; }
+.stat-chip .l { font-size: .72rem; color: #9a9188; letter-spacing: .06em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 快速統計 -->
+<div class="stats-bar" id="statsBar">
+  <div class="stat-chip"><div class="n" id="sStaff">—</div><div class="l">在職員工</div></div>
+  <div class="stat-chip"><div class="n" id="sAnn">—</div><div class="l">有效公告</div></div>
+  <div class="stat-chip"><div class="n" id="sBonus">—</div><div class="l">獎金規則</div></div>
+  <div class="stat-chip"><div class="n" id="sRec">—</div><div class="l">推薦備貨品項</div></div>
+</div>
+
+<!-- 功能卡片 -->
+<div class="admin-grid">
+
+  <a class="admin-card" href="/staff_management">
+    <div class="card-icon">👥</div>
+    <div class="card-label">員工管理</div>
+    <div class="card-desc">查看與編輯員工資料、修改密碼、設定門市歸屬與職稱</div>
+    <span class="card-badge badge-staff">人員設定</span>
+  </a>
+
+  <a class="admin-card" href="/admin/announcement_management">
+    <div class="card-icon">📢</div>
+    <div class="card-label">公告管理</div>
+    <div class="card-desc">新增、編輯、停用系統公告，設定置頂與到期日</div>
+    <span class="card-badge badge-system">系統</span>
+  </a>
+
+  <a class="admin-card" href="/admin/bonus_rules">
+    <div class="card-icon">🎯</div>
+    <div class="card-label">獎金規則</div>
+    <div class="card-desc">設定商品獎金活動（固定金額或百分比），指定時間範圍與適用對象</div>
+    <span class="card-badge badge-bonus">獎金</span>
+  </a>
+
+  <a class="admin-card" href="/admin/bonus_report">
+    <div class="card-icon">💰</div>
+    <div class="card-label">獎金報表</div>
+    <div class="card-desc">依日期範圍計算各業務員獎金明細，確認後存入紀錄</div>
+    <span class="card-badge badge-bonus">獎金</span>
+  </a>
+
+  <a class="admin-card" href="/admin/recommended_products">
+    <div class="card-icon">📦</div>
+    <div class="card-label">推薦備貨（後台）</div>
+    <div class="card-desc">管理各分類的推薦備貨清單，設定品項、數量與說明</div>
+    <span class="card-badge badge-data">庫存</span>
+  </a>
+
+  <a class="admin-card" href="/admin/health">
+    <div class="card-icon">🔧</div>
+    <div class="card-label">系統狀態</div>
+    <div class="card-desc">查看資料庫連線、API 延遲、各表筆數等系統健康資訊</div>
+    <span class="card-badge badge-system">系統</span>
+  </a>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+onAppReady(async user => {
+  if (user.title !== '老闆') {
+    document.querySelector('.admin-grid').innerHTML =
+      '<p style="color:#8b3a3a;padding:20px">此頁面僅限老闆使用</p>';
+    return;
+  }
+
+  // 快速統計
+  const [staffRes, annRes, bonusRes, recRes] = await Promise.all([
+    fetch('/api/staff/list'),
+    fetch('/api/system/announcements/all'),
+    fetch('/api/bonus-rules'),
+    fetch('/api/recommended-products'),
+  ]);
+  const [staff, ann, bonus, rec] = await Promise.all([
+    staffRes.json(), annRes.json(), bonusRes.json(), recRes.json()
+  ]);
+
+  document.getElementById('sStaff').textContent =
+    (staff.staff || []).filter(s => s.is_active).length;
+  document.getElementById('sAnn').textContent =
+    (Array.isArray(ann) ? ann : []).filter(a => a.is_active).length;
+  document.getElementById('sBonus').textContent =
+    (bonus.rules || []).filter(r => r.is_active).length;
+  document.getElementById('sRec').textContent =
+    (Array.isArray(rec) ? rec : []).filter(r => r.is_active).length;
+});
+</script>
+{% endblock %}

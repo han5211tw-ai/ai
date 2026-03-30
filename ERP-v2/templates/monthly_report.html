@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+
+{% block title %}月會報告 — COSH ERP{% endblock %}
+{% block page_title %}月會報告{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 版面 ─────────────────────────────── */
+.report-layout { display: flex; flex-direction: column; gap: 28px; }
+
+/* ── 月份選擇列 ───────────────────────── */
+.month-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.month-bar-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-weight: 300;
+  color: #2c2720;
+  letter-spacing: .06em;
+  flex: 1;
+}
+.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+.year-sel, .month-sel {
+  padding: 7px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+}
+.print-btn {
+  padding: 7px 18px;
+  border: 1px solid rgba(107,95,82,.3);
+  border-radius: 8px;
+  background: none;
+  font-size: .8rem;
+  color: #6b5f52;
+  cursor: pointer;
+  font-family: 'Noto Serif TC', serif;
+  letter-spacing: .06em;
+  transition: background .15s;
+}
+.print-btn:hover { background: rgba(107,95,82,.08); }
+
+/* ── 卡片 ─────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px;
+  padding: 24px 28px;
+}
+.section-title {
+  font-size: .72rem;
+  font-weight: 300;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #9a9188;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+}
+
+/* ── 總覽統計卡片 ─────────────────────── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+.ov-card {
+  background: #f5f0e8;
+  border-radius: 12px;
+  padding: 18px 20px;
+  text-align: center;
+}
+.ov-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-weight: 300;
+  color: #2c2720;
+  letter-spacing: .02em;
+}
+.ov-lbl { font-size: .71rem; color: #9a9188; margin-top: 4px; letter-spacing: .05em; }
+
+/* ── 表格 ─────────────────────────────── */
+.rep-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.rep-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 300;
+  color: #9a9188;
+  letter-spacing: .06em;
+  font-size: .74rem;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.rep-table td {
+  padding: 10px 12px;
+  color: #2c2720;
+  border-bottom: 1px solid rgba(107,95,82,.06);
+}
+.rep-table tr:last-child td { border-bottom: none; }
+.num { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: .92rem; }
+.tag-good { color: #4a7c59; font-weight: 400; }
+.tag-warn { color: #a0763a; font-weight: 400; }
+.tag-bad  { color: #8b3a3a; font-weight: 400; }
+
+/* ── 雙欄圖表 ─────────────────────────── */
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 700px) { .chart-row { grid-template-columns: 1fr; } }
+.chart-wrap { height: 200px; position: relative; }
+
+/* ── 門市達成進度條 ───────────────────── */
+.store-rows { display: flex; flex-direction: column; gap: 14px; }
+.store-row { display: grid; grid-template-columns: 70px 1fr 90px 80px; align-items: center; gap: 12px; }
+.store-name { font-size: .83rem; color: #2c2720; letter-spacing: .04em; }
+.ach-bar-bg { background: rgba(107,95,82,.1); border-radius: 4px; height: 8px; overflow: hidden; }
+.ach-bar-fill { height: 100%; border-radius: 4px; }
+.ach-val { font-family: 'Cormorant Garamond', serif; font-size: .9rem; text-align: right; }
+.ach-rev { font-family: 'Cormorant Garamond', serif; font-size: .82rem; color: #9a9188; text-align: right; }
+
+/* ── 個人排名 ─────────────────────────── */
+.rank-list { display: flex; flex-direction: column; gap: 8px; }
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: .84rem;
+}
+.rank-row:hover { background: rgba(107,95,82,.04); }
+.rank-num { width: 24px; text-align: center; font-size: .9rem; }
+.rank-name { flex: 1; color: #2c2720; }
+.rank-ach  { font-family: 'Cormorant Garamond', serif; font-size: .88rem; width: 64px; text-align: right; }
+.rank-rev  { font-family: 'Cormorant Garamond', serif; font-size: .88rem; color: #6b5f52; width: 120px; text-align: right; }
+
+/* ── 分析區塊 ─────────────────────────── */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 640px) { .analysis-grid { grid-template-columns: 1fr; } }
+.analysis-item {
+  background: #f5f0e8;
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.analysis-label { font-size: .72rem; color: #9a9188; letter-spacing: .06em; margin-bottom: 6px; }
+.analysis-val { font-size: .92rem; color: #2c2720; line-height: 1.5; }
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg, rgba(107,95,82,.07) 25%, rgba(107,95,82,.14) 50%, rgba(107,95,82,.07) 75%);
+  background-size: 200% 100%;
+  animation: skel-shine 1.4s infinite;
+  border-radius: 6px;
+  height: 18px;
+  margin: 6px 0;
+}
+@keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+@media print {
+  .month-bar { display: none; }
+  .report-layout { gap: 18px; }
+  .card { break-inside: avoid; border: 1px solid #ccc; }
+}
+#deptTableWrap, #storeTableWrap, #svcTableWrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-layout">
+
+  <!-- ── 月份選擇列 ── -->
+  <div class="month-bar">
+    <span class="month-bar-title" id="reportTitle">載入中…</span>
+    <span class="ctrl-label">報告月份</span>
+    <select class="year-sel" id="yearSel"></select>
+    <select class="month-sel" id="monthSel"></select>
+    <button class="print-btn" onclick="window.print()">列印</button>
+  </div>
+
+  <!-- ── 一、總覽 ── -->
+  <div class="card">
+    <div class="section-title">一、當月總覽</div>
+    <div class="overview-grid" id="overviewGrid">
+      <div class="skel" style="height:80px"></div>
+    </div>
+  </div>
+
+  <!-- ── 二、部門業績 ── -->
+  <div class="card">
+    <div class="section-title">二、部門業績</div>
+    <div class="chart-row">
+      <div>
+        <div style="font-size:.75rem;color:#9a9188;letter-spacing:.06em;margin-bottom:10px">達成率</div>
+        <div class="chart-wrap"><canvas id="deptAchChart"></canvas></div>
+      </div>
+      <div>
+        <div style="font-size:.75rem;color:#9a9188;letter-spacing:.06em;margin-bottom:10px">毛利率</div>
+        <div class="chart-wrap"><canvas id="deptMarginChart"></canvas></div>
+      </div>
+    </div>
+    <div style="margin-top:18px" id="deptTableWrap">
+      <div class="skel"></div><div class="skel" style="width:70%"></div>
+    </div>
+  </div>
+
+  <!-- ── 三、門市業績 ── -->
+  <div class="card">
+    <div class="section-title">三、門市業績</div>
+    <div class="store-rows" id="storeRows">
+      <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+    </div>
+    <div style="margin-top:18px" id="storeTableWrap"></div>
+  </div>
+
+  <!-- ── 四、個人排名 ── -->
+  <div class="card">
+    <div class="section-title">四、個人業績排名</div>
+    <div class="rank-list" id="rankList">
+      <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+    </div>
+  </div>
+
+  <!-- ── 五、業務服務統計 ── -->
+  <div class="card">
+    <div class="section-title">五、業務服務統計</div>
+    <div class="overview-grid" id="svcOverview">
+      <div class="skel" style="height:70px"></div>
+    </div>
+    <div style="margin-top:16px" id="svcTableWrap"></div>
+  </div>
+
+  <!-- ── 六、綜合分析 ── -->
+  <div class="card">
+    <div class="section-title">六、綜合分析</div>
+    <div class="analysis-grid" id="analysisGrid">
+      <div class="skel" style="height:80px"></div>
+      <div class="skel" style="height:80px"></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* ── 期間預設：上個月 ─────────────────────────── */
+const now = new Date();
+let rYear  = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+let rMonth = now.getMonth() === 0 ? 12 : now.getMonth();  // 上個月
+
+let deptAchInst = null, deptMgInst = null;
+
+/* ── 工具 ────────────────────────────────────── */
+const fmt  = n => n ? 'NT$\u00a0' + Math.round(n).toLocaleString('zh-TW') : 'NT$\u00a00';
+const fmtP = r => (r * 100).toFixed(1) + '%';
+const achColor = r => r >= 1 ? '#4a7c59' : r >= .8 ? '#a0763a' : '#8b3a3a';
+const achClass = r => r >= 1 ? 'tag-good' : r >= .8 ? 'tag-warn' : 'tag-bad';
+const MEDALS = ['🥇','🥈','🥉'];
+const STORE_COLORS = { '豐原': '#5a5048', '潭子': '#9a8f84', '大雅': '#c0b8b0' };
+const DEPT_COLORS  = { '門市部': '#6b5f52', '業務部': '#c0b8b0' };
+
+/* ── 選擇器初始化 ────────────────────────────── */
+function initSelectors() {
+  const ySel = document.getElementById('yearSel');
+  const mSel = document.getElementById('monthSel');
+  for (let y = now.getFullYear(); y >= 2023; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y + '年';
+    if (y === rYear) o.selected = true;
+    ySel.appendChild(o);
+  }
+  for (let m = 1; m <= 12; m++) {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m + '月';
+    if (m === rMonth) o.selected = true;
+    mSel.appendChild(o);
+  }
+  ySel.addEventListener('change', () => { rYear = +ySel.value; loadAll(); });
+  mSel.addEventListener('change', () => { rMonth = +mSel.value; loadAll(); });
+}
+
+/* ── 主載入 ─────────────────────────────────── */
+async function loadAll() {
+  document.getElementById('reportTitle').textContent = `${rYear} 年 ${rMonth} 月　營運報告`;
+  const qs = `year=${rYear}&month=${rMonth}&period_type=monthly`;
+  const [deptRes, storeRes, personalRes, svcRes] = await Promise.all([
+    fetch(`/api/performance/department?${qs}`),
+    fetch(`/api/performance/store?${qs}`),
+    fetch(`/api/performance/personal?${qs}`),
+    fetch(`/api/service-records/detail?${qs}`),
+  ]);
+  const dept     = await deptRes.json();
+  const storeRaw = await storeRes.json();
+  const personal = await personalRes.json();
+  const svc      = await svcRes.json();
+
+  const stores = storeRaw.data || (Array.isArray(storeRaw) ? storeRaw : []);
+
+  renderOverview(dept, stores, personal);
+  renderDept(dept);
+  renderStores(stores);
+  renderPersonal(personal);
+  renderService(svc);
+  renderAnalysis(dept, stores, personal, svc);
+}
+
+/* ── 一、總覽 ───────────────────────────────── */
+function renderOverview(dept, stores, personal) {
+  const depts = Array.isArray(dept) ? dept : [];
+  const totalRev = depts.reduce((s, d) => s + (d.revenue || 0), 0);
+  const totalTgt = depts.reduce((s, d) => s + (d.target || 0), 0);
+  const achRate  = totalTgt > 0 ? totalRev / totalTgt : 0;
+  const totalPft = depts.reduce((s, d) => s + (d.profit || d.revenue * (d.margin_rate || 0) || 0), 0);
+  const marginRate = totalRev > 0 ? totalPft / totalRev : 0;
+  const orders   = Array.isArray(personal) ? personal.reduce((s, p) => s + (p.orders || 0), 0) : 0;
+
+  document.getElementById('overviewGrid').innerHTML = `
+    <div class="ov-card">
+      <div class="ov-val">${fmt(totalTgt)}</div>
+      <div class="ov-lbl">當月目標</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-val">${fmt(totalRev)}</div>
+      <div class="ov-lbl">總營業額</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-val ${achClass(achRate)}">${fmtP(achRate)}</div>
+      <div class="ov-lbl">整體達成率</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-val">${fmtP(marginRate)}</div>
+      <div class="ov-lbl">整體毛利率</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-val">${orders}</div>
+      <div class="ov-lbl">總銷售筆數</div>
+    </div>
+  `;
+}
+
+/* ── 二、部門業績 ────────────────────────────── */
+function renderDept(dept) {
+  const data = Array.isArray(dept) ? dept : [];
+
+  // 達成率圖表
+  const achCtx = document.getElementById('deptAchChart').getContext('2d');
+  if (deptAchInst) deptAchInst.destroy();
+  deptAchInst = new Chart(achCtx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.name),
+      datasets: [{
+        data: data.map(d => +(d.achievement_rate * 100).toFixed(1)),
+        backgroundColor: data.map(d => achColor(d.achievement_rate)),
+        borderRadius: 6, borderWidth: 0,
+      }]
+    },
+    options: chartOpts('%'),
+  });
+
+  // 毛利率圖表
+  const mgCtx = document.getElementById('deptMarginChart').getContext('2d');
+  if (deptMgInst) deptMgInst.destroy();
+  deptMgInst = new Chart(mgCtx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.name),
+      datasets: [{
+        data: data.map(d => +(d.margin_rate * 100).toFixed(1)),
+        backgroundColor: data.map(d => DEPT_COLORS[d.name] || '#9a8f84'),
+        borderRadius: 6, borderWidth: 0,
+      }]
+    },
+    options: chartOpts('%'),
+  });
+
+  // 表格
+  let tbl = `<table class="rep-table">
+    <thead><tr><th>部門</th><th>目標</th><th>實際業績</th><th>達成率</th><th>毛利率</th></tr></thead><tbody>`;
+  data.forEach(d => {
+    tbl += `<tr>
+      <td><strong>${d.name}</strong></td>
+      <td class="num">${fmt(d.target)}</td>
+      <td class="num">${fmt(d.revenue)}</td>
+      <td class="num ${achClass(d.achievement_rate)}">${fmtP(d.achievement_rate)}</td>
+      <td class="num">${fmtP(d.margin_rate)}</td>
+    </tr>`;
+  });
+  tbl += '</tbody></table>';
+  document.getElementById('deptTableWrap').innerHTML = tbl;
+}
+
+/* ── 三、門市業績 ────────────────────────────── */
+function renderStores(stores) {
+  const STORE_ORDER = ['豐原','潭子','大雅'];
+  const sorted = STORE_ORDER.map(n => stores.find(s => s.store_name === n || s.name === n)).filter(Boolean);
+
+  // 進度條
+  const maxRev = sorted.length > 0 ? Math.max(...sorted.map(s => s.revenue || 0)) : 1;
+  document.getElementById('storeRows').innerHTML = sorted.map(s => {
+    const name = s.store_name || s.name;
+    const pct  = maxRev > 0 ? Math.min((s.revenue / maxRev) * 100, 100).toFixed(0) : 0;
+    const bar  = Math.min((s.achievement_rate || 0) * 100, 100).toFixed(0);
+    const color = STORE_COLORS[name] || '#9a8f84';
+    return `
+      <div class="store-row">
+        <span class="store-name">${name}</span>
+        <div class="ach-bar-bg">
+          <div class="ach-bar-fill" style="width:${bar}%;background:${color}"></div>
+        </div>
+        <span class="ach-val ${achClass(s.achievement_rate || 0)}">${fmtP(s.achievement_rate || 0)}</span>
+        <span class="ach-rev">${fmt(s.revenue)}</span>
+      </div>`;
+  }).join('');
+
+  // 表格
+  const total = sorted.reduce((sum, s) => sum + (s.revenue || 0), 0);
+  let tbl = `<table class="rep-table" style="margin-top:16px">
+    <thead><tr><th>門市</th><th>目標</th><th>實際業績</th><th>達成率</th><th>毛利率</th><th>占比</th></tr></thead><tbody>`;
+  sorted.forEach(s => {
+    const name = s.store_name || s.name;
+    const share = total > 0 ? (s.revenue / total * 100).toFixed(1) : 0;
+    tbl += `<tr>
+      <td><strong>${name}</strong></td>
+      <td class="num">${fmt(s.target)}</td>
+      <td class="num">${fmt(s.revenue)}</td>
+      <td class="num ${achClass(s.achievement_rate || 0)}">${fmtP(s.achievement_rate || 0)}</td>
+      <td class="num">${fmtP(s.margin_rate || 0)}</td>
+      <td class="num">${share}%</td>
+    </tr>`;
+  });
+  tbl += '</tbody></table>';
+  document.getElementById('storeTableWrap').innerHTML = tbl;
+}
+
+/* ── 四、個人排名 ────────────────────────────── */
+function renderPersonal(personal) {
+  const data = Array.isArray(personal) ? personal : [];
+  const totalRev = data.reduce((s, p) => s + (p.total || 0), 0);
+  const list = data.slice(0, 10).map((p, i) => {
+    const contrib = totalRev > 0 ? (p.total / totalRev * 100).toFixed(1) : 0;
+    return `
+      <div class="rank-row">
+        <span class="rank-num">${MEDALS[i] || (i + 1)}</span>
+        <span class="rank-name">${p.name}</span>
+        <span class="rank-ach ${achClass(p.achievement_rate || 0)}">${fmtP(p.achievement_rate || 0)}</span>
+        <span class="rank-rev">${fmt(p.total)}</span>
+        <span style="font-size:.74rem;color:#9a9188;width:42px;text-align:right">${contrib}%</span>
+      </div>`;
+  }).join('');
+  document.getElementById('rankList').innerHTML = list || '<div style="color:#9a9188;font-size:.82rem">暫無資料</div>';
+}
+
+/* ── 五、業務服務 ────────────────────────────── */
+function renderService(svc) {
+  if (!svc.success) { document.getElementById('svcOverview').innerHTML = '<span style="color:#9a9188;font-size:.82rem">暫無服務記錄</span>'; return; }
+  const summary = svc.salesperson_summary || [];
+  const types   = svc.service_types || [];
+
+  const total    = summary.reduce((s, r) => s + (r.total_count || 0), 0);
+  const contract = summary.reduce((s, r) => s + (r.contract_count || 0), 0);
+  const conRate  = total > 0 ? (contract / total * 100).toFixed(1) : 0;
+
+  document.getElementById('svcOverview').innerHTML = `
+    <div class="ov-card"><div class="ov-val">${total}</div><div class="ov-lbl">服務總筆數</div></div>
+    <div class="ov-card"><div class="ov-val">${contract}</div><div class="ov-lbl">合約客戶</div></div>
+    <div class="ov-card"><div class="ov-val">${conRate}%</div><div class="ov-lbl">合約比例</div></div>
+  `;
+
+  // 業務員 + 類型表格
+  let tbl = `<table class="rep-table" style="margin-top:12px">
+    <thead><tr><th>業務員</th><th>筆數</th><th>客戶數</th><th>合約</th><th>合約率</th></tr></thead><tbody>`;
+  summary.forEach(r => {
+    const cr = r.total_count > 0 ? (r.contract_count / r.total_count * 100).toFixed(1) : 0;
+    tbl += `<tr><td><strong>${r.salesperson}</strong></td>
+      <td class="num">${r.total_count}</td>
+      <td class="num">${r.unique_customers}</td>
+      <td class="num">${r.contract_count}</td>
+      <td class="num">${cr}%</td></tr>`;
+  });
+  tbl += '</tbody></table>';
+
+  if (types.length > 0) {
+    tbl += `<table class="rep-table" style="margin-top:14px">
+      <thead><tr><th>服務類型</th><th>筆數</th><th>占比</th></tr></thead><tbody>`;
+    types.forEach(t => {
+      const pct = total > 0 ? (t.count / total * 100).toFixed(1) : 0;
+      tbl += `<tr><td>${t.type}</td><td class="num">${t.count}</td><td class="num">${pct}%</td></tr>`;
+    });
+    tbl += '</tbody></table>';
+  }
+  document.getElementById('svcTableWrap').innerHTML = tbl;
+}
+
+/* ── 六、綜合分析 ────────────────────────────── */
+function renderAnalysis(dept, stores, personal, svc) {
+  const depts  = Array.isArray(dept)     ? dept     : [];
+  const perArr = Array.isArray(personal) ? personal : [];
+
+  const totalRev = depts.reduce((s, d) => s + (d.revenue || 0), 0);
+  const totalTgt = depts.reduce((s, d) => s + (d.target || 0), 0);
+  const achRate  = totalTgt > 0 ? totalRev / totalTgt : 0;
+
+  // Top 3 貢獻
+  const top3Rev  = perArr.slice(0, 3).reduce((s, p) => s + (p.total || 0), 0);
+  const top3Pct  = totalRev > 0 ? (top3Rev / totalRev * 100).toFixed(1) : 0;
+
+  // 最佳/最差部門
+  const bestDept  = depts.reduce((mx, d) => (d.achievement_rate || 0) > (mx.achievement_rate || 0) ? d : mx, depts[0] || {});
+  const worstDept = depts.reduce((mn, d) => (d.achievement_rate || 0) < (mn.achievement_rate || 0) ? d : mn, depts[0] || {});
+
+  // 最佳門市
+  const storeList = stores.length ? stores : [];
+  const bestStore = storeList.reduce((mx, s) => (s.achievement_rate || 0) > (mx.achievement_rate || 0) ? s : mx, storeList[0] || {});
+
+  const insights = [];
+  if (achRate < 0.8) insights.push('整體達成率低於 80%，建議檢討銷售策略');
+  if (+top3Pct > 50) insights.push(`Top 3 業務員佔比 ${top3Pct}%，人才集中度偏高`);
+  if (svc.success && svc.salesperson_summary) {
+    const conRate = (() => {
+      const tot = svc.salesperson_summary.reduce((s, r) => s + (r.total_count || 0), 0);
+      const con = svc.salesperson_summary.reduce((s, r) => s + (r.contract_count || 0), 0);
+      return tot > 0 ? (con / tot * 100).toFixed(1) : 0;
+    })();
+    if (+conRate < 30) insights.push(`合約客戶比例僅 ${conRate}%，建議加強合約開發`);
+  }
+  if (!insights.length) insights.push('本月各項指標表現正常');
+
+  const bestStoreHtml = bestStore.store_name || bestStore.name
+    ? `最佳門市：<strong>${bestStore.store_name || bestStore.name}</strong>（${fmtP(bestStore.achievement_rate || 0)}）`
+    : '—';
+
+  document.getElementById('analysisGrid').innerHTML = `
+    <div class="analysis-item">
+      <div class="analysis-label">業績達成</div>
+      <div class="analysis-val">
+        整體達成率 <strong class="${achClass(achRate)}">${fmtP(achRate)}</strong><br>
+        總營業額 <strong>${fmt(totalRev)}</strong>
+      </div>
+    </div>
+    <div class="analysis-item">
+      <div class="analysis-label">部門表現</div>
+      <div class="analysis-val">
+        最佳：<strong>${bestDept.name || '—'}</strong>（${fmtP(bestDept.achievement_rate || 0)}）<br>
+        ${worstDept.name !== bestDept.name ? `待加強：<strong>${worstDept.name || '—'}</strong>（${fmtP(worstDept.achievement_rate || 0)}）` : '各部門達成率接近'}
+      </div>
+    </div>
+    <div class="analysis-item">
+      <div class="analysis-label">門市表現</div>
+      <div class="analysis-val">${bestStoreHtml}</div>
+    </div>
+    <div class="analysis-item">
+      <div class="analysis-label">業績集中度</div>
+      <div class="analysis-val">
+        Top 3 業務員佔 <strong>${top3Pct}%</strong><br>
+        第一名：<strong>${perArr[0]?.name || '—'}</strong>
+      </div>
+    </div>
+    <div class="analysis-item" style="grid-column: 1 / -1">
+      <div class="analysis-label">本月觀察</div>
+      <div class="analysis-val">
+        ${insights.map(s => `• ${s}`).join('<br>')}
+      </div>
+    </div>
+  `;
+}
+
+/* ── Chart.js 通用選項 ────────────────────────── */
+function chartOpts(suffix = '') {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { color: '#9a9188', font: { family: 'Cormorant Garamond', size: 12 },
+                 callback: v => v + suffix },
+        grid: { color: 'rgba(107,95,82,.08)' },
+      },
+      x: {
+        ticks: { color: '#6b5f52', font: { family: 'Noto Serif TC', size: 12 } },
+        grid: { display: false },
+      }
+    }
+  };
+}
+
+/* ── 啟動 ─────────────────────────────────────── */
+initSelectors();
+onAppReady(user => {
+  loadAll();
+});
+</script>
+{% endblock %}

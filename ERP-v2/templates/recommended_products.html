@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}推薦備貨選購 — COSH ERP{% endblock %}
+{% block page_title %}推薦備貨選購{% endblock %}
+
+{% block styles %}
+<style>
+.rp-layout { display:flex; flex-direction:column; gap:20px; }
+
+.card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
+.card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+
+/* 分類 tabs */
+.cat-tabs { display:flex; gap:8px; padding:14px 20px; flex-wrap:wrap; border-bottom:1px solid rgba(107,95,82,.06); }
+.cat-tab {
+  padding:6px 16px; border-radius:20px; font-size:.78rem; cursor:pointer;
+  border:1px solid rgba(107,95,82,.2); color:#6b5f52; background:none;
+  font-family:'Noto Serif TC',serif;
+}
+.cat-tab.active { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
+
+/* 商品列表（卡片式） */
+.prod-grid {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+  gap:14px; padding:18px 20px;
+}
+.prod-card {
+  border:1px solid rgba(107,95,82,.14); border-radius:12px; padding:16px;
+  display:flex; flex-direction:column; gap:8px; background:#faf7f2;
+  transition:border-color .2s;
+}
+.prod-card.selected { border-color:#FABF13; background:#fffae8; }
+.prod-card-name { font-size:.9rem; color:#2c2720; font-weight:400; }
+.prod-card-code { font-size:.72rem; color:#9a9188; }
+.prod-card-desc { font-size:.78rem; color:#6b5f52; }
+.prod-card-qty-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
+.qty-label { font-size:.74rem; color:#9a9188; }
+
+/* 數量輸入 */
+.qty-input {
+  width:60px; padding:5px 8px; border:1px solid rgba(107,95,82,.25);
+  border-radius:6px; font-size:.84rem; text-align:center;
+  font-family:'Noto Serif TC',serif; color:#2c2720; background:#fff;
+  outline:none;
+}
+.qty-input:focus { border-color:#FABF13; }
+.qty-suggest { font-size:.72rem; color:#9a9188; margin-left:2px; }
+
+.select-toggle {
+  margin-top:auto; padding:6px 12px; border-radius:8px; font-size:.78rem;
+  border:1px solid rgba(107,95,82,.22); cursor:pointer; background:none; color:#6b5f52;
+  font-family:'Noto Serif TC',serif; text-align:center;
+}
+.select-toggle.on { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
+
+/* 已選清單 */
+.cart-section { padding:0 20px 16px; }
+.cart-title { font-size:.78rem; color:#9a9188; letter-spacing:.06em; padding:10px 0 8px; border-bottom:1px solid rgba(107,95,82,.06); margin-bottom:10px; }
+.cart-item {
+  display:flex; align-items:center; gap:10px; padding:7px 0;
+  border-bottom:1px solid rgba(107,95,82,.04); font-size:.84rem;
+}
+.cart-item:last-child { border-bottom:none; }
+.cart-item-name { flex:1; color:#2c2720; }
+.cart-item-qty { width:50px; text-align:center; font-family:'Cormorant Garamond',serif; font-size:1.1rem; color:#2c2720; }
+.cart-item-unit { font-size:.74rem; color:#9a9188; }
+.cart-remove { color:#8b3a3a; font-size:.74rem; cursor:pointer; background:none; border:none; padding:2px 6px; }
+
+/* 備註與送出 */
+.submit-row {
+  padding:14px 20px; border-top:1px solid rgba(107,95,82,.08);
+  display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;
+}
+.f-input {
+  padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
+  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  color:#2c2720; background:#f5f0e8; outline:none; flex:1;
+}
+.f-input:focus { border-color:#6b5f52; }
+.submit-btn {
+  padding:9px 22px; background:#2c2720; color:#f5f0e8;
+  border:none; border-radius:8px; font-size:.84rem;
+  font-family:'Noto Serif TC',serif; cursor:pointer; white-space:nowrap;
+}
+.submit-btn:disabled { opacity:.5; cursor:default; }
+
+.msg-ok  { font-size:.8rem; color:#4a7c59; }
+.msg-err { font-size:.8rem; color:#8b3a3a; }
+.empty-msg { text-align:center; color:#9a9188; padding:24px; font-size:.84rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rp-layout">
+
+  <!-- 商品選擇卡 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">推薦備貨清單</span>
+      <span id="msgEl"></span>
+    </div>
+
+    <!-- 分類 tabs -->
+    <div class="cat-tabs" id="catTabs">載入中…</div>
+
+    <!-- 商品卡片 -->
+    <div class="prod-grid" id="prodGrid">
+      <div class="empty-msg">請選擇分類</div>
+    </div>
+  </div>
+
+  <!-- 已選商品（購物車）+ 送出 -->
+  <div class="card" id="cartCard" style="display:none">
+    <div class="card-head">
+      <span class="card-title">已選商品</span>
+      <span id="cartCount" style="font-size:.78rem;color:#9a9188"></span>
+    </div>
+
+    <div class="cart-section">
+      <div id="cartItems"></div>
+    </div>
+
+    <div class="submit-row">
+      <div style="flex:1">
+        <div style="font-size:.74rem;color:#9a9188;margin-bottom:4px">備註說明（選填）</div>
+        <input class="f-input" id="submitNote" placeholder="例：急件、指定倉庫…">
+      </div>
+      <button class="submit-btn" id="submitBtn" onclick="submitNeeds()">送出備貨需求</button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _user = null;
+let _categories = [];
+let _selectedCat = null;
+let _cart = {};  // { prodId: { prod, qty } }
+
+// ── 載入分類 ─────────────────────────────────
+async function loadCategories() {
+  const res  = await fetch('/api/recommended-categories');
+  _categories = await res.json();
+  renderCatTabs();
+  if (_categories.length) selectCat(_categories[0].id);
+}
+
+function renderCatTabs() {
+  const el = document.getElementById('catTabs');
+  if (!_categories.length) {
+    el.innerHTML = '<span style="color:#9a9188;font-size:.8rem">暫無分類</span>';
+    return;
+  }
+  el.innerHTML = _categories.map(c => `
+    <button class="cat-tab ${c.id===_selectedCat?'active':''}" onclick="selectCat(${c.id})">
+      ${c.name}
+    </button>`).join('');
+}
+
+function selectCat(id) {
+  _selectedCat = id;
+  renderCatTabs();
+  loadProducts();
+}
+
+// ── 載入商品 ─────────────────────────────────
+async function loadProducts() {
+  if (!_selectedCat) return;
+  const res  = await fetch(`/api/recommended-products?category_id=${_selectedCat}`);
+  const list = await res.json();
+  renderProducts(list.filter(p => p.is_active));
+}
+
+function renderProducts(list) {
+  const grid = document.getElementById('prodGrid');
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty-msg">此分類暫無推薦商品</div>';
+    return;
+  }
+  grid.innerHTML = list.map(p => {
+    const inCart  = !!_cart[p.id];
+    const cartQty = inCart ? _cart[p.id].qty : p.quantity || 1;
+    return `
+      <div class="prod-card ${inCart?'selected':''}" id="pc-${p.id}">
+        <div class="prod-card-name">${p.item_name}</div>
+        ${p.product_code ? `<div class="prod-card-code">${p.product_code}</div>` : ''}
+        ${p.description  ? `<div class="prod-card-desc">${p.description}</div>` : ''}
+        <div class="prod-card-qty-row">
+          <span class="qty-label">數量</span>
+          <input class="qty-input" id="qty-${p.id}" type="number" min="1" value="${cartQty}"
+                 onchange="updateQty(${p.id}, this.value)">
+          <span class="qty-suggest">建議 ${p.quantity}</span>
+        </div>
+        <button class="select-toggle ${inCart?'on':''}" id="tog-${p.id}"
+                onclick="toggleCart(${p.id}, ${JSON.stringify(p).replace(/"/g,'&quot;')})">
+          ${inCart ? '✓ 已選' : '加入清單'}
+        </button>
+      </div>`;
+  }).join('');
+}
+
+// ── 購物車操作 ────────────────────────────────
+function toggleCart(id, prod) {
+  if (_cart[id]) {
+    delete _cart[id];
+  } else {
+    const qty = parseInt(document.getElementById(`qty-${id}`)?.value) || prod.quantity || 1;
+    _cart[id] = { prod, qty };
+  }
+  renderCartUI();
+  // 更新卡片狀態
+  const card = document.getElementById(`pc-${id}`);
+  const tog  = document.getElementById(`tog-${id}`);
+  if (card) card.classList.toggle('selected', !!_cart[id]);
+  if (tog)  { tog.textContent = _cart[id] ? '✓ 已選' : '加入清單'; tog.classList.toggle('on', !!_cart[id]); }
+}
+
+function updateQty(id, val) {
+  if (_cart[id]) {
+    _cart[id].qty = parseInt(val) || 1;
+    renderCartUI();
+  }
+}
+
+function removeFromCart(id) {
+  delete _cart[id];
+  renderCartUI();
+  // 更新卡片
+  const card = document.getElementById(`pc-${id}`);
+  const tog  = document.getElementById(`tog-${id}`);
+  if (card) card.classList.remove('selected');
+  if (tog)  { tog.textContent = '加入清單'; tog.classList.remove('on'); }
+}
+
+function renderCartUI() {
+  const items  = Object.entries(_cart);
+  const card   = document.getElementById('cartCard');
+  const countEl= document.getElementById('cartCount');
+
+  if (!items.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  countEl.textContent = `共 ${items.length} 項商品`;
+
+  document.getElementById('cartItems').innerHTML = items.map(([id, entry]) => `
+    <div class="cart-item">
+      <span class="cart-item-name">${entry.prod.item_name}${entry.prod.product_code ? ` <span style="color:#9a9188;font-size:.76rem">${entry.prod.product_code}</span>` : ''}</span>
+      <span class="cart-item-qty">${entry.qty}</span>
+      <span class="cart-item-unit">件</span>
+      <button class="cart-remove" onclick="removeFromCart(${id})">✕</button>
+    </div>`).join('');
+}
+
+// ── 送出備貨需求 ───────────────────────────────
+async function submitNeeds() {
+  const items = Object.entries(_cart);
+  if (!items.length) { showMsg('請先選擇商品', false); return; }
+
+  const note = document.getElementById('submitNote').value.trim();
+  const btn  = document.getElementById('submitBtn');
+  btn.disabled = true;
+
+  // 將每個選購項目轉成一筆需求 (needs) 批次
+  // 格式參考 needs_input 的 batch API
+  const needsItems = items.map(([id, entry]) => ({
+    product_code: entry.prod.product_code || '',
+    product_name: entry.prod.item_name,
+    quantity:     entry.qty,
+    note:         note,
+    source:       '推薦備貨選購'
+  }));
+
+  try {
+    const res  = await fetch('/api/needs/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items:       needsItems,
+        staff_name:  _user ? _user.name : '',
+        staff_dept:  _user ? _user.department : '',
+        note:        note
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showMsg(`已送出 ${items.length} 筆備貨需求`, true);
+      _cart = {};
+      renderCartUI();
+      // 清空 qty 輸入
+      document.getElementById('submitNote').value = '';
+      loadProducts();
+    } else {
+      showMsg(data.message || '送出失敗', false);
+    }
+  } catch (e) {
+    showMsg('連線失敗', false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById('msgEl');
+  el.textContent = msg; el.className = ok ? 'msg-ok' : 'msg-err';
+  setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+onAppReady(user => {
+  _user = user;
+  loadCategories();
+});
+</script>
+{% endblock %}

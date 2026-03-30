@@ -1,0 +1,1113 @@
+{% extends "base.html" %}
+
+{% block title %}System Architecture V2 - Complete Topology | 電腦舖 Dashboard{% endblock %}
+
+{% block page_title %}System Architecture V2 - Complete Topology | 電腦舖 Dashboard{% endblock %}
+
+{% block styles %}
+<style>
+.container { width: 100%; margin: 0 auto; padding: 20px; }
+:root {
+            --bg-primary: #0b1220; --bg-secondary: #0f172a; --bg-glass: rgba(15,23,42,0.8);
+            --border-glow: rgba(99,102,241,0.3);
+            --color-page: #06b6d4; --color-page-glow: rgba(6,182,212,0.5);
+            --color-api: #8b5cf6; --color-api-glow: rgba(139,92,246,0.5);
+            --color-db: #f97316; --color-db-glow: rgba(249,115,22,0.5);
+            --color-parser: #3b82f6; --color-parser-glow: rgba(59,130,246,0.5);
+            --color-infra: #10b981; --color-infra-glow: rgba(16,185,129,0.5);
+            --flow-read: #3b82f6; --flow-write: #f97316; --flow-audit: #ef4444;
+        }
+        
+        #particles-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .particle { position: absolute; width: 2px; height: 2px; background: rgba(99,102,241,0.4); border-radius: 50%; animation: float 20s infinite ease-in-out; }
+        @keyframes float { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } 100% { transform: translateY(-100vh) translateX(30px); } }
+        
+        /* Header */
+        .header { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: linear-gradient(180deg, rgba(11,18,32,0.95) 0%, rgba(11,18,32,0.8) 100%); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-glow); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; }
+        .header-title { display: flex; align-items: center; gap: 12px; }
+        .header-title h1 { font-size: 1.2rem; font-weight: 600; background: linear-gradient(90deg, #FABF13, #e6a800); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header-badge { padding: 5px 12px; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; font-size: 0.7rem; color: #a5b4fc; }
+        
+        /* Playback Controls */
+        .playback-panel { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); background: var(--bg-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-glow); border-radius: 16px; padding: 16px 24px; z-index: 100; display: flex; gap: 16px; align-items: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .playback-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #FABF13 0%, #e6a800 100%); border: none; border-radius: 12px; color: #231815; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .playback-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(99,102,241,0.4); }
+        .playback-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .playback-speed { display: flex; gap: 4px; }
+        .speed-btn { padding: 5px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+        .speed-btn.active { background: rgba(99,102,241,0.3); border-color: rgba(99,102,241,0.5); color: #fff; }
+        .flow-selector { display: flex; gap: 8px; }
+        .flow-btn { padding: 10px 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+        .flow-btn.active { background: rgba(6,182,212,0.2); border-color: var(--color-page); color: var(--color-page); }
+        .flow-btn.cancel { border-color: rgba(239,68,68,0.3); }
+        .flow-btn.cancel.active { background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444; }
+        
+        /* Status Caption */
+        .status-caption { position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%); background: var(--bg-glass); backdrop-filter: blur(10px); border: 1px solid var(--border-glow); border-radius: 12px; padding: 12px 28px; z-index: 90; font-size: 0.95rem; color: #e2e8f0; opacity: 0; transition: opacity 0.3s;  text-align: center; }
+        .status-caption.show { opacity: 1; }
+        .status-caption .step-number { color: var(--color-page); font-weight: 600; margin-right: 8px; }
+        
+        /* Legend */
+        .legend { position: fixed; top: 80px; left: 20px; background: var(--bg-glass); backdrop-filter: blur(10px); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; z-index: 50; }
+        .legend-title { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.85rem; color: #cbd5e1; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+        .legend-line { width: 30px; height: 2px; }
+        .legend-line.read { background: var(--flow-read); }
+        .legend-line.write { background: var(--flow-write); }
+        .legend-line.audit { background: var(--flow-audit); }
+        
+        /* Main Canvas */
+        #canvas-container { position: fixed; top: 60px; left: 0; right: 0; bottom: 0; overflow: hidden; cursor: grab; }
+        #canvas-container:active { cursor: grabbing; }
+        #architecture-svg { width: 100%; height: 100%; }
+        
+        /* Node Styles */
+        .node-group { cursor: pointer; }
+        .node-rect { fill: var(--bg-glass); stroke-width: 1.5; rx: 12; transition: all 0.3s ease; }
+        .node-glow { fill: none; stroke-width: 4; opacity: 0; transition: opacity 0.3s; filter: blur(12px); }
+        .node-group:hover .node-glow, .node-group.active .node-glow { opacity: 0.8; }
+        .node-group.active .node-rect { stroke-width: 3; }
+        .node-icon { fill: #fff; pointer-events: none; }
+        .node-label { fill: #fff; font-size: 13px; font-weight: 600; pointer-events: none; }
+        .node-subtitle { fill: #94a3b8; font-size: 10px; pointer-events: none; }
+        .node-api-label { fill: #64748b; font-size: 9px; font-family: monospace; pointer-events: none; }
+        
+        /* Link Styles */
+        .link-group { cursor: pointer; }
+        .link { fill: none; stroke-width: 2; opacity: 0.6; transition: all 0.3s; }
+        .link.read { stroke: var(--flow-read); }
+        .link.write { stroke: var(--flow-write); }
+        .link.audit { stroke: var(--flow-audit); }
+        .link.dimmed { opacity: 0.1; }
+        .link.highlight { opacity: 1; stroke-width: 3; filter: drop-shadow(0 0 6px currentColor); }
+        
+        /* Flow Particle */
+        .flow-particle { fill: #fff; filter: drop-shadow(0 0 6px #fff); pointer-events: none; }
+        
+        /* Zoom Controls */
+        .zoom-controls { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 50; }
+        .zoom-btn { width: 40px; height: 40px; background: var(--bg-glass); backdrop-filter: blur(10px); border: 1px solid var(--border-glow); border-radius: 10px; color: #94a3b8; cursor: pointer; transition: all 0.2s; }
+        .zoom-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        
+        /* Progress Bar */
+        .progress-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.05); z-index: 101; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #FABF13, #e6a800); width: 0%; transition: width 0.3s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+<div id="particles-bg"></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    
+    
+    
+    <!-- 版本號彈窗 -->
+    <div id="versionModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:2000;justify-content:center;align-items:center;">
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-glow);border-radius: 8px;padding:30px;width:90%;max-height:80vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:15px;">
+                <h2 style="margin:0;color:#fff;">📋 版本資訊</h2>
+                <button onclick="closeVersionModal()" style="background:none;border:none;color:#94a3b8;font-size:1.5em;cursor:pointer;">×</button>
+            </div>
+            <div style="margin-bottom:20px;">
+                <div style="font-size:2rem;font-weight:bold;color:#FABF13;margin-bottom:10px;">v2.00</div>
+                <div style="color:#8892b0;">System Architecture Map</div>
+            </div>
+            <div style="margin-bottom:20px;">
+                <h3 style="color:#94a3b8;font-size:0.9em;margin-bottom:10px;">更新日誌</h3>
+                <div style="space-y:10px;">
+                    <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius: 8px;margin-bottom:10px;border-left:3px solid #FABF13;">
+                        <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px;">2026-03-03</div>
+                        <div style="color:#fff;">V2 科技感动态架构图：D3.js + GSAP、節點互動、資料流播放、分層篩選</div>
+                    </div>
+                    <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius: 8px;border-left:3px solid #64748b;">
+                        <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px;">2026-03-01</div>
+                        <div style="color:#fff;">初始版本：靜態 SVG 架构图</div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeVersionModal()" style="width:100%;padding:10px;background:rgba(250,191,19,0.2);border:1px solid #FABF13;color:#FABF13;border-radius:8px;cursor:pointer;">關閉</button>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-title">Layers</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--color-page);"></div><span>Pages</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--color-api);"></div><span>APIs</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--color-db);"></div><span>Database</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--color-parser);"></div><span>Parsers</span></div>
+        <div class="legend-title" style="margin-top:12px">Data Flow</div>
+        <div class="legend-item"><div class="legend-line read"></div><span>Read (GET)</span></div>
+        <div class="legend-item"><div class="legend-line write"></div><span>Write (POST/Import)</span></div>
+        <div class="legend-item"><div class="legend-line audit"></div><span>Audit</span></div>
+    </div>
+    
+    <div class="status-caption" id="statusCaption">
+        <span class="step-number">Step 1/8</span>
+        <span id="stepText">Ready to play</span>
+    </div>
+    
+    <div class="playback-panel">
+        <button class="playback-btn" id="playBtn" onclick="togglePlay()"><i class="fas fa-play"></i></button>
+        <button class="playback-btn" onclick="resetPlayback()"><i class="fas fa-redo"></i></button>
+        <div class="playback-speed">
+            <button class="speed-btn" data-speed="0.5" onclick="setSpeed(0.5)">0.5x</button>
+            <button class="speed-btn active" data-speed="1" onclick="setSpeed(1)">1x</button>
+            <button class="speed-btn" data-speed="2" onclick="setSpeed(2)">2x</button>
+        </div>
+        <div class="flow-selector">
+            <button class="flow-btn active" data-flow="temp-p" onclick="selectFlow('temp-p')">新品 TEMP-P</button>
+            <button class="flow-btn" data-flow="temp-c" onclick="selectFlow('temp-c')">客戶 TEMP-C</button>
+            <button class="flow-btn cancel" data-flow="cancel" onclick="selectFlow('cancel')">取消流程</button>
+        </div>
+    </div>
+    
+    <div id="canvas-container"><svg id="architecture-svg"></svg></div>
+    
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn()">+</button>
+        <button class="zoom-btn" onclick="zoomOut()">−</button>
+        <button class="zoom-btn" onclick="resetView()"><i class="fas fa-compress"></i></button>
+    </div>
+    <script>
+    // ============================================
+    // COMPLETE ARCHITECTURE DATA - Based on actual code inventory
+    // ============================================
+    const ARCH_DATA = {
+        // ===== A. PAGE NODES (Frontend) =====
+        pages: [
+            { id: 'page-needs', type: 'page', label: 'needs_input.html', subtitle: '需求表 / 送單', x: 50, y: 150, icon: '\uf15c', 
+              apis: ['/api/auth/verify', '/api/needs/batch', '/api/needs/recent', '/api/needs/cancel', '/api/needs/complete'],
+              desc: '員工送單介面，支援 TEMP-P/TEMP-C 自動標記' },
+            { id: 'page-staging', type: 'page', label: 'staging_center_v2.html', subtitle: '前台待處理中心', x: 50, y: 350, icon: '\uf01c',
+              apis: ['/api/auth/verify', '/api/staging/records', '/api/staging/customer/approve', '/api/staging/product/approve'],
+              desc: '前台建檔 TEMP 產品與新客戶' },
+            { id: 'page-admin', type: 'page', label: 'admin.html', subtitle: '資料管理中心', x: 50, y: 550, icon: '\uf1c0',
+              apis: ['/api/auth/verify', '/api/admin/table', '/api/admin/audit/summary', '/api/admin/audit/detail'],
+              desc: '後台管理、資料表查詢、稽核' },
+            { id: 'page-staff', type: 'page', label: 'staff_admin.html', subtitle: '員工管理', x: 50, y: 750, icon: '\uf0c0',
+              apis: ['/api/auth/verify', '/api/admin/staff/list', '/api/admin/staff/update', '/api/admin/staff/reset-password'],
+              desc: '員工主檔管理' },
+            { id: 'page-roster', type: 'page', label: 'roster_input.html', subtitle: '班表排班', x: 50, y: 900, icon: '\uf133',
+              apis: ['/api/auth/verify', '/api/roster', '/api/roster/batch'],
+              desc: '主管排班系統' },
+            { id: 'page-supervision', type: 'page', label: 'supervision_score.html', subtitle: '督導評分', x: 350, y: 50, icon: '\uf46c',
+              apis: ['/api/auth/verify', '/api/supervision/score'],
+              desc: '門市評分管理（網頁版，非 Parser）' },
+            { id: 'page-service', type: 'page', label: 'service_record.html', subtitle: '外勤服務', x: 650, y: 50, icon: '\uf7d9',
+              apis: ['/api/auth/verify', '/api/service-records'],
+              desc: '外勤服務紀錄填寫' }
+        ],
+        
+        // ===== B. API NODES (Backend Routes) =====
+        apis: [
+            // Auth
+            { id: 'api-auth', type: 'api', label: 'POST /api/auth/verify', subtitle: '登入驗證', x: 350, y: 150, icon: '\uf3ed', tables: ['staff','staff_passwords'], method: 'POST' },
+            // Needs APIs
+            { id: 'api-needs-batch', type: 'api', label: 'POST /api/needs/batch', subtitle: '批次建立需求', x: 350, y: 250, icon: '\uf1d8', tables: ['needs','staging_records'], method: 'POST' },
+            { id: 'api-needs-recent', type: 'api', label: 'GET /api/needs/recent', subtitle: '最近需求', x: 350, y: 350, icon: '\uf017', tables: ['needs'], method: 'GET' },
+            { id: 'api-needs-cancel', type: 'api', label: 'POST /api/needs/cancel', subtitle: '取消需求', x: 650, y: 150, icon: '\uf05e', tables: ['needs','staging_records'], method: 'POST' },
+            { id: 'api-needs-complete', type: 'api', label: 'POST /api/needs/complete', subtitle: '完成需求', x: 650, y: 250, icon: '\uf00c', tables: ['needs'], method: 'POST' },
+            // Staging APIs
+            { id: 'api-staging-records', type: 'api', label: 'GET /api/staging/records', subtitle: '待建檔紀錄', x: 350, y: 450, icon: '\uf187', tables: ['staging_records','needs'], method: 'GET' },
+            { id: 'api-staging-approve-c', type: 'api', label: 'POST /api/staging/customer/approve', subtitle: '核准客戶', x: 350, y: 550, icon: '\uf234', tables: ['staging_records','customers'], method: 'POST' },
+            { id: 'api-staging-approve-p', type: 'api', label: 'POST /api/staging/product/approve', subtitle: '核准產品', x: 350, y: 650, icon: '\uf466', tables: ['staging_records','products'], method: 'POST' },
+            // Admin APIs
+            { id: 'api-admin-table', type: 'api', label: 'GET /api/admin/table', subtitle: '動態資料表', x: 350, y: 750, icon: '\uf0ce', tables: ['all'], method: 'GET' },
+            { id: 'api-admin-audit-sum', type: 'api', label: 'GET /api/admin/audit/summary', subtitle: '稽核摘要', x: 650, y: 550, icon: '\uf002', tables: ['admin_audit_log','needs','staging_records'], method: 'GET' },
+            { id: 'api-admin-audit-det', type: 'api', label: 'GET /api/admin/audit/detail', subtitle: '稽核詳情', x: 650, y: 650, icon: '\uf46d', tables: ['admin_audit_log'], method: 'GET' },
+            // Staff APIs
+            { id: 'api-staff-list', type: 'api', label: 'GET /api/admin/staff/list', subtitle: '員工列表', x: 350, y: 850, icon: '\uf0c0', tables: ['staff'], method: 'GET' },
+            { id: 'api-staff-update', type: 'api', label: 'POST /api/admin/staff/update', subtitle: '更新員工', x: 350, y: 950, icon: '\uf4ff', tables: ['staff','admin_audit_log'], method: 'POST' },
+            // Roster APIs
+            { id: 'api-roster', type: 'api', label: 'GET/POST /api/roster', subtitle: '班表API', x: 650, y: 450, icon: '\uf133', tables: ['staff_roster'], method: 'MIX' },
+            // Service APIs
+            { id: 'api-service', type: 'api', label: 'GET/POST /api/service-records', subtitle: '服務紀錄', x: 950, y: 150, icon: '\uf7d9', tables: ['service_records'], method: 'MIX' },
+            // Supervision APIs
+            { id: 'api-supervision', type: 'api', label: 'GET/POST /api/supervision/score', subtitle: '督導評分API', x: 650, y: 50, icon: '\uf559', tables: ['supervision_scores'], method: 'MIX' }
+        ],
+        
+        // ===== C. DB NODES (Core Tables) =====
+        databases: [
+            { id: 'db-needs', type: 'db', label: 'needs', subtitle: '需求主表', x: 950, y: 200, icon: '\uf0ce', 
+              desc: '包含 TEMP-P/TEMP-C 標記、cancelled_at、product_staging_id' },
+            { id: 'db-staging', type: 'db', label: 'staging_records', subtitle: '待建檔紀錄', x: 950, y: 400, icon: '\uf01c',
+              desc: '前台/後台共用，需 JOIN needs 篩選' },
+            { id: 'db-customers', type: 'db', label: 'customers', subtitle: '客戶主檔', x: 1250, y: 150, icon: '\uf0c0' },
+            { id: 'db-customer-staging', type: 'db', label: 'customer_staging', subtitle: '客戶待建檔', x: 1250, y: 250, icon: '\uf234' },
+            { id: 'db-products', type: 'db', label: 'products', subtitle: '產品主檔', x: 1250, y: 350, icon: '\uf466' },
+            { id: 'db-product-staging', type: 'db', label: 'product_staging', subtitle: '產品待建檔', x: 1250, y: 450, icon: '\uf49e' },
+            { id: 'db-inventory', type: 'db', label: 'inventory', subtitle: '庫存表', x: 1250, y: 550, icon: '\uf1b3' },
+            { id: 'db-purchase', type: 'db', label: 'purchase_history', subtitle: '進貨歷史', x: 950, y: 550, icon: '\uf07a' },
+            { id: 'db-sales', type: 'db', label: 'sales_history', subtitle: '銷貨歷史', x: 950, y: 650, icon: '\uf201' },
+            { id: 'db-staff', type: 'db', label: 'staff', subtitle: '員工主檔', x: 650, y: 850, icon: '\uf508' },
+            { id: 'db-staff-pwd', type: 'db', label: 'staff_passwords', subtitle: '員工密碼', x: 650, y: 950, icon: '\uf023' },
+            { id: 'db-audit', type: 'db', label: 'admin_audit_log', subtitle: '操作紀錄', x: 950, y: 850, icon: '\uf46d' },
+            { id: 'db-ops', type: 'db', label: 'ops_events', subtitle: '系統事件', x: 950, y: 950, icon: '\uf1da' },
+            { id: 'db-roster', type: 'db', label: 'staff_roster', subtitle: '班表', x: 950, y: 750, icon: '\uf073' }
+        ],
+        
+        // ===== D. PARSER NODES (Scheduled Jobs) =====
+        parsers: [
+            { id: 'parser-inventory', type: 'parser', label: 'inventory_parser.py', subtitle: '10:30 Daily', x: 1250, y: 600, icon: '\uf1b3', tables: ['inventory','products'] },
+            { id: 'parser-purchase', type: 'parser', label: 'purchase_parser.py', subtitle: '10:35 Daily', x: 1250, y: 700, icon: '\uf07a', tables: ['purchase_history'] },
+            { id: 'parser-sales', type: 'parser', label: 'sales_parser_v19.py', subtitle: '10:40 Daily', x: 1250, y: 800, icon: '\uf201', tables: ['sales_history','products'] },
+            { id: 'parser-customer', type: 'parser', label: 'customer_parser.py', subtitle: '10:45 Daily', x: 1250, y: 900, icon: '\uf234', tables: ['customers'] },
+            { id: 'parser-performance', type: 'parser', label: 'performance_parser.py', subtitle: '11:00 Daily', x: 1250, y: 1000, icon: '\uf080', tables: ['performance_metrics'] }
+        ],
+        
+        // ===== COMPLETE DATA FLOW LINKS =====
+        // 每一條線都有實際端點對應
+        links: [
+            // === TEMP-P (新品) 流程 ===
+            { from: 'page-needs', to: 'api-auth', type: 'read', label: '登入驗證', flow: 'temp-p' },
+            { from: 'page-needs', to: 'api-needs-batch', type: 'write', label: 'POST batch', flow: 'temp-p' },
+            { from: 'api-needs-batch', to: 'db-needs', type: 'write', label: 'INSERT needs', flow: 'temp-p' },
+            { from: 'api-needs-batch', to: 'db-staging', type: 'write', label: 'INSERT staging', flow: 'temp-p' },
+            { from: 'db-needs', to: 'api-staging-records', type: 'read', label: 'JOIN needs', flow: 'temp-p' },
+            { from: 'api-staging-records', to: 'page-staging', type: 'read', label: 'GET records', flow: 'temp-p' },
+            { from: 'page-staging', to: 'api-staging-approve-p', type: 'write', label: 'POST approve', flow: 'temp-p' },
+            { from: 'api-staging-approve-p', to: 'db-products', type: 'write', label: 'INSERT products', flow: 'temp-p' },
+            { from: 'api-staging-approve-p', to: 'db-staging', type: 'write', label: 'UPDATE resolved', flow: 'temp-p' },
+            
+            // === TEMP-C (客戶) 流程 ===
+            { from: 'page-needs', to: 'api-needs-batch', type: 'write', label: 'POST batch (TEMP-C)', flow: 'temp-c' },
+            { from: 'api-needs-batch', to: 'db-needs', type: 'write', label: 'INSERT needs', flow: 'temp-c' },
+            { from: 'db-needs', to: 'db-staging', type: 'write', label: 'INSERT staging', flow: 'temp-c' },
+            { from: 'page-staging', to: 'api-staging-approve-c', type: 'write', label: 'POST approve', flow: 'temp-c' },
+            { from: 'api-staging-approve-c', to: 'db-customers', type: 'write', label: 'INSERT customers', flow: 'temp-c' },
+            
+            // === 取消流程 ===
+            { from: 'page-needs', to: 'api-needs-cancel', type: 'write', label: 'POST cancel', flow: 'cancel' },
+            { from: 'api-needs-cancel', to: 'db-needs', type: 'write', label: 'UPDATE cancelled_at', flow: 'cancel' },
+            { from: 'db-needs', to: 'api-staging-records', type: 'read', label: '篩選取消', flow: 'cancel' },
+            { from: 'api-staging-records', to: 'page-staging', type: 'read', label: '已取消不顯示', flow: 'cancel' },
+            
+            // === Admin 稽核流程 ===
+            { from: 'page-admin', to: 'api-auth', type: 'read', label: '驗證' },
+            { from: 'page-admin', to: 'api-admin-table', type: 'read', label: 'GET table' },
+            { from: 'api-admin-table', to: 'db-needs', type: 'read', label: 'SELECT' },
+            { from: 'api-admin-table', to: 'db-staging', type: 'read', label: 'SELECT' },
+            { from: 'page-admin', to: 'api-admin-audit-sum', type: 'audit', label: '稽核摘要' },
+            { from: 'api-admin-audit-sum', to: 'db-needs', type: 'audit', label: 'A2/A3 檢查' },
+            { from: 'api-admin-audit-sum', to: 'db-staging', type: 'audit', label: '異常比對' },
+            { from: 'api-admin-audit-sum', to: 'page-admin', type: 'audit', label: '顯示卡片' },
+            
+            // === Parser 匯入流程 ===
+            { from: 'parser-inventory', to: 'db-inventory', type: 'write', label: '10:30 匯入' },
+            { from: 'parser-inventory', to: 'db-products', type: 'write', label: '同步產品' },
+            { from: 'parser-purchase', to: 'db-purchase', type: 'write', label: '10:35 匯入' },
+            { from: 'parser-sales', to: 'db-sales', type: 'write', label: '10:40 匯入' },
+            { from: 'parser-customer', to: 'db-customers', type: 'write', label: '10:45 匯入' }
+        ]
+    };
+    
+    // Playback state
+    let isPlaying = false;
+    let playbackSpeed = 1;
+    let currentFlow = 'temp-p';
+    let currentStep = 0;
+    let animationTimeline = null;
+    
+    // Colors
+    const COLORS = {
+        page: '#06b6d4', api: '#8b5cf6', db: '#f97316', parser: '#3b82f6', infra: '#10b981',
+        read: '#3b82f6', write: '#f97316', audit: '#ef4444'
+    };
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        initParticles();
+        initSVG();
+        renderDiagram();
+        setTimeout(() => {
+            document.getElementById('loading')?.classList?.add('hidden');
+            animateEntrance();
+        }, 500);
+    });
+    
+    function initParticles() {
+        const container = document.getElementById('particles-bg');
+        for (let i = 0; i < 40; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.top = Math.random() * 100 + '%';
+            p.style.animationDelay = Math.random() * 20 + 's';
+            p.style.animationDuration = (15 + Math.random() * 10) + 's';
+            container.appendChild(p);
+        }
+    }
+    
+    let svg, g, zoom;
+    function initSVG() {
+        const container = document.getElementById('canvas-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        svg = d3.select('#architecture-svg').attr('viewBox', `0 0 ${width} ${height}`);
+        g = svg.append('g');
+        
+        zoom = d3.zoom().scaleExtent([0.2, 3]).on('zoom', (e) => {
+            g.attr('transform', e.transform);
+        });
+        svg.call(zoom);
+        
+        const initialTransform = d3.zoomIdentity.translate(30, 30).scale(0.65);
+        svg.call(zoom.transform, initialTransform);
+    }
+    
+    function renderDiagram() {
+        const nodeWidth = 160, nodeHeight = 55;
+        
+        // Render Links
+        const linkGroups = g.selectAll('.link-group')
+            .data(ARCH_DATA.links)
+            .enter()
+            .append('g')
+            .attr('class', d => `link-group link-${d.flow || 'all'}`);
+        
+        linkGroups.each(function(d) {
+            const fromNode = findNode(d.from);
+            const toNode = findNode(d.to);
+            if (!fromNode || !toNode) return;
+            
+            const gEl = d3.select(this);
+            
+            // Main link line
+            gEl.append('line')
+                .attr('class', d => `link ${d.type}`)
+                .attr('x1', fromNode.x + nodeWidth/2)
+                .attr('y1', fromNode.y)
+                .attr('x2', toNode.x - nodeWidth/2)
+                .attr('y2', toNode.y)
+                .attr('data-from', d.from)
+                .attr('data-to', d.to);
+            
+            // Label
+            const midX = (fromNode.x + toNode.x) / 2;
+            const midY = (fromNode.y + toNode.y) / 2 - 8;
+            gEl.append('text')
+                .attr('x', midX)
+                .attr('y', midY)
+                .attr('text-anchor', 'middle')
+                .attr('class', 'node-api-label')
+                .style('fill', COLORS[d.type] || '#64748b')
+                .text(d.label);
+        });
+        
+        // Render Nodes
+        const allNodes = [...ARCH_DATA.pages, ...ARCH_DATA.apis, ...ARCH_DATA.databases, ...ARCH_DATA.parsers];
+        
+        const nodeGroups = g.selectAll('.node-group')
+            .data(allNodes)
+            .enter()
+            .append('g')
+            .attr('class', d => `node-group node-${d.type}`)
+            .attr('id', d => `node-${d.id}`)
+            .attr('transform', d => `translate(${d.x - nodeWidth/2},${d.y - nodeHeight/2})`)
+            .on('mouseenter', function() { d3.select(this).select('.node-glow').style('opacity', 0.6); })
+            .on('mouseleave', function() { if (!isPlaying) d3.select(this).select('.node-glow').style('opacity', 0); });
+        
+        // Glow
+        nodeGroups.append('rect')
+            .attr('class', 'node-glow')
+            .attr('width', nodeWidth).attr('height', nodeHeight)
+            .attr('x', 0).attr('y', 0)
+            .attr('stroke', d => COLORS[d.type]);
+        
+        // Main rect
+        nodeGroups.append('rect')
+            .attr('class', 'node-rect')
+            .attr('width', nodeWidth).attr('height', nodeHeight)
+            .attr('stroke', d => COLORS[d.type])
+            .style('fill', d => `${COLORS[d.type]}15`);
+        
+        // Icon
+        nodeGroups.append('text')
+            .attr('x', 18).attr('y', 33)
+            .style('font-family', '"Font Awesome 6 Free"')
+            .style('font-weight', '900')
+            .style('font-size', '18px')
+            .text(d => d.icon);
+        
+        // Label
+        nodeGroups.append('text')
+            .attr('class', 'node-label')
+            .attr('x', 42).attr('y', 26)
+            .text(d => d.label.length > 14 ? d.label.substring(0, 12) + '...' : d.label);
+        
+        // Subtitle
+        nodeGroups.append('text')
+            .attr('class', 'node-subtitle')
+            .attr('x', 42).attr('y', 42)
+            .text(d => d.subtitle);
+    }
+    
+    function findNode(id) {
+        const all = [...ARCH_DATA.pages, ...ARCH_DATA.apis, ...ARCH_DATA.databases, ...ARCH_DATA.parsers];
+        return all.find(n => n.id === id);
+    }
+    
+    function animateEntrance() {
+        gsap.from('.node-group', { opacity: 0, scale: 0.7, duration: 0.5, stagger: 0.02, ease: 'back.out(1.5)' });
+        gsap.from('.link-group', { opacity: 0, duration: 0.8, delay: 0.5, stagger: 0.01 });
+    }
+    
+    // Playback Controls
+    function togglePlay() {
+        const btn = document.getElementById('playBtn');
+        if (isPlaying) {
+            pausePlayback();
+            btn.innerHTML = '<i class="fas fa-play"></i>';
+        } else {
+            startPlayback();
+            btn.innerHTML = '<i class="fas fa-pause"></i>';
+        }
+    }
+    
+    function startPlayback() {
+        isPlaying = true;
+        const flowLinks = ARCH_DATA.links.filter(l => l.flow === currentFlow || !l.flow);
+        const caption = document.getElementById('statusCaption');
+        const stepText = document.getElementById('stepText');
+        const progressFill = document.getElementById('progressFill');
+        
+        caption.classList.add('show');
+        
+        // Build timeline
+        animationTimeline = gsap.timeline({
+            onComplete: () => {
+                isPlaying = false;
+                document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+                currentStep = 0;
+            }
+        });
+        
+        const stepDuration = 1.5 / playbackSpeed;
+        const holdDuration = 0.8 / playbackSpeed;
+        
+        flowLinks.forEach((link, index) => {
+            const fromNode = document.getElementById(`node-${link.from}`);
+            const toNode = document.getElementById(`node-${link.to}`);
+            const linkLine = document.querySelector(`.link[data-from="${link.from}"][data-to="${link.to}"]`);
+            
+            if (!fromNode || !toNode) return;
+            
+            // Step caption
+            animationTimeline.call(() => {
+                currentStep = index + 1;
+                stepText.textContent = `${link.from} → ${link.label} → ${link.to}`;
+                caption.querySelector('.step-number').textContent = `Step ${currentStep}/${flowLinks.length}`;
+                progressFill.style.width = `${(currentStep / flowLinks.length) * 100}%`;
+                
+                // Activate nodes
+                document.querySelectorAll('.node-group').forEach(n => n.classList.remove('active'));
+                fromNode.classList.add('active');
+                toNode.classList.add('active');
+                
+                // Highlight link
+                document.querySelectorAll('.link').forEach(l => l.classList.remove('highlight'));
+                if (linkLine) linkLine.classList.add('highlight');
+            });
+            
+            // Animate particle along path
+            if (linkLine) {
+                const fromPos = findNode(link.from);
+                const toPos = findNode(link.to);
+                
+                // Create particle
+                const particleId = `particle-${index}`;
+                g.append('circle')
+                    .attr('id', particleId)
+                    .attr('class', 'flow-particle')
+                    .attr('r', 5)
+                    .attr('cx', fromPos.x + 80)
+                    .attr('cy', fromPos.y);
+                
+                animationTimeline.to(`#${particleId}`, {
+                    attr: { cx: toPos.x - 80, cy: toPos.y },
+                    duration: stepDuration,
+                    ease: 'power2.inOut',
+                    onComplete: () => {
+                        d3.select(`#${particleId}`).remove();
+                    }
+                }, '<');
+            }
+            
+            animationTimeline.to({}, { duration: holdDuration });
+        });
+        
+        animationTimeline.call(() => {
+            stepText.textContent = 'Flow Complete!';
+            document.querySelectorAll('.node-group').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.link').forEach(l => l.classList.remove('highlight'));
+        });
+    }
+    
+    function pausePlayback() {
+        isPlaying = false;
+        if (animationTimeline) animationTimeline.pause();
+    }
+    
+    function resetPlayback() {
+        isPlaying = false;
+        if (animationTimeline) animationTimeline.kill();
+        animationTimeline = null;
+        currentStep = 0;
+        
+        document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+        document.getElementById('statusCaption').classList.remove('show');
+        document.getElementById('stepText').textContent = 'Ready to play';
+        document.getElementById('progressFill').style.width = '0%';
+        
+        document.querySelectorAll('.node-group').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.link').forEach(l => l.classList.remove('highlight'));
+        g.selectAll('.flow-particle').remove();
+    }
+    
+    function setSpeed(speed) {
+        playbackSpeed = speed;
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
+        });
+    }
+    
+    function selectFlow(flow) {
+        currentFlow = flow;
+        resetPlayback();
+        
+        document.querySelectorAll('.flow-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.flow === flow);
+        });
+        
+        // Highlight relevant links
+        document.querySelectorAll('.link-group').forEach(el => {
+            const hasFlow = el.classList.contains(`link-${flow}`) || el.classList.contains('link-all');
+            el.style.opacity = hasFlow ? '1' : '0.15';
+        });
+        
+        document.querySelectorAll('.node-group').forEach(el => {
+            const nodeId = el.id.replace('node-', '');
+            const connected = ARCH_DATA.links.some(l => 
+                (l.from === nodeId || l.to === nodeId) && (l.flow === flow || !l.flow)
+            );
+            el.style.opacity = connected ? '1' : '0.3';
+        });
+    }
+    
+    function zoomIn() { svg.transition().call(zoom.scaleBy, 1.3); }
+    function zoomOut() { svg.transition().call(zoom.scaleBy, 0.7); }
+    function resetView() {
+        svg.transition().duration(500).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(30, 30).scale(0.65)
+        );
+    }
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+        if (e.key === 'r' || e.key === 'R') resetPlayback();
+        if (e.key === '1') selectFlow('temp-p');
+        if (e.key === '2') selectFlow('temp-c');
+        if (e.key === '3') selectFlow('cancel');
+    });
+    
+        // 版本號彈窗控制
+        function showVersionModal() {
+            document.getElementById('versionModal').style.display = 'flex';
+        }
+        
+        function closeVersionModal() {
+            document.getElementById('versionModal').style.display = 'none';
+        }
+        
+        // 點擊背景關閉彈窗
+        document.getElementById('versionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeVersionModal();
+            }
+        });
+        
+        // ESC 鍵關閉彈窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeVersionModal();
+            }
+        });
+    </script>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ============================================
+    // COMPLETE ARCHITECTURE DATA - Based on actual code inventory
+    // ============================================
+    const ARCH_DATA = {
+        // ===== A. PAGE NODES (Frontend) =====
+        pages: [
+            { id: 'page-needs', type: 'page', label: 'needs_input.html', subtitle: '需求表 / 送單', x: 50, y: 150, icon: '\uf15c', 
+              apis: ['/api/auth/verify', '/api/needs/batch', '/api/needs/recent', '/api/needs/cancel', '/api/needs/complete'],
+              desc: '員工送單介面，支援 TEMP-P/TEMP-C 自動標記' },
+            { id: 'page-staging', type: 'page', label: 'staging_center_v2.html', subtitle: '前台待處理中心', x: 50, y: 350, icon: '\uf01c',
+              apis: ['/api/auth/verify', '/api/staging/records', '/api/staging/customer/approve', '/api/staging/product/approve'],
+              desc: '前台建檔 TEMP 產品與新客戶' },
+            { id: 'page-admin', type: 'page', label: 'admin.html', subtitle: '資料管理中心', x: 50, y: 550, icon: '\uf1c0',
+              apis: ['/api/auth/verify', '/api/admin/table', '/api/admin/audit/summary', '/api/admin/audit/detail'],
+              desc: '後台管理、資料表查詢、稽核' },
+            { id: 'page-staff', type: 'page', label: 'staff_admin.html', subtitle: '員工管理', x: 50, y: 750, icon: '\uf0c0',
+              apis: ['/api/auth/verify', '/api/admin/staff/list', '/api/admin/staff/update', '/api/admin/staff/reset-password'],
+              desc: '員工主檔管理' },
+            { id: 'page-roster', type: 'page', label: 'roster_input.html', subtitle: '班表排班', x: 50, y: 900, icon: '\uf133',
+              apis: ['/api/auth/verify', '/api/roster', '/api/roster/batch'],
+              desc: '主管排班系統' },
+            { id: 'page-supervision', type: 'page', label: 'supervision_score.html', subtitle: '督導評分', x: 350, y: 50, icon: '\uf46c',
+              apis: ['/api/auth/verify', '/api/supervision/score'],
+              desc: '門市評分管理（網頁版，非 Parser）' },
+            { id: 'page-service', type: 'page', label: 'service_record.html', subtitle: '外勤服務', x: 650, y: 50, icon: '\uf7d9',
+              apis: ['/api/auth/verify', '/api/service-records'],
+              desc: '外勤服務紀錄填寫' }
+        ],
+        
+        // ===== B. API NODES (Backend Routes) =====
+        apis: [
+            // Auth
+            { id: 'api-auth', type: 'api', label: 'POST /api/auth/verify', subtitle: '登入驗證', x: 350, y: 150, icon: '\uf3ed', tables: ['staff','staff_passwords'], method: 'POST' },
+            // Needs APIs
+            { id: 'api-needs-batch', type: 'api', label: 'POST /api/needs/batch', subtitle: '批次建立需求', x: 350, y: 250, icon: '\uf1d8', tables: ['needs','staging_records'], method: 'POST' },
+            { id: 'api-needs-recent', type: 'api', label: 'GET /api/needs/recent', subtitle: '最近需求', x: 350, y: 350, icon: '\uf017', tables: ['needs'], method: 'GET' },
+            { id: 'api-needs-cancel', type: 'api', label: 'POST /api/needs/cancel', subtitle: '取消需求', x: 650, y: 150, icon: '\uf05e', tables: ['needs','staging_records'], method: 'POST' },
+            { id: 'api-needs-complete', type: 'api', label: 'POST /api/needs/complete', subtitle: '完成需求', x: 650, y: 250, icon: '\uf00c', tables: ['needs'], method: 'POST' },
+            // Staging APIs
+            { id: 'api-staging-records', type: 'api', label: 'GET /api/staging/records', subtitle: '待建檔紀錄', x: 350, y: 450, icon: '\uf187', tables: ['staging_records','needs'], method: 'GET' },
+            { id: 'api-staging-approve-c', type: 'api', label: 'POST /api/staging/customer/approve', subtitle: '核准客戶', x: 350, y: 550, icon: '\uf234', tables: ['staging_records','customers'], method: 'POST' },
+            { id: 'api-staging-approve-p', type: 'api', label: 'POST /api/staging/product/approve', subtitle: '核准產品', x: 350, y: 650, icon: '\uf466', tables: ['staging_records','products'], method: 'POST' },
+            // Admin APIs
+            { id: 'api-admin-table', type: 'api', label: 'GET /api/admin/table', subtitle: '動態資料表', x: 350, y: 750, icon: '\uf0ce', tables: ['all'], method: 'GET' },
+            { id: 'api-admin-audit-sum', type: 'api', label: 'GET /api/admin/audit/summary', subtitle: '稽核摘要', x: 650, y: 550, icon: '\uf002', tables: ['admin_audit_log','needs','staging_records'], method: 'GET' },
+            { id: 'api-admin-audit-det', type: 'api', label: 'GET /api/admin/audit/detail', subtitle: '稽核詳情', x: 650, y: 650, icon: '\uf46d', tables: ['admin_audit_log'], method: 'GET' },
+            // Staff APIs
+            { id: 'api-staff-list', type: 'api', label: 'GET /api/admin/staff/list', subtitle: '員工列表', x: 350, y: 850, icon: '\uf0c0', tables: ['staff'], method: 'GET' },
+            { id: 'api-staff-update', type: 'api', label: 'POST /api/admin/staff/update', subtitle: '更新員工', x: 350, y: 950, icon: '\uf4ff', tables: ['staff','admin_audit_log'], method: 'POST' },
+            // Roster APIs
+            { id: 'api-roster', type: 'api', label: 'GET/POST /api/roster', subtitle: '班表API', x: 650, y: 450, icon: '\uf133', tables: ['staff_roster'], method: 'MIX' },
+            // Service APIs
+            { id: 'api-service', type: 'api', label: 'GET/POST /api/service-records', subtitle: '服務紀錄', x: 950, y: 150, icon: '\uf7d9', tables: ['service_records'], method: 'MIX' },
+            // Supervision APIs
+            { id: 'api-supervision', type: 'api', label: 'GET/POST /api/supervision/score', subtitle: '督導評分API', x: 650, y: 50, icon: '\uf559', tables: ['supervision_scores'], method: 'MIX' }
+        ],
+        
+        // ===== C. DB NODES (Core Tables) =====
+        databases: [
+            { id: 'db-needs', type: 'db', label: 'needs', subtitle: '需求主表', x: 950, y: 200, icon: '\uf0ce', 
+              desc: '包含 TEMP-P/TEMP-C 標記、cancelled_at、product_staging_id' },
+            { id: 'db-staging', type: 'db', label: 'staging_records', subtitle: '待建檔紀錄', x: 950, y: 400, icon: '\uf01c',
+              desc: '前台/後台共用，需 JOIN needs 篩選' },
+            { id: 'db-customers', type: 'db', label: 'customers', subtitle: '客戶主檔', x: 1250, y: 150, icon: '\uf0c0' },
+            { id: 'db-customer-staging', type: 'db', label: 'customer_staging', subtitle: '客戶待建檔', x: 1250, y: 250, icon: '\uf234' },
+            { id: 'db-products', type: 'db', label: 'products', subtitle: '產品主檔', x: 1250, y: 350, icon: '\uf466' },
+            { id: 'db-product-staging', type: 'db', label: 'product_staging', subtitle: '產品待建檔', x: 1250, y: 450, icon: '\uf49e' },
+            { id: 'db-inventory', type: 'db', label: 'inventory', subtitle: '庫存表', x: 1250, y: 550, icon: '\uf1b3' },
+            { id: 'db-purchase', type: 'db', label: 'purchase_history', subtitle: '進貨歷史', x: 950, y: 550, icon: '\uf07a' },
+            { id: 'db-sales', type: 'db', label: 'sales_history', subtitle: '銷貨歷史', x: 950, y: 650, icon: '\uf201' },
+            { id: 'db-staff', type: 'db', label: 'staff', subtitle: '員工主檔', x: 650, y: 850, icon: '\uf508' },
+            { id: 'db-staff-pwd', type: 'db', label: 'staff_passwords', subtitle: '員工密碼', x: 650, y: 950, icon: '\uf023' },
+            { id: 'db-audit', type: 'db', label: 'admin_audit_log', subtitle: '操作紀錄', x: 950, y: 850, icon: '\uf46d' },
+            { id: 'db-ops', type: 'db', label: 'ops_events', subtitle: '系統事件', x: 950, y: 950, icon: '\uf1da' },
+            { id: 'db-roster', type: 'db', label: 'staff_roster', subtitle: '班表', x: 950, y: 750, icon: '\uf073' }
+        ],
+        
+        // ===== D. PARSER NODES (Scheduled Jobs) =====
+        parsers: [
+            { id: 'parser-inventory', type: 'parser', label: 'inventory_parser.py', subtitle: '10:30 Daily', x: 1250, y: 600, icon: '\uf1b3', tables: ['inventory','products'] },
+            { id: 'parser-purchase', type: 'parser', label: 'purchase_parser.py', subtitle: '10:35 Daily', x: 1250, y: 700, icon: '\uf07a', tables: ['purchase_history'] },
+            { id: 'parser-sales', type: 'parser', label: 'sales_parser_v19.py', subtitle: '10:40 Daily', x: 1250, y: 800, icon: '\uf201', tables: ['sales_history','products'] },
+            { id: 'parser-customer', type: 'parser', label: 'customer_parser.py', subtitle: '10:45 Daily', x: 1250, y: 900, icon: '\uf234', tables: ['customers'] },
+            { id: 'parser-performance', type: 'parser', label: 'performance_parser.py', subtitle: '11:00 Daily', x: 1250, y: 1000, icon: '\uf080', tables: ['performance_metrics'] }
+        ],
+        
+        // ===== COMPLETE DATA FLOW LINKS =====
+        // 每一條線都有實際端點對應
+        links: [
+            // === TEMP-P (新品) 流程 ===
+            { from: 'page-needs', to: 'api-auth', type: 'read', label: '登入驗證', flow: 'temp-p' },
+            { from: 'page-needs', to: 'api-needs-batch', type: 'write', label: 'POST batch', flow: 'temp-p' },
+            { from: 'api-needs-batch', to: 'db-needs', type: 'write', label: 'INSERT needs', flow: 'temp-p' },
+            { from: 'api-needs-batch', to: 'db-staging', type: 'write', label: 'INSERT staging', flow: 'temp-p' },
+            { from: 'db-needs', to: 'api-staging-records', type: 'read', label: 'JOIN needs', flow: 'temp-p' },
+            { from: 'api-staging-records', to: 'page-staging', type: 'read', label: 'GET records', flow: 'temp-p' },
+            { from: 'page-staging', to: 'api-staging-approve-p', type: 'write', label: 'POST approve', flow: 'temp-p' },
+            { from: 'api-staging-approve-p', to: 'db-products', type: 'write', label: 'INSERT products', flow: 'temp-p' },
+            { from: 'api-staging-approve-p', to: 'db-staging', type: 'write', label: 'UPDATE resolved', flow: 'temp-p' },
+            
+            // === TEMP-C (客戶) 流程 ===
+            { from: 'page-needs', to: 'api-needs-batch', type: 'write', label: 'POST batch (TEMP-C)', flow: 'temp-c' },
+            { from: 'api-needs-batch', to: 'db-needs', type: 'write', label: 'INSERT needs', flow: 'temp-c' },
+            { from: 'db-needs', to: 'db-staging', type: 'write', label: 'INSERT staging', flow: 'temp-c' },
+            { from: 'page-staging', to: 'api-staging-approve-c', type: 'write', label: 'POST approve', flow: 'temp-c' },
+            { from: 'api-staging-approve-c', to: 'db-customers', type: 'write', label: 'INSERT customers', flow: 'temp-c' },
+            
+            // === 取消流程 ===
+            { from: 'page-needs', to: 'api-needs-cancel', type: 'write', label: 'POST cancel', flow: 'cancel' },
+            { from: 'api-needs-cancel', to: 'db-needs', type: 'write', label: 'UPDATE cancelled_at', flow: 'cancel' },
+            { from: 'db-needs', to: 'api-staging-records', type: 'read', label: '篩選取消', flow: 'cancel' },
+            { from: 'api-staging-records', to: 'page-staging', type: 'read', label: '已取消不顯示', flow: 'cancel' },
+            
+            // === Admin 稽核流程 ===
+            { from: 'page-admin', to: 'api-auth', type: 'read', label: '驗證' },
+            { from: 'page-admin', to: 'api-admin-table', type: 'read', label: 'GET table' },
+            { from: 'api-admin-table', to: 'db-needs', type: 'read', label: 'SELECT' },
+            { from: 'api-admin-table', to: 'db-staging', type: 'read', label: 'SELECT' },
+            { from: 'page-admin', to: 'api-admin-audit-sum', type: 'audit', label: '稽核摘要' },
+            { from: 'api-admin-audit-sum', to: 'db-needs', type: 'audit', label: 'A2/A3 檢查' },
+            { from: 'api-admin-audit-sum', to: 'db-staging', type: 'audit', label: '異常比對' },
+            { from: 'api-admin-audit-sum', to: 'page-admin', type: 'audit', label: '顯示卡片' },
+            
+            // === Parser 匯入流程 ===
+            { from: 'parser-inventory', to: 'db-inventory', type: 'write', label: '10:30 匯入' },
+            { from: 'parser-inventory', to: 'db-products', type: 'write', label: '同步產品' },
+            { from: 'parser-purchase', to: 'db-purchase', type: 'write', label: '10:35 匯入' },
+            { from: 'parser-sales', to: 'db-sales', type: 'write', label: '10:40 匯入' },
+            { from: 'parser-customer', to: 'db-customers', type: 'write', label: '10:45 匯入' }
+        ]
+    };
+    
+    // Playback state
+    let isPlaying = false;
+    let playbackSpeed = 1;
+    let currentFlow = 'temp-p';
+    let currentStep = 0;
+    let animationTimeline = null;
+    
+    // Colors
+    const COLORS = {
+        page: '#06b6d4', api: '#8b5cf6', db: '#f97316', parser: '#3b82f6', infra: '#10b981',
+        read: '#3b82f6', write: '#f97316', audit: '#ef4444'
+    };
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        initParticles();
+        initSVG();
+        renderDiagram();
+        setTimeout(() => {
+            document.getElementById('loading')?.classList?.add('hidden');
+            animateEntrance();
+        }, 500);
+    });
+    
+    function initParticles() {
+        const container = document.getElementById('particles-bg');
+        for (let i = 0; i < 40; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.top = Math.random() * 100 + '%';
+            p.style.animationDelay = Math.random() * 20 + 's';
+            p.style.animationDuration = (15 + Math.random() * 10) + 's';
+            container.appendChild(p);
+        }
+    }
+    
+    let svg, g, zoom;
+    function initSVG() {
+        const container = document.getElementById('canvas-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        svg = d3.select('#architecture-svg').attr('viewBox', `0 0 ${width} ${height}`);
+        g = svg.append('g');
+        
+        zoom = d3.zoom().scaleExtent([0.2, 3]).on('zoom', (e) => {
+            g.attr('transform', e.transform);
+        });
+        svg.call(zoom);
+        
+        const initialTransform = d3.zoomIdentity.translate(30, 30).scale(0.65);
+        svg.call(zoom.transform, initialTransform);
+    }
+    
+    function renderDiagram() {
+        const nodeWidth = 160, nodeHeight = 55;
+        
+        // Render Links
+        const linkGroups = g.selectAll('.link-group')
+            .data(ARCH_DATA.links)
+            .enter()
+            .append('g')
+            .attr('class', d => `link-group link-${d.flow || 'all'}`);
+        
+        linkGroups.each(function(d) {
+            const fromNode = findNode(d.from);
+            const toNode = findNode(d.to);
+            if (!fromNode || !toNode) return;
+            
+            const gEl = d3.select(this);
+            
+            // Main link line
+            gEl.append('line')
+                .attr('class', d => `link ${d.type}`)
+                .attr('x1', fromNode.x + nodeWidth/2)
+                .attr('y1', fromNode.y)
+                .attr('x2', toNode.x - nodeWidth/2)
+                .attr('y2', toNode.y)
+                .attr('data-from', d.from)
+                .attr('data-to', d.to);
+            
+            // Label
+            const midX = (fromNode.x + toNode.x) / 2;
+            const midY = (fromNode.y + toNode.y) / 2 - 8;
+            gEl.append('text')
+                .attr('x', midX)
+                .attr('y', midY)
+                .attr('text-anchor', 'middle')
+                .attr('class', 'node-api-label')
+                .style('fill', COLORS[d.type] || '#64748b')
+                .text(d.label);
+        });
+        
+        // Render Nodes
+        const allNodes = [...ARCH_DATA.pages, ...ARCH_DATA.apis, ...ARCH_DATA.databases, ...ARCH_DATA.parsers];
+        
+        const nodeGroups = g.selectAll('.node-group')
+            .data(allNodes)
+            .enter()
+            .append('g')
+            .attr('class', d => `node-group node-${d.type}`)
+            .attr('id', d => `node-${d.id}`)
+            .attr('transform', d => `translate(${d.x - nodeWidth/2},${d.y - nodeHeight/2})`)
+            .on('mouseenter', function() { d3.select(this).select('.node-glow').style('opacity', 0.6); })
+            .on('mouseleave', function() { if (!isPlaying) d3.select(this).select('.node-glow').style('opacity', 0); });
+        
+        // Glow
+        nodeGroups.append('rect')
+            .attr('class', 'node-glow')
+            .attr('width', nodeWidth).attr('height', nodeHeight)
+            .attr('x', 0).attr('y', 0)
+            .attr('stroke', d => COLORS[d.type]);
+        
+        // Main rect
+        nodeGroups.append('rect')
+            .attr('class', 'node-rect')
+            .attr('width', nodeWidth).attr('height', nodeHeight)
+            .attr('stroke', d => COLORS[d.type])
+            .style('fill', d => `${COLORS[d.type]}15`);
+        
+        // Icon
+        nodeGroups.append('text')
+            .attr('x', 18).attr('y', 33)
+            .style('font-family', '"Font Awesome 6 Free"')
+            .style('font-weight', '900')
+            .style('font-size', '18px')
+            .text(d => d.icon);
+        
+        // Label
+        nodeGroups.append('text')
+            .attr('class', 'node-label')
+            .attr('x', 42).attr('y', 26)
+            .text(d => d.label.length > 14 ? d.label.substring(0, 12) + '...' : d.label);
+        
+        // Subtitle
+        nodeGroups.append('text')
+            .attr('class', 'node-subtitle')
+            .attr('x', 42).attr('y', 42)
+            .text(d => d.subtitle);
+    }
+    
+    function findNode(id) {
+        const all = [...ARCH_DATA.pages, ...ARCH_DATA.apis, ...ARCH_DATA.databases, ...ARCH_DATA.parsers];
+        return all.find(n => n.id === id);
+    }
+    
+    function animateEntrance() {
+        gsap.from('.node-group', { opacity: 0, scale: 0.7, duration: 0.5, stagger: 0.02, ease: 'back.out(1.5)' });
+        gsap.from('.link-group', { opacity: 0, duration: 0.8, delay: 0.5, stagger: 0.01 });
+    }
+    
+    // Playback Controls
+    function togglePlay() {
+        const btn = document.getElementById('playBtn');
+        if (isPlaying) {
+            pausePlayback();
+            btn.innerHTML = '<i class="fas fa-play"></i>';
+        } else {
+            startPlayback();
+            btn.innerHTML = '<i class="fas fa-pause"></i>';
+        }
+    }
+    
+    function startPlayback() {
+        isPlaying = true;
+        const flowLinks = ARCH_DATA.links.filter(l => l.flow === currentFlow || !l.flow);
+        const caption = document.getElementById('statusCaption');
+        const stepText = document.getElementById('stepText');
+        const progressFill = document.getElementById('progressFill');
+        
+        caption.classList.add('show');
+        
+        // Build timeline
+        animationTimeline = gsap.timeline({
+            onComplete: () => {
+                isPlaying = false;
+                document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+                currentStep = 0;
+            }
+        });
+        
+        const stepDuration = 1.5 / playbackSpeed;
+        const holdDuration = 0.8 / playbackSpeed;
+        
+        flowLinks.forEach((link, index) => {
+            const fromNode = document.getElementById(`node-${link.from}`);
+            const toNode = document.getElementById(`node-${link.to}`);
+            const linkLine = document.querySelector(`.link[data-from="${link.from}"][data-to="${link.to}"]`);
+            
+            if (!fromNode || !toNode) return;
+            
+            // Step caption
+            animationTimeline.call(() => {
+                currentStep = index + 1;
+                stepText.textContent = `${link.from} → ${link.label} → ${link.to}`;
+                caption.querySelector('.step-number').textContent = `Step ${currentStep}/${flowLinks.length}`;
+                progressFill.style.width = `${(currentStep / flowLinks.length) * 100}%`;
+                
+                // Activate nodes
+                document.querySelectorAll('.node-group').forEach(n => n.classList.remove('active'));
+                fromNode.classList.add('active');
+                toNode.classList.add('active');
+                
+                // Highlight link
+                document.querySelectorAll('.link').forEach(l => l.classList.remove('highlight'));
+                if (linkLine) linkLine.classList.add('highlight');
+            });
+            
+            // Animate particle along path
+            if (linkLine) {
+                const fromPos = findNode(link.from);
+                const toPos = findNode(link.to);
+                
+                // Create particle
+                const particleId = `particle-${index}`;
+                g.append('circle')
+                    .attr('id', particleId)
+                    .attr('class', 'flow-particle')
+                    .attr('r', 5)
+                    .attr('cx', fromPos.x + 80)
+                    .attr('cy', fromPos.y);
+                
+                animationTimeline.to(`#${particleId}`, {
+                    attr: { cx: toPos.x - 80, cy: toPos.y },
+                    duration: stepDuration,
+                    ease: 'power2.inOut',
+                    onComplete: () => {
+                        d3.select(`#${particleId}`).remove();
+                    }
+                }, '<');
+            }
+            
+            animationTimeline.to({}, { duration: holdDuration });
+        });
+        
+        animationTimeline.call(() => {
+            stepText.textContent = 'Flow Complete!';
+            document.querySelectorAll('.node-group').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.link').forEach(l => l.classList.remove('highlight'));
+        });
+    }
+    
+    function pausePlayback() {
+        isPlaying = false;
+        if (animationTimeline) animationTimeline.pause();
+    }
+    
+    function resetPlayback() {
+        isPlaying = false;
+        if (animationTimeline) animationTimeline.kill();
+        animationTimeline = null;
+        currentStep = 0;
+        
+        document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+        document.getElementById('statusCaption').classList.remove('show');
+        document.getElementById('stepText').textContent = 'Ready to play';
+        document.getElementById('progressFill').style.width = '0%';
+        
+        document.querySelectorAll('.node-group').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.link').forEach(l => l.classList.remove('highlight'));
+        g.selectAll('.flow-particle').remove();
+    }
+    
+    function setSpeed(speed) {
+        playbackSpeed = speed;
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
+        });
+    }
+    
+    function selectFlow(flow) {
+        currentFlow = flow;
+        resetPlayback();
+        
+        document.querySelectorAll('.flow-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.flow === flow);
+        });
+        
+        // Highlight relevant links
+        document.querySelectorAll('.link-group').forEach(el => {
+            const hasFlow = el.classList.contains(`link-${flow}`) || el.classList.contains('link-all');
+            el.style.opacity = hasFlow ? '1' : '0.15';
+        });
+        
+        document.querySelectorAll('.node-group').forEach(el => {
+            const nodeId = el.id.replace('node-', '');
+            const connected = ARCH_DATA.links.some(l => 
+                (l.from === nodeId || l.to === nodeId) && (l.flow === flow || !l.flow)
+            );
+            el.style.opacity = connected ? '1' : '0.3';
+        });
+    }
+    
+    function zoomIn() { svg.transition().call(zoom.scaleBy, 1.3); }
+    function zoomOut() { svg.transition().call(zoom.scaleBy, 0.7); }
+    function resetView() {
+        svg.transition().duration(500).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(30, 30).scale(0.65)
+        );
+    }
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+        if (e.key === 'r' || e.key === 'R') resetPlayback();
+        if (e.key === '1') selectFlow('temp-p');
+        if (e.key === '2') selectFlow('temp-c');
+        if (e.key === '3') selectFlow('cancel');
+    });
+    
+        // 版本號彈窗控制
+        function showVersionModal() {
+            document.getElementById('versionModal').style.display = 'flex';
+        }
+        
+        function closeVersionModal() {
+            document.getElementById('versionModal').style.display = 'none';
+        }
+        
+        // 點擊背景關閉彈窗
+        document.getElementById('versionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeVersionModal();
+            }
+        });
+        
+        // ESC 鍵關閉彈窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeVersionModal();
+            }
+        });
+</script>
+{% endblock %}

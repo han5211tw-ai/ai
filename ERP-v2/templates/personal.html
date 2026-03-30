@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}個人業績 — COSH ERP{% endblock %}
+{% block page_title %}個人業績{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 版面 ─────────────────────────────── */
+.personal-layout { display: flex; flex-direction: column; gap: 24px; }
+
+/* ── 期間 + 排序列 ───────────────────── */
+.ctrl-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ctrl-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(107,95,82,.18);
+  flex-shrink: 0;
+}
+.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+
+.period-pills, .sort-pills {
+  display: flex;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pill-btn {
+  padding: 7px 15px;
+  font-size: .82rem;
+  background: none;
+  border: none;
+  color: #6b5f52;
+  cursor: pointer;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  letter-spacing: .04em;
+  transition: background .15s;
+}
+.pill-btn + .pill-btn { border-left: 1px solid rgba(107,95,82,.2); }
+.pill-btn.active { background: #2c2720; color: #f5f0e8; }
+
+.year-sel, .month-sel {
+  padding: 7px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+}
+
+/* ── 卡片 ─────────────────────────────── */
+.p-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 22px 26px;
+}
+.p-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 300;
+  color: #9a9188;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+}
+
+/* ── 排名表格 ─────────────────────────── */
+.p-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+}
+.p-table th {
+  text-align: left;
+  padding: 9px 12px;
+  font-weight: 400;
+  font-size: .76rem;
+  color: #9a9188;
+  letter-spacing: .06em;
+  border-bottom: 1px solid rgba(107,95,82,.15);
+  white-space: nowrap;
+}
+.p-table td {
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(107,95,82,.07);
+  vertical-align: middle;
+}
+.p-table tr:last-child td { border-bottom: none; }
+.p-table tr:hover td { background: rgba(245,240,232,.5); }
+
+/* 排名標記 */
+.rank-medal { font-size: 1.1rem; }
+.rank-num   { font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: #9a9188; }
+.rank-top   { color: #2c2720; font-weight: 400; }
+
+/* 達成率色 */
+.ach.excellent { color: #6b8a5c; font-weight: 400; }
+.ach.good      { color: #b8893a; font-weight: 400; }
+.ach.warn      { color: #a87a4a; font-weight: 400; }
+.ach.danger    { color: #a85c5c; font-weight: 400; }
+
+/* ── 橫向 Bar Chart ───────────────────── */
+.chart-box { position: relative; }
+
+/* ── 督導評分區（本人才顯示） ─────────── */
+.sup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.sup-item {
+  background: #f5f0e8;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.sup-item-label { font-size: .76rem; color: #9a9188; margin-bottom: 6px; }
+.sup-item-body  { display: flex; align-items: center; gap: 10px; }
+.sup-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(107,95,82,.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.sup-fill { height: 100%; border-radius: 999px; background: #6b5f52; transition: width .5s; }
+.sup-score { font-size: .82rem; color: #2c2720; white-space: nowrap; }
+
+.sup-total-bar {
+  background: rgba(107,95,82,.06);
+  border: 1px solid rgba(107,95,82,.12);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.sup-total-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 300;
+  color: #2c2720;
+  line-height: 1;
+}
+.sup-total-sub { font-size: .76rem; color: #9a9188; margin-top: 3px; }
+.sup-total-track {
+  flex: 1;
+  min-width: 120px;
+  height: 8px;
+  background: rgba(107,95,82,.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.sup-total-fill { height: 100%; border-radius: 999px; background: #6b5f52; transition: width .6s; }
+
+.empty-hint { text-align: center; padding: 28px 0; color: #9a9188; font-size: .86rem; }
+#tableWrap { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="personal-layout">
+
+  <!-- ── 控制列 ── -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">期間</span>
+    <div class="period-pills">
+      <button class="pill-btn" data-p="monthly"   onclick="setPeriod('monthly')">本月</button>
+      <button class="pill-btn active" data-p="quarterly" onclick="setPeriod('quarterly')">本季</button>
+      <button class="pill-btn" data-p="yearly"    onclick="setPeriod('yearly')">本年</button>
+    </div>
+    <select class="year-sel" id="yearSel" onchange="load()"></select>
+    <select class="month-sel" id="monthSel" onchange="load()" style="display:none">
+      <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+      <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+      <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+      <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+    </select>
+
+    <div class="ctrl-sep"></div>
+
+    <span class="ctrl-label">排序</span>
+    <div class="sort-pills">
+      <button class="pill-btn active" data-s="revenue"     onclick="setSort('revenue')">業績</button>
+      <button class="pill-btn" data-s="achievement" onclick="setSort('achievement')">達成率</button>
+      <button class="pill-btn" data-s="margin"      onclick="setSort('margin')">毛利率</button>
+      <button class="pill-btn" data-s="orders"      onclick="setSort('orders')">單數</button>
+    </div>
+  </div>
+
+  <!-- ── 排名表格 ── -->
+  <div class="p-card">
+    <div class="p-card-title">個人業績排名</div>
+    <div id="tableWrap"><div class="empty-hint">載入中…</div></div>
+  </div>
+
+  <!-- ── 圖表 ── -->
+  <div class="p-card">
+    <div class="p-card-title" id="chartTitle">業績排名圖表</div>
+    <div class="chart-box" id="chartBox" style="height:300px">
+      <canvas id="rankChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ── 本人督導評分（工程師才顯示） ── -->
+  <div class="p-card" id="supCard" style="display:none">
+    <div class="p-card-title">個人督導評分（本月）</div>
+    <div id="supContent"><div class="empty-hint">載入中…</div></div>
+  </div>
+
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ────────────────────────────────────
+// 狀態
+// ────────────────────────────────────
+let periodType = 'quarterly';
+let sortType   = 'revenue';
+let rawData    = [];
+let chartInst  = null;
+let currentUser = null;
+
+// ────────────────────────────────────
+// 初始化
+// ────────────────────────────────────
+function onAppReady(user) {
+  currentUser = user;
+  initYearSel();
+  document.getElementById('monthSel').value = new Date().getMonth() + 1;
+  load();
+
+  // 督導評分只對工程師顯示
+  if (user.title === '工程師') {
+    document.getElementById('supCard').style.display = '';
+    loadSupervision(user.name);
+  }
+}
+
+function initYearSel() {
+  const sel = document.getElementById('yearSel');
+  const now = new Date().getFullYear();
+  for (let y = now; y >= now - 3; y--) {
+    const o = document.createElement('option');
+    o.value = o.textContent = y;
+    if (y === now) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+// ────────────────────────────────────
+// 控制器
+// ────────────────────────────────────
+function setPeriod(p) {
+  periodType = p;
+  document.querySelectorAll('.period-pills .pill-btn')
+    .forEach(b => b.classList.toggle('active', b.dataset.p === p));
+  document.getElementById('monthSel').style.display = p === 'monthly' ? '' : 'none';
+  load();
+}
+
+function setSort(s) {
+  sortType = s;
+  document.querySelectorAll('.sort-pills .pill-btn')
+    .forEach(b => b.classList.toggle('active', b.dataset.s === s));
+  renderTable();
+  renderChart();
+}
+
+// ────────────────────────────────────
+// 載入
+// ────────────────────────────────────
+async function load() {
+  const year  = document.getElementById('yearSel').value;
+  const month = document.getElementById('monthSel').value;
+  const params = `year=${year}&month=${month}&period_type=${periodType}`;
+  const res  = await fetch(`/api/performance/personal?${params}`);
+  rawData = await res.json();
+  renderTable();
+  renderChart();
+}
+
+// ────────────────────────────────────
+// 排序
+// ────────────────────────────────────
+function getSorted() {
+  const d = [...rawData];
+  switch (sortType) {
+    case 'achievement': d.sort((a,b) => b.achievement_rate - a.achievement_rate); break;
+    case 'margin':      d.sort((a,b) => b.margin_rate - a.margin_rate); break;
+    case 'orders':      d.sort((a,b) => b.orders - a.orders); break;
+    default:            d.sort((a,b) => b.total - a.total); break;
+  }
+  return d.map((item, i) => ({ ...item, rank: i + 1 }));
+}
+
+// ────────────────────────────────────
+// 排名表格
+// ────────────────────────────────────
+function renderTable() {
+  const el   = document.getElementById('tableWrap');
+  const data = getSorted();
+  if (!data.length) { el.innerHTML = '<div class="empty-hint">無資料</div>'; return; }
+
+  const medals = ['🥇','🥈','🥉'];
+
+  el.innerHTML = `
+    <table class="p-table">
+      <thead>
+        <tr>
+          <th style="text-align:center">排名</th>
+          <th>姓名</th>
+          <th style="text-align:right">目標</th>
+          <th style="text-align:right">實際業績</th>
+          <th style="text-align:right">達成率</th>
+          <th style="text-align:right">毛利率</th>
+          <th style="text-align:right">單數</th>
+          <th style="text-align:right">平均單價</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(d => {
+          const ach    = (d.achievement_rate * 100).toFixed(1);
+          const achCls = d.achievement_rate>=.8?'excellent':d.achievement_rate>=.6?'good':d.achievement_rate>=.4?'warn':'danger';
+          const isMe   = currentUser && d.name === currentUser.name;
+          const rankCell = d.rank <= 3
+            ? `<span class="rank-medal">${medals[d.rank-1]}</span>`
+            : `<span class="rank-num">${d.rank}</span>`;
+          return `<tr ${isMe ? 'style="background:rgba(250,191,19,.04)"' : ''}>
+            <td style="text-align:center">${rankCell}</td>
+            <td class="${d.rank<=3?'rank-top':''}">${esc(d.name)}${isMe?' <span style="font-size:.72rem;color:#9a9188">（本人）</span>':''}</td>
+            <td style="text-align:right;color:#9a9188">${fmtN(d.target)}</td>
+            <td style="text-align:right;font-weight:400">${fmtN(d.total)}</td>
+            <td style="text-align:right"><span class="ach ${achCls}">${ach}%</span></td>
+            <td style="text-align:right;color:#9a9188">${((d.margin_rate||0)*100).toFixed(1)}%</td>
+            <td style="text-align:right;color:#9a9188">${d.orders}</td>
+            <td style="text-align:right;color:#9a9188">${fmtN(d.avg)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ────────────────────────────────────
+// 橫向 Bar Chart
+// ────────────────────────────────────
+function renderChart() {
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  const data = getSorted();
+  if (!data.length) return;
+
+  // 動態高度
+  const h = Math.max(220, data.length * 38 + 40);
+  document.getElementById('chartBox').style.height = h + 'px';
+
+  const TITLE_MAP = {
+    revenue: '業績排名',
+    achievement: '達成率排名',
+    margin: '毛利率排名',
+    orders: '單數排名',
+  };
+  document.getElementById('chartTitle').textContent = TITLE_MAP[sortType] || '排名圖表';
+
+  let vals, labelCb, tooltipCb;
+  switch (sortType) {
+    case 'achievement':
+      vals = data.map(d => +((d.achievement_rate||0)*100).toFixed(1));
+      labelCb  = v => v + '%';
+      tooltipCb = (ctx) => `達成率 ${data[ctx.dataIndex].achievement_rate?((data[ctx.dataIndex].achievement_rate)*100).toFixed(1):0}%`;
+      break;
+    case 'margin':
+      vals = data.map(d => +((d.margin_rate||0)*100).toFixed(1));
+      labelCb  = v => v + '%';
+      tooltipCb = (ctx) => `毛利率 ${((data[ctx.dataIndex].margin_rate||0)*100).toFixed(1)}%`;
+      break;
+    case 'orders':
+      vals = data.map(d => d.orders);
+      labelCb  = v => v + ' 單';
+      tooltipCb = (ctx) => `${data[ctx.dataIndex].orders} 單`;
+      break;
+    default:
+      vals = data.map(d => d.total);
+      labelCb  = v => v >= 10000 ? (v/10000).toFixed(0)+'萬' : v.toLocaleString();
+      tooltipCb = (ctx) => `NT$ ${data[ctx.dataIndex].total.toLocaleString()}`;
+  }
+
+  // 依排名深淺：第1名最深，往後漸淡
+  const n = data.length;
+  const colors = data.map((d, i) => {
+    const t = i / Math.max(n-1, 1);
+    const r = Math.round(107 + t * (192-107));
+    const g = Math.round(95  + t * (184-95));
+    const b = Math.round(82  + t * (176-82));
+    // 本人高亮黃色邊框
+    return `rgba(${r},${g},${b},0.85)`;
+  });
+  const borders = data.map(d => d.name === (currentUser&&currentUser.name) ? '#FABF13' : 'transparent');
+
+  chartInst = new Chart(document.getElementById('rankChart'), {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.name),
+      datasets: [{
+        data:            vals,
+        backgroundColor: colors,
+        borderColor:     borders,
+        borderWidth:     2,
+        borderRadius:    8,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: tooltipCb } }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(107,95,82,.07)' },
+          ticks: { color: '#9a9188', font: { size: 11 }, callback: labelCb }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: '#2c2720', font: { size: 12 } }
+        }
+      }
+    }
+  });
+}
+
+// ────────────────────────────────────
+// 本人督導評分
+// ────────────────────────────────────
+async function loadSupervision(name) {
+  const el  = document.getElementById('supContent');
+  const res = await fetch(`/api/personal/supervision?user=${encodeURIComponent(name)}`);
+  const json = await res.json();
+
+  if (!json.success || !json.scores) {
+    el.innerHTML = '<div class="empty-hint">本月尚無督導評分記錄</div>';
+    return;
+  }
+
+  const scores = json.scores;
+  const labels = json.labels || {};
+  const fields = Object.keys(scores);
+
+  // 每項進度條
+  const itemsHtml = fields.map(f => {
+    const score   = scores[f];
+    const fillW   = (score / 2) * 100;
+    const fillClr = fillW >= 85 ? '#6b8a5c' : fillW >= 70 ? '#b8893a' : fillW >= 50 ? '#a87a4a' : '#a85c5c';
+    return `
+      <div class="sup-item">
+        <div class="sup-item-label">${labels[f] || f}</div>
+        <div class="sup-item-body">
+          <div class="sup-track">
+            <div class="sup-fill" style="width:${fillW}%;background:${fillClr}"></div>
+          </div>
+          <span class="sup-score">${score} / 2</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  // 總分
+  const pct     = json.percentage || 0;
+  const fillClr = pct >= 85 ? '#6b8a5c' : pct >= 70 ? '#b8893a' : pct >= 50 ? '#a87a4a' : '#a85c5c';
+
+  el.innerHTML = `
+    <div class="sup-total-bar" style="margin-bottom:16px">
+      <div>
+        <div class="sup-total-val" style="color:${fillClr}">${pct}%</div>
+        <div class="sup-total-sub">${json.total} / ${json.max} 分 · 本月督導 ${json.count} 次</div>
+      </div>
+      <div class="sup-total-track">
+        <div class="sup-total-fill" style="width:${Math.min(100,pct)}%;background:${fillClr}"></div>
+      </div>
+    </div>
+    <div class="sup-grid">${itemsHtml}</div>`;
+}
+
+// ────────────────────────────────────
+// 工具
+// ────────────────────────────────────
+function fmtN(v) { return v == null ? '—' : 'NT$ ' + Math.round(v).toLocaleString(); }
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s||'');
+  return d.innerHTML;
+}
+</script>
+{% endblock %}
