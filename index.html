@@ -247,12 +247,19 @@
 
 
 <!-- 逾期收貨提醒 -->
-<div id="overdueArrivalSection" class="chart-section" style="display: none; border: 1px solid rgba(255, 152, 0, 0.3); background: rgba(255, 152, 0, 0.05);">
-    <div class="section-title" style="color: #ff9800;">⚠️ 待確認收貨提醒</div>
+<div id="overdueArrivalSection" class="chart-section" style="display: none; border: 2px solid rgba(255, 193, 7, 0.6); background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1)); box-shadow: 0 0 20px rgba(255, 193, 7, 0.15); animation: pulse-warning 2s ease-in-out infinite;">
+    <div class="section-title" style="color: #ffc107; font-weight: 600; font-size: 1.1rem;">⚠️ 待確認收貨提醒</div>
     <div id="overdueArrivalContent" style="padding: 0 20px 20px;">
         <!-- 動態載入 -->
     </div>
 </div>
+
+<style>
+@keyframes pulse-warning {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 193, 7, 0.15); }
+  50% { box-shadow: 0 0 35px rgba(255, 193, 7, 0.35); }
+}
+</style>
 
 <!-- 本季營收統計 -->
 <div class="stats-row" style="margin-bottom: 30px;">
@@ -285,7 +292,7 @@
 
 <!-- 採購需求表 -->
 <div class="chart-section">
-    <div class="section-title">🛒 待處理需求清單</div>
+    <div class="section-title">🛒 待完成需求清單</div>
     <div id="needsTable">
         <div style="color: #8892b0; text-align: center; padding: 40px;">載入中...</div>
     </div>
@@ -612,14 +619,14 @@
                 const overdueDays = Math.floor(item.overdue_days || 0);
 
                 html += `
-                    <div style="background: rgba(0,0,0,0.2); padding: 10px 14px; border-radius: 8px; border-left: 3px solid #ff9800;">
-                        📦 ${item.item_name}（${typeLabel}｜${sourceLabel}｜${actionDate}｜已過 ${overdueDays} 天）
+                    <div style="background: rgba(0,0,0,0.3); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #ffc107; font-size: 1rem; font-weight: 500;">
+                        📦 <strong style="color: #ffc107;">${item.item_name}</strong>（${typeLabel}｜${sourceLabel}｜${actionDate}｜<strong style="color: #ff9800;">已過 ${overdueDays} 天</strong>）
                     </div>
                 `;
             });
 
             html += '</div>';
-            html += `<p style="color: #94a3b8; margin-top: 15px; font-size: 0.9em;">請至首頁「待處理需求清單」確認收貨並結案。</p>`;
+            html += `<p style="color: #94a3b8; margin-top: 15px; font-size: 0.9em;">請至首頁「待完成需求清單」確認收貨並結案。</p>`;
             html += `<div style="text-align: right; margin-top: 15px;">
                 <button onclick="document.getElementById('overdueArrivalSection').style.display='none'"
                         style="padding: 10px 20px; background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid rgba(255,152,0,0.4); border-radius: 8px; cursor: pointer;">
