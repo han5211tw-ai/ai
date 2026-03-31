@@ -123,6 +123,10 @@ app.register_blueprint(admin_staff_bp)
 for endpoint, func in app.view_functions.items():
     if endpoint.startswith('admin_staff.'):
         app.view_functions[endpoint] = require_admin(func)
+
+# 匯入並註冊 KPI Blueprint
+from kpi_api import kpi_bp
+app.register_blueprint(kpi_bp)
 STATIC_DIR = '/Users/aiserver/.openclaw/workspace/dashboard-site'
 
 # 客戶資料來源切換開關（master=查 customer_master, legacy=查 customers）

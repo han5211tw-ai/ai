@@ -142,7 +142,7 @@
             text-decoration: none;
         }
         .back-link:hover { text-decoration: underline; }
-        /* 功能表單樣式 */
+        /* 五星好評統計樣式 */
         .section-title {
             color: #FABF13;
             font-size: 1.2em;
@@ -151,52 +151,10 @@
             align-items: center;
             gap: 10px;
         }
-        .btn-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-        .btn-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 15px 10px;
-            text-decoration: none;
-            color: #fff;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        .btn-card:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: #FABF13;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(250, 191, 19, 0.2);
-        }
-        .btn-icon { font-size: 2em; margin-bottom: 10px; }
-        .btn-title { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; color: #fff; }
     </style>
 </head>
 <body>
     <div class="container">
-        
-        
-
-
-        <div class="section-title">📂 功能表單</div>
-        <div class="btn-grid">
-            <a href="roster.html" class="btn-card">
-                <div class="btn-icon">📅</div>
-                <div class="btn-title">班表</div>
-            </a>
-            <a href="https://1drv.ms/x/c/6480de932f72b94e/IQCdDxO_Nke0SYeYjet7Z1ZhAevA1hWTrfGgCJ8EQc6SMT8?e=8uxM9p" class="btn-card" target="_blank">
-                <div class="btn-icon">✅</div>
-                <div class="btn-title">LINE 回覆紀錄</div>
-            </a>
-        </div>
 
         <div class="section-title">⭐ 五星好評統計 <span id="reviewPeriod" style="font-size: 0.7em; color: #64748b;"></span></div>
         <div class="stats-grid" id="reviewStats">
@@ -205,23 +163,9 @@
             </div>
         </div>
 
-        <div class="card" id="recentReviewsCard" style="display: none;">
-            <h2>📝 最近五星評論</h2>
-            <div id="recentReviewsList">
-                <div class="loading">載入中...</div>
-            </div>
-        </div>
-
         <div class="card">
             <h2>📊 門市業績總表</h2>
             <div id="storeTable">
-                <div class="loading">載入中...</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>⭐ 環境整潔評分（1-5項）</h2>
-            <div id="supervisionScoreTable">
                 <div class="loading">載入中...</div>
             </div>
         </div>
@@ -256,21 +200,21 @@
                 // 載入門市業績
                 const perfResponse = await fetch('/api/performance/store');
                 const perfData = await perfResponse.json();
-                
-                // 載入五星好評
+
+                // 載入五星好評統計
                 const reviewResponse = await fetch('/api/store/reviews');
                 const reviewData = await reviewResponse.json();
-                
+
                 // 載入環境整潔評分（1-5項）
                 const supervisionResponse = await fetch('/api/store/supervision?type=environment');
                 const supervisionData = await supervisionResponse.json();
-                
+
                 // 建立環境整潔評分對照表
                 const supervisionMap = {};
                 supervisionData.forEach(s => {
                     supervisionMap[s.store] = s.percentage || 0; // 使用百分比
                 });
-                
+
                 // 填充五星好評統計
                 const storeOrder = ['豐原', '潭子', '大雅'];
                 const reviewHtml = storeOrder.map(name => {
@@ -284,10 +228,7 @@
                     </div>
                 `}).join('');
                 document.getElementById('reviewStats').innerHTML = reviewHtml;
-                
-                // 載入最近五星評論（新系統）
-                await loadRecentReviews();
-                
+
                 // 處理 API 回傳格式（支援陣列或物件）
                 const rawData = Array.isArray(perfData) ? perfData : (perfData.data || []);
 
@@ -421,43 +362,6 @@
             } catch (error) {
                 console.error('載入門市資料失敗:', error);
                 document.getElementById('storeTable').innerHTML = '<div class="loading">載入失敗</div>';
-            }
-        }
-
-        // 載入最近五星評論
-        async function loadRecentReviews() {
-            try {
-                const response = await fetch('/api/google-reviews?min_stars=5&limit=5');
-                const reviews = await response.json();
-                
-                if (reviews && reviews.length > 0) {
-                    document.getElementById('recentReviewsCard').style.display = 'block';
-                    
-                    const reviewsHtml = reviews.map(r => `
-                        <div class="review-item" style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                <span style="color: #FABF13; font-weight: 600;">${r.store}店</span>
-                                <span style="color: #ffd700;">${'⭐'.repeat(r.stars)}</span>
-                            </div>
-                            <div style="color: #fff; margin-bottom: 4px;">${r.reviewer || '匿名'}</div>
-                            <div style="color: #94a3b8; font-size: 0.9em; line-height: 1.4;">${r.snippet || ''}</div>
-                            <div style="color: #64748b; font-size: 0.8em; margin-top: 4px;">${r.date || ''}</div>
-                        </div>
-                    `).join('');
-                    
-                    document.getElementById('recentReviewsList').innerHTML = reviewsHtml;
-                    
-                    // 顯示統計期間說明
-                    const firstReview = reviews[0];
-                    if (firstReview && firstReview.received_at) {
-                        document.getElementById('reviewPeriod').textContent = '(2026/4起自動統計)';
-                    }
-                } else {
-                    document.getElementById('recentReviewsCard').style.display = 'none';
-                }
-            } catch (error) {
-                console.error('載入最近評論失敗:', error);
-                document.getElementById('recentReviewsCard').style.display = 'none';
             }
         }
 
