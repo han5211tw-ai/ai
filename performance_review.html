@@ -1,0 +1,634 @@
+{% extends "base.html" %}
+
+{% block title %}績效考核{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 頁面標題 -->
+    <div class="page-header">
+        <h1>🎯 績效考核系統</h1>
+        <p class="subtitle">電腦舖 2026 年績效與獎金制度</p>
+    </div>
+
+    <!-- 季度選擇器 -->
+    <div class="card">
+        <div class="card-body">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>年度</label>
+                    <select id="yearSelect" class="form-control">
+                        <option value="2026" selected>2026</option>
+                        <option value="2025">2025</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>季度</label>
+                    <select id="quarterSelect" class="form-control">
+                        <option value="1" selected>Q1 (1-3月)</option>
+                        <option value="2">Q2 (4-6月)</option>
+                        <option value="3">Q3 (7-9月)</option>
+                        <option value="4">Q4 (10-12月)</option>
+                    </select>
+                </div>
+                <button id="loadBtn" class="btn btn-primary">載入資料</button>
+                <button id="calculateBtn" class="btn btn-success" style="display:none;">計算 KPI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 獎金總覽（老闆/主管可見） -->
+    <div id="bonusOverview" class="card" style="display:none;">
+        <div class="card-header">
+            <h3>💰 獎金總覽</h3>
+        </div>
+        <div class="card-body">
+            <div class="overview-grid">
+                <div class="overview-item">
+                    <span class="label">季度淨利</span>
+                    <span id="netProfit" class="value">-</span>
+                </div>
+                <div class="overview-item">
+                    <span class="label">員工獎金池 (13%)</span>
+                    <span id="employeePool" class="value">-</span>
+                </div>
+                <div class="overview-item">
+                    <span class="label">主管獎金池 (6%)</span>
+                    <span id="managerPool" class="value">-</span>
+                </div>
+                <div class="overview-item">
+                    <span class="label">會計獎金池 (1%)</span>
+                    <span id="accountingPool" class="value">-</span>
+                </div>
+                <div class="overview-item">
+                    <span class="label">保底金額</span>
+                    <span id="baseAmount" class="value">-</span>
+                </div>
+            </div>
+            <div id="profitInputSection" class="input-section" style="display:none; margin-top: 15px;">
+                <label>設定季度淨利：</label>
+                <input type="number" id="netProfitInput" class="form-control" placeholder="輸入淨利金額">
+                <button id="saveProfitBtn" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 門市/工程同仁 KPI -->
+    <div class="card">
+        <div class="card-header">
+            <h3>👥 門市與工程同仁 KPI</h3>
+            <span class="badge">滿分 100 分</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="staffKpiTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>姓名</th>
+                            <th>職類</th>
+                            <th>業績達成<br><small>(40/30分)</small></th>
+                            <th>毛利率<br><small>(20/30分)</small></th>
+                            <th>公司達成<br><small>(15/10分)</small></th>
+                            <th>五星好評<br><small>(10/15分)</small></th>
+                            <th>關鍵貢獻<br><small>(15分)</small></th>
+                            <th>總分</th>
+                            <th>加權</th>
+                            <th>試算獎金</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffKpiBody">
+                        <!-- 動態生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主管 KPI -->
+    <div id="managerKpiSection" class="card" style="display:none;">
+        <div class="card-header">
+            <h3>👔 主管 KPI</h3>
+            <span class="badge">滿分 100 分</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="managerKpiTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>部門毛利<br><small>(30%)</small></th>
+                            <th>部屬平均<br><small>(20%)</small></th>
+                            <th>公司毛利<br><small>(20%)</small></th>
+                            <th>離職率<br><small>(10%)</small></th>
+                            <th>客訴失誤<br><small>(10%)</small></th>
+                            <th>跨部門<br><small>(10%)</small></th>
+                            <th>總分</th>
+                            <th>獎金比例</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerKpiBody">
+                        <!-- 動態生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 會計 KPI -->
+    <div id="accountingKpiSection" class="card" style="display:none;">
+        <div class="card-header">
+            <h3>📊 會計 KPI</h3>
+            <span class="badge">滿分 100 分</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="accountingKpiTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>帳務準確<br><small>(20%)</small></th>
+                            <th>報表準時<br><small>(20%)</small></th>
+                            <th>應收控管<br><small>(20%)</small></th>
+                            <th>內部支援<br><small>(20%)</small></th>
+                            <th>成本優化<br><small>(20%)</small></th>
+                            <th>總分</th>
+                            <th>獎金</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountingKpiBody">
+                        <!-- 動態生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 關鍵貢獻舉證表 Modal -->
+<div id="contributionModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📝 關鍵貢獻舉證表</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="contributionList">
+                <!-- 動態生成 -->
+            </div>
+            <button id="addContributionBtn" class="btn btn-primary">新增貢獻項目</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    margin-bottom: 20px;
+}
+.page-header h1 {
+    margin-bottom: 5px;
+}
+.subtitle {
+    color: #666;
+    font-size: 14px;
+}
+.filter-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.filter-group label {
+    font-size: 12px;
+    color: #666;
+}
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+}
+.overview-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+.overview-item .label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+.overview-item .value {
+    display: block;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+}
+.input-section {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.input-section input {
+    width: 200px;
+}
+.badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+.data-table th {
+    text-align: center;
+    font-size: 12px;
+}
+.data-table td {
+    text-align: center;
+}
+.rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; font-weight: bold; }
+.rank-2 { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: #333; font-weight: bold; }
+.rank-3 { background: linear-gradient(135deg, #CD7F32, #B87333); color: #fff; font-weight: bold; }
+.rank-1 td, .rank-2 td, .rank-3 td { color: inherit; }
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-body {
+    padding: 20px;
+}
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+</style>
+
+<script>
+// 全域變數
+let currentUser = null;
+let userRole = null; // 'staff', 'manager', 'boss'
+let currentData = null;
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    initPage();
+});
+
+function initPage() {
+    // 檢查登入狀態
+    if (window.checkAuth) {
+        window.checkAuth();
+    }
+    
+    // 綁定事件
+    document.getElementById('loadBtn').addEventListener('click', loadKpiData);
+    document.getElementById('calculateBtn').addEventListener('click', calculateKpi);
+    document.getElementById('saveProfitBtn')?.addEventListener('click', saveProfit);
+    
+    // 載入初始資料
+    loadKpiData();
+}
+
+// 取得當前使用者名稱
+function getCurrentUserName() {
+    // 從 localStorage 取得
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+        try {
+            const user = JSON.parse(storedUser);
+            return user.name || user.username || null;
+        } catch (e) {
+            console.error('Failed to parse currentUser:', e);
+        }
+    }
+    // 從全域變數取得
+    if (window.currentUser && window.currentUser.name) {
+        return window.currentUser.name;
+    }
+    return null;
+}
+
+// 載入 KPI 資料
+async function loadKpiData() {
+    const year = document.getElementById('yearSelect').value;
+    const quarter = document.getElementById('quarterSelect').value;
+    const userName = getCurrentUserName();
+    
+    try {
+        let url = `/api/kpi/overview?year=${year}&quarter=${quarter}`;
+        if (userName) {
+            url += `&user=${encodeURIComponent(userName)}`;
+        }
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            currentData = data;
+            currentUser = data.current_user;
+            userRole = data.user_role;
+            
+            renderPage(data);
+        } else {
+            alert('載入失敗：' + data.message);
+        }
+    } catch (error) {
+        console.error('載入錯誤:', error);
+        alert('載入失敗，請稍後再試');
+    }
+}
+
+// 渲染頁面
+function renderPage(data) {
+    // 根據權限顯示/隱藏區塊
+    if (userRole === 'boss' || userRole === 'manager') {
+        document.getElementById('bonusOverview').style.display = 'block';
+        document.getElementById('calculateBtn').style.display = 'inline-block';
+        renderBonusOverview(data.profit);
+    }
+    
+    if (userRole === 'boss') {
+        document.getElementById('profitInputSection').style.display = 'flex';
+        document.getElementById('managerKpiSection').style.display = 'block';
+        document.getElementById('accountingKpiSection').style.display = 'block';
+    }
+    
+    // 渲染員工 KPI 表
+    renderStaffKpi(data.staff_scores);
+    
+    // 渲染主管 KPI
+    if (userRole === 'boss' && data.manager_scores) {
+        renderManagerKpi(data.manager_scores);
+    }
+    
+    // 渲染會計 KPI
+    if (userRole === 'boss' && data.accounting_scores) {
+        renderAccountingKpi(data.accounting_scores);
+    }
+}
+
+// 渲染獎金總覽
+function renderBonusOverview(profit) {
+    if (!profit) return;
+    
+    document.getElementById('netProfit').textContent = formatMoney(profit.net_profit);
+    document.getElementById('employeePool').textContent = formatMoney(profit.net_profit * 0.13);
+    document.getElementById('managerPool').textContent = formatMoney(profit.net_profit * 0.06);
+    document.getElementById('accountingPool').textContent = formatMoney(profit.net_profit * 0.01);
+    
+    // 計算保底金額（假設8.65人）
+    const staffCount = 8.65;
+    const baseAmount = Math.round((profit.net_profit * 0.13) / staffCount);
+    document.getElementById('baseAmount').textContent = formatMoney(baseAmount);
+}
+
+// 渲染員工 KPI
+function renderStaffKpi(scores) {
+    const tbody = document.getElementById('staffKpiBody');
+    tbody.innerHTML = '';
+    
+    if (!scores || scores.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;">暫無資料，請點擊「計算 KPI」</td></tr>';
+        return;
+    }
+    
+    scores.forEach((score, index) => {
+        const rank = score.rank || index + 1;
+        const multiplier = score.multiplier || getMultiplier(rank);
+        const row = document.createElement('tr');
+        row.className = `rank-${rank}`;
+        
+        row.innerHTML = `
+            <td>${rank}</td>
+            <td>${score.staff_name}</td>
+            <td>${score.staff_role === 'store' ? '門市' : '工程'}</td>
+            <td>${score.kpi1_achievement.toFixed(1)}</td>
+            <td>${score.kpi2_margin.toFixed(1)}</td>
+            <td>${score.kpi3_company_achievement.toFixed(1)}</td>
+            <td>${score.kpi4_reviews.toFixed(1)}</td>
+            <td>${score.kpi5_contribution.toFixed(1)}</td>
+            <td><strong>${score.total_score.toFixed(1)}</strong></td>
+            <td>×${multiplier.toFixed(2)}</td>
+            <td>${formatMoney(score.bonus_amount)}</td>
+            <td>
+                <button class="btn btn-sm" onclick="editContribution('${score.staff_name}')">貢獻表</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// 渲染主管 KPI
+function renderManagerKpi(scores) {
+    const tbody = document.getElementById('managerKpiBody');
+    tbody.innerHTML = '';
+    
+    if (!scores) return;
+    
+    scores.forEach(score => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${score.staff_name}</td>
+            <td>${score.m_kpi1_dept_margin.toFixed(1)}</td>
+            <td>${score.m_kpi2_staff_avg.toFixed(1)}</td>
+            <td>${score.m_kpi3_company_margin.toFixed(1)}</td>
+            <td>${score.m_kpi4_turnover.toFixed(1)}</td>
+            <td>${score.m_kpi5_complaint.toFixed(1)}</td>
+            <td>${score.m_kpi6_cross_dept.toFixed(1)}</td>
+            <td><strong>${score.total_score.toFixed(1)}</strong></td>
+            <td>${calculateManagerBonusRatio(score.total_score)}%</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// 渲染會計 KPI
+function renderAccountingKpi(scores) {
+    const tbody = document.getElementById('accountingKpiBody');
+    tbody.innerHTML = '';
+    
+    if (!scores) return;
+    
+    scores.forEach(score => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${score.staff_name}</td>
+            <td>${score.a_kpi1_accuracy.toFixed(1)}</td>
+            <td>${score.a_kpi2_on_time.toFixed(1)}</td>
+            <td>${score.a_kpi3_ar_control.toFixed(1)}</td>
+            <td>${score.a_kpi4_support.toFixed(1)}</td>
+            <td>${score.a_kpi5_cost_opt.toFixed(1)}</td>
+            <td><strong>${score.total_score.toFixed(1)}</strong></td>
+            <td>${formatMoney(score.bonus_amount)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// 計算 KPI
+async function calculateKpi() {
+    const year = document.getElementById('yearSelect').value;
+    const quarter = document.getElementById('quarterSelect').value;
+    
+    if (!confirm('確定要計算/重新計算本季 KPI 嗎？')) return;
+    
+    try {
+        const response = await fetch('/api/kpi/calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year, quarter })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('KPI 計算完成！');
+            loadKpiData();
+        } else {
+            alert('計算失敗：' + data.message);
+        }
+    } catch (error) {
+        console.error('計算錯誤:', error);
+        alert('計算失敗，請稍後再試');
+    }
+}
+
+// 儲存季度淨利
+async function saveProfit() {
+    const year = document.getElementById('yearSelect').value;
+    const quarter = document.getElementById('quarterSelect').value;
+    const profit = document.getElementById('netProfitInput').value;
+    
+    if (!profit || profit <= 0) {
+        alert('請輸入有效的淨利金額');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/kpi/profit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year, quarter, net_profit: parseInt(profit) })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('淨利設定已儲存！');
+            loadKpiData();
+        } else {
+            alert('儲存失敗：' + data.message);
+        }
+    } catch (error) {
+        console.error('儲存錯誤:', error);
+        alert('儲存失敗，請稍後再試');
+    }
+}
+
+// 編輯關鍵貢獻
+function editContribution(staffName) {
+    document.getElementById('contributionModal').style.display = 'flex';
+    loadContributions(staffName);
+}
+
+// 載入貢獻列表
+async function loadContributions(staffName) {
+    const year = document.getElementById('yearSelect').value;
+    const quarter = document.getElementById('quarterSelect').value;
+    
+    try {
+        const response = await fetch(`/api/kpi/contributions?year=${year}&quarter=${quarter}&staff=${encodeURIComponent(staffName)}`);
+        const data = await response.json();
+        
+        const list = document.getElementById('contributionList');
+        list.innerHTML = '';
+        
+        if (data.contributions && data.contributions.length > 0) {
+            data.contributions.forEach(item => {
+                list.appendChild(createContributionItem(item));
+            });
+        } else {
+            list.innerHTML = '<p style="text-align:center; color:#999;">尚無貢獻項目</p>';
+        }
+    } catch (error) {
+        console.error('載入貢獻失敗:', error);
+    }
+}
+
+// 建立貢獻項目 DOM
+function createContributionItem(item) {
+    const div = document.createElement('div');
+    div.className = 'contribution-item';
+    div.innerHTML = `
+        <div class="item-header">
+            <span class="item-number">項目 ${item.item_number}</span>
+            <span class="status-badge ${item.status}">${getStatusText(item.status)}</span>
+        </div>
+        <div class="item-body">
+            <p>${item.description || '無說明'}</p>
+            <p class="item-meta">類別: ${item.category === 'teamwork' ? '團隊合作' : '個人貢獻'}</p>
+        </div>
+    `;
+    return div;
+}
+
+// 關閉 Modal
+function closeModal() {
+    document.getElementById('contributionModal').style.display = 'none';
+}
+
+// 輔助函數
+function formatMoney(amount) {
+    if (!amount) return '-';
+    return 'NT$ ' + amount.toLocaleString();
+}
+
+function getMultiplier(rank) {
+    const multipliers = { 1: 1.30, 2: 1.20, 3: 1.10, 4: 1.05 };
+    return multipliers[rank] || 1.00;
+}
+
+function calculateManagerBonusRatio(score) {
+    // 70% 平均 + 30% 依得分比例
+    return '70%+';
+}
+
+function getStatusText(status) {
+    const texts = { pending: '待審核', approved: '已通過', rejected: '已拒絕' };
+    return texts[status] || status;
+}
+
+// 點擊 modal 外部關閉
+document.getElementById('contributionModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+</script>
+{% endblock %}

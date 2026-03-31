@@ -345,7 +345,21 @@
         // 載入個人督導評分
         async function loadPersonalSupervision() {
             try {
-                const response = await fetch('/api/personal/supervision');
+                // 從 auth_ui 獲取當前使用者名稱
+                let userName = '';
+                if (window.getCurrentUser) {
+                    const user = window.getCurrentUser();
+                    if (user && user.name) {
+                        userName = user.name;
+                    }
+                }
+                
+                if (!userName) {
+                    document.getElementById('supervisionScoreSection').innerHTML = '<div style="color: #8892b0; text-align: center; padding: 20px;">請先登入以查看督導評分</div>';
+                    return;
+                }
+                
+                const response = await fetch('/api/personal/supervision?user=' + encodeURIComponent(userName));
                 const data = await response.json();
                 
                 if (data.success && data.scores) {
