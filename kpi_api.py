@@ -177,19 +177,33 @@ def calculate_kpi():
         start_date = f"{year}-{start_month:02d}-01"
         end_date = f"{year}-{end_month:02d}-31"
         
+        # 預先計算季度月份相關變數（供後續使用）
+        quarter_months_map = {1: [1, 2, 3], 2: [4, 5, 6], 3: [7, 8, 9], 4: [10, 11, 12]}
+        months = quarter_months_map[quarter]
+        months_placeholders = ','.join(['?' for _ in months])
+        
         # 取得所有員工
         cursor.execute("SELECT name, department, title FROM staff WHERE is_active = 1")
         staff_list = cursor.fetchall()
         
-        # 取得公司總目標與實績
-        cursor.execute("""
-            SELECT SUM(target_amount) as total_target, SUM(revenue_amount) as total_revenue
+        # 取得公司季度目標（1+2+3月加總）
+        cursor.execute(f"""
+            SELECT SUM(target_amount) as total_target
             FROM performance_metrics 
-            WHERE year = ? AND category = '公司'
-        """, (year,))
-        company_metrics = cursor.fetchone()
-        company_target = company_metrics['total_target'] or 1
-        company_revenue = company_metrics['total_revenue'] or 0
+            WHERE year = ? AND category = '公司' AND month IN ({months_placeholders})
+        """, (year,) + tuple(months))
+        company_target_row = cursor.fetchone()
+        company_target = company_target_row['total_target'] or 1
+        
+        # 取得公司實際銷售額（從 sales_history 計算，未稅）
+        cursor.execute("""
+            SELECT SUM(amount / 1.05) as total_revenue
+            FROM sales_history 
+            WHERE date >= ? AND date <= ?
+        """, (start_date, end_date))
+        company_revenue_row = cursor.fetchone()
+        company_revenue = company_revenue_row['total_revenue'] or 0
+        
         company_achievement_rate = company_revenue / company_target if company_target > 0 else 0
         
         # 計算五星好評數（從 store_reviews 表讀取）
@@ -247,12 +261,13 @@ def calculate_kpi():
                 dept_sales = dept_result['dept_sales'] or 0
                 dept_profit = dept_result['dept_profit'] or 0
                 
-                # 取得部門目標
-                cursor.execute("""
+                # 取得部門季度目標（1+2+3月加總）
+                cursor.execute(f"""
                     SELECT SUM(target_amount) as dept_target
                     FROM performance_metrics 
                     WHERE year = ? AND category = '部門' AND subject_name LIKE ?
-                """, (year, f'%{dept}%'))
+                    AND month IN ({months_placeholders})
+                """, (year, f'%{dept}%') + tuple(months))
                 dept_target_row = cursor.fetchone()
                 dept_target = dept_target_row['dept_target'] or 1
                 
@@ -325,13 +340,15 @@ def calculate_kpi():
             actual_sales = sales_result['total_sales_excl_tax'] or 0
             actual_profit = sales_result['total_profit'] or 0
             
-            # 取得個人目標（目標也是未稅）
-            cursor.execute("""
-                SELECT target_amount FROM performance_metrics 
+            # 取得個人季度目標（1+2+3月加總）
+            cursor.execute(f"""
+                SELECT SUM(target_amount) as total_target 
+                FROM performance_metrics 
                 WHERE year = ? AND category = '個人' AND subject_name = ?
-            """, (year, staff_name))
+                AND month IN ({months_placeholders})
+            """, (year, staff_name) + tuple(months))
             target_row = cursor.fetchone()
-            personal_target = target_row['target_amount'] if target_row else 1
+            personal_target = target_row['total_target'] if target_row and target_row['total_target'] else 1
             
             achievement_rate = actual_sales / personal_target if personal_target > 0 else 0
             
