@@ -2055,17 +2055,27 @@ def get_summary():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT SUM(amount) FROM sales_history WHERE date >= '2026-01-01'")
+    # 計算當季日期範圍
+    from datetime import datetime
+    now = datetime.now()
+    year = now.year
+    quarter = (now.month - 1) // 3 + 1
+    quarter_months = {1: ('01-01', '03-31'), 2: ('04-01', '06-30'), 3: ('07-01', '09-30'), 4: ('10-01', '12-31')}
+    start_date = f"{year}-{quarter_months[quarter][0]}"
+    end_date = f"{year}-{quarter_months[quarter][1]}"
+    today_str = now.strftime('%Y-%m-%d')
+
+    cursor.execute("SELECT SUM(amount) FROM sales_history WHERE date >= ? AND date <= ?", (start_date, end_date))
     total_revenue = cursor.fetchone()[0] or 0
 
-    cursor.execute("SELECT SUM(amount) FROM sales_history WHERE date = '2026-02-21'")
+    cursor.execute("SELECT SUM(amount) FROM sales_history WHERE date = ?", (today_str,))
     today_revenue = cursor.fetchone()[0] or 0
 
-    cursor.execute("SELECT COUNT(DISTINCT date) FROM sales_history WHERE date >= '2026-01-01'")
+    cursor.execute("SELECT COUNT(DISTINCT date) FROM sales_history WHERE date >= ? AND date <= ?", (start_date, end_date))
     day_count = cursor.fetchone()[0] or 1
     avg_revenue = total_revenue // day_count
 
-    cursor.execute("SELECT MAX(daily_total) FROM (SELECT date, SUM(amount) as daily_total FROM sales_history WHERE date >= '2026-01-01' GROUP BY date)")
+    cursor.execute("SELECT MAX(daily_total) FROM (SELECT date, SUM(amount) as daily_total FROM sales_history WHERE date >= ? AND date <= ? GROUP BY date)", (start_date, end_date))
     max_revenue = cursor.fetchone()[0] or 0
 
     conn.close()
