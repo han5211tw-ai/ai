@@ -8,8 +8,17 @@ from flask import Blueprint, request, jsonify
 import sqlite3
 import os
 from functools import wraps
+from werkzeug.utils import secure_filename
+import uuid
 
 kpi_bp = Blueprint('kpi', __name__, url_prefix='/api/kpi')
+
+# 檔案上傳設定
+UPLOAD_FOLDER = '/Users/aiserver/srv/uploads/contributions'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 DB_PATH = os.environ.get('DB_PATH', '/Users/aiserver/srv/db/company.db')
 
@@ -707,3 +716,39 @@ def set_accounting_scores():
         return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         conn.close()
+
+@kpi_bp.route('/upload', methods=['POST'])
+def upload_file():
+    """上傳貢獻舉證檔案"""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '沒有檔案'}), 400
+    
+    file = request.files['file']
+    staff_name = request.form.get('staff_name', 'unknown')
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '沒有選擇檔案'}), 400
+    
+    if file and allowed_file(file.filename):
+        # 產生唯一檔名
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{staff_name}_{uuid.uuid4().hex[:8]}.{ext}"
+        filename = secure_filename(unique_filename)
+        
+        # 確保上傳目錄存在
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        
+        # 回傳檔案 URL
+        file_url = f"/uploads/contributions/{filename}"
+        
+        return jsonify({
+            'success': True,
+            'message': '檔案上傳成功',
+            'url': file_url,
+            'filename': filename
+        })
+    else:
+        return jsonify({'success': False, 'message': '不支援的檔案格式'}), 400

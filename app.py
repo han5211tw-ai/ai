@@ -10660,3 +10660,9 @@ def get_line_reply_staff_stats(staff):
         return jsonify({'success': False, 'message': '查詢失敗'}), 500
     finally:
         conn.close()
+
+# 提供上傳檔案靜態服務
+@app.route('/uploads/contributions/<path:filename>')
+def serve_contribution_file(filename):
+    upload_folder = '/Users/aiserver/srv/uploads/contributions'
+    return send_from_directory(upload_folder, filename)

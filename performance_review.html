@@ -183,19 +183,20 @@
             <div id="addContributionForm" style="display:none; margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
                 <h4>新增貢獻項目</h4>
                 <div class="form-field">
-                    <label>項目說明</label>
+                    <label>項目說明 *</label>
                     <textarea id="contributionDesc" class="form-input" rows="3" placeholder="請描述您的貢獻..."></textarea>
                 </div>
                 <div class="form-field">
-                    <label>類別</label>
+                    <label>類別 *</label>
                     <select id="contributionCategory" class="form-input">
                         <option value="individual">個人貢獻</option>
                         <option value="teamwork">團隊合作</option>
                     </select>
                 </div>
                 <div class="form-field">
-                    <label>舉證（選填）</label>
-                    <input type="text" id="contributionEvidence" class="form-input" placeholder="照片連結或檔案名稱">
+                    <label>舉證照片（選填）</label>
+                    <input type="file" id="contributionFile" class="form-input" accept="image/*">
+                    <small style="color: #666; font-size: 12px;">支援 JPG、PNG 格式，最大 5MB</small>
                 </div>
                 <button id="submitContributionBtn" class="btn btn-primary">提交</button>
                 <button onclick="hideAddForm()" class="btn btn-secondary">取消</button>
@@ -638,10 +639,12 @@ function editContribution(staffName) {
     loadContributions(staffName);
 }
 
-// 顯示新增表單
-document.getElementById('addContributionBtn')?.addEventListener('click', function() {
-    document.getElementById('addContributionForm').style.display = 'block';
-    this.style.display = 'none';
+// 顯示新增表單 - 使用事件委派
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'addContributionBtn') {
+        document.getElementById('addContributionForm').style.display = 'block';
+        e.target.style.display = 'none';
+    }
 });
 
 // 隱藏新增表單
@@ -653,44 +656,78 @@ function hideAddForm() {
     document.getElementById('contributionEvidence').value = '';
 }
 
-// 提交貢獻項目
-document.getElementById('submitContributionBtn')?.addEventListener('click', async function() {
-    const year = document.getElementById('yearSelect').value;
-    const quarter = document.getElementById('quarterSelect').value;
-    const description = document.getElementById('contributionDesc').value;
-    const category = document.getElementById('contributionCategory').value;
-    const evidence = document.getElementById('contributionEvidence').value;
-    
-    if (!description) {
-        alert('請填寫項目說明');
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/kpi/contributions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                year: parseInt(year),
-                quarter: parseInt(quarter),
-                staff_name: currentEditingStaff,
-                description: description,
-                category: category,
-                evidence_url: evidence
-            })
-        });
+// 提交貢獻項目 - 使用事件委派
+document.addEventListener('click', async function(e) {
+    if (e.target && e.target.id === 'submitContributionBtn') {
+        const year = document.getElementById('yearSelect').value;
+        const quarter = document.getElementById('quarterSelect').value;
+        const description = document.getElementById('contributionDesc').value;
+        const category = document.getElementById('contributionCategory').value;
+        const fileInput = document.getElementById('contributionFile');
         
-        const data = await response.json();
-        if (data.success) {
-            alert('貢獻項目已提交，等待主管審核');
-            hideAddForm();
-            loadContributions(currentEditingStaff);
-        } else {
-            alert('提交失敗：' + data.message);
+        if (!description) {
+            alert('請填寫項目說明');
+            return;
         }
-    } catch (error) {
-        console.error('提交貢獻失敗:', error);
-        alert('提交失敗，請稍後再試');
+        
+        // 如果有檔案，先上傳檔案
+        let evidence_url = '';
+        if (fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                alert('檔案大小不能超過 5MB');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('staff_name', currentEditingStaff);
+            
+            try {
+                const uploadResponse = await fetch('/api/kpi/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const uploadData = await uploadResponse.json();
+                if (uploadData.success) {
+                    evidence_url = uploadData.url;
+                } else {
+                    alert('檔案上傳失敗：' + uploadData.message);
+                    return;
+                }
+            } catch (error) {
+                console.error('檔案上傳失敗:', error);
+                alert('檔案上傳失敗，請稍後再試');
+                return;
+            }
+        }
+        
+        try {
+            const response = await fetch('/api/kpi/contributions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    year: parseInt(year),
+                    quarter: parseInt(quarter),
+                    staff_name: currentEditingStaff,
+                    description: description,
+                    category: category,
+                    evidence_url: evidence_url
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert('貢獻項目已提交，等待主管審核');
+                hideAddForm();
+                loadContributions(currentEditingStaff);
+            } else {
+                alert('提交失敗：' + data.message);
+            }
+        } catch (error) {
+            console.error('提交貢獻失敗:', error);
+            alert('提交失敗，請稍後再試');
+        }
     }
 });
 
