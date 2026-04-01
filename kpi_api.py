@@ -563,6 +563,32 @@ def review_contribution(contribution_id):
     cursor = conn.cursor()
     
     try:
+        # 取得該貢獻的員工資訊
+        cursor.execute("SELECT staff_name FROM kpi_contributions WHERE id = ?", (contribution_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'success': False, 'message': '找不到該貢獻項目'}), 404
+        
+        staff_name = row['staff_name']
+        
+        # 檢查員工角色
+        cursor.execute("SELECT title FROM staff WHERE name = ?", (staff_name,))
+        staff_row = cursor.fetchone()
+        staff_title = staff_row['title'] if staff_row else ''
+        
+        # 檢查審核者角色
+        cursor.execute("SELECT title FROM staff_passwords WHERE name = ?", (reviewed_by,))
+        reviewer_row = cursor.fetchone()
+        reviewer_title = reviewer_row['title'] if reviewer_row else ''
+        
+        # 判斷審核權限
+        is_manager = '主管' in staff_title or '經理' in staff_title
+        is_boss = (reviewer_title == '老闆') or (reviewed_by == '黃柏翰')
+        
+        # 主管的貢獻需要老闆審核
+        if is_manager and not is_boss:
+            return jsonify({'success': False, 'message': '主管的貢獻需要老闆審核'}), 403
+        
         score = 5 if status == 'approved' else 0
         
         cursor.execute("""

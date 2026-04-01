@@ -725,14 +725,35 @@ function createContributionItem(item) {
     div.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px;';
     
     let reviewButtons = '';
-    // 主管/老闆可以審核
-    if ((userRole === 'boss' || userRole === 'manager') && item.status === 'pending') {
-        reviewButtons = `
-            <div style="margin-top: 10px;">
-                <button onclick="reviewContribution(${item.id}, 'approved')" class="btn btn-success btn-sm">✓ 通過</button>
-                <button onclick="reviewContribution(${item.id}, 'rejected')" class="btn btn-danger btn-sm" style="margin-left: 10px;">✗ 拒絕</button>
-            </div>
-        `;
+    // 檢查是否為主管的貢獻
+    const isManagerItem = item.staff_role === 'manager' || item.staff_title?.includes('主管');
+    
+    // 主管的貢獻：只有老闆可以審核
+    // 一般員工的貢獻：主管或老闆都可以審核
+    if (item.status === 'pending') {
+        if (isManagerItem) {
+            // 主管的貢獻需要老闆審核
+            if (userRole === 'boss') {
+                reviewButtons = `
+                    <div style="margin-top: 10px;">
+                        <button onclick="reviewContribution(${item.id}, 'approved')" class="btn btn-success btn-sm">✓ 通過</button>
+                        <button onclick="reviewContribution(${item.id}, 'rejected')" class="btn btn-danger btn-sm" style="margin-left: 10px;">✗ 拒絕</button>
+                    </div>
+                `;
+            } else {
+                reviewButtons = `<div style="margin-top: 10px; color: #f57c00; font-size: 12px;">⏳ 等待老闆審核</div>`;
+            }
+        } else {
+            // 一般員工的貢獻，主管或老闆都可以審核
+            if (userRole === 'boss' || userRole === 'manager') {
+                reviewButtons = `
+                    <div style="margin-top: 10px;">
+                        <button onclick="reviewContribution(${item.id}, 'approved')" class="btn btn-success btn-sm">✓ 通過</button>
+                        <button onclick="reviewContribution(${item.id}, 'rejected')" class="btn btn-danger btn-sm" style="margin-left: 10px;">✗ 拒絕</button>
+                    </div>
+                `;
+            }
+        }
     }
     
     div.innerHTML = `
