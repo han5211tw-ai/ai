@@ -175,14 +175,39 @@
 <div id="contributionModal" class="modal" style="display:none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>📝 關鍵貢獻舉證表</h3>
+            <h3>📝 關鍵貢獻舉證表 - <span id="modalStaffName"></span></h3>
             <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body">
+            <!-- 員工：新增貢獻表單 -->
+            <div id="addContributionForm" style="display:none; margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                <h4>新增貢獻項目</h4>
+                <div class="form-field">
+                    <label>項目說明</label>
+                    <textarea id="contributionDesc" class="form-input" rows="3" placeholder="請描述您的貢獻..."></textarea>
+                </div>
+                <div class="form-field">
+                    <label>類別</label>
+                    <select id="contributionCategory" class="form-input">
+                        <option value="individual">個人貢獻</option>
+                        <option value="teamwork">團隊合作</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>舉證（選填）</label>
+                    <input type="text" id="contributionEvidence" class="form-input" placeholder="照片連結或檔案名稱">
+                </div>
+                <button id="submitContributionBtn" class="btn btn-primary">提交</button>
+                <button onclick="hideAddForm()" class="btn btn-secondary">取消</button>
+            </div>
+            
+            <!-- 貢獻列表 -->
             <div id="contributionList">
                 <!-- 動態生成 -->
             </div>
-            <button id="addContributionBtn" class="btn btn-primary">新增貢獻項目</button>
+            
+            <!-- 員工：顯示新增按鈕 -->
+            <button id="addContributionBtn" class="btn btn-primary" style="display:none;">+ 新增貢獻項目</button>
         </div>
     </div>
 </div>
@@ -595,11 +620,79 @@ async function saveProfit() {
     }
 }
 
+// 當前編輯的員工名稱
+let currentEditingStaff = null;
+
 // 編輯關鍵貢獻
 function editContribution(staffName) {
+    currentEditingStaff = staffName;
+    document.getElementById('modalStaffName').textContent = staffName;
     document.getElementById('contributionModal').style.display = 'flex';
+    
+    // 根據權限顯示/隱藏新增按鈕
+    const isOwnRecord = (currentUser === staffName);
+    const canAdd = isOwnRecord && (userRole === 'staff' || userRole === 'manager');
+    document.getElementById('addContributionBtn').style.display = canAdd ? 'block' : 'none';
+    document.getElementById('addContributionForm').style.display = 'none';
+    
     loadContributions(staffName);
 }
+
+// 顯示新增表單
+document.getElementById('addContributionBtn')?.addEventListener('click', function() {
+    document.getElementById('addContributionForm').style.display = 'block';
+    this.style.display = 'none';
+});
+
+// 隱藏新增表單
+function hideAddForm() {
+    document.getElementById('addContributionForm').style.display = 'none';
+    document.getElementById('addContributionBtn').style.display = 'block';
+    // 清空表單
+    document.getElementById('contributionDesc').value = '';
+    document.getElementById('contributionEvidence').value = '';
+}
+
+// 提交貢獻項目
+document.getElementById('submitContributionBtn')?.addEventListener('click', async function() {
+    const year = document.getElementById('yearSelect').value;
+    const quarter = document.getElementById('quarterSelect').value;
+    const description = document.getElementById('contributionDesc').value;
+    const category = document.getElementById('contributionCategory').value;
+    const evidence = document.getElementById('contributionEvidence').value;
+    
+    if (!description) {
+        alert('請填寫項目說明');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/kpi/contributions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                year: parseInt(year),
+                quarter: parseInt(quarter),
+                staff_name: currentEditingStaff,
+                description: description,
+                category: category,
+                evidence_url: evidence
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('貢獻項目已提交，等待主管審核');
+            hideAddForm();
+            loadContributions(currentEditingStaff);
+        } else {
+            alert('提交失敗：' + data.message);
+        }
+    } catch (error) {
+        console.error('提交貢獻失敗:', error);
+        alert('提交失敗，請稍後再試');
+    }
+});
 
 // 載入貢獻列表
 async function loadContributions(staffName) {
@@ -629,17 +722,72 @@ async function loadContributions(staffName) {
 function createContributionItem(item) {
     const div = document.createElement('div');
     div.className = 'contribution-item';
+    div.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px;';
+    
+    let reviewButtons = '';
+    // 主管/老闆可以審核
+    if ((userRole === 'boss' || userRole === 'manager') && item.status === 'pending') {
+        reviewButtons = `
+            <div style="margin-top: 10px;">
+                <button onclick="reviewContribution(${item.id}, 'approved')" class="btn btn-success btn-sm">✓ 通過</button>
+                <button onclick="reviewContribution(${item.id}, 'rejected')" class="btn btn-danger btn-sm" style="margin-left: 10px;">✗ 拒絕</button>
+            </div>
+        `;
+    }
+    
     div.innerHTML = `
-        <div class="item-header">
-            <span class="item-number">項目 ${item.item_number}</span>
-            <span class="status-badge ${item.status}">${getStatusText(item.status)}</span>
+        <div class="item-header" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span class="item-number" style="font-weight: bold;">項目 ${item.item_number}</span>
+            <span class="status-badge ${item.status}" style="padding: 4px 10px; border-radius: 12px; font-size: 12px; ${getStatusStyle(item.status)}">${getStatusText(item.status)}</span>
         </div>
         <div class="item-body">
-            <p>${item.description || '無說明'}</p>
-            <p class="item-meta">類別: ${item.category === 'teamwork' ? '團隊合作' : '個人貢獻'}</p>
+            <p style="margin: 5px 0;">${item.description || '無說明'}</p>
+            <p class="item-meta" style="color: #666; font-size: 12px; margin: 5px 0;">類別: ${item.category === 'teamwork' ? '團隊合作' : '個人貢獻'}</p>
+            ${item.evidence_url ? `<p style="font-size: 12px; color: #1976d2;">📎 ${item.evidence_url}</p>` : ''}
+            ${item.reviewed_by ? `<p style="font-size: 12px; color: #666;">審核人: ${item.reviewed_by}</p>` : ''}
         </div>
+        ${reviewButtons}
     `;
     return div;
+}
+
+// 審核貢獻項目
+async function reviewContribution(contributionId, status) {
+    if (!confirm(`確定要${status === 'approved' ? '通過' : '拒絕'}此貢獻項目嗎？`)) return;
+    
+    try {
+        const response = await fetch(`/api/kpi/contributions/${contributionId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                status: status,
+                reviewed_by: currentUser
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('審核完成！');
+            loadContributions(currentEditingStaff);
+            // 重新計算 KPI
+            loadKpiData();
+        } else {
+            alert('審核失敗：' + data.message);
+        }
+    } catch (error) {
+        console.error('審核失敗:', error);
+        alert('審核失敗，請稍後再試');
+    }
+}
+
+// 取得狀態樣式
+function getStatusStyle(status) {
+    const styles = {
+        pending: 'background: #fff3e0; color: #f57c00;',
+        approved: 'background: #e8f5e9; color: #388e3c;',
+        rejected: 'background: #ffebee; color: #d32f2f;'
+    };
+    return styles[status] || '';
 }
 
 // 關閉 Modal
@@ -664,7 +812,7 @@ function calculateManagerBonusRatio(score) {
 }
 
 function getStatusText(status) {
-    const texts = { pending: '待審核', approved: '已通過', rejected: '已拒絕' };
+    const texts = { pending: '待審核', approved: '已通過 (5分)', rejected: '已拒絕 (0分)' };
     return texts[status] || status;
 }
 
