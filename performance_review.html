@@ -13,25 +13,31 @@
     <!-- 季度選擇器 -->
     <div class="card">
         <div class="card-body">
-            <div class="filter-row">
-                <div class="filter-group">
+            <div class="filter-grid">
+                <div class="form-field">
                     <label>年度</label>
-                    <select id="yearSelect" class="form-control">
+                    <select id="yearSelect" class="form-input">
                         <option value="2026" selected>2026</option>
                         <option value="2025">2025</option>
                     </select>
                 </div>
-                <div class="filter-group">
+                <div class="form-field">
                     <label>季度</label>
-                    <select id="quarterSelect" class="form-control">
+                    <select id="quarterSelect" class="form-input">
                         <option value="1" selected>Q1 (1-3月)</option>
                         <option value="2">Q2 (4-6月)</option>
                         <option value="3">Q3 (7-9月)</option>
                         <option value="4">Q4 (10-12月)</option>
                     </select>
                 </div>
-                <button id="loadBtn" class="btn btn-primary">載入資料</button>
-                <button id="calculateBtn" class="btn btn-success" style="display:none;">計算 KPI</button>
+                <div class="form-field">
+                    <label>&nbsp;</label>
+                    <button id="loadBtn" class="btn btn-primary">載入資料</button>
+                </div>
+                <div class="form-field" id="calculateBtnField" style="display:none;">
+                    <label>&nbsp;</label>
+                    <button id="calculateBtn" class="btn btn-success">計算 KPI</button>
+                </div>
             </div>
         </div>
     </div>
@@ -72,10 +78,10 @@
         </div>
     </div>
 
-    <!-- 門市/工程同仁 KPI -->
+    <!-- 門市/業務同仁 KPI -->
     <div class="card">
         <div class="card-header">
-            <h3>👥 門市與工程同仁 KPI</h3>
+            <h3>👥 門市與業務同仁 KPI</h3>
             <span class="badge">滿分 100 分</span>
         </div>
         <div class="card-body">
@@ -192,6 +198,42 @@
     color: #666;
     font-size: 14px;
 }
+/* 篩選格 - 參考 line_replies.html */
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    align-items: end;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-field label {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.form-input {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #FABF13;
+}
+
+/* 舊版相容 */
 .filter-row {
     display: flex;
     gap: 15px;
@@ -373,7 +415,7 @@ function renderPage(data) {
     // 根據權限顯示/隱藏區塊
     if (userRole === 'boss' || userRole === 'manager') {
         document.getElementById('bonusOverview').style.display = 'block';
-        document.getElementById('calculateBtn').style.display = 'inline-block';
+        document.getElementById('calculateBtnField').style.display = 'flex';
         renderBonusOverview(data.profit);
     }
     
