@@ -875,6 +875,15 @@ def get_daily_sales():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # 計算當季日期範圍
+    from datetime import datetime
+    now = datetime.now()
+    year = now.year
+    quarter = (now.month - 1) // 3 + 1
+    quarter_months = {1: ('01-01', '03-31'), 2: ('04-01', '06-30'), 3: ('07-01', '09-30'), 4: ('10-01', '12-31')}
+    start_date = f"{year}-{quarter_months[quarter][0]}"
+    end_date = f"{year}-{quarter_months[quarter][1]}"
+
     # 人員編制：門市部人員（豐原、潭子、大雅）
     store_staff = ['林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩']
 
@@ -882,10 +891,10 @@ def get_daily_sales():
     cursor.execute("""
         SELECT date, SUM(amount) as daily_total, COUNT(*) as daily_count
         FROM sales_history
-        WHERE date >= '2026-01-01' AND date <= '2026-03-31'
+        WHERE date >= ? AND date <= ?
         GROUP BY date
         ORDER BY date
-    """)
+    """, (start_date, end_date))
     total_rows = {row['date']: {'amount': row['daily_total'], 'count': row['daily_count']} for row in cursor.fetchall()}
 
     # 獲取門市部銷售（只計算門市人員，不含主管）
@@ -893,11 +902,11 @@ def get_daily_sales():
     cursor.execute(f"""
         SELECT date, SUM(amount) as daily_total
         FROM sales_history
-        WHERE date >= '2026-01-01' AND date <= '2026-03-31'
+        WHERE date >= ? AND date <= ?
         AND salesperson IN ({placeholders})
         GROUP BY date
         ORDER BY date
-    """, store_staff)
+    """, (start_date, end_date) + tuple(store_staff))
     store_rows = {row['date']: row['daily_total'] for row in cursor.fetchall()}
 
     conn.close()
@@ -923,6 +932,15 @@ def get_daily_sales_store():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # 計算當季日期範圍
+    from datetime import datetime
+    now = datetime.now()
+    year = now.year
+    quarter = (now.month - 1) // 3 + 1
+    quarter_months = {1: ('01-01', '03-31'), 2: ('04-01', '06-30'), 3: ('07-01', '09-30'), 4: ('10-01', '12-31')}
+    start_date = f"{year}-{quarter_months[quarter][0]}"
+    end_date = f"{year}-{quarter_months[quarter][1]}"
+
     # 獲取所有門市人員名單（曾在班表中出現的人員）
     cursor.execute("""
         SELECT DISTINCT staff_name FROM staff_roster
@@ -936,11 +954,11 @@ def get_daily_sales_store():
     cursor.execute(f"""
         SELECT date, SUM(amount) as daily_total, COUNT(*) as daily_count
         FROM sales_history
-        WHERE date >= '2026-01-01' AND date <= '2026-03-31'
+        WHERE date >= ? AND date <= ?
         AND ({conditions})
         GROUP BY date
         ORDER BY date
-    """, store_staff)
+    """, (start_date, end_date) + tuple(store_staff))
 
     rows = cursor.fetchall()
     conn.close()
@@ -951,6 +969,15 @@ def get_daily_sales_store():
 def get_daily_sales_by_store():
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # 計算當季日期範圍
+    from datetime import datetime
+    now = datetime.now()
+    year = now.year
+    quarter = (now.month - 1) // 3 + 1
+    quarter_months = {1: ('01-01', '03-31'), 2: ('04-01', '06-30'), 3: ('07-01', '09-30'), 4: ('10-01', '12-31')}
+    start_date = f"{year}-{quarter_months[quarter][0]}"
+    end_date = f"{year}-{quarter_months[quarter][1]}"
 
     # 獲取各門市的人員名單
     cursor.execute("""
@@ -966,9 +993,9 @@ def get_daily_sales_by_store():
     # 獲取所有日期
     cursor.execute("""
         SELECT DISTINCT date FROM sales_history
-        WHERE date >= '2026-01-01' AND date <= '2026-03-31'
+        WHERE date >= ? AND date <= ?
         ORDER BY date
-    """)
+    """, (start_date, end_date))
     dates = [row['date'] for row in cursor.fetchall()]
 
     result = []
