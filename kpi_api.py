@@ -108,10 +108,10 @@ def get_kpi_overview():
         """, (year, quarter))
         profit = cursor.fetchone()
         
-        # 取得員工 KPI 分數
+        # 取得員工 KPI 分數（門市、工程、業務同仁）
         cursor.execute("""
             SELECT * FROM kpi_scores 
-            WHERE year = ? AND quarter = ? AND staff_role IN ('store', 'engineer')
+            WHERE year = ? AND quarter = ? AND staff_role IN ('store', 'engineer', 'business')
             ORDER BY total_score DESC
         """, (year, quarter))
         staff_scores = [dict(row) for row in cursor.fetchall()]
@@ -135,10 +135,13 @@ def get_kpi_overview():
             # 個人只能看自己
             staff_scores = [s for s in staff_scores if s['staff_name'] == user]
             manager_scores = []
-            accounting_scores = []
+            # 會計 KPI 只有會計自己和老闆可見
+            accounting_scores = [a for a in accounting_scores if a['staff_name'] == user]
         elif role == 'manager':
             # 主管看自己 + 部屬
             dept, _ = get_staff_department(user)
+            # 會計 KPI 只有會計自己和老闆可見
+            accounting_scores = [a for a in accounting_scores if a['staff_name'] == user]
             # 這裡需要根據部門關係過濾，暫時簡化
         
         return jsonify({
@@ -162,8 +165,8 @@ def get_kpi_overview():
 def calculate_kpi():
     """計算 KPI 分數"""
     data = request.get_json()
-    year = data.get('year', 2026)
-    quarter = data.get('quarter', 1)
+    year = int(data.get('year', 2026))
+    quarter = int(data.get('quarter', 1))
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -228,7 +231,7 @@ def calculate_kpi():
         review_target = 200
         review_score = max(0, 10 - (review_target - review_count) * 0.1) if review_count < review_target else 10
         
-        # 計算服務次數（工程同仁）
+        # 計算服務次數（全部門）
         cursor.execute("""
             SELECT COUNT(*) as service_count 
             FROM service_records 
@@ -372,6 +375,8 @@ def calculate_kpi():
                 kpi3 = min(15, company_achievement_rate * 15)
                 # 4. 全公司五星好評 (10分)
                 kpi4 = review_score
+                # 業務指標：門市員工顯示為 -
+                kpi4_service = 0
                 
             else:
                 # ===== 業務員工 KPI =====
@@ -384,6 +389,8 @@ def calculate_kpi():
                 kpi3 = min(10, company_achievement_rate * 10)
                 # 4. 全部門服務次數 (15分)
                 kpi4 = service_score
+                # 業務指標：業務員工顯示服務次數相關
+                kpi4_service = service_score
             
             # 5. 關鍵貢獻（從資料表讀取）
             cursor.execute("""
@@ -412,11 +419,14 @@ def calculate_kpi():
                 'kpi2_margin': kpi2,
                 'kpi3_company_achievement': kpi3,
                 'kpi4_reviews': kpi4,
+                'kpi4_service': kpi4_service if role == 'business' else 0,
                 'kpi5_contribution': kpi5,
-                'total_score': total_score
+                'total_score': total_score,
+                'review_count': review_count if role == 'store' else None,
+                'service_count': service_count if role == 'business' else None
             })
         
-        # 計算排名與加權
+        # 計算員工排名與加權
         staff_scores.sort(key=lambda x: x['total_score'], reverse=True)
         
         for i, score in enumerate(staff_scores):
@@ -433,6 +443,22 @@ def calculate_kpi():
                 SET rank = ?, multiplier = ?, bonus_amount = ?
                 WHERE year = ? AND quarter = ? AND staff_name = ?
             """, (rank, multiplier, bonus_amount, year, quarter, score['staff_name']))
+        
+        # 計算主管排名（根據總分排序）
+        cursor.execute("""
+            SELECT staff_name, total_score FROM kpi_scores 
+            WHERE year = ? AND quarter = ? AND staff_role = 'manager'
+            ORDER BY total_score DESC
+        """, (year, quarter))
+        manager_list = cursor.fetchall()
+        
+        for i, manager in enumerate(manager_list):
+            rank = i + 1
+            cursor.execute("""
+                UPDATE kpi_scores 
+                SET rank = ?
+                WHERE year = ? AND quarter = ? AND staff_name = ? AND staff_role = 'manager'
+            """, (rank, year, quarter, manager['staff_name']))
         
         conn.commit()
         
@@ -621,25 +647,39 @@ def review_contribution(contribution_id):
 
 @kpi_bp.route('/manager-scores', methods=['POST'])
 def set_manager_scores():
-    """設定主管 KPI 分數（人工評分）"""
+    """設定主管 KPI 分數（人工評分）- 只更新人工評分項目"""
     data = request.get_json()
-    year = data.get('year')
-    quarter = data.get('quarter')
+    year = int(data.get('year', 2026))
+    quarter = int(data.get('quarter', 1))
     staff_name = data.get('staff_name')
     scores = data.get('scores', {})
+    
+    if not staff_name:
+        return jsonify({'success': False, 'message': '缺少員工姓名'}), 400
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
     try:
-        total = sum([
-            scores.get('m_kpi1_dept_margin', 0),
-            scores.get('m_kpi2_staff_avg', 0),
-            scores.get('m_kpi3_company_margin', 0),
-            scores.get('m_kpi4_turnover', 0),
-            scores.get('m_kpi5_complaint', 0),
-            scores.get('m_kpi6_cross_dept', 0)
-        ])
+        # 先取得現有的自動計算分數
+        cursor.execute("""
+            SELECT m_kpi1_dept_margin, m_kpi2_staff_avg, m_kpi3_company_margin
+            FROM kpi_scores 
+            WHERE year = ? AND quarter = ? AND staff_name = ? AND staff_role = 'manager'
+        """, (year, quarter, staff_name))
+        existing = cursor.fetchone()
+        
+        # 使用現有值或預設為0
+        m_kpi1 = existing['m_kpi1_dept_margin'] if existing else 0
+        m_kpi2 = existing['m_kpi2_staff_avg'] if existing else 0
+        m_kpi3 = existing['m_kpi3_company_margin'] if existing else 0
+        
+        # 更新人工評分項目
+        m_kpi4 = scores.get('m_kpi4_turnover', 0)
+        m_kpi5 = scores.get('m_kpi5_complaint', 0)
+        m_kpi6 = scores.get('m_kpi6_cross_dept', 0)
+        
+        total = m_kpi1 + m_kpi2 + m_kpi3 + m_kpi4 + m_kpi5 + m_kpi6
         
         cursor.execute("""
             INSERT OR REPLACE INTO kpi_scores 
@@ -648,14 +688,7 @@ def set_manager_scores():
              m_kpi4_turnover, m_kpi5_complaint, m_kpi6_cross_dept,
              total_score, updated_at)
             VALUES (?, ?, ?, 'manager', ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-        """, (year, quarter, staff_name,
-              scores.get('m_kpi1_dept_margin', 0),
-              scores.get('m_kpi2_staff_avg', 0),
-              scores.get('m_kpi3_company_margin', 0),
-              scores.get('m_kpi4_turnover', 0),
-              scores.get('m_kpi5_complaint', 0),
-              scores.get('m_kpi6_cross_dept', 0),
-              total))
+        """, (year, quarter, staff_name, m_kpi1, m_kpi2, m_kpi3, m_kpi4, m_kpi5, m_kpi6, total))
         
         conn.commit()
         
@@ -670,8 +703,9 @@ def set_manager_scores():
 def set_accounting_scores():
     """設定會計 KPI 分數（人工評分）"""
     data = request.get_json()
-    year = data.get('year')
-    quarter = data.get('quarter')
+    year = int(data.get('year', 2026))
+    quarter = int(data.get('quarter', 1))
+    staff_name = data.get('staff_name', '黃環馥')
     scores = data.get('scores', {})
     
     conn = get_db_connection()
@@ -699,8 +733,8 @@ def set_accounting_scores():
              a_kpi1_accuracy, a_kpi2_on_time, a_kpi3_ar_control,
              a_kpi4_support, a_kpi5_cost_opt,
              total_score, bonus_amount, updated_at)
-            VALUES (?, ?, '黃環馥', 'accounting', ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-        """, (year, quarter,
+            VALUES (?, ?, ?, 'accounting', ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
+        """, (year, quarter, staff_name,
               scores.get('a_kpi1_accuracy', 0),
               scores.get('a_kpi2_on_time', 0),
               scores.get('a_kpi3_ar_control', 0),

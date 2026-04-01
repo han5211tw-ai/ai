@@ -69,10 +69,17 @@
                     <span id="baseAmount" class="value">-</span>
                 </div>
             </div>
-            <div id="profitInputSection" class="input-section" style="display:none; margin-top: 15px;">
-                <label>設定季度淨利：</label>
-                <input type="number" id="netProfitInput" class="form-control" placeholder="輸入淨利金額">
-                <button id="saveProfitBtn" class="btn btn-primary">儲存</button>
+            <div id="profitInputSection" style="display:none; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div class="filter-grid" style="max-width: 500px;">
+                    <div class="form-field">
+                        <label>設定季度淨利</label>
+                        <input type="number" id="netProfitInput" class="form-input" placeholder="輸入淨利金額">
+                    </div>
+                    <div class="form-field">
+                        <label>&nbsp;</label>
+                        <button id="saveProfitBtn" class="btn btn-primary">儲存淨利</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -94,7 +101,8 @@
                             <th>業績達成<br><small>(40/30分)</small></th>
                             <th>毛利率<br><small>(20/30分)</small></th>
                             <th>公司達成<br><small>(15/10分)</small></th>
-                            <th>五星好評<br><small>(10/15分)</small></th>
+                            <th>五星好評<br><small>(10分)</small></th>
+                            <th>服務次數<br><small>(15分)</small></th>
                             <th>關鍵貢獻<br><small>(15分)</small></th>
                             <th>總分</th>
                             <th>加權</th>
@@ -121,6 +129,7 @@
                 <table id="managerKpiTable" class="data-table">
                     <thead>
                         <tr>
+                            <th>排名</th>
                             <th>姓名</th>
                             <th>部門毛利<br><small>(30%)</small></th>
                             <th>部屬平均<br><small>(20%)</small></th>
@@ -130,6 +139,8 @@
                             <th>跨部門<br><small>(10%)</small></th>
                             <th>總分</th>
                             <th>獎金比例</th>
+                            <th>試算獎金</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="managerKpiBody">
@@ -159,6 +170,7 @@
                             <th>成本優化<br><small>(20%)</small></th>
                             <th>總分</th>
                             <th>獎金</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="accountingKpiBody">
@@ -504,14 +516,37 @@ function renderStaffKpi(scores) {
         const row = document.createElement('tr');
         row.className = `rank-${rank}`;
         
+        // 根據角色顯示不同的第四項 KPI 數據（顯示分數，不是原始次數）
+        const isBusiness = score.staff_role === 'business';
+        const isStore = score.staff_role === 'store';
+        
+        // 門市員工：kpi4_reviews 存的是五星好評分數（10分滿分）
+        // 業務員工：kpi4_reviews 存的是服務次數分數（15分滿分）
+        let kpi4ReviewDisplay, kpi4ServiceDisplay;
+        
+        if (isBusiness) {
+            // 業務員工：五星好評欄顯示 "-"，服務次數欄顯示分數
+            kpi4ReviewDisplay = '-';
+            kpi4ServiceDisplay = score.kpi4_reviews.toFixed(1);
+        } else if (isStore) {
+            // 門市員工：五星好評欄顯示分數，服務次數欄顯示 "-"
+            kpi4ReviewDisplay = score.kpi4_reviews.toFixed(1);
+            kpi4ServiceDisplay = '-';
+        } else {
+            // 工程師：都顯示 "-"
+            kpi4ReviewDisplay = '-';
+            kpi4ServiceDisplay = '-';
+        }
+        
         row.innerHTML = `
             <td>${rank}</td>
             <td>${score.staff_name}</td>
-            <td>${score.staff_role === 'store' ? '門市' : '工程'}</td>
+            <td>${score.staff_role === 'store' ? '門市' : (score.staff_role === 'business' ? '業務' : '工程')}</td>
             <td>${score.kpi1_achievement.toFixed(1)}</td>
             <td>${score.kpi2_margin.toFixed(1)}</td>
             <td>${score.kpi3_company_achievement.toFixed(1)}</td>
-            <td>${score.kpi4_reviews.toFixed(1)}</td>
+            <td>${kpi4ReviewDisplay}</td>
+            <td>${kpi4ServiceDisplay}</td>
             <td>${score.kpi5_contribution.toFixed(1)}</td>
             <td><strong>${score.total_score.toFixed(1)}</strong></td>
             <td>×${multiplier.toFixed(2)}</td>
@@ -529,23 +564,97 @@ function renderManagerKpi(scores) {
     const tbody = document.getElementById('managerKpiBody');
     tbody.innerHTML = '';
     
-    if (!scores) return;
+    if (!scores || scores.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;">暫無資料</td></tr>';
+        return;
+    }
     
-    scores.forEach(score => {
+    const isBoss = userRole === 'boss';
+    
+    // 取得獎金池資訊來計算主管獎金
+    const netProfit = currentData?.profit?.net_profit || 0;
+    const managerPool = netProfit * 0.06;
+    
+    // 按照排名排序（排名小的在前面）
+    scores.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+    
+    scores.forEach((score, index) => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${score.staff_name}</td>
-            <td>${score.m_kpi1_dept_margin.toFixed(1)}</td>
-            <td>${score.m_kpi2_staff_avg.toFixed(1)}</td>
-            <td>${score.m_kpi3_company_margin.toFixed(1)}</td>
-            <td>${score.m_kpi4_turnover.toFixed(1)}</td>
-            <td>${score.m_kpi5_complaint.toFixed(1)}</td>
-            <td>${score.m_kpi6_cross_dept.toFixed(1)}</td>
-            <td><strong>${score.total_score.toFixed(1)}</strong></td>
-            <td>${calculateManagerBonusRatio(score.total_score)}%</td>
-        `;
+        // 計算主管獎金：總分比例 × 主管獎金池 / 主管人數
+        const managerCount = scores.length;
+        const managerBonus = managerCount > 0 ? Math.round(managerPool * (score.total_score / 100) / managerCount) : 0;
+        
+        const rank = score.rank || index + 1;
+        row.className = `rank-${rank}`;
+        
+        if (isBoss) {
+            // 老闆可編輯人工評分項目（離職率、客訴失誤），跨部門不開放輸入
+            row.innerHTML = `
+                <td>${rank}</td>
+                <td>${score.staff_name}</td>
+                <td>${score.m_kpi1_dept_margin.toFixed(1)}</td>
+                <td>${score.m_kpi2_staff_avg.toFixed(1)}</td>
+                <td>${score.m_kpi3_company_margin.toFixed(1)}</td>
+                <td><input type="number" class="form-input manager-score" data-staff="${score.staff_name}" data-field="m_kpi4_turnover" value="${score.m_kpi4_turnover || 0}" min="0" max="10" style="width: 60px; text-align: center;"></td>
+                <td><input type="number" class="form-input manager-score" data-staff="${score.staff_name}" data-field="m_kpi5_complaint" value="${score.m_kpi5_complaint || 0}" min="0" max="10" style="width: 60px; text-align: center;"></td>
+                <td>${(score.m_kpi6_cross_dept || 0).toFixed(1)}</td>
+                <td><strong id="manager-total-${score.staff_name}">${score.total_score.toFixed(1)}</strong></td>
+                <td>${calculateManagerBonusRatio(score.total_score)}%</td>
+                <td>${formatMoney(managerBonus)}</td>
+                <td><button class="btn btn-sm btn-primary" onclick="saveManagerScores('${score.staff_name}')">儲存</button></td>
+            `;
+        } else {
+            // 其他人只能看
+            row.innerHTML = `
+                <td>${rank}</td>
+                <td>${score.staff_name}</td>
+                <td>${score.m_kpi1_dept_margin.toFixed(1)}</td>
+                <td>${score.m_kpi2_staff_avg.toFixed(1)}</td>
+                <td>${score.m_kpi3_company_margin.toFixed(1)}</td>
+                <td>${(score.m_kpi4_turnover || 0).toFixed(1)}</td>
+                <td>${(score.m_kpi5_complaint || 0).toFixed(1)}</td>
+                <td>${(score.m_kpi6_cross_dept || 0).toFixed(1)}</td>
+                <td><strong>${score.total_score.toFixed(1)}</strong></td>
+                <td>${calculateManagerBonusRatio(score.total_score)}%</td>
+                <td>${formatMoney(managerBonus)}</td>
+                <td>-</td>
+            `;
+        }
         tbody.appendChild(row);
     });
+}
+
+// 儲存主管 KPI 分數
+async function saveManagerScores(staffName) {
+    const year = document.getElementById('yearSelect').value;
+    const quarter = document.getElementById('quarterSelect').value;
+    
+    // 收集該列的輸入值
+    const inputs = document.querySelectorAll(`.manager-score[data-staff="${staffName}"]`);
+    
+    const scores = {};
+    inputs.forEach(input => {
+        scores[input.dataset.field] = parseFloat(input.value) || 0;
+    });
+    
+    try {
+        const response = await fetch('/api/kpi/manager-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year, quarter, staff_name: staffName, scores })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('主管 KPI 已儲存！');
+            loadKpiData();
+        } else {
+            alert('儲存失敗：' + data.message);
+        }
+    } catch (error) {
+        console.error('儲存錯誤:', error);
+        alert('儲存失敗，請稍後再試');
+    }
 }
 
 // 渲染會計 KPI
@@ -553,30 +662,87 @@ function renderAccountingKpi(scores) {
     const tbody = document.getElementById('accountingKpiBody');
     tbody.innerHTML = '';
     
-    if (!scores) return;
+    if (!scores || scores.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">暫無資料</td></tr>';
+        return;
+    }
+    
+    const isBoss = userRole === 'boss';
     
     scores.forEach(score => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${score.staff_name}</td>
-            <td>${score.a_kpi1_accuracy.toFixed(1)}</td>
-            <td>${score.a_kpi2_on_time.toFixed(1)}</td>
-            <td>${score.a_kpi3_ar_control.toFixed(1)}</td>
-            <td>${score.a_kpi4_support.toFixed(1)}</td>
-            <td>${score.a_kpi5_cost_opt.toFixed(1)}</td>
-            <td><strong>${score.total_score.toFixed(1)}</strong></td>
-            <td>${formatMoney(score.bonus_amount)}</td>
-        `;
+        
+        if (isBoss) {
+            // 老闆可編輯
+            row.innerHTML = `
+                <td>${score.staff_name}</td>
+                <td><input type="number" class="form-input accounting-score" data-field="a_kpi1_accuracy" value="${score.a_kpi1_accuracy || 0}" min="0" max="20" style="width: 60px; text-align: center;"></td>
+                <td><input type="number" class="form-input accounting-score" data-field="a_kpi2_on_time" value="${score.a_kpi2_on_time || 0}" min="0" max="20" style="width: 60px; text-align: center;"></td>
+                <td><input type="number" class="form-input accounting-score" data-field="a_kpi3_ar_control" value="${score.a_kpi3_ar_control || 0}" min="0" max="20" style="width: 60px; text-align: center;"></td>
+                <td><input type="number" class="form-input accounting-score" data-field="a_kpi4_support" value="${score.a_kpi4_support || 0}" min="0" max="20" style="width: 60px; text-align: center;"></td>
+                <td><input type="number" class="form-input accounting-score" data-field="a_kpi5_cost_opt" value="${score.a_kpi5_cost_opt || 0}" min="0" max="20" style="width: 60px; text-align: center;"></td>
+                <td><strong id="accounting-total-${score.staff_name}">${score.total_score.toFixed(1)}</strong></td>
+                <td>${formatMoney(score.bonus_amount)}</td>
+                <td><button class="btn btn-sm btn-primary" onclick="saveAccountingScores('${score.staff_name}')">儲存</button></td>
+            `;
+        } else {
+            // 其他人只能看
+            row.innerHTML = `
+                <td>${score.staff_name}</td>
+                <td>${(score.a_kpi1_accuracy || 0).toFixed(1)}</td>
+                <td>${(score.a_kpi2_on_time || 0).toFixed(1)}</td>
+                <td>${(score.a_kpi3_ar_control || 0).toFixed(1)}</td>
+                <td>${(score.a_kpi4_support || 0).toFixed(1)}</td>
+                <td>${(score.a_kpi5_cost_opt || 0).toFixed(1)}</td>
+                <td><strong>${score.total_score.toFixed(1)}</strong></td>
+                <td>${formatMoney(score.bonus_amount)}</td>
+                <td>-</td>
+            `;
+        }
         tbody.appendChild(row);
     });
 }
 
-// 計算 KPI
-async function calculateKpi() {
+// 儲存會計 KPI 分數
+async function saveAccountingScores(staffName) {
     const year = document.getElementById('yearSelect').value;
     const quarter = document.getElementById('quarterSelect').value;
     
-    if (!confirm('確定要計算/重新計算本季 KPI 嗎？')) return;
+    // 收集該列的輸入值
+    const row = document.querySelector(`#accounting-total-${staffName}`).closest('tr');
+    const inputs = row.querySelectorAll('.accounting-score');
+    
+    const scores = {};
+    inputs.forEach(input => {
+        scores[input.dataset.field] = parseFloat(input.value) || 0;
+    });
+    
+    try {
+        const response = await fetch('/api/kpi/accounting-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year, quarter, staff_name: staffName, scores })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('會計 KPI 已儲存！');
+            loadKpiData();
+        } else {
+            alert('儲存失敗：' + data.message);
+        }
+    } catch (error) {
+        console.error('儲存錯誤:', error);
+        alert('儲存失敗，請稍後再試');
+    }
+}
+
+// 計算 KPI
+async function calculateKpi(skipConfirm = false) {
+    const year = document.getElementById('yearSelect').value;
+    const quarter = document.getElementById('quarterSelect').value;
+    
+    if (!skipConfirm && !confirm('確定要計算/重新計算本季 KPI 嗎？')) return;
     
     try {
         const response = await fetch('/api/kpi/calculate', {
@@ -618,8 +784,9 @@ async function saveProfit() {
         
         const data = await response.json();
         if (data.success) {
-            alert('淨利設定已儲存！');
-            loadKpiData();
+            alert('淨利設定已儲存！即將重新計算 KPI...');
+            // 儲存淨利後自動重新計算 KPI（不顯示 confirm）
+            await calculateKpi(true);
         } else {
             alert('儲存失敗：' + data.message);
         }
