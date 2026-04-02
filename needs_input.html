@@ -1,0 +1,831 @@
+{% extends "base.html" %}
+
+{% block title %}請購調撥需求表 - 電腦舖{% endblock %}
+
+{% block page_title %}🛒 請購調撥需求表{% endblock %}
+
+{% block styles %}
+<style>
+.form-section{display:none;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-bottom:20px}
+.form-section.active{display:block}
+.form-group{margin-bottom:15px;text-align:left}
+.form-group label{display:block;margin-bottom:6px;color:var(--color-text-secondary);font-size:0.95em}
+.form-group input,.form-group select{width:100%;max-width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--color-brand-primary)}
+select option{background:var(--color-bg-secondary);color:#fff}
+.btn{padding:10px 20px;border:none;border-radius:8px;background:linear-gradient(135deg, #FABF13 0%, #e6a800 100%);color: #231815;font-size:1.05em;cursor:pointer;transition:transform 0.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+/* 內嵌旋轉動畫 */
+.spinner-inline{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.user-info{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 20px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:1.05em}
+.user-info span{color:var(--color-brand-primary);font-weight:bold}
+.btn-logout{padding:5px 12px;font-size:0.9em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:var(--color-status-error)}
+.header-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-bottom:20px}
+.header-title{color:var(--color-brand-primary);font-size:1.1em;margin-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px}
+.form-row{display:flex;gap:15px;margin-bottom:12px;flex-wrap:wrap}
+.form-field{flex:1;min-width:200px}
+.form-field label{display:block;margin-bottom:5px;color:var(--color-text-secondary);font-size:0.9em}
+.form-field input,.form-field select{width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em}
+.form-field input:focus,.form-field select:focus{outline:none;border-color:var(--color-brand-primary)}
+.customer-section{background:rgba(250,191,19,0.05);border:1px solid rgba(250,191,19,0.2);border-radius:8px;padding:15px;margin-top:10px;display:none}
+.customer-section.active{display:block}
+.customer-search-wrapper{position:relative}
+.autocomplete-list{position:absolute;top:100%;left:0;right:0;background:var(--color-bg-secondary);border:1px solid rgba(255,255,255,0.2);border-radius:6px;max-height:200px;overflow-y:auto;z-index:100;display:none}
+.autocomplete-list.active{display:block}
+.autocomplete-item{padding:10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.1)}
+.autocomplete-item:hover{background:rgba(250,191,19,0.1)}
+.customer-selected{background:rgba(250,191,19,0.1);border:1px solid rgba(250,191,19,0.3);border-radius:6px;padding:10px;margin-top:8px;display:none}
+.customer-selected.active{display:flex;justify-content:space-between;align-items:center}
+.products-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-bottom:20px}
+.products-table{width:100%;border-collapse:collapse;background:rgba(0,0,0,0.2)}
+.products-table th{text-align:left;padding:12px 10px;background:rgba(250,191,19,0.1);color:#FABF13;border-bottom:2px solid rgba(255,255,255,0.2);font-size:0.9em;font-weight:600}
+.products-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);vertical-align:top;height:60px;box-sizing:border-box;color:#ccd6f6}
+.products-table tr{height:60px}
+.product-row input{width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em;box-sizing:border-box}
+.product-row input:focus{outline:none;border-color:var(--color-brand-primary)}
+.product-row input.error{border-color:var(--color-status-error);background:rgba(244,67,54,0.1)}
+.product-autocomplete{position:absolute;top:100%;left:0;right:0;background:var(--color-bg-secondary);border:1px solid rgba(255,255,255,0.2);border-radius:4px;max-height:150px;overflow-y:auto;z-index:50;display:none}
+.product-autocomplete.active{display:block}
+.product-search-wrapper{position:relative}
+.btn-add{margin-top:15px;padding:10px 20px;background:rgba(250,191,19,0.2);border:1px solid var(--color-brand-primary);color:var(--color-brand-primary);border-radius:8px;cursor:pointer;font-size:0.95em;transition:all 0.2s}
+.btn-add:hover{background:rgba(250,191,19,0.3)}
+.btn-delete{padding:5px 12px;background:rgba(244,67,54,0.2);border:1px solid var(--color-status-error);color:var(--color-status-error);border-radius:4px;cursor:pointer;font-size:0.85em;transition:all 0.2s}
+.btn-delete:hover{background:rgba(244,67,54,0.3)}
+.field-error{color:var(--color-status-error);font-size:0.85em;margin-top:4px;display:none}
+.field-error.show{display:block}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:12px 28px;border-radius:8px;color:#fff;font-size:0.95em;z-index:1000;opacity:0;transition:opacity 0.3s}
+.toast.show{opacity:1}
+.toast.success{background:rgba(76,175,80,0.9)}
+.toast.error{background:rgba(244,67,54,0.9)}
+.toast-center{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px 40px;border-radius:12px;color:#fff;font-size:1.2em;z-index:2000;opacity:0;transition:opacity 0.3s;background:rgba(0,0,0,0.85);border:2px solid var(--color-brand-primary);box-shadow:0 0 20px rgba(250,191,19,0.3);text-align:center;min-width:300px}
+.toast-center.show{opacity:1}
+.toast-center.info{background:rgba(250,191,19,0.9)}
+.recent-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:20px}
+.recent-section h3{color:var(--color-brand-primary);margin-bottom:15px;font-size:1.1em}
+.recent-item{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.recent-item .info{flex:1;min-width:200px;font-size:0.9em;line-height:1.5}
+.recent-item .status{display:inline-block;padding:5px 12px;border-radius:4px;font-size:0.85em;margin-right:10px}
+.status-pending{background:rgba(255,152,0,0.2);color:#ff9800}
+.status-cancelled{background:rgba(244,67,54,0.2);color:#f44336}
+.status-arrived{background:rgba(250,191,19,0.2);color:#FABF13}
+.status-completed{background:rgba(76,175,80,0.2);color:#4caf50}
+.btn-cancel{padding:5px 12px;font-size:0.85em;background:rgba(244,67,54,0.2);border:1px solid rgba(244,67,54,0.5);color:var(--color-status-error);border-radius:4px;cursor:pointer}
+.btn-cancel:hover{background:rgba(244,67,54,0.3)}
+.history-section{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-top:20px}
+.history-section h3{color:var(--color-brand-primary);margin-bottom:15px;font-size:1.1em}
+.history-filters{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center}
+.history-filters select,.history-filters input{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em}
+.history-filters select option{background:var(--color-bg-secondary);color:#fff}
+.history-filters button{padding:10px 20px;background:rgba(250,191,19,0.2);border:1px solid var(--color-brand-primary);color:var(--color-brand-primary);border-radius:8px;cursor:pointer;font-size:0.9em;transition:all 0.2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.history-filters button:hover{background:rgba(250,191,19,0.3)}
+.history-pagination{display:flex;justify-content:center;gap:10px;margin-top:15px;align-items:center}
+.history-pagination button{padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;cursor:pointer;font-size:0.85em;transition:all 0.2s}
+.history-pagination button:hover:not(:disabled){background:rgba(255,255,255,0.2)}
+.history-pagination button:disabled{opacity:0.3;cursor:not-allowed}
+.history-pagination span{color:var(--color-text-secondary);font-size:0.9em}
+@media(max-width:768px){.form-row{flex-direction:column}.form-field{min-width:100%}.products-table{font-size:0.85em}.products-table th,.products-table td{padding:8px 5px}.recent-item{flex-direction:column;align-items:flex-start}.history-filters{flex-direction:column;align-items:stretch}.history-filters input{width:100%}}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center;z-index:9999}
+.modal-overlay.active{display:flex}
+.modal{background:linear-gradient(135deg,var(--color-bg-secondary) 0%,var(--color-bg-elevated) 100%);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:30px;width:90%;max-width:400px}
+.modal h3{color:var(--color-brand-primary);margin-bottom:20px}
+.modal .form-group{margin-bottom:15px}
+.modal .form-group label{display:block;margin-bottom:8px;color:var(--color-text-secondary);font-size:0.9em}
+.modal .form-group input{width:100%;padding:12px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(15,23,42,0.8);color:#fff;font-size:1em}
+.modal .form-group input:focus{outline:none;border-color:var(--color-brand-primary)}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.modal-actions button{flex:1;padding:12px;border-radius:8px;cursor:pointer;font-size:0.95em;transition:all 0.3s;border:none}
+.btn-primary{background:linear-gradient(135deg, #FABF13 0%, #e6a800 100%);color: #231815}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(250,191,19,0.4)}
+.btn-secondary{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff}
+.btn-secondary:hover{background:rgba(255,255,255,0.2)}
+.error-text{color:var(--color-status-error);font-size:0.85em;margin-top:5px}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 表單區 -->
+<div class="form-section active" id="formSection">
+    <!-- 單據頭 -->
+    <div class="header-section">
+        <div class="header-title">📋 表單資訊</div>
+        <div class="form-row">
+            <div class="form-field" style="flex:0.5">
+                <label>日期 *</label>
+                <input type="date" id="requestDate">
+            </div>
+            <div class="form-field" style="flex:0.5">
+                <label>需求類型 *</label>
+                <select id="requestType" onchange="onRequestTypeChange()">
+                    <option value="請購">請購</option>
+                    <option value="調撥">調撥</option>
+                </select>
+            </div>
+            <div class="form-field" style="flex:0.5">
+                <label>需求用途 *</label>
+                <select id="purpose" onchange="onPurposeChange()">
+                    <option value="備貨">備貨</option>
+                    <option value="客戶">客戶</option>
+                </select>
+            </div>
+            <div class="form-field" id="supervisorStoreField" style="flex:0.5;display:none">
+                <label>代送門市</label>
+                <select id="supervisorStoreSelect">
+                    <option value="豐原門市">豐原門市</option>
+                    <option value="潭子門市">潭子門市</option>
+                    <option value="大雅門市">大雅門市</option>
+                </select>
+            </div>
+        </div>
+        <div id="transferSection" style="display:none">
+            <div class="form-row">
+                <div class="form-field">
+                    <label>調撥來源 *</label>
+                    <select id="transferFrom">
+                        <option value="">選擇來源門市</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="customerSection" class="customer-section">
+            <div class="form-row">
+                <div class="form-field" style="flex:2">
+                    <label>客戶 *</label>
+                    <div class="customer-search-wrapper" style="position:relative">
+                        <input type="text" id="customerSearch" placeholder="輸入姓名、手機或統編搜尋..." oninput="searchCustomer()">
+                        <div id="customerAutocomplete" class="autocomplete-list"></div>
+                        <input type="hidden" id="customerCode">
+                        <input type="hidden" id="customerName">
+                        <input type="hidden" id="customerMobile">
+                        <div id="customerSelected" class="customer-selected">
+                            <div>
+                                <span style="color:var(--color-brand-primary)">編號:</span> <span id="displayCustomerCode"></span>
+                                <span style="color:var(--color-brand-primary);margin-left:15px">姓名:</span> <span id="displayCustomerName"></span>
+                            </div>
+                            <button type="button" class="btn" onclick="clearCustomer()" style="background:rgba(255,255,255,0.1);padding:5px 12px;font-size:0.85em">清除</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-field" style="flex:1">
+                    <label>&nbsp;</label>
+                    <button type="button" class="btn" onclick="showNewCustomerDialog()" style="width:100%;background:rgba(250,191,19,0.2)">+ 新客戶</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 產品明細 -->
+    <div class="products-section">
+        <div class="header-title">📦 產品明細（可多列）<span style="color:var(--color-text-secondary);font-size:0.8em">預設5行，點+新增</span></div>
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th style="width:25%">產品編號 <span style="font-size:0.75em;color:#666">(英數+-)</span></th>
+                    <th style="width:30%">產品品名 *</th>
+                    <th style="width:12%">數量 *</th>
+                    <th style="width:18%">備註</th>
+                    <th style="width:8%">新品</th>
+                    <th style="width:7%"></th>
+                </tr>
+            </thead>
+            <tbody id="productsBody"></tbody>
+        </table>
+        <button type="button" class="btn-add" onclick="addProductRow()">+ 新增產品列</button>
+    </div>
+
+    <div style="text-align:center;padding:20px">
+        <button id="submitBtn" class="btn" onclick="submitForm()" style="padding:12px 28px;font-size:1.1em">提交送出</button>
+    </div>
+
+    <!-- 最近提交區塊（30分鐘內可取消） -->
+    <div class="recent-section" id="recentSection" style="display:none">
+        <h3>📝 最近提交（30分鐘內可取消）</h3>
+        <div id="recentList"></div>
+    </div>
+
+    <!-- 歷史紀錄區塊 -->
+    <div class="history-section" id="historySection">
+        <h3>📜 歷史紀錄</h3>
+        <div class="history-filters">
+            <select id="historyStatusFilter" onchange="loadHistory()">
+                <option value="all">📋 全部</option>
+                <option value="active">⏳ 未處理</option>
+                <option value="done">✅ 已處理</option>
+                <option value="cancelled">❌ 已取消</option>
+            </select>
+            <input type="text" id="historySearch" placeholder="搜尋品名/客戶/部門..." onkeyup="if(event.key==='Enter')loadHistory()">
+            <button onclick="loadHistory()">🔍 搜尋</button>
+        </div>
+        <div id="historyList" style="min-height:100px">
+            <div style="text-align:center;color:var(--color-text-secondary);padding:20px">載入中...</div>
+        </div>
+        <div class="history-pagination" id="historyPagination">
+            <button onclick="changeHistoryPage(-1)" id="historyPrevBtn">← 上一頁</button>
+            <span id="historyPageInfo">第 1 頁</span>
+            <button onclick="changeHistoryPage(1)" id="historyNextBtn">下一頁 →</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新客戶彈窗 -->
+<div class="modal-overlay" id="newCustomerModal">
+    <div class="modal">
+        <h3>+ 新增客戶</h3>
+        <div class="form-group">
+            <label>客戶姓名 <span style="color: var(--color-status-error);">*</span></label>
+            <input type="text" id="newCustomerName" placeholder="請輸入客戶姓名">
+            <div class="error-text" id="nameError" style="display: none;">請輸入客戶姓名</div>
+        </div>
+        <div class="form-group">
+            <label>手機號碼 <span style="color: var(--color-status-error);">*</span></label>
+            <input type="text" id="newCustomerMobile" placeholder="09開頭10碼">
+            <div class="error-text" id="mobileError" style="display: none;">手機格式錯誤，需09開頭10碼</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="hideNewCustomerModal()">取消</button>
+            <button class="btn-primary" onclick="submitNewCustomer()">新增</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.version='20250308-0143';
+
+let currentUser=null;
+const allStores=['豐原門市','潭子門市','大雅門市','業務部','總公司倉庫'];
+let productRowCount=0;
+let customerSearchTimer=null;
+let productSearchTimers={};
+let isSubmitting=false;
+let historyOffset=0;
+const historyLimit=50;
+let historyTotal=0;
+
+// 登入成功回調 - 由 base.html 呼叫
+window.onLoginSuccess=function(user){
+    console.log('[NeedsInput] Login success callback:',user);
+    initForm(user);
+};
+
+function initForm(user){
+    console.log('[NeedsInput] Init form with user:',user);
+    if(!user){
+        console.error('[NeedsInput] No user provided');
+        showToast('登入資訊缺失，請重新登入','error');
+        return;
+    }
+    currentUser=user;
+
+    // 莊圍迪特殊處理 - 顯示代送門市選擇器
+    if(user.name==='莊圍迪'){
+        document.getElementById('supervisorStoreField').style.display='block';
+        document.getElementById('supervisorStoreSelect').value='豐原門市';
+    }else{
+        document.getElementById('supervisorStoreField').style.display='none';
+    }
+
+    const now=new Date();
+    const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    document.getElementById('requestDate').value=today;
+    for(let i=0;i<5;i++)addProductRow();
+    initTransferSelect();
+    loadRecentSubmissions();
+    loadHistory();
+}
+
+function logout(){
+    if(typeof authLogout==='function')authLogout();
+    else window.location.reload();
+}
+
+function initTransferSelect(){
+    const select=document.getElementById('transferFrom');
+    if(!select||!currentUser)return;
+    select.innerHTML='<option value="">選擇來源門市</option>';
+    allStores.filter(s=>s!==currentUser.department).forEach(store=>{
+        const option=document.createElement('option');
+        option.value=store;
+        option.textContent=store;
+        select.appendChild(option);
+    });
+    // 莊圍迪的代送門市選擇器變更時重新載入
+    const supervisorSelect=document.getElementById('supervisorStoreSelect');
+    if(supervisorSelect){
+        supervisorSelect.addEventListener('change',function(){
+            if(currentUser&&currentUser.name==='莊圍迪')loadRecentSubmissions();
+        });
+    }
+}
+
+function onPurposeChange(){
+    const purpose=document.getElementById('purpose').value;
+    const customerSection=document.getElementById('customerSection');
+    if(purpose==='客戶')customerSection.classList.add('active');
+    else{customerSection.classList.remove('active');clearCustomer();}
+}
+
+function onRequestTypeChange(){
+    const type=document.getElementById('requestType').value;
+    document.getElementById('transferSection').style.display=type==='調撥'?'block':'none';
+}
+
+async function searchCustomer(){
+    const searchInput=document.getElementById('customerSearch');
+    const autocompleteList=document.getElementById('customerAutocomplete');
+    const keyword=searchInput.value.trim();
+    if(customerSearchTimer)clearTimeout(customerSearchTimer);
+    autocompleteList.classList.remove('active');
+    if(!keyword||keyword.length<2)return;
+    if(/^\d+$/.test(keyword)&&keyword.length<3)return;
+    customerSearchTimer=setTimeout(async()=>{
+        try{
+            const response=await fetch('/api/customers/search?keyword='+encodeURIComponent(keyword));
+            const data=await response.json();
+            if(!data.success||data.items.length===0){
+                autocompleteList.innerHTML='<div class="autocomplete-item" onclick="showNewCustomerDialog()" style="color:var(--color-status-error)"><strong>🆕新客戶</strong>-點選填寫新客戶</div>';
+                autocompleteList.classList.add('active');
+                return;
+            }
+            autocompleteList.innerHTML=data.items.map(item=>{
+                return '<div class="autocomplete-item" onclick="selectCustomer(\''+item.customer_id+'\',\''+item.short_name+'\',\''+(item.mobile||'')+'\')">'+
+                '<div style="font-weight:bold">'+item.short_name+'</div>'+
+                '<div style="font-size:0.85em;color:var(--color-text-secondary)">'+(item.mobile||'無電話')+'|'+(item.tax_id?'統編:'+item.tax_id+'|':'')+item.customer_id+'</div>'+
+                '</div>';
+            }).join('')+
+            '<div class="autocomplete-item" onclick="showNewCustomerDialog()" style="color:var(--color-status-error);border-top:1px solid rgba(255,255,255,0.1);margin-top:5px;padding-top:10px;"><strong>🆕以上都不是，建立新客戶</strong></div>';
+            autocompleteList.classList.add('active');
+        }catch(error){console.error('搜尋失敗:',error);}
+    },300);
+}
+
+function selectCustomer(code,name,mobile){
+    document.getElementById('customerCode').value=code;
+    document.getElementById('customerName').value=name;
+    document.getElementById('customerMobile').value=mobile;
+    document.getElementById('customerSearch').style.display='none';
+    document.getElementById('customerAutocomplete').classList.remove('active');
+    document.getElementById('displayCustomerCode').textContent=code;
+    document.getElementById('displayCustomerName').textContent=name;
+    document.getElementById('customerSelected').classList.add('active');
+}
+
+function clearCustomer(){
+    document.getElementById('customerCode').value='';
+    document.getElementById('customerName').value='';
+    document.getElementById('customerMobile').value='';
+    document.getElementById('customerSearch').value='';
+    document.getElementById('customerSearch').style.display='block';
+    document.getElementById('customerSelected').classList.remove('active');
+}
+
+function showNewCustomerDialog(){
+    document.getElementById('customerAutocomplete').classList.remove('active');
+    document.getElementById('newCustomerModal').classList.add('active');
+    document.getElementById('newCustomerName').value='';
+    document.getElementById('newCustomerMobile').value='';
+    document.getElementById('nameError').style.display='none';
+    document.getElementById('mobileError').style.display='none';
+    document.getElementById('newCustomerName').focus();
+}
+
+function hideNewCustomerModal(){
+    document.getElementById('newCustomerModal').classList.remove('active');
+}
+
+function normalizeMobile(input){
+    if(!input)return'';
+    let cleaned=input.replace(/[^0-9]/g,'');
+    if(cleaned.startsWith('886')&&cleaned.length>=10)cleaned='0'+cleaned.substring(3);
+    else if(!cleaned.startsWith('0')&&cleaned.length===9)cleaned='0'+cleaned;
+    return cleaned;
+}
+
+function validateMobileFormat(mobile){
+    return/^09\d{8}$/.test(mobile);
+}
+
+function generateTempCustomerId(mobile){
+    let hash=0;
+    for(let i=0;i<mobile.length;i++)hash=((hash<<5)-hash)+mobile.charCodeAt(i);
+    hash=hash&0xFFFFFFFF;
+    return'TEMP-C-'+Math.abs(hash).toString(16).toUpperCase().padStart(8,'0');
+}
+
+async function submitNewCustomer(){
+    const name=document.getElementById('newCustomerName').value.trim();
+    const mobileInput=document.getElementById('newCustomerMobile').value.trim();
+    if(!name){document.getElementById('nameError').style.display='block';return;}
+    else{document.getElementById('nameError').style.display='none';}
+    const cleanMobile=normalizeMobile(mobileInput);
+    if(!validateMobileFormat(cleanMobile)){document.getElementById('mobileError').style.display='block';return;}
+    else{document.getElementById('mobileError').style.display='none';}
+    
+    const tempId=generateTempCustomerId(cleanMobile);
+    document.getElementById('customerCode').value=tempId;
+    document.getElementById('customerName').value=name;
+    document.getElementById('customerMobile').value=cleanMobile;
+    document.getElementById('customerSearch').style.display='none';
+    document.getElementById('displayCustomerCode').textContent=tempId;
+    document.getElementById('displayCustomerName').textContent=name+'(新客戶)';
+    document.getElementById('customerSelected').classList.add('active');
+    hideNewCustomerModal();
+    showToast('新客戶資料已暫存（手機：'+cleanMobile+'）','success');
+}
+
+function validateProductCode(code){
+    if(!code)return true;
+    return/^[A-Za-z0-9\-]+$/.test(code);
+}
+
+function generateTempProductId(){
+    const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let uuid='';
+    for(let i=0;i<8;i++)uuid+=chars.charAt(Math.floor(Math.random()*chars.length));
+    return'TEMP-P-'+uuid;
+}
+
+function onProductCodeInput(rowId){
+    const input=document.getElementById('prodCode'+rowId);
+    const errorDiv=document.getElementById('codeError'+rowId);
+    if(!validateProductCode(input.value)){input.classList.add('error');errorDiv.classList.add('show');}
+    else{input.classList.remove('error');errorDiv.classList.remove('show');}
+}
+
+function addProductRow(){
+    productRowCount++;
+    const tbody=document.getElementById('productsBody');
+    const row=document.createElement('tr');
+    row.className='product-row';
+    row.id='productRow'+productRowCount;
+    row.innerHTML=
+        '<td><div class="product-search-wrapper" style="position:relative">'+
+        '<input type="text" id="prodCode'+productRowCount+'" placeholder="編號(英數+-)" oninput="onProductCodeInput('+productRowCount+');searchProduct('+productRowCount+')">'+
+        '<div id="codeError'+productRowCount+'" class="field-error">只能輸入英文、數字、-</div>'+
+        '<div id="prodAutocomplete'+productRowCount+'" class="product-autocomplete"></div>'+
+        '<div id="prodStock'+productRowCount+'" style="display:none;margin-top:4px;"></div></div></td>'+
+        '<td><input type="text" id="prodName'+productRowCount+'" placeholder="輸入品名搜尋..." oninput="searchProduct('+productRowCount+',true)"></td>'+
+        '<td><input type="number" id="prodQty'+productRowCount+'" min="1" value="1" style="text-align:center"></td>'+
+        '<td><input type="text" id="prodRemark'+productRowCount+'" placeholder="選填"></td>'+
+        '<td style="text-align:center"><input type="checkbox" id="prodNew'+productRowCount+'" onchange="onNewProductChange('+productRowCount+')"></td>'+
+        '<td><button type="button" class="btn-delete" onclick="deleteProductRow('+productRowCount+')">刪除</button></td>';
+    tbody.appendChild(row);
+}
+
+function deleteProductRow(rowId){
+    const row=document.getElementById('productRow'+rowId);
+    if(row)row.remove();
+}
+
+async function searchProduct(rowId,byName){
+    const inputId=byName?'prodName'+rowId:'prodCode'+rowId;
+    const input=document.getElementById(inputId);
+    const autocomplete=document.getElementById('prodAutocomplete'+rowId);
+    const keyword=input.value.trim();
+    if(productSearchTimers[rowId])clearTimeout(productSearchTimers[rowId]);
+    autocomplete.classList.remove('active');
+    if(!keyword||keyword.length<2)return;
+    productSearchTimers[rowId]=setTimeout(async()=>{
+        try{
+            const response=await fetch('/api/products/search?keyword='+encodeURIComponent(keyword));
+            const data=await response.json();
+            if(!data.success||!data.items||data.items.length===0)return;
+            
+            // 為每個產品查詢庫存
+            const itemsWithStock = await Promise.all(data.items.map(async (item) => {
+                try {
+                    const stockRes = await fetch('/api/inventory/product/' + item.product_code);
+                    const stockData = await stockRes.json();
+                    let totalStock = 0;
+                    if (stockData.success && stockData.inventory) {
+                        totalStock = stockData.inventory.reduce((sum, inv) => sum + (inv.stock_quantity || 0), 0);
+                    }
+                    return { ...item, stock: totalStock };
+                } catch (e) {
+                    return { ...item, stock: 0 };
+                }
+            }));
+            
+            autocomplete.innerHTML=itemsWithStock.map(item=>{
+                const stockClass = item.stock > 10 ? 'color:var(--color-status-success)' : (item.stock > 0 ? 'color:var(--color-status-warning)' : 'color:var(--color-status-error)');
+                return '<div class="autocomplete-item" onclick="selectProduct('+rowId+',\''+item.product_code+'\',\''+item.item_name+'\')">'+
+                '<strong>'+item.product_code+'</strong>-'+item.item_name+
+                '<span style="float:right;'+stockClass+'">庫存:'+item.stock+'</span>'+
+                '</div>';
+            }).join('');
+            autocomplete.classList.add('active');
+        }catch(error){console.error('產品搜尋失敗:',error);}
+    },300);
+}
+
+function selectProduct(rowId,code,name){
+    document.getElementById('prodCode'+rowId).value=code;
+    document.getElementById('prodName'+rowId).value=name;
+    document.getElementById('prodAutocomplete'+rowId).classList.remove('active');
+    document.getElementById('prodNew'+rowId).checked=false;
+    onProductCodeInput(rowId);
+    // 查詢並顯示庫存
+    queryProductStock(rowId,code);
+}
+
+// 查詢產品庫存
+async function queryProductStock(rowId,productCode){
+    const stockDiv=document.getElementById('prodStock'+rowId);
+    if(!stockDiv)return;
+    try{
+        const response=await fetch('/api/inventory/product/'+encodeURIComponent(productCode));
+        const data=await response.json();
+        if(data.success&&data.inventory&&data.inventory.length>0){
+            const totalStock=data.inventory.reduce((sum,item)=>sum+item.stock_quantity,0);
+            if(totalStock===0){
+                stockDiv.innerHTML='<div style="color:var(--color-status-error);font-size:0.85em;margin-top:4px">庫存: 0（無庫存）</div>';
+            }else{
+                const stockDetails=data.inventory.map(s=>s.warehouse+':'+s.stock_quantity).join(' / ');
+                stockDiv.innerHTML='<div style="color:var(--color-brand-primary);font-size:0.8em;margin-top:4px;line-height:1.4"><div>總庫存: '+totalStock+'</div><div style="color:var(--color-text-secondary);font-size:0.9em;">'+stockDetails+'</div></div>';
+            }
+            stockDiv.style.display='block';
+        }else{
+            stockDiv.innerHTML='<div style="color:var(--color-status-error);font-size:0.85em;margin-top:4px">庫存: 0（無庫存）</div>';
+            stockDiv.style.display='block';
+        }
+    }catch(error){
+        console.error('查詢庫存失敗:',error);
+        stockDiv.innerHTML='<div style="color:var(--color-status-error);font-size:0.85em;margin-top:4px">庫存查詢失敗</div>';
+        stockDiv.style.display='block';
+    }
+}
+
+function onNewProductChange(rowId){
+    const isNew=document.getElementById('prodNew'+rowId).checked;
+    const codeInput=document.getElementById('prodCode'+rowId);
+    if(isNew){
+        codeInput.value=generateTempProductId();
+        codeInput.readOnly=true;
+        codeInput.style.background='rgba(250,191,19,0.1)';
+    }else{
+        codeInput.value='';
+        codeInput.readOnly=false;
+        codeInput.style.background='';
+    }
+}
+
+// 頁面載入時檢查是否有未完成的提交
+window.addEventListener('load', function() {
+    const pendingSubmit = sessionStorage.getItem('needs_pending_submit');
+    if (pendingSubmit) {
+        // 有未完成的提交，檢查是否超過 10 秒
+        const pendingTime = parseInt(pendingSubmit);
+        const now = Date.now();
+        if (now - pendingTime > 10000) {
+            // 超過 10 秒，清除標記
+            sessionStorage.removeItem('needs_pending_submit');
+        } else {
+            // 顯示提示
+            showToast('偵測到未完成的提交，請稍候...', 'warning');
+        }
+    }
+});
+
+async function submitForm(){
+    // 檢查是否已有進行中的提交（記憶體 + sessionStorage 雙重檢查）
+    if(isSubmitting){showToast('已送出處理中，請稍候','warning');return;}
+    if(sessionStorage.getItem('needs_pending_submit')){showToast('已送出處理中，請稍候','warning');return;}
+    
+    isSubmitting=true;
+    sessionStorage.setItem('needs_pending_submit', Date.now().toString());
+    
+    const submitBtn=document.getElementById('submitBtn');
+    submitBtn.disabled=true;
+    submitBtn.innerHTML='<span class="spinner-inline"></span> 送出中…';
+    
+    try{
+        const date=document.getElementById('requestDate').value;
+        const requestType=document.getElementById('requestType').value;
+        const purpose=document.getElementById('purpose').value;
+        if(!date){showToast('請選擇日期','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
+        
+        let customerCode='',customerName='',customerMobile='';
+        let isNewCustomer=false;
+        if(purpose==='客戶'){
+            customerCode=document.getElementById('customerCode').value;
+            customerName=document.getElementById('customerName').value;
+            customerMobile=normalizeMobile(document.getElementById('customerMobile').value);
+            if(!customerCode){showToast('請選擇或填寫客戶資料','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
+            isNewCustomer=customerCode.startsWith('TEMP-');
+        }
+        
+        let transferFrom='';
+        if(requestType==='調撥'){
+            transferFrom=document.getElementById('transferFrom').value;
+            if(!transferFrom){showToast('請選擇調撥來源門市','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
+        }
+        
+        const items=[];
+        const rows=document.querySelectorAll('.product-row');
+        for(let i=0;i<rows.length;i++){
+            const rowId=rows[i].id.replace('productRow','');
+            const code=document.getElementById('prodCode'+rowId).value.trim();
+            const name=document.getElementById('prodName'+rowId).value.trim();
+            const qty=parseInt(document.getElementById('prodQty'+rowId).value);
+            const remark=document.getElementById('prodRemark'+rowId).value.trim();
+            const isNew=document.getElementById('prodNew'+rowId).checked;
+            if(!name&&!code)continue;
+            if(!name){showToast('第'+(i+1)+'列品名不可為空','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
+            if(!qty||qty<1){showToast('第'+(i+1)+'列數量必須大於0','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
+            
+            let finalProductCode=code;
+            let isNewProductFlag=false;
+            let productStagingId=null;
+            
+            if(!code&&name&&!isNew){showToast('第'+(i+1)+'列：無產品編號時，請勾選「新品」','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
+            if(isNew){
+                isNewProductFlag=true;
+                productStagingId=generateTempProductId();
+                finalProductCode=productStagingId;
+            }
+            items.push({product_code:finalProductCode,product_name:name,quantity:qty,remark:remark,is_new_product:isNewProductFlag,product_staging_id:productStagingId});
+        }
+        if(items.length===0){showToast('請至少填寫一筆產品','error');isSubmitting=false;sessionStorage.removeItem('needs_pending_submit');submitBtn.disabled=false;submitBtn.innerHTML='提交送出';return;}
+        
+        // 如果是莊圍迪，使用代送門市作為 department
+        const submitDepartment = (currentUser.name==='莊圍迪' && document.getElementById('supervisorStoreSelect').value) 
+            ? document.getElementById('supervisorStoreSelect').value 
+            : currentUser.department;
+        
+        const fullItems=items.map(item=>({
+            ...item,
+            date:date,
+            request_type:requestType,
+            purpose:purpose,
+            department:submitDepartment,
+            requester:currentUser.name,
+            transfer_from:transferFrom,
+            customer_code:customerCode,
+            customer_name:customerName,
+            customer_mobile:customerMobile,
+            is_new_customer:isNewCustomer
+        }));
+        
+        const response=await fetch('/api/needs/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:fullItems})});
+        const data=await response.json();
+        
+        // 成功後清除 sessionStorage 標記
+        sessionStorage.removeItem('needs_pending_submit');
+        
+        if(response.ok && data.success){
+            showToast('成功提交 '+data.count+' 筆需求','success');
+            resetForm();
+        }else{
+            // 判斷是否為重複提交（資料已存在）
+            const errorMsg = data.message || '';
+            if(errorMsg.includes('已存在') || errorMsg.includes('重複')){
+                showToast(errorMsg, 'warning');
+            }else{
+                showToast(errorMsg || '提交失敗','error');
+            }
+        }
+    }catch(error){
+        console.error('API error:',error);
+        showToast('提交失敗，請稍後再試','error');
+    }finally{
+        isSubmitting=false;
+        submitBtn.disabled=false;
+        submitBtn.innerHTML='提交送出';
+    }
+}
+
+function resetForm(){
+    document.getElementById('purpose').value='備貨';
+    document.getElementById('requestType').value='請購';
+    onPurposeChange();
+    onRequestTypeChange();
+    clearCustomer();
+    document.getElementById('productsBody').innerHTML='';
+    productRowCount=0;
+    // 重置日期為今天（使用本地時間）
+    const now=new Date();
+    const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    document.getElementById('requestDate').value=today;
+    for(let i=0;i<5;i++)addProductRow();
+    loadRecentSubmissions();
+    loadHistory();
+}
+
+async function loadRecentSubmissions(){
+    if(!currentUser)return;
+    const submitDepartment=(currentUser.name==='莊圍迪'?document.getElementById('supervisorStoreSelect').value:currentUser.department);
+    try{
+        const response=await fetch('/api/needs/recent?department='+encodeURIComponent(submitDepartment)+'&current_user='+encodeURIComponent(currentUser.name)+'&_='+Date.now());
+        const data=await response.json();
+        if(data.items&&data.items.length>0){
+            document.getElementById('recentSection').style.display='block';
+            document.getElementById('recentList').innerHTML=data.items.map(item=>{
+                // 根據狀態設定正確的 CSS 類別
+                let statusClass='status-pending';
+                if(item.status_type==='cancelled') statusClass='status-cancelled';
+                else if(item.status==='已採購'||item.status==='已調撥') statusClass='status-arrived';
+                else if(item.status==='已到貨'||item.status_type==='done') statusClass='status-completed';
+                console.log('[Recent] status_type='+item.status_type+', statusClass='+statusClass);
+                
+                return '<div class="recent-item">'+
+                    '<div class="info">'+
+                        '<strong>'+item.date+'</strong> | 填表人: '+item.requester+' | 產品: '+item.product_code+' | 數量: '+item.quantity+
+                        ' | 類型: '+(item.request_type||'請購')+(item.transfer_from?'(來源:'+item.transfer_from+')':'')+
+                        ' | 用途: '+(item.purpose==='客戶'?'客戶-'+(item.customer_code||'-'):'備貨')+
+                    '</div>'+
+                    '<div>'+
+                        '<span class="status '+statusClass+'">'+item.status+'</span>'+
+                        (item.can_cancel?'<button class="btn-cancel" onclick="cancelItem('+item.id+')">取消</button>':'')+
+                    '</div>'+
+                '</div>';
+            }).join('');
+        }else{
+            document.getElementById('recentSection').style.display='none';
+        }
+    }catch(error){console.error('載入最近提交失敗:',error);}
+}
+
+async function cancelItem(id){
+    if(!confirm('確定要取消這筆需求嗎？'))return;
+    try{
+        const response=await fetch('/api/needs/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,current_user:currentUser.name})});
+        const data=await response.json();
+        if(data.success){showToast('已取消','success');loadRecentSubmissions();loadHistory();}
+        else{showToast(data.message||'取消失敗','error');}
+    }catch(error){showToast('取消失敗','error');}
+}
+
+async function loadHistory(){
+    if(!currentUser)return;
+    const status=document.getElementById('historyStatusFilter').value;
+    const search=document.getElementById('historySearch').value.trim();
+    const listContainer=document.getElementById('historyList');
+    listContainer.innerHTML='<div style="text-align:center;color:var(--color-text-secondary);padding:20px;">載入中...</div>';
+    
+    try{
+        const department=currentUser.department;
+        let url='/api/needs/history?limit='+historyLimit+'&offset='+historyOffset+'&status='+status+'&department='+encodeURIComponent(department);
+        if(search)url+='&q='+encodeURIComponent(search);
+        
+        const response=await fetch(url);
+        const data=await response.json();
+        
+        if(data.success&&data.items&&data.items.length>0){
+            historyTotal=data.total;
+            listContainer.innerHTML=data.items.map(item=>{
+                let statusClass='status-pending';
+                let statusText=item.status;
+                if(item.status_type==='cancelled'){statusClass='status-cancelled';statusText='已取消';}
+                else if(item.status==='已採購'||item.status==='已調撥'){statusClass='status-arrived';statusText=item.status;}
+                else if(item.status==='已到貨'||item.status_type==='done'){statusClass='status-completed';statusText='已完成';}
+                return '<div class="recent-item">'+
+                    '<div class="info">'+
+                        '<strong>'+item.date+'</strong> | '+item.department+' | 填表人: '+item.requester+'<br>'+
+                        '產品: '+(item.product_code||'-')+' | 品名: '+(item.item_name||'-')+' | 數量: '+item.quantity+'<br>'+
+                        '客戶: '+(item.customer_code||'-')+
+                    '</div>'+
+                    '<div><span class="status '+statusClass+'">'+statusText+'</span></div>'+
+                '</div>';
+            }).join('');
+            
+            const currentPage=Math.floor(historyOffset/historyLimit)+1;
+            const totalPages=Math.ceil(historyTotal/historyLimit);
+            document.getElementById('historyPageInfo').textContent='第 '+currentPage+' / '+totalPages+' 頁 (共 '+historyTotal+' 筆)';
+            document.getElementById('historyPrevBtn').disabled=historyOffset<=0;
+            document.getElementById('historyNextBtn').disabled=(historyOffset+historyLimit)>=historyTotal;
+        }else{
+            listContainer.innerHTML='<div style="text-align:center;color:var(--color-text-secondary);padding:30px;">暫無資料</div>';
+            document.getElementById('historyPageInfo').textContent='第 1 頁';
+            document.getElementById('historyPrevBtn').disabled=true;
+            document.getElementById('historyNextBtn').disabled=true;
+        }
+    }catch(error){
+        console.error('載入歷史紀錄失敗:',error);
+        listContainer.innerHTML='<div style="text-align:center;color:var(--color-status-error);padding:20px;">載入失敗，請重試</div>';
+    }
+}
+
+function changeHistoryPage(direction){
+    const newOffset=historyOffset+(direction*historyLimit);
+    if(newOffset>=0&&newOffset<historyTotal){
+        historyOffset=newOffset;
+        loadHistory();
+    }
+}
+
+function showToast(message,type,duration){
+    const toast=document.getElementById('toast');
+    toast.textContent=message;
+    toast.className='toast '+type+' show';
+    const displayDuration=duration||(type==='success'?8000:5000);
+    if(toast.hideTimer)clearTimeout(toast.hideTimer);
+    toast.hideTimer=setTimeout(()=>{toast.classList.remove('show');},displayDuration);
+    toast.onclick=function(){toast.classList.remove('show');};
+}
+</script>
+{% endblock %}

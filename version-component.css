@@ -1,0 +1,149 @@
+/* ========== 版本號與更新日誌組件 ========== */
+.version-badge {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 9999;
+    background: rgba(250, 191, 19, 0.15);
+    border: 1px solid rgba(250, 191, 19, 0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.75em;
+    color: #FABF13;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+.version-badge:hover {
+    background: rgba(250, 191, 19, 0.25);
+    border-color: #FABF13;
+    transform: scale(1.05);
+}
+
+/* 更新日誌彈窗 */
+.changelog-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.changelog-modal.active {
+    display: flex;
+}
+
+.changelog-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(250, 191, 19, 0.3);
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.changelog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.changelog-title {
+    font-size: 1.3em;
+    color: #FABF13;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.changelog-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #8892b0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.changelog-close:hover {
+    background: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+}
+
+.changelog-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.changelog-item {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.changelog-item:last-child {
+    border-bottom: none;
+}
+
+.changelog-version {
+    background: rgba(250, 191, 19, 0.15);
+    color: #FABF13;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+    min-width: 45px;
+    text-align: center;
+}
+
+.changelog-text {
+    color: #ccd6f6;
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+.changelog-date {
+    color: #8892b0;
+    font-size: 0.75em;
+    margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+    .version-badge {
+        top: 10px;
+        right: 10px;
+        padding: 4px 10px;
+        font-size: 0.7em;
+    }
+    
+    .changelog-content {
+        padding: 20px;
+        max-height: 80vh;
+    }
+}
