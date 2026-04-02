@@ -1,9 +1,9 @@
 # ERP 營運系統專案白皮書
 
-**文件版本**: v4.3  
-**最後更新**: 2026-03-27 17:33  
+**文件版本**: v4.4  
+**最後更新**: 2026-03-30 14:50  
 **專案名稱**: 電腦舖 ERP 營運系統  
-**系統版本**: V2.0.4  
+**系統版本**: V2.0.5  
 **作者**: Yvonne (AI Assistant)  
 **適用對象**: 系統管理員、開發人員、未來維護者
 
@@ -719,6 +719,43 @@ CREATE TABLE line_reply_templates (
 );
 ```
 
+### 11.7 推薦備貨系統
+
+#### 功能說明
+- 老闆/會計在後台設定各分類的推薦備貨商品清單
+- 門市/業務人員可在選購頁面直接勾選需要的商品
+- 送出後自動產生調撥需求（V2.0.5 起）
+
+#### 流程變更（V2.0.5）
+| 版本 | 送出後類型 | 調出單位 | 說明 |
+|------|-----------|---------|------|
+| V2.0.0 ~ V2.0.4 | 請購 | - | 直接採購 |
+| V2.0.5+ | 調撥 | 總公司倉庫 | 統一採購後調撥至各單位 |
+
+#### 頁面結構
+| 頁面 | 功能 | 權限 |
+|------|------|------|
+| admin/recommended_products.html | 設定推薦備貨商品 | 老闆、會計 |
+| recommended_products.html | 選購推薦備貨商品 | 所有角色 |
+
+#### 資料表
+```sql
+CREATE TABLE recommended_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,                    -- 分類名稱
+    sort_order INTEGER            -- 排序
+);
+
+CREATE TABLE recommended_products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER,          -- 分類 ID
+    product_code TEXT,            -- 產品代碼
+    item_name TEXT,               -- 產品名稱
+    suggested_qty INTEGER,        -- 建議數量
+    description TEXT,             -- 說明
+    sort_order INTEGER            -- 排序
+);
+```
 
 ---
 
@@ -789,6 +826,11 @@ Gunicorn 日誌: dashboard-site/logs/
 - 系統架構圖 V3
 - 官網 Deploy Key 設定
 - ERP Repo 重新命名
+
+### V2.0.5 (2026-03-30)
+- 推薦備貨流程調整：選購送出後轉為「調撥」類型（原為「採購」）
+- 預設調出單位為「總公司倉庫」，統一採購後再調撥至各需求單位
+- 會計頁面可查看各單位透過推薦備貨產生的待調撥清單
 
 ### V2.0.0 (2026-03-16)
 - Google 商家五星評論自動化

@@ -488,4 +488,29 @@ ssh -T git@github.com
 
 ---
 
+### GitHub Push 指令
+
+**ERP-v1 (舊系統) Push:**
+```bash
+cd /Users/aiserver/.openclaw/workspace/ERP-v1/dashboard-site
+GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push origin main
+```
+
+**ERP-v2 (新系統) Push:**
+```bash
+# 1. 同步本機檔案到 Git 倉庫
+rsync -av --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' /Users/aiserver/srv/web-site/computershop-erp/ /Users/aiserver/.openclaw/workspace/ERP-v2/
+
+# 2. Commit 並 Push
+cd /Users/aiserver/.openclaw/workspace
+git add ERP-v2
+git commit -m "更新 ERP-v2"
+GIT_SSH_COMMAND="ssh -i ~/.ssh/github_deploy_key -o IdentitiesOnly=yes" git push origin main
+```
+
+**快速指令（給 Yvonne 使用）：**
+- 當用戶說 "erp-v2 push github" 時，執行上述 ERP-v2 Push 流程
+
+---
+
 Add whatever helps you do your job. This is your cheat sheet.
