@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}廠商對帳 — COSH ERP{% endblock %}
+{% block page_title %}廠商對帳{% endblock %}
+
+{% block styles %}
+<style>
+.controls { display:flex; gap:.8rem; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; }
+.controls input { padding:.4rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.88rem; }
+.section-title { font-size:1rem; font-weight:400; margin:1.5rem 0 .8rem; border-bottom:1px solid var(--border); padding-bottom:.4rem; }
+.data-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.data-table th, .data-table td { padding:.55rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
+.data-table th { font-weight:400; color:#888; font-size:.8rem; }
+.data-table td.num { text-align:right; font-family:'Cormorant Garamond',serif; }
+.data-table tfoot td { font-weight:bold; border-top:2px solid var(--border); }
+.status-paid { color:#27ae60; font-size:.82rem; }
+.status-unpaid { color:#e67e22; font-size:.82rem; }
+.summary-bar { display:flex; gap:1.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+.summary-item { font-size:.88rem; }
+.summary-item span { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:300; }
+.empty-msg { text-align:center; color:#999; padding:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="controls">
+  <select id="rcCompany" onchange="loadData()" style="padding:.4rem .6rem;border:1px solid var(--border);border-radius:4px;font-size:.88rem;">
+    <option value="">全部公司</option>
+    <option value="電瑙舖資訊有限公司">電瑙舖資訊有限公司</option>
+    <option value="鋒鑫資訊有限公司">鋒鑫資訊有限公司</option>
+  </select>
+  <label>月份</label>
+  <input type="month" id="rcMonth" onchange="loadData()">
+</div>
+
+<div class="summary-bar" id="summaryBar"></div>
+
+<div class="section-title">本月進貨彙總（按廠商）</div>
+<table class="data-table">
+  <thead><tr><th>公司</th><th>廠商</th><th>帳期</th><th>訂單數</th><th>總數量</th><th>總金額</th></tr></thead>
+  <tbody id="purchaseBody"><tr><td colspan="6" class="empty-msg">載入中…</td></tr></tbody>
+  <tfoot id="purchaseFoot"></tfoot>
+</table>
+
+<div class="section-title">應付帳款狀態（按廠商）</div>
+<table class="data-table">
+  <thead><tr><th>公司</th><th>廠商</th><th>狀態</th><th>金額</th></tr></thead>
+  <tbody id="payableBody"><tr><td colspan="4" class="empty-msg">載入中…</td></tr></tbody>
+</table>
+
+<script>
+function onAppReady(user) {
+  if (!['老闆','會計'].includes(user.title)) { window.location.href = '/'; return; }
+  document.getElementById('rcMonth').value = new Date().toISOString().slice(0,7);
+  loadData();
+}
+
+async function loadData() {
+  const month = document.getElementById('rcMonth').value;
+  const company = document.getElementById('rcCompany').value;
+  const params = new URLSearchParams({month});
+  if (company) params.set('company', company);
+  const res = await fetch('/api/finance/vendor-reconcile?' + params);
+  const j = await res.json();
+  if (!j.success) return;
+  const d = j.data;
+  const fmt = v => '$' + Math.round(v).toLocaleString();
+  const cShort = c => c ? (c.includes('電瑙') ? '電瑙舖' : c.includes('鋒鑫') ? '鋒鑫' : c) : '';
+  const terms = d.terms || {};
+  function fmtTerms(name) {
+    const t = terms[name];
+    if (!t) return '<span style="color:#b8b0a8">—</span>';
+    if (t.payment_method === '現金自取') return '現金自取';
+    if (t.payment_method === '匯款' && t.closing_day) {
+      const pd = t.pay_day || 28;
+      return `${t.closing_day}日結 / ${pd}日匯`;
+    }
+    if (t.payment_method === '支票' && t.closing_day) {
+      return `${t.closing_day}日結 / 月底票`;
+    }
+    if (t.closing_day) return `每月${t.closing_day}日結`;
+    if (t.payment_method) return t.payment_method;
+    return '<span style="color:#b8b0a8">未設定</span>';
+  }
+
+  // Purchase summary
+  const pb = document.getElementById('purchaseBody');
+  const pf = document.getElementById('purchaseFoot');
+  if (!d.purchases.length) {
+    pb.innerHTML = '<tr><td colspan="6" class="empty-msg">本月無進貨資料</td></tr>';
+    pf.innerHTML = '';
+  } else {
+    let totalAmt = 0, totalQty = 0, totalOrders = 0;
+    pb.innerHTML = d.purchases.map(r => {
+      totalAmt += r.total_amount; totalQty += r.total_qty; totalOrders += r.order_count;
+      return `<tr><td style="font-size:.82rem">${cShort(r.company)}</td><td>${r.supplier_name}</td><td style="font-size:.82rem">${fmtTerms(r.supplier_name)}</td><td class="num">${r.order_count}</td><td class="num">${r.total_qty}</td><td class="num">${fmt(r.total_amount)}</td></tr>`;
+    }).join('');
+    pf.innerHTML = `<tr><td></td><td>合計</td><td></td><td class="num">${totalOrders}</td><td class="num">${totalQty}</td><td class="num">${fmt(totalAmt)}</td></tr>`;
+
+    document.getElementById('summaryBar').innerHTML = `
+      <div class="summary-item">本月進貨 <span>${fmt(totalAmt)}</span></div>
+      <div class="summary-item">廠商數 <span>${d.purchases.length}</span></div>
+    `;
+  }
+
+  // Payable status
+  const payBody = document.getElementById('payableBody');
+  if (!d.payables.length) {
+    payBody.innerHTML = '<tr><td colspan="4" class="empty-msg">本月無應付帳款</td></tr>';
+  } else {
+    payBody.innerHTML = d.payables.map(r => `<tr>
+      <td style="font-size:.82rem">${cShort(r.company)}</td>
+      <td>${r.vendor_name}</td>
+      <td class="status-${r.status}">${r.status === 'paid' ? '已付款' : '未付款'}</td>
+      <td class="num">${fmt(r.total)}</td>
+    </tr>`).join('');
+  }
+}
+</script>
+{% endblock %}

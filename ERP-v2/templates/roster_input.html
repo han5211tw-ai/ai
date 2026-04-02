@@ -271,6 +271,6 @@ function showMsg(msg, ok) {
 }
 
 initSelectors();
-onAppReady(user => { load(); });
+function onAppReady(user) { load(); }
 </script>
 {% endblock %}

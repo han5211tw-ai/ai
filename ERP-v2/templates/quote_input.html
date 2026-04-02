@@ -40,9 +40,25 @@
 }
 .form-input[readonly] { color: #9a9188; background: #faf7f2; cursor: default; }
 
+/* ── 客戶 autocomplete ── */
+.cust-ac-wrap { position: relative; }
+.cust-ac-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+  background: #fff; border: 1px solid rgba(107,95,82,.2); border-radius: 10px;
+  margin-top: 4px; max-height: 240px; overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(44,39,32,.1); display: none;
+}
+.cust-ac-item {
+  padding: 10px 14px; cursor: pointer; font-size: .84rem; color: #2c2720;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cust-ac-item:hover { background: #f5f0e8; }
+.cust-ac-item .cust-sub { font-size: .72rem; color: #9a9188; }
+.cust-selected-info { font-size: .74rem; color: #6b8a5c; margin-top: 4px; }
+
 /* ── 明細表格 ── */
 .items-wrap { overflow-x: auto; }
-.items-table { width: 100%; border-collapse: collapse; font-size: .83rem; min-width: 640px; }
+.items-table { width: 100%; border-collapse: collapse; font-size: .83rem; min-width: 740px; }
 .items-table th {
   text-align: left; padding: 8px 12px;
   font-weight: 300; color: #9a9188; font-size: .72rem; letter-spacing: .06em;
@@ -68,6 +84,18 @@
   color: #8b3a3a; cursor: pointer;
 }
 .del-btn:hover { background: rgba(139,58,58,.06); }
+
+/* ── 產品搜尋下拉 ── */
+.prod-wrap { position: relative; }
+.prod-list {
+  position: absolute; top: 100%; left: 0; min-width: 280px; z-index: 20;
+  background: #fff; border: 1px solid rgba(107,95,82,.2); border-radius: 8px;
+  margin-top: 2px; max-height: 200px; overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(44,39,32,.12); display: none;
+}
+.prod-item { padding: 8px 12px; cursor: pointer; font-size: .82rem; }
+.prod-item:hover { background: #f5f0e8; }
+.prod-item .pid { font-size: .72rem; color: #9a9188; }
 
 /* ── 新增列按鈕 ── */
 .add-row-btn {
@@ -177,10 +205,13 @@
           <label>日期</label>
           <input class="form-input" type="date" id="quoteDate">
         </div>
-        <div class="form-field">
+        <div class="form-field cust-ac-wrap" style="grid-column: span 2; min-width: 0;">
           <label>客戶名稱</label>
-          <input class="form-input" id="customerName" placeholder="輸入客戶名稱或代號" list="customerList" autocomplete="off">
-          <datalist id="customerList"></datalist>
+          <input class="form-input" id="customerName" placeholder="輸入客戶名稱或手機搜尋…" autocomplete="off"
+                 oninput="onCustSearch(this.value)">
+          <div class="cust-ac-list" id="custAcList"></div>
+          <input type="hidden" id="custId">
+          <div class="cust-selected-info" id="custInfo" style="display:none"></div>
         </div>
         <div class="form-field">
           <label>有效期限</label>
@@ -197,12 +228,13 @@
         <table class="items-table">
           <thead>
             <tr>
-              <th style="width:36%">產品名稱</th>
-              <th style="width:10%">數量</th>
-              <th style="width:15%">單價</th>
-              <th style="width:15%">小計</th>
-              <th style="width:16%">備註</th>
-              <th style="width:8%"></th>
+              <th style="min-width:110px">產品編號</th>
+              <th style="min-width:180px">產品名稱</th>
+              <th style="width:70px">數量</th>
+              <th style="width:100px">單價</th>
+              <th style="width:100px">小計</th>
+              <th style="min-width:100px">備註</th>
+              <th style="width:50px"></th>
             </tr>
           </thead>
           <tbody id="itemsBody"></tbody>
@@ -269,9 +301,8 @@ function onAppReady(user) {
   document.getElementById('validUntil').value = exp.toISOString().slice(0,10);
 
   genQuoteNo(today.replace(/-/g,''));
-  addRow();
+  addRow(); addRow(); addRow();
   loadList();
-  loadCustomers();
 }
 
 // ── 單號 ──────────────────────────────────
@@ -288,31 +319,82 @@ document.getElementById('quoteDate').addEventListener('change', e => {
   genQuoteNo(e.target.value.replace(/-/g,''));
 });
 
-// ── 客戶搜尋 ─────────────────────────────────
-async function loadCustomers() {
-  try {
-    const res = await fetch('/api/customers/search?q=&limit=200');
-    const d   = await res.json();
-    const dl  = document.getElementById('customerList');
-    (d.customers || []).forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.short_name || c.customer_id;
-      dl.appendChild(opt);
-    });
-  } catch(e) {}
+// ── 客戶即時搜尋 ─────────────────────────────────
+let _custTimer = null;
+function onCustSearch(val) {
+  clearTimeout(_custTimer);
+  const q = val.trim();
+  // 中文 >= 2 字 或 數字 >= 3 碼才觸發搜尋
+  const isNum = /^\d+$/.test(q);
+  if ((!isNum && q.length < 2) || (isNum && q.length < 3)) {
+    document.getElementById('custAcList').style.display = 'none';
+    return;
+  }
+  _custTimer = setTimeout(() => doCustSearch(q), 200);
 }
+
+async function doCustSearch(q) {
+  try {
+    const res  = await fetch('/api/customers/search?q=' + encodeURIComponent(q));
+    const json = await res.json();
+    const list = json.customers || json.data || json || [];
+    const el   = document.getElementById('custAcList');
+    if (!list.length) {
+      el.innerHTML = '<div style="padding:12px;font-size:.78rem;color:#9a9188">查無結果</div>';
+      el.style.display = 'block';
+      return;
+    }
+    el.innerHTML = list.map(c => {
+      const name  = c.short_name || c.customer_id;
+      const mob   = [c.mobile, c.phone1].find(p => p && /^09/.test(p)) || c.mobile || c.phone1 || '';
+      const sub   = [c.customer_id, mob].filter(Boolean).join(' · ');
+      return `<div class="cust-ac-item" onclick="pickCust('${(c.customer_id||'').replace(/'/g,"\\'")}','${(name).replace(/'/g,"\\'")}','${mob.replace(/'/g,"\\'")}')">
+        <span>${name}</span><span class="cust-sub">${sub}</span>
+      </div>`;
+    }).join('');
+    el.style.display = 'block';
+  } catch(e) { console.error(e); }
+}
+
+function pickCust(id, name, mobile) {
+  document.getElementById('customerName').value = name;
+  document.getElementById('custId').value = id;
+  document.getElementById('custAcList').style.display = 'none';
+  const info = document.getElementById('custInfo');
+  info.textContent = [id, mobile].filter(Boolean).join(' · ');
+  info.style.display = info.textContent ? '' : 'none';
+}
+
+// 點擊外部關閉
+document.addEventListener('click', e => {
+  if (!e.target.closest('.cust-ac-wrap')) {
+    document.getElementById('custAcList').style.display = 'none';
+  }
+});
 
 // ── 明細列 ─────────────────────────────────
 let _rowSeq = 0;
+let prodTimers = {};
+let nameTimers = {};
+
 function addRow() {
   const id  = ++_rowSeq;
   const tr  = document.createElement('tr');
   tr.id = 'row-' + id;
   tr.innerHTML = `
     <td>
-      <input class="td-input" id="pname-${id}" list="productList"
-        placeholder="產品名稱" oninput="calcRow(${id})" autocomplete="off">
-      <datalist id="productList"></datalist>
+      <div class="prod-wrap">
+        <input class="td-input" id="pcode-${id}" placeholder="產品編號"
+               oninput="searchProdByCode(${id})" autocomplete="off" style="width:110px">
+        <div class="prod-list" id="clist-${id}"></div>
+      </div>
+    </td>
+    <td>
+      <div class="prod-wrap">
+        <input class="td-input" id="pname-${id}" placeholder="產品名稱"
+               oninput="searchProdByName(${id})" autocomplete="off">
+        <div class="prod-list" id="nlist-${id}"></div>
+      </div>
     </td>
     <td><input class="td-input" id="qty-${id}" type="number" min="1" value="1"
       style="width:70px" oninput="calcRow(${id})"></td>
@@ -323,24 +405,67 @@ function addRow() {
     <td><button class="del-btn" onclick="delRow(${id})">刪除</button></td>
   `;
   document.getElementById('itemsBody').appendChild(tr);
-  // 嘗試帶入產品搜尋 datalist
-  loadProductList(id);
 }
 
-async function loadProductList(rowId) {
-  try {
-    const res = await fetch('/api/products/search?q=&limit=200');
-    const d   = await res.json();
-    const dl  = document.getElementById('productList');
-    if (!dl.children.length) {
-      (d.products || d.results || []).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.product_name || p.item_spec || p.name || p.product_code;
-        dl.appendChild(opt);
-      });
+function selectProd(id, code, name, cost) {
+  document.getElementById('pcode-' + id).value = code;
+  document.getElementById('pname-' + id).value = name;
+  // 單價自動帶入：成本 × 1.2（四捨五入取整）
+  if (cost > 0) {
+    const priceEl = document.getElementById('price-' + id);
+    if (priceEl && (!priceEl.value || priceEl.value === '0')) {
+      priceEl.value = Math.round(cost * 1.2);
+      calcRow(id);
     }
-  } catch(e) {}
+  }
+  closeProdLists(id);
 }
+
+function closeProdLists(id) {
+  const cl = document.getElementById('clist-' + id);
+  const nl = document.getElementById('nlist-' + id);
+  if (cl) cl.style.display = 'none';
+  if (nl) nl.style.display = 'none';
+}
+
+function renderProdDropdown(el, list, id) {
+  if (!list.length) { el.style.display = 'none'; return; }
+  el.innerHTML = list.slice(0, 20).map(p =>
+    `<div class="prod-item" onclick="selectProd(${id},'${(p.product_code||'').replace(/'/g,"\\'")}','${(p.product_name||p.item_spec||'').replace(/'/g,"\\'")}',${p.unit_cost||0})">
+      <div>${p.product_name || p.item_spec || ''}</div>
+      <div class="pid">${p.product_code || ''}${p.total_qty ? ' · 庫存 ' + p.total_qty : ''}</div>
+    </div>`
+  ).join('');
+  el.style.display = 'block';
+}
+
+async function searchProdByCode(id) {
+  const q = (document.getElementById('pcode-' + id)?.value || '').trim();
+  if (q.length < 2) { closeProdLists(id); return; }
+  clearTimeout(prodTimers[id]);
+  prodTimers[id] = setTimeout(async () => {
+    const res  = await fetch('/api/products/search?q=' + encodeURIComponent(q));
+    const list = await res.json();
+    renderProdDropdown(document.getElementById('clist-' + id), Array.isArray(list) ? list : [], id);
+  }, 250);
+}
+
+async function searchProdByName(id) {
+  const q = (document.getElementById('pname-' + id)?.value || '').trim();
+  if (q.length < 2) { closeProdLists(id); return; }
+  clearTimeout(nameTimers[id]);
+  nameTimers[id] = setTimeout(async () => {
+    const res  = await fetch('/api/products/search?q=' + encodeURIComponent(q));
+    const list = await res.json();
+    renderProdDropdown(document.getElementById('nlist-' + id), Array.isArray(list) ? list : [], id);
+  }, 250);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.prod-wrap')) {
+    document.querySelectorAll('.prod-list').forEach(el => { el.style.display = 'none'; });
+  }
+});
 
 function delRow(id) {
   const tr = document.getElementById('row-' + id);
@@ -370,12 +495,13 @@ async function submitQuote() {
   const items = [];
   document.querySelectorAll('#itemsBody tr').forEach(tr => {
     const rowId = tr.id.replace('row-','');
+    const pcode = document.getElementById('pcode-' + rowId)?.value.trim() || '';
     const pname = document.getElementById('pname-' + rowId)?.value.trim() || '';
     const qty   = parseInt(document.getElementById('qty-' + rowId)?.value)   || 0;
     const price = parseInt(document.getElementById('price-' + rowId)?.value) || 0;
     const note  = document.getElementById('note-' + rowId)?.value.trim() || '';
     if (pname && qty > 0) {
-      items.push({ product_name: pname, qty, unit_price: price, subtotal: qty * price, note });
+      items.push({ product_code: pcode, product_name: pname, qty, unit_price: price, subtotal: qty * price, note });
     }
   });
 
@@ -390,6 +516,7 @@ async function submitQuote() {
   const payload = {
     doc_no:       document.getElementById('quoteNo').value,
     doc_type:     'QUOTE',
+    target_id:    document.getElementById('custId').value.trim(),
     target_name:  document.getElementById('customerName').value.trim(),
     total_amount: total,
     note:         document.getElementById('quoteNote').value.trim(),
@@ -423,12 +550,15 @@ async function submitQuote() {
 function resetForm() {
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('customerName').value = '';
+  document.getElementById('custId').value       = '';
+  document.getElementById('custInfo').style.display = 'none';
+  document.getElementById('custInfo').textContent   = '';
   document.getElementById('quoteNote').value    = '';
   document.getElementById('quoteDate').value    = today;
   document.getElementById('itemsBody').innerHTML = '';
   _rowSeq = 0;
   genQuoteNo(today.replace(/-/g,''));
-  addRow();
+  addRow(); addRow(); addRow();
 }
 
 // ── 列表 ─────────────────────────────────

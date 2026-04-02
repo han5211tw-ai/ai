@@ -228,6 +228,6 @@ function showMsg(msg, ok) {
   setTimeout(() => { el.textContent = ''; }, 4000);
 }
 
-onAppReady(user => { loadRules(); });
+function onAppReady(user) { loadRules(); }
 </script>
 {% endblock %}

@@ -295,6 +295,6 @@ function showMsg(msg, ok) {
 
 initSelectors();
 buildTables();
-onAppReady(user => { load(); });
+function onAppReady(user) { load(); }
 </script>
 {% endblock %}

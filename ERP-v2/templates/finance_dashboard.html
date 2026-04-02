@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}財務總覽 — COSH ERP{% endblock %}
+{% block page_title %}財務總覽{% endblock %}
+
+{% block styles %}
+<style>
+.dash-controls { display:flex; gap:.8rem; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; }
+.dash-controls input { padding:.4rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; }
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:2rem; }
+.kpi-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem; }
+.kpi-label { font-size:.8rem; color:#888; }
+.kpi-value { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:300; margin-top:.2rem; }
+.kpi-value.positive { color:#27ae60; }
+.kpi-value.negative { color:#c0392b; }
+.section-title { font-size:1rem; font-weight:400; margin:1.5rem 0 .8rem; border-bottom:1px solid var(--border); padding-bottom:.4rem; }
+.chart-area { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin-bottom:1.5rem; }
+.bar-chart { display:flex; align-items:flex-end; gap:.6rem; height:180px; padding-top:1rem; }
+.bar-item { display:flex; flex-direction:column; align-items:center; flex:1; }
+.bar-fill { width:100%; max-width:60px; background:#2c2720; border-radius:4px 4px 0 0; transition:height .3s; min-height:2px; }
+.bar-label { font-size:.75rem; color:#888; margin-top:.4rem; text-align:center; word-break:break-all; }
+.bar-value { font-size:.75rem; font-family:'Cormorant Garamond',serif; }
+.summary-row { display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+.summary-box { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1rem 1.2rem; flex:1; min-width:200px; }
+.summary-box .label { font-size:.8rem; color:#888; }
+.summary-box .value { font-family:'Cormorant Garamond',serif; font-size:1.4rem; margin-top:.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-controls">
+  <label>月份</label>
+  <input type="month" id="dashMonth" onchange="loadDashboard()">
+</div>
+
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div class="section-title">各門市/部門營收</div>
+<div class="chart-area"><div class="bar-chart" id="storeChart"></div></div>
+
+<div class="section-title">應收/應付摘要</div>
+<div class="summary-row" id="summaryRow"></div>
+
+<div class="section-title">損益結構</div>
+<div class="chart-area" id="plStructure"></div>
+
+<script>
+function onAppReady(user) {
+  if (!['老闆','會計'].includes(user.title)) { window.location.href = '/'; return; }
+  document.getElementById('dashMonth').value = new Date().toISOString().slice(0,7);
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  const month = document.getElementById('dashMonth').value;
+  const res = await fetch('/api/finance/dashboard?month=' + month);
+  const j = await res.json();
+  if (!j.success) return;
+  const d = j.data;
+
+  // KPI cards
+  const fmt = v => '$' + Math.round(v).toLocaleString();
+  const cls = v => v >= 0 ? 'positive' : 'negative';
+  document.getElementById('kpiGrid').innerHTML = [
+    { label: '營業收入', value: d.revenue },
+    { label: '銷貨成本', value: d.cogs },
+    { label: `毛利（${d.gross_margin}%）`, value: d.gross_profit, colored: true },
+    { label: '本月進貨', value: d.purchase_total },
+    { label: '獎金支出', value: d.bonus },
+    { label: '其他支出', value: d.other_expense + d.petty_expense },
+    { label: '其他收入', value: d.other_income },
+    { label: '淨利', value: d.net_profit, colored: true },
+  ].map(k => `<div class="kpi-card">
+    <div class="kpi-label">${k.label}</div>
+    <div class="kpi-value${k.colored ? ' '+cls(k.value) : ''}">${fmt(k.value)}</div>
+  </div>`).join('');
+
+  // Store revenue chart
+  const stores = d.store_revenue || [];
+  const maxVal = Math.max(...stores.map(s => s.total), 1);
+  document.getElementById('storeChart').innerHTML = stores.length ? stores.map(s => {
+    const h = Math.max(2, (s.total / maxVal) * 160);
+    return `<div class="bar-item">
+      <div class="bar-value">${fmt(s.total)}</div>
+      <div class="bar-fill" style="height:${h}px"></div>
+      <div class="bar-label">${s.store_name || '未分類'}</div>
+    </div>`;
+  }).join('') : '<div style="text-align:center;color:#999;width:100%;padding:2rem;">本月無銷貨資料</div>';
+
+  // Summary
+  document.getElementById('summaryRow').innerHTML = `
+    <div class="summary-box"><div class="label">未收應收帳款</div><div class="value" style="color:#c0392b">${fmt(d.receivables_unpaid)}</div></div>
+    <div class="summary-box"><div class="label">未付應付帳款</div><div class="value" style="color:#e67e22">${fmt(d.payables_unpaid)}</div></div>
+    <div class="summary-box"><div class="label">淨應收/應付差額</div><div class="value">${fmt(d.receivables_unpaid - d.payables_unpaid)}</div></div>
+  `;
+
+  // P&L structure
+  const items = [
+    { label: '營業收入', value: d.revenue, color: '#27ae60' },
+    { label: '商品成本', value: -d.cogs, color: '#c0392b' },
+    { label: '毛利', value: d.gross_profit, color: '#2980b9' },
+    { label: '獎金', value: -d.bonus, color: '#c0392b' },
+    { label: '其他支出', value: -(d.other_expense + d.petty_expense), color: '#c0392b' },
+    { label: '其他收入', value: d.other_income, color: '#27ae60' },
+    { label: '淨利', value: d.net_profit, color: d.net_profit >= 0 ? '#27ae60' : '#c0392b' },
+  ];
+  const absMax = Math.max(...items.map(i => Math.abs(i.value)), 1);
+  document.getElementById('plStructure').innerHTML = items.map(i => {
+    const w = Math.max(2, (Math.abs(i.value) / absMax) * 100);
+    return `<div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.5rem;">
+      <div style="width:80px;font-size:.82rem;text-align:right;color:#666;">${i.label}</div>
+      <div style="flex:1;position:relative;height:22px;">
+        <div style="height:100%;width:${w}%;background:${i.color};border-radius:3px;opacity:.7;"></div>
+      </div>
+      <div style="width:100px;font-size:.85rem;font-family:'Cormorant Garamond',serif;text-align:right;">${fmt(Math.abs(i.value))}</div>
+    </div>`;
+  }).join('');
+}
+</script>
+{% endblock %}

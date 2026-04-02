@@ -291,6 +291,6 @@ document.getElementById('editModal').addEventListener('click', e => {
   if (e.target === document.getElementById('editModal')) closeModal();
 });
 
-onAppReady(user => { load(); });
+function onAppReady(user) { load(); }
 </script>
 {% endblock %}

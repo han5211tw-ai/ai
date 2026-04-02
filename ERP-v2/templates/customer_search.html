@@ -63,6 +63,14 @@
 .cust-table tr:hover td { background: rgba(107,95,82,.03); cursor: pointer; }
 .cust-id { font-family: 'Cormorant Garamond', serif; font-size: .85rem; color: #9a9188; }
 .total-hint { font-size: .75rem; color: #9a9188; padding: 10px 16px; }
+.pg-btn {
+  padding: 3px 9px; margin: 0 2px;
+  border: 1px solid rgba(107,95,82,.25); border-radius: 6px;
+  background: #f5f0e8; font-size: .78rem; cursor: pointer; color: #6b5f52;
+  font-family: 'Noto Serif TC', serif;
+}
+.pg-btn:hover { background: #ede9e0; }
+.pg-cur { background: #2c2720 !important; color: #f5f0e8 !important; border-color: #2c2720 !important; }
 
 /* ── 客戶詳情面板 ── */
 .detail-panel {
@@ -160,18 +168,25 @@
 <script>
 const fmt = n => n ? 'NT$\u00a0' + Math.round(n).toLocaleString('zh-TW') : 'NT$\u00a00';
 
+let curPage = 1;
+let curQ    = '';
+
+function onAppReady(user) { doSearch(1); }
+
 /* ── 搜尋 ── */
-async function doSearch() {
-  const q = document.getElementById('searchInput').value.trim();
-  if (!q) return;
+async function doSearch(page) {
+  curPage = page || 1;
+  curQ    = document.getElementById('searchInput').value.trim();
   document.getElementById('searchHint').textContent = '搜尋中…';
   document.getElementById('resultCard').style.display = 'block';
   document.getElementById('resultBody').innerHTML = '<div class="skel" style="margin:16px"></div>';
 
-  const res = await fetch('/api/customer/search?q=' + encodeURIComponent(q));
+  const res  = await fetch(`/api/customer/search?q=${encodeURIComponent(curQ)}&page=${curPage}`);
   const data = await res.json();
-  const hint = `共 ${data.total || 0} 筆`;
-  document.getElementById('searchHint').textContent = hint;
+  const total = data.total || 0;
+  const per   = data.per || 50;
+
+  document.getElementById('searchHint').textContent = `共 ${total} 筆`;
 
   if (!data.customers || data.customers.length === 0) {
     document.getElementById('resultBody').innerHTML =
@@ -179,6 +194,7 @@ async function doSearch() {
     return;
   }
 
+  const totalPages = Math.ceil(total / per);
   let html = `<table class="cust-table">
     <thead><tr>
       <th>客戶代碼</th><th>名稱</th><th>電話</th><th>統編</th><th>付款方式</th>
@@ -193,10 +209,23 @@ async function doSearch() {
     </tr>`;
   });
   html += `</tbody></table>`;
-  if (data.total > 20) {
-    html += `<div class="total-hint">顯示前 20 筆，共 ${data.total} 筆</div>`;
+  if (totalPages > 1) {
+    html += `<div class="total-hint" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      第 ${curPage} / ${totalPages} 頁，共 ${total} 筆
+      ${renderPager(curPage, totalPages)}
+    </div>`;
   }
   document.getElementById('resultBody').innerHTML = html;
+}
+
+function renderPager(cur, total) {
+  let btns = '';
+  if (cur > 1) btns += `<button onclick="doSearch(${cur-1})" class="pg-btn">‹</button>`;
+  for (let p = Math.max(1, cur-2); p <= Math.min(total, cur+2); p++) {
+    btns += `<button onclick="doSearch(${p})" class="pg-btn${p===cur?' pg-cur':''}">${p}</button>`;
+  }
+  if (cur < total) btns += `<button onclick="doSearch(${cur+1})" class="pg-btn">›</button>`;
+  return btns;
 }
 
 /* ── 詳情 ── */
@@ -275,9 +304,7 @@ function closeDetail() {
 
 /* Enter 搜尋 */
 document.getElementById('searchInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doSearch();
+  if (e.key === 'Enter') doSearch(1);
 });
-
-onAppReady(user => {});
 </script>
 {% endblock %}

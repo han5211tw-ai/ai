@@ -232,6 +232,76 @@
   font-size: .88rem;
 }
 
+/* ── 異常警示卡 ───────────────────────── */
+.anomaly-card {
+  background: #fff8f0;
+  border: 1.5px solid rgba(184,100,50,.25);
+  border-radius: 14px;
+  padding: 24px 26px;
+}
+.anomaly-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(184,100,50,.15);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.anomaly-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: #8a3a10;
+  letter-spacing: .06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.anomaly-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-family: 'Noto Serif TC', serif;
+  background: rgba(184,100,50,.12);
+  color: #b86432;
+}
+.anomaly-badge.ok { background: rgba(107,138,92,.12); color: #6b8a5c; }
+.anomaly-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .84rem;
+  min-width: 680px;
+}
+.anomaly-table th {
+  text-align: left;
+  padding: 7px 8px;
+  font-weight: 400;
+  font-size: .72rem;
+  color: #9a7a68;
+  letter-spacing: .06em;
+  border-bottom: 1px solid rgba(184,100,50,.15);
+  white-space: nowrap;
+}
+.anomaly-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid rgba(184,100,50,.07);
+  vertical-align: middle;
+  color: #2c2720;
+}
+.anomaly-table tr:last-child td { border-bottom: none; }
+.anomaly-table tr:hover td { background: rgba(255,235,218,.4); }
+.anomaly-amount { font-weight: 500; color: #b86432; }
+.ack-btn {
+  padding: 2px 10px; font-size: .75rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid #6b8a5c; background: #f0f7ec; color: #3a5a30;
+  white-space: nowrap;
+}
+.ack-btn:hover { background: #6b8a5c; color: #fff; }
+.ack-btn:disabled { opacity: .5; cursor: not-allowed; }
+
 /* ── Toast ───────────────────────────── */
 .toast-wrap {
   position: fixed;
@@ -279,6 +349,20 @@
     </div>
   </div>
 
+  <!-- ── 異常警示：銷貨異常 ── -->
+  <div class="anomaly-card">
+    <div class="anomaly-card-header">
+      <div class="anomaly-card-title">
+        ⚠ 銷貨異常警示
+        <span class="anomaly-badge" id="anomalyBadge">載入中</span>
+      </div>
+      <button class="btn-refresh" onclick="loadAnomalies()">重新整理</button>
+    </div>
+    <div class="table-scroll">
+      <div id="anomalyWrap"><div class="empty-hint">載入中…</div></div>
+    </div>
+  </div>
+
   <!-- ── 待請購清單 ── -->
   <div class="b-card">
     <div class="b-card-header">
@@ -318,10 +402,94 @@ function onAppReady(user) {
   if (user.title !== '老闆') {
     document.getElementById('tableWrap').innerHTML =
       '<div class="empty-hint">此頁面僅限老闆查看。</div>';
+    document.getElementById('anomalyWrap').innerHTML =
+      '<div class="empty-hint">此頁面僅限老闆查看。</div>';
     return;
   }
 
+  loadAnomalies();
   loadNeeds();
+}
+
+// ────────────────────────────────────
+// 銷貨異常警示
+// ────────────────────────────────────
+async function loadAnomalies() {
+  document.getElementById('anomalyWrap').innerHTML = '<div class="empty-hint">載入中…</div>';
+  try {
+    const res  = await fetch('/api/sales/anomalies?days=30&threshold=5000');
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    renderAnomalies(json.rows);
+  } catch (e) {
+    document.getElementById('anomalyWrap').innerHTML =
+      `<div class="empty-hint">載入失敗：${e.message}</div>`;
+  }
+}
+
+async function ackAnomaly(rowId, btn) {
+  btn.disabled = true;
+  btn.textContent = '處理中…';
+  try {
+    const res = await fetch(`/api/sales/anomaly-ack/${rowId}`, { method: 'PUT' });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    // 移除該列
+    const tr = btn.closest('tr');
+    tr.style.transition = 'opacity .3s';
+    tr.style.opacity = '0';
+    setTimeout(() => { tr.remove(); refreshAnomalyBadge(); }, 300);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '確認';
+    alert('確認失敗：' + e.message);
+  }
+}
+
+function refreshAnomalyBadge() {
+  const tbody = document.querySelector('#anomalyWrap tbody');
+  const badge = document.getElementById('anomalyBadge');
+  if (!tbody || tbody.rows.length === 0) {
+    badge.textContent = '無異常';
+    badge.className = 'anomaly-badge ok';
+    document.getElementById('anomalyWrap').innerHTML =
+      '<div class="empty-hint" style="color:#6b8a5c">近 30 日無銷貨異常紀錄 ✓</div>';
+  } else {
+    badge.textContent = `${tbody.rows.length} 筆`;
+  }
+}
+
+function renderAnomalies(rows) {
+  const badge = document.getElementById('anomalyBadge');
+  if (!rows || !rows.length) {
+    badge.textContent = '無異常';
+    badge.className = 'anomaly-badge ok';
+    document.getElementById('anomalyWrap').innerHTML =
+      '<div class="empty-hint" style="color:#6b8a5c">近 30 日無銷貨異常紀錄 ✓</div>';
+    return;
+  }
+  badge.textContent = `${rows.length} 筆`;
+  badge.className = 'anomaly-badge';
+  const trs = rows.map(r => `<tr>
+    <td class="cell-date">${esc(r.date)}</td>
+    <td><span class="cell-code" style="color:#b86432">${esc(r.product_code)}</span></td>
+    <td>${esc(r.product_name)}</td>
+    <td style="text-align:center">${r.quantity ?? '—'}</td>
+    <td class="anomaly-amount" style="text-align:right">NT$ ${(r.amount||0).toLocaleString()}</td>
+    <td>${esc(r.salesperson)}</td>
+    <td>${esc(r.customer_name)}</td>
+    <td><button class="ack-btn" onclick="ackAnomaly(${r.id}, this)">確認</button></td>
+  </tr>`).join('');
+  document.getElementById('anomalyWrap').innerHTML = `
+    <table class="anomaly-table">
+      <thead><tr>
+        <th>日期</th><th>品號</th><th>品名</th>
+        <th style="text-align:center">數量</th>
+        <th style="text-align:right">金額</th>
+        <th>業務</th><th>客戶</th><th></th>
+      </tr></thead>
+      <tbody>${trs}</tbody>
+    </table>`;
 }
 
 // ────────────────────────────────────

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}應付帳款 — COSH ERP{% endblock %}
+{% block page_title %}應付帳款{% endblock %}
+
+{% block styles %}
+<style>
+.controls { display:flex; gap:.8rem; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; }
+.controls select { padding:.4rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.88rem; }
+.btn-sm { padding:.4rem .8rem; border:1px solid var(--border); border-radius:4px; background:var(--bg-card); cursor:pointer; font-size:.82rem; }
+.btn-sm:hover { background:#eee; }
+.btn-primary-sm { padding:.4rem .8rem; border:none; border-radius:4px; background:#2c2720; color:#fff; cursor:pointer; font-size:.82rem; }
+.btn-primary-sm:hover { background:#444; }
+.data-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.data-table th, .data-table td { padding:.55rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
+.data-table th { font-weight:400; color:#888; font-size:.8rem; }
+.status-paid { color:#27ae60; }
+.status-unpaid { color:#e67e22; }
+.overdue { background:#fff8f0; }
+.summary-bar { display:flex; gap:1.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+.summary-item { font-size:.88rem; }
+.summary-item span { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:300; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:999; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#fff; border-radius:8px; padding:1.5rem; width:90%; max-width:420px; }
+.modal-box h3 { margin:0 0 1rem; font-size:1rem; font-weight:400; }
+.modal-box .field { margin-bottom:.8rem; }
+.modal-box .field label { display:block; font-size:.82rem; color:#666; margin-bottom:.3rem; }
+.modal-box .field input { width:100%; padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; box-sizing:border-box; }
+.modal-actions { display:flex; gap:.6rem; justify-content:flex-end; margin-top:1rem; }
+.empty-msg { text-align:center; color:#999; padding:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="controls">
+  <select id="filterCompany" onchange="loadData()">
+    <option value="">全部公司</option>
+    <option value="電瑙舖資訊有限公司">電瑙舖資訊有限公司</option>
+    <option value="鋒鑫資訊有限公司">鋒鑫資訊有限公司</option>
+  </select>
+  <select id="filterStatus" onchange="loadData()">
+    <option value="">全部狀態</option><option value="unpaid" selected>未付款</option><option value="paid">已付款</option>
+  </select>
+  <button class="btn-primary-sm" onclick="openAdd()">+ 新增應付</button>
+</div>
+
+<div class="summary-bar" id="summaryBar"></div>
+
+<table class="data-table">
+  <thead><tr><th>公司</th><th>廠商</th><th>單號</th><th>未稅金額</th><th>稅額</th><th>含稅金額</th><th>到期日</th><th>狀態</th><th>備註</th><th>操作</th></tr></thead>
+  <tbody id="dataBody"><tr><td colspan="8" class="empty-msg">載入中…</td></tr></tbody>
+</table>
+
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <h3>新增應付帳款</h3>
+    <div class="field"><label>進貨公司 *</label>
+      <select id="addCompany" style="width:100%;padding:.45rem .6rem;border:1px solid var(--border);border-radius:4px;font-size:.9rem;box-sizing:border-box;">
+        <option value="電瑙舖資訊有限公司">電瑙舖資訊有限公司（27488187）</option>
+        <option value="鋒鑫資訊有限公司">鋒鑫資訊有限公司（90284112）</option>
+      </select>
+    </div>
+    <div class="field"><label>廠商名稱 *</label><input id="addVendor"></div>
+    <div class="field"><label>訂單編號</label><input id="addOrder"></div>
+    <div class="field"><label>未稅金額 *</label><input type="number" id="addAmount" min="1" oninput="calcAddTax()"></div>
+    <div class="field"><label>含發票（5% 稅）</label>
+      <select id="addHasInvoice" onchange="calcAddTax()" style="width:100%;padding:.45rem .6rem;border:1px solid var(--border);border-radius:4px;font-size:.9rem;box-sizing:border-box;">
+        <option value="0">否</option>
+        <option value="1">是</option>
+      </select>
+    </div>
+    <div class="field" id="addTaxField" style="display:none">
+      <label>稅額</label><input type="number" id="addTaxAmount" readonly style="background:#f0ede6;color:#9a9188">
+    </div>
+    <div class="field" id="addTotalField" style="display:none">
+      <label>含稅金額</label><input type="number" id="addTotalWithTax" readonly style="background:#f0ede6;font-weight:500">
+    </div>
+    <div class="field"><label>到期日</label><input type="date" id="addDue"></div>
+    <div class="field"><label>備註</label><input id="addNote"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeAdd()">取消</button>
+      <button class="btn-primary-sm" onclick="submitAdd()">新增</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function onAppReady(user) {
+  if (!['老闆','會計'].includes(user.title)) { window.location.href = '/'; return; }
+  loadData();
+}
+
+async function loadData() {
+  const status = document.getElementById('filterStatus').value;
+  const company = document.getElementById('filterCompany').value;
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (company) params.set('company', company);
+  const res = await fetch('/api/finance/payables?' + params);
+  const j = await res.json();
+  const body = document.getElementById('dataBody');
+  if (!j.success || !j.data.length) { body.innerHTML = '<tr><td colspan="10" class="empty-msg">尚無資料</td></tr>'; document.getElementById('summaryBar').innerHTML=''; return; }
+
+  const today = new Date().toISOString().slice(0,10);
+  let totalUnpaid = 0, totalPaid = 0, totalTaxUnpaid = 0, totalPretaxUnpaid = 0;
+  j.data.forEach(r => {
+    if (r.status === 'unpaid') {
+      totalUnpaid += r.amount;
+      totalPretaxUnpaid += (r.pretax_amount || r.amount);
+      totalTaxUnpaid += (r.tax_amount || 0);
+    } else {
+      totalPaid += r.amount;
+    }
+  });
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="summary-item">未付款（未稅）<span style="color:#e67e22">$${Math.round(totalPretaxUnpaid).toLocaleString()}</span></div>
+    <div class="summary-item">稅額 <span style="color:#9a9188">$${Math.round(totalTaxUnpaid).toLocaleString()}</span></div>
+    <div class="summary-item">未付款（含稅）<span style="color:#c0392b">$${Math.round(totalUnpaid).toLocaleString()}</span></div>
+    <div class="summary-item">已付款 <span style="color:#27ae60">$${Math.round(totalPaid).toLocaleString()}</span></div>
+    <div class="summary-item">共 <span>${j.data.length}</span> 筆</div>
+  `;
+
+  body.innerHTML = j.data.map(r => {
+    const overdue = r.status === 'unpaid' && r.due_date && r.due_date < today;
+    const cShort = r.company ? (r.company.includes('電瑙') ? '電瑙舖' : r.company.includes('鋒鑫') ? '鋒鑫' : r.company) : '';
+    const pretax = r.pretax_amount || r.amount;
+    const tax = r.tax_amount || 0;
+    return `<tr class="${overdue ? 'overdue' : ''}">
+      <td style="font-size:.82rem">${cShort}</td>
+      <td>${r.vendor_name}</td>
+      <td>${r.order_no || ''}</td>
+      <td style="text-align:right">$${Math.round(pretax).toLocaleString()}</td>
+      <td style="text-align:right;color:#9a9188">${tax > 0 ? '$' + Math.round(tax).toLocaleString() : '—'}</td>
+      <td style="text-align:right;font-weight:500">$${Math.round(r.amount).toLocaleString()}</td>
+      <td>${r.due_date || ''}${overdue ? ' ⚠️' : ''}</td>
+      <td class="status-${r.status}">${r.status === 'paid' ? '已付款' : '未付款'}</td>
+      <td>${r.note || ''}</td>
+      <td>${r.status === 'unpaid' ? `<button class="btn-sm" onclick="confirmPaid(${r.id})">標記已付</button>` : (r.paid_at||'').slice(0,10)}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function confirmPaid(id) {
+  if (!confirm('確認標記此筆為已付款？')) return;
+  const res = await fetch('/api/finance/payables/confirm', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})
+  });
+  const j = await res.json();
+  if (!j.success) { alert(j.message); return; }
+  loadData();
+}
+
+function openAdd() { document.getElementById('addModal').classList.add('show'); }
+function closeAdd() { document.getElementById('addModal').classList.remove('show'); }
+
+function calcAddTax() {
+  const pretax = parseFloat(document.getElementById('addAmount').value) || 0;
+  const hasInv = document.getElementById('addHasInvoice').value === '1';
+  const taxField = document.getElementById('addTaxField');
+  const totalField = document.getElementById('addTotalField');
+  if (hasInv && pretax > 0) {
+    const tax = Math.round(pretax * 0.05);
+    document.getElementById('addTaxAmount').value = tax;
+    document.getElementById('addTotalWithTax').value = pretax + tax;
+    taxField.style.display = '';
+    totalField.style.display = '';
+  } else {
+    taxField.style.display = 'none';
+    totalField.style.display = 'none';
+  }
+}
+
+async function submitAdd() {
+  const pretax = parseFloat(document.getElementById('addAmount').value) || 0;
+  const hasInv = document.getElementById('addHasInvoice').value === '1';
+  const tax = hasInv ? Math.round(pretax * 0.05) : 0;
+  const data = {
+    company: document.getElementById('addCompany').value,
+    vendor_name: document.getElementById('addVendor').value.trim(),
+    order_no: document.getElementById('addOrder').value.trim(),
+    amount: pretax + tax,
+    pretax_amount: pretax,
+    tax_amount: tax,
+    due_date: document.getElementById('addDue').value,
+    note: document.getElementById('addNote').value.trim(),
+  };
+  if (!data.vendor_name || !pretax) { alert('廠商名稱和金額為必填'); return; }
+  const res = await fetch('/api/finance/payables', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+  });
+  const j = await res.json();
+  if (!j.success) { alert(j.message); return; }
+  closeAdd(); loadData();
+  ['addVendor','addOrder','addAmount','addDue','addNote'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('addHasInvoice').value = '0';
+  calcAddTax();
+}
+</script>
+{% endblock %}

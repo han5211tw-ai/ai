@@ -85,7 +85,7 @@
 
 **暫存/備份**：customer_staging, product_staging, staging_records, sales_history_deleted_backup
 
-**特殊功能**：google_reviews, google_reviews_stats, store_reviews, line_replies, recommended_products, recommended_categories, crm_tasks, finance_ledger
+**特殊功能**：google_reviews, store_reviews, line_replies, recommended_products, recommended_categories, crm_tasks, finance_ledger
 
 ---
 

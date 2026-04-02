@@ -217,7 +217,7 @@
     </div>
   </div>
 
-  <!-- ── 本人督導評分（工程師才顯示） ── -->
+  <!-- ── 本人督導評分 ── -->
   <div class="p-card" id="supCard" style="display:none">
     <div class="p-card-title">個人督導評分（本月）</div>
     <div id="supContent"><div class="empty-hint">載入中…</div></div>
@@ -248,11 +248,9 @@ function onAppReady(user) {
   document.getElementById('monthSel').value = new Date().getMonth() + 1;
   load();
 
-  // 督導評分只對工程師顯示
-  if (user.title === '工程師') {
-    document.getElementById('supCard').style.display = '';
-    loadSupervision(user.name);
-  }
+  // 督導評分：所有門市人員都顯示
+  document.getElementById('supCard').style.display = '';
+  loadSupervision(user.name);
 }
 
 function initYearSel() {
@@ -469,7 +467,7 @@ async function loadSupervision(name) {
   // 每項進度條
   const itemsHtml = fields.map(f => {
     const score   = scores[f];
-    const fillW   = (score / 2) * 100;
+    const fillW   = (score / 5) * 100;
     const fillClr = fillW >= 85 ? '#6b8a5c' : fillW >= 70 ? '#b8893a' : fillW >= 50 ? '#a87a4a' : '#a85c5c';
     return `
       <div class="sup-item">
@@ -478,7 +476,7 @@ async function loadSupervision(name) {
           <div class="sup-track">
             <div class="sup-fill" style="width:${fillW}%;background:${fillClr}"></div>
           </div>
-          <span class="sup-score">${score} / 2</span>
+          <span class="sup-score">${score} / 5</span>
         </div>
       </div>`;
   }).join('');

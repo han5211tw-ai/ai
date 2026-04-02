@@ -59,9 +59,11 @@
   font-family: 'Cormorant Garamond', serif; font-weight: 300;
   cursor: pointer; transition: all .15s;
 }
-.sc-btn.sel-0 { background: #fde8d8; border-color: #c07050; color: #7a3a10; }
-.sc-btn.sel-1 { background: #fff3cd; border-color: #a0763a; color: #664d03; }
-.sc-btn.sel-2 { background: #d4edda; border-color: #4a7c59; color: #1a4d30; }
+.sc-btn.sel-1 { background: #fde8d8; border-color: #c07050; color: #7a3a10; }
+.sc-btn.sel-2 { background: #ffe8cc; border-color: #b8863a; color: #7a5010; }
+.sc-btn.sel-3 { background: #fff3cd; border-color: #a0763a; color: #664d03; }
+.sc-btn.sel-4 { background: #e3f0d8; border-color: #6a9c5a; color: #3a6020; }
+.sc-btn.sel-5 { background: #d4edda; border-color: #4a7c59; color: #1a4d30; }
 
 /* ── 總分顯示 ── */
 .total-bar {
@@ -161,7 +163,7 @@
     <div class="total-bar">
       <div>
         <span class="total-score-val" id="totalVal">0</span>
-        <span class="total-score-max"> / 32</span>
+        <span class="total-score-max"> / 80</span>
       </div>
       <div class="total-pct" id="totalPct">0%</div>
       <div class="pct-bar-wrap">
@@ -247,7 +249,7 @@ function buildRows(fields, containerId) {
     <div class="score-row">
       <span class="score-item-label">${f.label}</span>
       <div class="score-btns">
-        ${[0,1,2].map(v =>
+        ${[1,2,3,4,5].map(v =>
           `<button class="sc-btn" data-key="${f.key}" data-val="${v}"
                   onclick="setScore('${f.key}',${v})">${v}</button>`
         ).join('')}
@@ -267,7 +269,7 @@ function setScore(key, val) {
 function updateTotal() {
   const all   = [...ENV_FIELDS, ...PERSON_FIELDS];
   const total = all.reduce((s, f) => s + (scores[f.key] ?? 0), 0);
-  const pct   = Math.round((total / 32) * 100);
+  const pct   = Math.round((total / 80) * 100);
   document.getElementById('totalVal').textContent = total;
   document.getElementById('totalPct').textContent = pct + '%';
   document.getElementById('totalPct').className =
@@ -319,7 +321,7 @@ async function submitScore() {
   btn.disabled = false;
 
   if (data.success) {
-    showMsg(`送出成功！總分 ${data.total} / 32（${data.percentage}%）`, true);
+    showMsg(`送出成功！總分 ${data.total} / 80（${data.percentage}%）`, true);
     resetForm();
     loadRecent();
   } else {
@@ -376,10 +378,10 @@ buildRows(ENV_FIELDS,    'envRows');
 buildRows(PERSON_FIELDS, 'personRows');
 
 let _currentUser = null;
-onAppReady(user => {
+function onAppReady(user) {
   _currentUser = user;
   document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
   loadRecent();
-});
+}
 </script>
 {% endblock %}

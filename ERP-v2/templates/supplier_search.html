@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+{% block title %}廠商查詢 — COSH ERP{% endblock %}
+{% block page_title %}廠商查詢{% endblock %}
+
+{% block styles %}
+<style>
+.ss-layout { display: flex; flex-direction: column; gap: 20px; max-width: 900px; }
+
+/* 搜尋列 */
+.search-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex; gap: 12px; align-items: center;
+}
+.search-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px;
+  font-size: .9rem;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+  outline: none;
+}
+.search-input:focus { border-color: #6b5f52; }
+.btn-search {
+  padding: 10px 22px;
+  background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  cursor: pointer;
+}
+
+/* 結果卡片 */
+.result-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.result-header {
+  padding: 12px 20px;
+  background: rgba(107,95,82,.04);
+  border-bottom: 1px solid rgba(107,95,82,.1);
+  font-size: .82rem;
+  color: #9a9188;
+}
+
+/* 表格 */
+.ss-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.ss-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: .75rem;
+  color: #9a9188;
+  font-weight: 400;
+  letter-spacing: .04em;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+  white-space: nowrap;
+}
+.ss-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(107,95,82,.07);
+  color: #2c2720;
+  vertical-align: top;
+}
+.ss-table tr:last-child td { border-bottom: none; }
+.ss-table tr:hover td { background: rgba(250,191,19,.04); }
+
+.supplier-id { font-size: .78rem; color: #9a9188; }
+.supplier-name { font-weight: 500; }
+.short-name { font-size: .8rem; color: #9a9188; margin-top: 2px; }
+
+.badge-status {
+  display: inline-block; padding: 2px 9px;
+  border-radius: 999px; font-size: .72rem;
+}
+.badge-status.active { background: rgba(90,154,106,.15); color: #3d7a50; }
+.badge-status.inactive { background: rgba(107,95,82,.1); color: #9a9188; }
+
+/* 詳細展開 */
+.detail-row td {
+  background: rgba(107,95,82,.025);
+  padding: 12px 20px;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 24px;
+  font-size: .82rem;
+}
+.detail-item label {
+  display: block;
+  font-size: .72rem;
+  color: #b8b0a8;
+  letter-spacing: .04em;
+  margin-bottom: 2px;
+}
+.detail-item span { color: #2c2720; }
+
+/* 空狀態 */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #b8b0a8;
+  font-size: .88rem;
+}
+
+/* 進貨紀錄 */
+.purchase-section { margin-top: 14px; }
+.purchase-section h4 {
+  font-size: .78rem; color: #9a9188; letter-spacing: .06em;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.p-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.p-table th { padding: 5px 10px; color: #9a9188; font-weight: 400; font-size: .72rem; text-align: left; border-bottom: 1px solid rgba(107,95,82,.1); }
+.p-table td { padding: 6px 10px; border-bottom: 1px solid rgba(107,95,82,.06); }
+
+/* 翻頁 */
+.pg-btn {
+  padding: 3px 9px; margin: 0 2px;
+  border: 1px solid rgba(107,95,82,.25); border-radius: 6px;
+  background: #f5f0e8; font-size: .78rem; cursor: pointer; color: #6b5f52;
+  font-family: 'Noto Serif TC', serif;
+}
+.pg-btn:hover { background: #ede9e0; }
+.pg-cur { background: #2c2720 !important; color: #f5f0e8 !important; border-color: #2c2720 !important; }
+
+/* 編輯 Modal */
+.edit-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:999; justify-content:center; align-items:center; }
+.edit-overlay.show { display:flex; }
+.edit-box { background:#fff; border-radius:14px; padding:24px 28px; width:92%; max-width:620px; max-height:85vh; overflow-y:auto; }
+.edit-box h3 { margin:0 0 16px; font-size:1rem; font-weight:400; }
+.edit-row { display:flex; gap:14px; margin-bottom:12px; flex-wrap:wrap; }
+.edit-field { flex:1; min-width:160px; display:flex; flex-direction:column; gap:4px; }
+.edit-field.full { flex:0 0 100%; }
+.edit-field label { font-size:.78rem; color:#9a9188; }
+.edit-field input, .edit-field select, .edit-field textarea {
+  padding:8px 12px; border:1px solid rgba(107,95,82,.25); border-radius:8px;
+  font-size:.88rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  color:#2c2720; background:#f5f0e8; width:100%; box-sizing:border-box;
+}
+.edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus {
+  outline:none; border-color:#FABF13; box-shadow:0 0 0 3px rgba(250,191,19,.12); background:#fff;
+}
+.edit-field textarea { resize:vertical; min-height:60px; }
+.edit-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+.btn-cancel { padding:8px 18px; border:1px solid rgba(107,95,82,.3); border-radius:8px; background:#f5f0e8; font-size:.82rem; cursor:pointer; color:#6b5f52; font-family:'Noto Serif TC',serif; }
+.btn-save { padding:8px 18px; border:none; border-radius:8px; background:#2c2720; color:#f5f0e8; font-size:.82rem; cursor:pointer; font-family:'Noto Serif TC',serif; }
+.btn-edit {
+  padding:4px 12px; border:1px solid rgba(107,95,82,.25); border-radius:6px;
+  background:#2c2720; font-size:.78rem; cursor:pointer; color:#f5f0e8;
+  font-family:'Noto Serif TC',serif;
+}
+.btn-edit:hover { background:#444; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ss-layout">
+
+  <div class="search-bar">
+    <input type="text" class="search-input" id="searchQ"
+           placeholder="搜尋廠商名稱、簡稱、聯絡人…"
+           onkeydown="if(event.key==='Enter') doSearch()"
+           oninput="onInput(this.value)">
+    <button class="btn-search" onclick="doSearch()">搜尋</button>
+  </div>
+
+  <div class="result-card" id="resultCard" style="display:none">
+    <div class="result-header" id="resultHeader"></div>
+    <table class="ss-table" id="ssTable">
+      <thead>
+        <tr>
+          <th>編號</th>
+          <th>廠商名稱</th>
+          <th>聯絡人</th>
+          <th>電話 / 手機</th>
+          <th>帳期</th>
+          <th>狀態</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ssBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- 編輯 Modal -->
+<div class="edit-overlay" id="editOverlay">
+  <div class="edit-box">
+    <h3 id="editTitle">編輯廠商資料</h3>
+    <input type="hidden" id="editSid">
+    <div class="edit-row">
+      <div class="edit-field">
+        <label>廠商全名 *</label>
+        <input type="text" id="editName">
+      </div>
+      <div class="edit-field" style="max-width:160px">
+        <label>簡稱</label>
+        <input type="text" id="editShort">
+      </div>
+    </div>
+    <div class="edit-row">
+      <div class="edit-field">
+        <label>統一編號</label>
+        <input type="text" id="editTaxId" maxlength="8">
+      </div>
+      <div class="edit-field">
+        <label>聯絡人</label>
+        <input type="text" id="editContact">
+      </div>
+      <div class="edit-field">
+        <label>狀態</label>
+        <select id="editStatus">
+          <option value="正常">正常</option>
+          <option value="停用">停用</option>
+        </select>
+      </div>
+    </div>
+    <div class="edit-row">
+      <div class="edit-field">
+        <label>電話</label>
+        <input type="tel" id="editPhone">
+      </div>
+      <div class="edit-field">
+        <label>手機</label>
+        <input type="tel" id="editMobile">
+      </div>
+      <div class="edit-field">
+        <label>Email</label>
+        <input type="email" id="editEmail">
+      </div>
+    </div>
+    <div class="edit-row">
+      <div class="edit-field full">
+        <label>地址</label>
+        <input type="text" id="editAddress">
+      </div>
+    </div>
+    <div class="edit-row">
+      <div class="edit-field">
+        <label>付款方式</label>
+        <select id="editPayment">
+          <option value="">不指定</option>
+          <option value="匯款">匯款</option>
+          <option value="支票">支票</option>
+          <option value="現金自取">現金自取</option>
+        </select>
+      </div>
+      <div class="edit-field" style="max-width:120px">
+        <label>每月結帳日</label>
+        <input type="number" id="editClosingDay" min="1" max="31" placeholder="如 25">
+      </div>
+      <div class="edit-field" style="max-width:140px">
+        <label>匯款日（每月）</label>
+        <input type="number" id="editPayDay" min="1" max="31" placeholder="預設 28">
+      </div>
+    </div>
+    <div class="edit-row">
+      <div class="edit-field">
+        <label>銀行名稱</label>
+        <input type="text" id="editBank" placeholder="如：台灣銀行">
+      </div>
+      <div class="edit-field">
+        <label>分行名稱</label>
+        <input type="text" id="editBankBranch" placeholder="如：豐原分行">
+      </div>
+      <div class="edit-field">
+        <label>銀行帳號</label>
+        <input type="text" id="editBankAcct">
+      </div>
+    </div>
+    <div class="edit-row">
+      <div class="edit-field full">
+        <label>備注</label>
+        <textarea id="editRemark"></textarea>
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn-cancel" onclick="closeEdit()">取消</button>
+      <button class="btn-save" id="saveBtn" onclick="saveEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let _inputTimer = null;
+let curPage     = 1;
+let curQ        = '';
+
+function onAppReady(user) {
+  currentUser = user;
+  doSearch(1);
+}
+
+function onInput(val) {
+  clearTimeout(_inputTimer);
+  _inputTimer = setTimeout(() => doSearch(1), 380);
+}
+
+async function doSearch(page) {
+  curPage = page || 1;
+  curQ    = document.getElementById('searchQ').value.trim();
+  const res  = await fetch(`/api/supplier/list?q=${encodeURIComponent(curQ)}&page=${curPage}`);
+  const json = await res.json();
+  const list  = json.success ? (json.data?.list  || []) : [];
+  const total = json.success ? (json.data?.total || 0)  : 0;
+  const per   = json.success ? (json.data?.per   || 50) : 50;
+
+  const card = document.getElementById('resultCard');
+  const hdr  = document.getElementById('resultHeader');
+  const body = document.getElementById('ssBody');
+
+  card.style.display = 'block';
+  const totalPages = Math.ceil(total / per);
+  hdr.innerHTML = (curQ ? `搜尋「${escHtml(curQ)}」` : '全部廠商') +
+    `，共 <strong>${total}</strong> 筆` +
+    (totalPages > 1 ? renderPager(curPage, totalPages) : '');
+
+  if (!list.length) {
+    body.innerHTML = `<tr><td colspan="7"><div class="empty-state">查無廠商資料</div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = list.map(s => {
+    const status = (s.status === '啟用' || s.status === '正常' || !s.status) ? 'active' : 'inactive';
+    const label  = s.status || '正常';
+    return `<tr id="row-${escId(s.supplier_id)}">
+      <td class="supplier-id">${escHtml(s.supplier_id)}</td>
+      <td>
+        <div class="supplier-name">${escHtml(s.supplier_name)}</div>
+        ${s.short_name ? `<div class="short-name">${escHtml(s.short_name)}</div>` : ''}
+      </td>
+      <td>${escHtml(s.contact_person || '—')}</td>
+      <td style="white-space:nowrap">
+        ${s.phone  ? escHtml(s.phone)  : ''}
+        ${s.phone && s.mobile ? '<br>' : ''}
+        ${s.mobile ? escHtml(s.mobile) : ''}
+        ${!s.phone && !s.mobile ? '—' : ''}
+      </td>
+      <td>${fmtTerms(s)}</td>
+      <td><span class="badge-status ${status}">${escHtml(label)}</span></td>
+      <td>
+        <button onclick="toggleDetail('${escId(s.supplier_id)}')"
+                style="padding:4px 12px;border:1px solid rgba(107,95,82,.25);border-radius:6px;background:#f5f0e8;font-size:.78rem;cursor:pointer;color:#6b5f52">
+          詳細
+        </button>
+      </td>
+    </tr>
+    <tr id="detail-${escId(s.supplier_id)}" class="detail-row" style="display:none">
+      <td colspan="7">
+        <div id="detail-content-${escId(s.supplier_id)}">載入中…</div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPager(cur, total) {
+  let btns = '';
+  if (cur > 1) btns += `<button onclick="doSearch(${cur-1})" class="pg-btn">‹</button>`;
+  for (let p = Math.max(1, cur-2); p <= Math.min(total, cur+2); p++) {
+    btns += `<button onclick="doSearch(${p})" class="pg-btn${p===cur?' pg-cur':''}">${p}</button>`;
+  }
+  if (cur < total) btns += `<button onclick="doSearch(${cur+1})" class="pg-btn">›</button>`;
+  return `<span style="margin-left:12px">${btns}</span>`;
+}
+
+async function toggleDetail(sid) {
+  const row     = document.getElementById(`detail-${sid}`);
+  const content = document.getElementById(`detail-content-${sid}`);
+  if (row.style.display !== 'none') {
+    row.style.display = 'none';
+    return;
+  }
+  row.style.display = '';
+
+  // 若尚未載入詳細資料
+  if (content.textContent === '載入中…') {
+    const realSid = sid.replace(/_/g, '-');
+    const res  = await fetch(`/api/supplier/detail/${encodeURIComponent(realSid)}`);
+    const json = await res.json();
+    if (!json.success) { content.innerHTML = '載入失敗'; return; }
+    const s = json.data.data;
+    const purchases = json.data.purchases || [];
+
+    content.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="btn-edit" onclick="openEdit('${escId(sid)}')">編輯廠商資料</button>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>統一編號</label><span>${escHtml(s.tax_id||'—')}</span></div>
+        <div class="detail-item"><label>帳期</label><span>${fmtTerms(s)}</span></div>
+        <div class="detail-item"><label>Email</label><span>${escHtml(s.email||'—')}</span></div>
+        <div class="detail-item"><label>地址</label><span>${escHtml(s.address||'—')}</span></div>
+        <div class="detail-item"><label>銀行</label><span>${escHtml(s.bank_name||'—')}${s.bank_branch ? ' ' + escHtml(s.bank_branch) : ''}</span></div>
+        <div class="detail-item"><label>帳號</label><span>${escHtml(s.bank_account||'—')}</span></div>
+        <div class="detail-item"><label>備注</label><span>${escHtml(s.remark||'—')}</span></div>
+        <div class="detail-item"><label>建檔時間</label><span>${escHtml((s.created_at||'').slice(0,10))}</span></div>
+      </div>
+      ${purchases.length ? `
+      <div class="purchase-section">
+        <h4>近期進貨紀錄</h4>
+        <table class="p-table">
+          <thead><tr><th>日期</th><th>品名</th><th>數量</th><th>金額</th></tr></thead>
+          <tbody>${purchases.map(p => `
+            <tr>
+              <td>${escHtml(p.date||'')}</td>
+              <td>${escHtml(p.product_name||p.product_code||'')}</td>
+              <td style="text-align:right">${p.quantity}</td>
+              <td style="text-align:right">${Number(p.amount||0).toLocaleString()}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : '<div style="margin-top:10px;font-size:.8rem;color:#b8b0a8">尚無進貨紀錄</div>'}`;
+  }
+}
+
+/* ── 編輯 ── */
+let _editCache = {};
+
+async function openEdit(sid) {
+  // sid is escaped, convert back
+  const realSid = sid.replace(/_/g, '-');
+  const res = await fetch(`/api/supplier/detail/${encodeURIComponent(realSid)}`);
+  const json = await res.json();
+  if (!json.success) { alert('載入失敗'); return; }
+  const s = json.data.data;
+  _editCache = s;
+  document.getElementById('editSid').value = s.supplier_id;
+  document.getElementById('editTitle').textContent = `編輯：${s.supplier_name}（${s.supplier_id}）`;
+  document.getElementById('editName').value    = s.supplier_name || '';
+  document.getElementById('editShort').value   = s.short_name || '';
+  document.getElementById('editTaxId').value   = s.tax_id || '';
+  document.getElementById('editContact').value = s.contact_person || '';
+  document.getElementById('editStatus').value  = s.status || '正常';
+  document.getElementById('editPhone').value   = s.phone || '';
+  document.getElementById('editMobile').value  = s.mobile || '';
+  document.getElementById('editEmail').value   = s.email || '';
+  document.getElementById('editAddress').value = s.address || '';
+  document.getElementById('editPayment').value    = s.payment_method || '';
+  document.getElementById('editClosingDay').value = s.closing_day || '';
+  document.getElementById('editPayDay').value     = s.pay_day != null ? s.pay_day : '';
+  document.getElementById('editBank').value       = s.bank_name || '';
+  document.getElementById('editBankBranch').value  = s.bank_branch || '';
+  document.getElementById('editBankAcct').value  = s.bank_account || '';
+  document.getElementById('editRemark').value  = s.remark || '';
+  document.getElementById('editOverlay').classList.add('show');
+}
+
+function closeEdit() {
+  document.getElementById('editOverlay').classList.remove('show');
+}
+
+async function saveEdit() {
+  const sid = document.getElementById('editSid').value;
+  const name = document.getElementById('editName').value.trim();
+  if (!name) { alert('廠商名稱為必填'); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = '儲存中…';
+  const payload = {
+    supplier_name:  name,
+    short_name:     document.getElementById('editShort').value.trim(),
+    tax_id:         document.getElementById('editTaxId').value.trim(),
+    contact_person: document.getElementById('editContact').value.trim(),
+    status:         document.getElementById('editStatus').value,
+    phone:          document.getElementById('editPhone').value.trim(),
+    mobile:         document.getElementById('editMobile').value.trim(),
+    email:          document.getElementById('editEmail').value.trim(),
+    address:        document.getElementById('editAddress').value.trim(),
+    payment_method: document.getElementById('editPayment').value,
+    closing_day:    document.getElementById('editClosingDay').value ? parseInt(document.getElementById('editClosingDay').value) : null,
+    pay_day:        document.getElementById('editPayDay').value !== '' ? parseInt(document.getElementById('editPayDay').value) : null,
+    bank_name:      document.getElementById('editBank').value.trim(),
+    bank_branch:    document.getElementById('editBankBranch').value.trim(),
+    bank_account:   document.getElementById('editBankAcct').value.trim(),
+    remark:         document.getElementById('editRemark').value.trim(),
+    updated_by:     currentUser ? currentUser.name : '',
+  };
+  try {
+    const res = await fetch(`/api/supplier/${encodeURIComponent(sid)}`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.success) {
+      closeEdit();
+      // 強制重新載入詳細
+      const escSid = escId(sid);
+      const content = document.getElementById(`detail-content-${escSid}`);
+      if (content) content.textContent = '載入中…';
+      const detailRow = document.getElementById(`detail-${escSid}`);
+      if (detailRow) detailRow.style.display = 'none';
+      doSearch(curPage);
+    } else {
+      alert(json.message || '更新失敗');
+    }
+  } catch(e) {
+    alert('網路錯誤：' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '儲存';
+  }
+}
+
+function fmtTerms(s) {
+  if (s.payment_method === '現金自取') return '現金自取';
+  if (s.payment_method === '匯款' && s.closing_day) {
+    const pd = s.pay_day || 28;
+    return `${s.closing_day}日結 / 每月${pd}日匯款`;
+  }
+  if (s.payment_method === '支票' && s.closing_day) {
+    return `${s.closing_day}日結 / 月底支票`;
+  }
+  if (s.closing_day) return `每月${s.closing_day}日結`;
+  if (s.payment_method) return escHtml(s.payment_method);
+  return '<span style="color:#b8b0a8">未設定</span>';
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escId(str) {
+  return String(str || '').replace(/[^a-zA-Z0-9]/g, '_');
+}
+</script>
+{% endblock %}

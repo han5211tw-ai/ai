@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}零用金管理 — COSH ERP{% endblock %}
+{% block page_title %}零用金管理{% endblock %}
+
+{% block styles %}
+<style>
+.balance-bar { display:flex; gap:1.5rem; align-items:baseline; margin-bottom:1.8rem; flex-wrap:wrap; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem 1.5rem; }
+.balance-main { font-family:'Cormorant Garamond',serif; font-size:2.4rem; font-weight:300; }
+.balance-main.low { color:#c0392b; }
+.balance-meta { font-size:.82rem; color:#888; }
+.balance-actions { margin-left:auto; display:flex; gap:.6rem; }
+.section-title { font-size:1rem; font-weight:400; margin:1.5rem 0 .8rem; border-bottom:1px solid var(--border); padding-bottom:.4rem; }
+.form-row { display:flex; gap:.8rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:1rem; }
+.form-row .field { display:flex; flex-direction:column; gap:.3rem; }
+.form-row .field label { font-size:.82rem; color:#666; }
+.form-row .field input, .form-row .field select { padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; background:#fff; }
+.form-row .field input[type="text"] { min-width:120px; }
+.log-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.log-table th, .log-table td { padding:.5rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
+.log-table th { font-weight:400; color:#888; font-size:.8rem; }
+.log-table .expense { color:#c0392b; }
+.log-table .refill { color:#27ae60; }
+.btn-sm { padding:.4rem .8rem; border:1px solid var(--border); border-radius:4px; background:var(--bg-card); cursor:pointer; font-size:.82rem; }
+.btn-sm:hover { background:#eee; }
+.btn-primary-sm { padding:.4rem .8rem; border:none; border-radius:4px; background:#2c2720; color:#fff; cursor:pointer; font-size:.82rem; }
+.btn-primary-sm:hover { background:#444; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:999; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#fff; border-radius:8px; padding:1.5rem; width:90%; max-width:400px; }
+.modal-box h3 { margin:0 0 1rem; font-size:1rem; font-weight:400; }
+.modal-box .field { margin-bottom:.8rem; }
+.modal-box .field label { display:block; font-size:.82rem; color:#666; margin-bottom:.3rem; }
+.modal-box .field input { width:100%; padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; box-sizing:border-box; }
+.modal-actions { display:flex; gap:.6rem; justify-content:flex-end; margin-top:1rem; }
+.filter-row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
+.filter-row select, .filter-row input { padding:.3rem .5rem; border:1px solid var(--border); border-radius:4px; font-size:.82rem; }
+.empty-msg { text-align:center; color:#999; padding:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 共用零用金餘額 -->
+<div class="balance-bar" id="balanceBar"></div>
+
+<!-- 支出登記表單 -->
+<div class="section-title">登記支出</div>
+<div class="form-row">
+  <div class="field">
+    <label>單位</label>
+    <select id="expDept">
+      <option value="豐原門市">豐原門市</option><option value="潭子門市">潭子門市</option><option value="大雅門市">大雅門市</option>
+      <option value="業務部">業務部</option><option value="總公司">總公司</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>金額</label>
+    <input type="number" id="expAmount" placeholder="0" min="1" step="1" style="width:90px;">
+  </div>
+  <div class="field">
+    <label>分類</label>
+    <select id="expCategory">
+      <option value="文具">文具</option><option value="餐飲">餐飲</option>
+      <option value="交通">交通</option><option value="郵資">郵資</option>
+      <option value="清潔">清潔</option><option value="維修">維修</option>
+      <option value="雜費">雜費</option><option value="其他">其他</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>發票號碼</label>
+    <input type="text" id="expInvoice" placeholder="選填" style="width:110px;">
+  </div>
+  <div class="field">
+    <label>說明</label>
+    <input type="text" id="expDesc" placeholder="簡要說明">
+  </div>
+  <button class="btn-primary-sm" onclick="submitExpense()">登記</button>
+</div>
+
+<!-- 流水記錄 -->
+<div class="section-title">
+  流水記錄
+  <span style="float:right" class="filter-row">
+    <select id="logDept" onchange="loadLogs()">
+      <option value="">全部單位</option>
+      <option value="豐原門市">豐原門市</option><option value="潭子門市">潭子門市</option><option value="大雅門市">大雅門市</option>
+      <option value="業務部">業務部</option><option value="總公司">總公司</option>
+    </select>
+    <input type="month" id="logMonth" onchange="loadLogs()">
+  </span>
+</div>
+<table class="log-table">
+  <thead><tr><th>時間</th><th>單位</th><th>類型</th><th>分類</th><th>金額</th><th>發票號碼</th><th>說明</th><th>經手人</th></tr></thead>
+  <tbody id="logBody"><tr><td colspan="8" class="empty-msg">載入中…</td></tr></tbody>
+</table>
+
+<!-- 補充 Modal -->
+<div class="modal-overlay" id="refillModal">
+  <div class="modal-box">
+    <h3>補充零用金</h3>
+    <div class="field"><label>補充金額</label><input type="number" id="refillAmount" min="1" step="1"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeRefill()">取消</button>
+      <button class="btn-primary-sm" onclick="submitRefill()">確認補充</button>
+    </div>
+  </div>
+</div>
+
+<!-- 設定初始金額 Modal -->
+<div class="modal-overlay" id="initModal">
+  <div class="modal-box">
+    <h3>設定每月初始金額</h3>
+    <div class="field"><label>初始金額</label><input type="number" id="initAmount" min="0" step="1"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeInit()">取消</button>
+      <button class="btn-primary-sm" onclick="submitInit()">確認設定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+
+function onAppReady(user) {
+  currentUser = user;
+  loadBalance();
+  loadLogs();
+  document.getElementById('logMonth').value = new Date().toISOString().slice(0,7);
+
+  // 根據登入者的 department/store 預設單位
+  const deptMap = {
+    '豐原': '豐原門市', '潭子': '潭子門市', '大雅': '大雅門市',
+    '業務部': '業務部', '總公司': '總公司'
+  };
+  // 嘗試從 user 資訊判斷預設單位
+  const sel = document.getElementById('expDept');
+  if (user.department === '門市部' && user.store) {
+    for (const [key, val] of Object.entries(deptMap)) {
+      if (user.store.includes(key)) { sel.value = val; break; }
+    }
+  } else if (deptMap[user.department]) {
+    sel.value = deptMap[user.department];
+  }
+}
+
+async function loadBalance() {
+  const res = await fetch('/api/finance/petty-cash');
+  const j = await res.json();
+  if (!j.success || !j.data.length) return;
+  const pc = j.data[0]; // 共用帳戶
+  const low = pc.balance < 5000 ? ' low' : '';
+  const refillTime = pc.last_refill_at ? pc.last_refill_at.slice(0,16).replace('T',' ') : '尚未補充';
+  const isBossOrAcc = currentUser && ['老闆','會計'].includes(currentUser.title);
+  document.getElementById('balanceBar').innerHTML = `
+    <div>
+      <div style="font-size:.82rem;color:#888;">零用金餘額</div>
+      <div class="balance-main${low}">$${Math.round(pc.balance).toLocaleString()}</div>
+    </div>
+    <div class="balance-meta">每月額度 $${Math.round(pc.initial_amount).toLocaleString()} ｜ 最後補充 ${refillTime}</div>
+    ${isBossOrAcc ? `<div class="balance-actions">
+      <button class="btn-sm" onclick="openRefill()">補充</button>
+      <button class="btn-sm" onclick="openInit(${pc.initial_amount})">設定額度</button>
+    </div>` : ''}
+  `;
+}
+
+async function loadLogs() {
+  const dept = document.getElementById('logDept').value;
+  const month = document.getElementById('logMonth').value;
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  // department filter done client-side since API filters by store_name
+  const res = await fetch('/api/finance/petty-cash/log?' + params);
+  const j = await res.json();
+  const body = document.getElementById('logBody');
+  if (!j.success || !j.data.length) { body.innerHTML = '<tr><td colspan="8" class="empty-msg">尚無記錄</td></tr>'; return; }
+  const filtered = dept ? j.data.filter(r => r.department === dept) : j.data;
+  if (!filtered.length) { body.innerHTML = '<tr><td colspan="8" class="empty-msg">尚無記錄</td></tr>'; return; }
+  body.innerHTML = filtered.map(r => `<tr>
+    <td>${(r.created_at||'').slice(0,16)}</td>
+    <td>${r.department||''}</td>
+    <td class="${r.log_type}">${r.log_type==='expense'?'支出':'補充'}</td>
+    <td>${r.category||''}</td>
+    <td class="${r.log_type}">$${Math.round(r.amount).toLocaleString()}</td>
+    <td>${r.invoice_no||''}</td>
+    <td>${r.description||''}</td>
+    <td>${r.handler}</td>
+  </tr>`).join('');
+}
+
+async function submitExpense() {
+  const dept = document.getElementById('expDept').value;
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  const category = document.getElementById('expCategory').value;
+  const invoice = document.getElementById('expInvoice').value.trim();
+  const desc = document.getElementById('expDesc').value.trim();
+  if (!amount) { alert('請填入金額'); return; }
+  const res = await fetch('/api/finance/petty-cash/log', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ amount, category, description: desc, handler: currentUser.name, department: dept, invoice_no: invoice })
+  });
+  const j = await res.json();
+  if (!j.success) { alert(j.message); return; }
+  document.getElementById('expAmount').value = '';
+  document.getElementById('expInvoice').value = '';
+  document.getElementById('expDesc').value = '';
+  loadBalance(); loadLogs();
+}
+
+function openRefill() { document.getElementById('refillAmount').value = ''; document.getElementById('refillModal').classList.add('show'); }
+function closeRefill() { document.getElementById('refillModal').classList.remove('show'); }
+async function submitRefill() {
+  const amount = parseFloat(document.getElementById('refillAmount').value);
+  if (!amount || amount <= 0) { alert('請輸入補充金額'); return; }
+  const res = await fetch('/api/finance/petty-cash/refill', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ amount, handler: currentUser.name })
+  });
+  const j = await res.json();
+  if (!j.success) { alert(j.message); return; }
+  closeRefill(); loadBalance(); loadLogs();
+}
+
+function openInit(current) { document.getElementById('initAmount').value = current; document.getElementById('initModal').classList.add('show'); }
+function closeInit() { document.getElementById('initModal').classList.remove('show'); }
+async function submitInit() {
+  const amount = parseFloat(document.getElementById('initAmount').value);
+  if (isNaN(amount) || amount < 0) { alert('請輸入有效金額'); return; }
+  const res = await fetch('/api/finance/petty-cash/init', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ amount })
+  });
+  const j = await res.json();
+  if (!j.success) { alert(j.message); return; }
+  closeInit(); loadBalance();
+}
+</script>
+{% endblock %}

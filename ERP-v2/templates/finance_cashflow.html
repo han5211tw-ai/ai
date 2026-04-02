@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}現金流預測 — COSH ERP{% endblock %}
+{% block page_title %}現金流預測{% endblock %}
+
+{% block styles %}
+<style>
+.info-bar { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1rem 1.2rem; margin-bottom:1.5rem; font-size:.88rem; color:#666; }
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:2rem; }
+.kpi-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem; }
+.kpi-label { font-size:.8rem; color:#888; }
+.kpi-value { font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:300; margin-top:.2rem; }
+.section-title { font-size:1rem; font-weight:400; margin:1.5rem 0 .8rem; border-bottom:1px solid var(--border); padding-bottom:.4rem; }
+.data-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.data-table th, .data-table td { padding:.55rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
+.data-table th { font-weight:400; color:#888; font-size:.8rem; }
+.income { color:#27ae60; }
+.expense { color:#c0392b; }
+.chart-area { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin-bottom:1.5rem; min-height:100px; }
+.empty-msg { text-align:center; color:#999; padding:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="info-bar" id="periodInfo"></div>
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div class="section-title">預計收入（應收帳款到期）</div>
+<table class="data-table">
+  <thead><tr><th>到期日</th><th>金額</th></tr></thead>
+  <tbody id="incomeBody"><tr><td colspan="2" class="empty-msg">載入中…</td></tr></tbody>
+</table>
+
+<div class="section-title">預計支出（應付帳款到期）</div>
+<table class="data-table">
+  <thead><tr><th>到期日</th><th>金額</th></tr></thead>
+  <tbody id="expenseBody"><tr><td colspan="2" class="empty-msg">載入中…</td></tr></tbody>
+</table>
+
+<div class="section-title">現金流走勢（未來 30 天）</div>
+<div class="chart-area" id="flowChart"></div>
+
+<script>
+function onAppReady(user) {
+  if (!['老闆','會計'].includes(user.title)) { window.location.href = '/'; return; }
+  loadCashflow();
+}
+
+async function loadCashflow() {
+  const res = await fetch('/api/finance/cashflow');
+  const j = await res.json();
+  if (!j.success) return;
+  const d = j.data;
+  const fmt = v => '$' + Math.round(v).toLocaleString();
+
+  document.getElementById('periodInfo').textContent = `預測期間：${d.period.from} 至 ${d.period.to}（未來 30 天）`;
+
+  const totalIncome = d.expected_income.reduce((s,r) => s + r.total, 0);
+  const totalExpense = d.expected_expense.reduce((s,r) => s + r.total, 0);
+
+  document.getElementById('kpiGrid').innerHTML = [
+    { label: '預計收入（應收到期）', value: fmt(totalIncome), color: '#27ae60' },
+    { label: '預計支出（應付到期）', value: fmt(totalExpense), color: '#c0392b' },
+    { label: '預計淨現金流', value: fmt(totalIncome - totalExpense), color: totalIncome - totalExpense >= 0 ? '#27ae60' : '#c0392b' },
+    { label: '日均銷售收入', value: fmt(d.avg_daily_income) },
+    { label: '日均雜項支出', value: fmt(d.avg_daily_expense) },
+  ].map(k => `<div class="kpi-card">
+    <div class="kpi-label">${k.label}</div>
+    <div class="kpi-value" style="${k.color ? 'color:'+k.color : ''}">${k.value}</div>
+  </div>`).join('');
+
+  document.getElementById('incomeBody').innerHTML = d.expected_income.length
+    ? d.expected_income.map(r => `<tr><td>${r.due_date}</td><td class="income">${fmt(r.total)}</td></tr>`).join('')
+    : '<tr><td colspan="2" class="empty-msg">無預計收入</td></tr>';
+
+  document.getElementById('expenseBody').innerHTML = d.expected_expense.length
+    ? d.expected_expense.map(r => `<tr><td>${r.due_date}</td><td class="expense">${fmt(r.total)}</td></tr>`).join('')
+    : '<tr><td colspan="2" class="empty-msg">無預計支出</td></tr>';
+
+  // Simple cumulative flow chart
+  const days = [];
+  const start = new Date(d.period.from);
+  for (let i = 0; i <= 30; i++) {
+    const dt = new Date(start); dt.setDate(dt.getDate() + i);
+    days.push(dt.toISOString().slice(0,10));
+  }
+
+  const incomeMap = {}, expenseMap = {};
+  d.expected_income.forEach(r => { incomeMap[r.due_date] = (incomeMap[r.due_date]||0) + r.total; });
+  d.expected_expense.forEach(r => { expenseMap[r.due_date] = (expenseMap[r.due_date]||0) + r.total; });
+
+  let cum = 0;
+  const cumData = days.map(day => {
+    cum += (incomeMap[day]||0) - (expenseMap[day]||0) + d.avg_daily_income - d.avg_daily_expense;
+    return { day, cum };
+  });
+
+  const minC = Math.min(...cumData.map(c => c.cum));
+  const maxC = Math.max(...cumData.map(c => c.cum));
+  const range = maxC - minC || 1;
+  const chartH = 120;
+
+  document.getElementById('flowChart').innerHTML = `
+    <svg width="100%" height="${chartH + 30}" viewBox="0 0 ${days.length * 20} ${chartH + 30}" preserveAspectRatio="none">
+      <polyline fill="none" stroke="#2c2720" stroke-width="1.5"
+        points="${cumData.map((c,i) => `${i*20+10},${chartH - ((c.cum - minC)/range)*chartH + 5}`).join(' ')}"/>
+      ${cumData.filter((_,i) => i % 7 === 0).map((c,idx) => {
+        const i = idx * 7;
+        return `<text x="${i*20+10}" y="${chartH+25}" font-size="8" fill="#888" text-anchor="middle">${c.day.slice(5)}</text>`;
+      }).join('')}
+    </svg>
+    <div style="font-size:.78rem;color:#888;text-align:center;">累積現金流走勢（含日均收支推估）</div>
+  `;
+}
+</script>
+{% endblock %}

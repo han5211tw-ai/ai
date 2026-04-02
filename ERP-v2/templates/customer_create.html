@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+{% block title %}客戶建檔 — COSH ERP{% endblock %}
+{% block page_title %}客戶建檔{% endblock %}
+
+{% block styles %}
+<style>
+.cc-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 860px;
+}
+
+.cc-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,0.15);
+  border-radius: 14px;
+  padding: 24px 28px;
+}
+.cc-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  letter-spacing: .12em;
+  color: #9a9188;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(107,95,82,0.12);
+}
+
+.cc-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.cc-field {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cc-field.full { flex: 0 0 100%; }
+.cc-field label {
+  font-size: .85rem;
+  color: #9a9188;
+  letter-spacing: .04em;
+}
+.cc-field label span.req { color: #c0392b; margin-left: 2px; }
+
+.cc-field input,
+.cc-field select {
+  padding: 10px 14px;
+  border: 1px solid rgba(107,95,82,0.25);
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color .2s, box-shadow .2s;
+}
+.cc-field input:focus,
+.cc-field select:focus {
+  outline: none;
+  border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12);
+  background: #fff;
+}
+.cc-field input[readonly] {
+  background: #ede9e0;
+  color: #6b5f52;
+}
+
+/* ID 預覽區 */
+.id-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.id-preview input { flex: 1; }
+.id-badge {
+  font-size: .78rem;
+  color: #9a9188;
+  white-space: nowrap;
+  padding: 6px 10px;
+  background: rgba(107,95,82,.06);
+  border-radius: 8px;
+}
+
+/* 同公司地址 checkbox */
+.same-addr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .85rem;
+  color: #9a9188;
+  cursor: pointer;
+  margin-top: 2px;
+}
+.same-addr input[type=checkbox] {
+  width: auto;
+  accent-color: #FABF13;
+  cursor: pointer;
+}
+
+/* 送出按鈕 */
+.btn-submit {
+  padding: 10px 26px;
+  background: #2c2720;
+  color: #f5f0e8;
+  border: none;
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.btn-submit:disabled { opacity: .5; cursor: default; }
+
+/* 搜尋區（查重複） */
+.search-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  max-width: 480px;
+}
+.search-bar input {
+  flex: 1;
+  padding: 9px 14px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px;
+  font-size: .9rem;
+  background: #f5f0e8;
+  font-family: 'Noto Serif TC', serif;
+  outline: none;
+}
+.search-bar input:focus { border-color: #6b5f52; }
+.btn-search {
+  padding: 9px 18px;
+  background: #f5f0e8;
+  border: 1px solid rgba(107,95,82,.3);
+  border-radius: 10px;
+  font-size: .85rem;
+  cursor: pointer;
+  color: #6b5f52;
+  font-family: 'Noto Serif TC', serif;
+  white-space: nowrap;
+}
+.btn-search:hover { background: #ede9e0; }
+
+.dup-result {
+  margin-top: 10px;
+  font-size: .85rem;
+  color: #9a9188;
+}
+.dup-row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #fffbf5;
+  border: 1px solid rgba(107,95,82,.12);
+  border-radius: 8px;
+  margin-top: 6px;
+  align-items: center;
+}
+.dup-row .dup-id { color: #6b5f52; font-size: .82rem; white-space: nowrap; }
+.dup-row .dup-name { flex: 1; font-weight: 500; }
+.dup-row .dup-mobile { color: #9a9188; font-size: .82rem; }
+
+/* toast */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: .88rem;
+  color: #fff;
+  opacity: 0;
+  transition: opacity .3s;
+  z-index: 999;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.ok   { background: #2e7d46; }
+.toast.err  { background: #b94040; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-layout">
+
+  <!-- 查重複 -->
+  <div class="cc-card">
+    <div class="cc-card-title">查詢是否已建檔</div>
+    <div class="search-bar">
+      <input type="text" id="dupQ" placeholder="輸入姓名、手機或電話查詢…" oninput="onDupInput(this.value)">
+      <button class="btn-search" onclick="searchDup()">查詢</button>
+    </div>
+    <div class="dup-result" id="dupResult"></div>
+  </div>
+
+  <!-- 建檔表單 -->
+  <div class="cc-card">
+    <div class="cc-card-title">新客戶建檔</div>
+
+    <!-- 所屬單位 + 客戶編號 -->
+    <div class="cc-row">
+      <div class="cc-field" style="max-width:180px">
+        <label>所屬單位 <span class="req">*</span></label>
+        <select id="storePfx" onchange="fetchNextId()">
+          <option value="FY">豐原門市</option>
+          <option value="TZ">潭子門市</option>
+          <option value="DY">大雅門市</option>
+          <option value="OW">業務部</option>
+        </select>
+      </div>
+      <div class="cc-field" style="max-width:220px">
+        <label>客戶編號（自動產生）</label>
+        <div class="id-preview">
+          <input type="text" id="custId" readonly placeholder="選擇單位後自動產生">
+        </div>
+      </div>
+    </div>
+
+    <!-- 名稱 -->
+    <div class="cc-row">
+      <div class="cc-field">
+        <label>客戶姓名 / 公司名稱 <span class="req">*</span></label>
+        <input type="text" id="shortName" placeholder="必填">
+      </div>
+      <div class="cc-field">
+        <label>聯絡人</label>
+        <input type="text" id="contact" placeholder="公司客戶填聯絡人">
+      </div>
+    </div>
+
+    <!-- 聯絡方式 -->
+    <div class="cc-row">
+      <div class="cc-field">
+        <label>手機 <span class="req">*</span></label>
+        <input type="tel" id="mobile" placeholder="09xx-xxxxxx">
+      </div>
+      <div class="cc-field">
+        <label>市話</label>
+        <input type="tel" id="phone1" placeholder="04-xxxxxxxx">
+      </div>
+      <div class="cc-field">
+        <label>統一編號</label>
+        <input type="text" id="taxId" placeholder="公司客戶填寫">
+      </div>
+    </div>
+
+    <!-- 地址 -->
+    <div class="cc-row">
+      <div class="cc-field full">
+        <label>公司／通訊地址</label>
+        <input type="text" id="compAddr" placeholder="縣市 + 地址" oninput="onCompAddrChange()">
+      </div>
+    </div>
+    <div class="cc-row">
+      <div class="cc-field full">
+        <label>
+          送貨地址
+          <label class="same-addr" style="display:inline-flex;margin-left:12px">
+            <input type="checkbox" id="sameAddr" onchange="onSameAddr()"> 同公司地址
+          </label>
+        </label>
+        <input type="text" id="delivAddr" placeholder="若與公司地址相同請勾選">
+      </div>
+    </div>
+
+    <!-- 付款方式 -->
+    <div class="cc-row">
+      <div class="cc-field" style="max-width:200px">
+        <label>付款方式</label>
+        <select id="payType">
+          <option value="">不指定</option>
+          <option value="C">現金</option>
+          <option value="M">月結</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn-submit" id="submitBtn" onclick="submitForm()">建檔送出</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let dupTimer    = null;
+
+function onAppReady(user) {
+  currentUser = user;
+  // 依登入人員所屬單位預設選取
+  const dept = user.department || '';
+  const pfxMap = { '豐原': 'FY', '潭子': 'TZ', '大雅': 'DY', '業務': 'OW' };
+  const sel = document.getElementById('storePfx');
+  for (const [key, val] of Object.entries(pfxMap)) {
+    if (dept.includes(key)) { sel.value = val; break; }
+  }
+  fetchNextId();
+}
+
+// ────────────────────────────────────
+// 自動產生客戶編號
+// ────────────────────────────────────
+async function fetchNextId() {
+  const pfx = document.getElementById('storePfx').value;
+  try {
+    const res  = await fetch(`/api/customer/next-id?prefix=${pfx}`);
+    const json = await res.json();
+    if (json.success) {
+      document.getElementById('custId').value = json.data.next_id;
+    }
+  } catch(e) {
+    document.getElementById('custId').value = '';
+  }
+}
+
+// ────────────────────────────────────
+// 同公司地址
+// ────────────────────────────────────
+function onCompAddrChange() {
+  if (document.getElementById('sameAddr').checked) {
+    document.getElementById('delivAddr').value =
+      document.getElementById('compAddr').value;
+  }
+}
+function onSameAddr() {
+  if (document.getElementById('sameAddr').checked) {
+    document.getElementById('delivAddr').value =
+      document.getElementById('compAddr').value;
+    document.getElementById('delivAddr').readOnly = true;
+  } else {
+    document.getElementById('delivAddr').readOnly = false;
+  }
+}
+
+// ────────────────────────────────────
+// 查重複
+// ────────────────────────────────────
+let _dupTimer = null;
+function onDupInput(val) {
+  clearTimeout(_dupTimer);
+  if (val.trim().length < 2) { document.getElementById('dupResult').innerHTML = ''; return; }
+  _dupTimer = setTimeout(() => searchDup(), 400);
+}
+
+async function searchDup() {
+  const q = document.getElementById('dupQ').value.trim();
+  if (!q) return;
+  const res  = await fetch(`/api/customer/search?q=${encodeURIComponent(q)}`);
+  const json = await res.json();
+  const box  = document.getElementById('dupResult');
+  const list = json.customers || [];
+  if (!list.length) {
+    box.innerHTML = '<span style="color:#5a9a6a">查無相同客戶，可放心建檔</span>';
+    return;
+  }
+  box.innerHTML = `<div style="color:#b94040;margin-bottom:4px">找到 ${list.length} 筆相似資料：</div>` +
+    list.slice(0, 5).map(c => `
+      <div class="dup-row">
+        <span class="dup-id">${escHtml(c.customer_id)}</span>
+        <span class="dup-name">${escHtml(c.short_name)}</span>
+        <span class="dup-mobile">${escHtml(c.mobile || c.phone1 || '')}</span>
+        <span style="font-size:.78rem;color:#9a9188">${escHtml(c.company_address || '')}</span>
+      </div>`).join('');
+}
+
+// ────────────────────────────────────
+// 送出建檔
+// ────────────────────────────────────
+async function submitForm() {
+  const custId   = document.getElementById('custId').value.trim();
+  const shortName = document.getElementById('shortName').value.trim();
+  const mobile   = document.getElementById('mobile').value.trim();
+  if (!custId)    { toast('無法取得客戶編號，請重選分店', 'err'); return; }
+  if (!shortName) { toast('請填寫客戶姓名', 'err'); return; }
+  if (!mobile)    { toast('請填寫手機號碼', 'err'); return; }
+  if (!/^09\d{8}$/.test(mobile.replace(/[-\s]/g, ''))) { toast('手機格式不正確（應為09開頭共10碼）', 'err'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '建檔中…';
+
+  const payload = {
+    customer_id:      custId,
+    short_name:       shortName,
+    contact:          document.getElementById('contact').value.trim(),
+    mobile:           document.getElementById('mobile').value.trim(),
+    phone1:           document.getElementById('phone1').value.trim(),
+    tax_id:           document.getElementById('taxId').value.trim(),
+    company_address:  document.getElementById('compAddr').value.trim(),
+    delivery_address: document.getElementById('delivAddr').value.trim(),
+    payment_type:     document.getElementById('payType').value,
+    created_by:       currentUser ? currentUser.name : '',
+  };
+
+  try {
+    const res  = await fetch('/api/customer/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast(json.data.message || '建檔成功', 'ok');
+      resetForm();
+      fetchNextId();
+    } else {
+      toast(json.message || '建檔失敗', 'err');
+    }
+  } catch(e) {
+    toast('網路錯誤：' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '建檔送出';
+  }
+}
+
+function resetForm() {
+  ['shortName','contact','mobile','phone1','taxId','compAddr','delivAddr'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('sameAddr').checked = false;
+  document.getElementById('delivAddr').readOnly = false;
+  document.getElementById('payType').value = '';
+}
+
+// ────────────────────────────────────
+// 工具
+// ────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _toastTimer = null;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = 'toast'; }, 3200);
+}
+</script>
+{% endblock %}

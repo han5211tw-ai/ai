@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}收支日記帳 — COSH ERP{% endblock %}
+{% block page_title %}收支日記帳{% endblock %}
+
+{% block styles %}
+<style>
+.controls { display:flex; gap:.8rem; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; }
+.controls select, .controls input { padding:.4rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.88rem; }
+.btn-sm { padding:.4rem .8rem; border:1px solid var(--border); border-radius:4px; background:var(--bg-card); cursor:pointer; font-size:.82rem; }
+.btn-primary-sm { padding:.4rem .8rem; border:none; border-radius:4px; background:#2c2720; color:#fff; cursor:pointer; font-size:.82rem; }
+.btn-primary-sm:hover { background:#444; }
+.data-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.data-table th, .data-table td { padding:.55rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
+.data-table th { font-weight:400; color:#888; font-size:.8rem; }
+.type-income { color:#27ae60; }
+.type-expense { color:#c0392b; }
+.summary-bar { display:flex; gap:1.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+.summary-item { font-size:.88rem; }
+.summary-item span { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:300; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:999; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#fff; border-radius:8px; padding:1.5rem; width:90%; max-width:420px; }
+.modal-box h3 { margin:0 0 1rem; font-size:1rem; font-weight:400; }
+.modal-box .field { margin-bottom:.8rem; }
+.modal-box .field label { display:block; font-size:.82rem; color:#666; margin-bottom:.3rem; }
+.modal-box .field input, .modal-box .field select { width:100%; padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; box-sizing:border-box; }
+.modal-actions { display:flex; gap:.6rem; justify-content:flex-end; margin-top:1rem; }
+.empty-msg { text-align:center; color:#999; padding:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="controls">
+  <select id="filterStore" onchange="loadData()">
+    <option value="">全部門市</option>
+    <option value="豐原門市">豐原門市</option><option value="大雅門市">大雅門市</option><option value="潭子門市">潭子門市</option>
+  </select>
+  <select id="filterType" onchange="loadData()">
+    <option value="">全部類型</option><option value="income">收入</option><option value="expense">支出</option>
+  </select>
+  <input type="month" id="filterMonth" onchange="loadData()">
+  <button class="btn-primary-sm" onclick="openAdd()">+ 新增記錄</button>
+</div>
+
+<div class="summary-bar" id="summaryBar"></div>
+
+<table class="data-table">
+  <thead><tr><th>日期</th><th>門市</th><th>類型</th><th>分類</th><th>金額</th><th>說明</th><th>經手人</th></tr></thead>
+  <tbody id="dataBody"><tr><td colspan="7" class="empty-msg">載入中…</td></tr></tbody>
+</table>
+
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <h3>新增收支記錄</h3>
+    <div class="field"><label>日期 *</label><input type="date" id="addDate"></div>
+    <div class="field"><label>門市</label>
+      <select id="addStore"><option value="">（不指定）</option>
+        <option value="豐原門市">豐原門市</option><option value="大雅門市">大雅門市</option><option value="潭子門市">潭子門市</option>
+      </select>
+    </div>
+    <div class="field"><label>類型 *</label>
+      <select id="addType"><option value="expense">支出</option><option value="income">收入</option></select>
+    </div>
+    <div class="field"><label>分類</label>
+      <select id="addCategory">
+        <option value="辦公用品">辦公用品</option><option value="水電費">水電費</option><option value="租金">租金</option>
+        <option value="維修費">維修費</option><option value="廣告費">廣告費</option><option value="交通費">交通費</option>
+        <option value="餐飲費">餐飲費</option><option value="其他收入">其他收入</option><option value="利息收入">利息收入</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+    <div class="field"><label>金額 *</label><input type="number" id="addAmount" min="1"></div>
+    <div class="field"><label>說明</label><input id="addDesc"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeAdd()">取消</button>
+      <button class="btn-primary-sm" onclick="submitAdd()">新增</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+function onAppReady(user) {
+  currentUser = user;
+  if (!['老闆','會計'].includes(user.title)) { window.location.href = '/'; return; }
+  document.getElementById('filterMonth').value = new Date().toISOString().slice(0,7);
+  document.getElementById('addDate').value = new Date().toISOString().slice(0,10);
+  loadData();
+}
+
+async function loadData() {
+  const store = document.getElementById('filterStore').value;
+  const type = document.getElementById('filterType').value;
+  const month = document.getElementById('filterMonth').value;
+  const params = new URLSearchParams();
+  if (store) params.set('store', store);
+  if (type) params.set('type', type);
+  if (month) params.set('month', month);
+  const res = await fetch('/api/finance/transactions?' + params);
+  const j = await res.json();
+  const body = document.getElementById('dataBody');
+  if (!j.success || !j.data.length) { body.innerHTML = '<tr><td colspan="7" class="empty-msg">尚無資料</td></tr>'; document.getElementById('summaryBar').innerHTML=''; return; }
+
+  let totalIncome = 0, totalExpense = 0;
+  j.data.forEach(r => { if (r.type === 'income') totalIncome += r.amount; else totalExpense += r.amount; });
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="summary-item">收入 <span style="color:#27ae60">$${Math.round(totalIncome).toLocaleString()}</span></div>
+    <div class="summary-item">支出 <span style="color:#c0392b">$${Math.round(totalExpense).toLocaleString()}</span></div>
+    <div class="summary-item">淨額 <span style="color:${totalIncome-totalExpense>=0?'#27ae60':'#c0392b'}">$${Math.round(totalIncome-totalExpense).toLocaleString()}</span></div>
+  `;
+
+  body.innerHTML = j.data.map(r => `<tr>
+    <td>${r.date}</td>
+    <td>${r.store_name||''}</td>
+    <td class="type-${r.type}">${r.type==='income'?'收入':'支出'}</td>
+    <td>${r.category||''}</td>
+    <td class="type-${r.type}">$${Math.round(r.amount).toLocaleString()}</td>
+    <td>${r.description||''}</td>
+    <td>${r.handler||''}</td>
+  </tr>`).join('');
+}
+
+function openAdd() { document.getElementById('addModal').classList.add('show'); }
+function closeAdd() { document.getElementById('addModal').classList.remove('show'); }
+async function submitAdd() {
+  const data = {
+    date: document.getElementById('addDate').value,
+    store_name: document.getElementById('addStore').value,
+    type: document.getElementById('addType').value,
+    category: document.getElementById('addCategory').value,
+    amount: parseFloat(document.getElementById('addAmount').value),
+    description: document.getElementById('addDesc').value.trim(),
+    handler: currentUser.name,
+  };
+  if (!data.date || !data.amount) { alert('日期和金額為必填'); return; }
+  const res = await fetch('/api/finance/transactions', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+  });
+  const j = await res.json();
+  if (!j.success) { alert(j.message); return; }
+  closeAdd(); loadData();
+  document.getElementById('addAmount').value = '';
+  document.getElementById('addDesc').value = '';
+}
+</script>
+{% endblock %}

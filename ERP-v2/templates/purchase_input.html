@@ -152,6 +152,54 @@
   font-size: .72rem; background: #eee9e0; color: #6b5f52;
   font-family: monospace; letter-spacing: .02em;
 }
+.edit-row-btn {
+  padding: 3px 9px; border: 1px solid rgba(107,95,82,.3);
+  border-radius: 5px; background: none; font-size: .72rem; color: #6b5f52; cursor: pointer;
+}
+.edit-row-btn:hover { background: rgba(107,95,82,.07); }
+/* 修改 Modal */
+.edit-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(44,39,32,.45); z-index: 3000;
+  align-items: center; justify-content: center;
+}
+.edit-modal-overlay.open { display: flex; }
+.edit-modal {
+  background: #fff; border-radius: 16px; padding: 28px 30px;
+  width: min(500px, 95vw); box-shadow: 0 8px 40px rgba(0,0,0,.18);
+}
+.edit-modal-title {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem;
+  font-weight: 300; color: #2c2720; letter-spacing: .06em;
+  margin-bottom: 20px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(107,95,82,.12);
+}
+.edit-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.edit-form-grid .full { grid-column: 1 / -1; }
+.edit-field label {
+  display: block; font-size: .72rem; color: #9a9188;
+  letter-spacing: .06em; margin-bottom: 4px;
+}
+.edit-field input {
+  width: 100%; padding: 8px 10px; border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px; font-size: .86rem; font-family: 'Noto Serif TC', serif;
+  color: #2c2720; background: #f5f0e8; box-sizing: border-box;
+}
+.edit-field input:focus { outline: none; border-color: #FABF13; background: #fff; }
+.edit-modal-footer {
+  display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
+  padding-top: 14px; border-top: 1px solid rgba(107,95,82,.1);
+}
+.edit-cancel-btn {
+  padding: 8px 18px; border: 1px solid rgba(107,95,82,.3);
+  border-radius: 8px; background: none; font-size: .83rem; color: #6b5f52; cursor: pointer;
+}
+.edit-save-btn {
+  padding: 8px 20px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px; font-size: .83rem;
+  font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.edit-save-btn:hover { opacity: .85; }
 </style>
 {% endblock %}
 
@@ -174,14 +222,23 @@
         </div>
 
         <div>
+          <div class="field-label required">進貨公司</div>
+          <select class="f-select" id="fCompany">
+            <option value="電瑙舖資訊有限公司">電瑙舖資訊有限公司（27488187）</option>
+            <option value="鋒鑫資訊有限公司">鋒鑫資訊有限公司（90284112）</option>
+          </select>
+        </div>
+
+        <div>
           <div class="field-label required">單號</div>
           <input class="f-input f-readonly" type="text" id="fOrderNo" readonly placeholder="選日期後自動產生">
         </div>
 
         <div>
           <div class="field-label required">供應商</div>
-          <input class="f-input" type="text" id="fSupplier" list="supplierList" placeholder="輸入或選擇供應商" autocomplete="off">
-          <datalist id="supplierList"></datalist>
+          <select class="f-select" id="fSupplier">
+            <option value="">請選擇供應商</option>
+          </select>
         </div>
 
         <div>
@@ -193,10 +250,11 @@
           <div class="field-label">入庫倉庫</div>
           <select class="f-select" id="fWarehouse">
             <option value="">請選擇（選填）</option>
-            <option value="台中總倉">台中總倉</option>
+            <option value="總公司倉庫">總公司倉庫</option>
+            <option value="豐原門市">豐原門市</option>
             <option value="潭子門市">潭子門市</option>
-            <option value="台中門市">台中門市</option>
-            <option value="台北門市">台北門市</option>
+            <option value="大雅門市">大雅門市</option>
+            <option value="業務部">業務部</option>
           </select>
         </div>
 
@@ -223,8 +281,15 @@
       </div>
 
       <div class="total-bar">
-        <span class="total-label">總金額</span>
+        <span class="total-label">未稅金額</span>
         <span class="total-amount" id="totalAmount">0</span>
+        <span class="total-label">元</span>
+      </div>
+      <div class="total-bar" id="taxRow" style="display:none; margin-top:4px;">
+        <span class="total-label">稅額 (5%)</span>
+        <span class="total-amount" id="taxAmount" style="font-size:.88rem; color:#9a9188;">0</span>
+        <span class="total-label" style="margin-left:16px">含稅金額</span>
+        <span class="total-amount" id="totalWithTax">0</span>
         <span class="total-label">元</span>
       </div>
 
@@ -250,6 +315,7 @@
           <tr>
             <th>日期</th>
             <th>單號</th>
+            <th>進貨公司</th>
             <th>供應商</th>
             <th style="text-align:left">產品名稱</th>
             <th style="text-align:right">數量</th>
@@ -258,7 +324,7 @@
           </tr>
         </thead>
         <tbody id="listBody">
-          <tr><td colspan="7" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
         </tbody>
       </table>
     </div>
@@ -270,12 +336,74 @@
   </div>
 
 </div>
+
+<!-- 修改進貨紀錄 Modal -->
+<div class="edit-modal-overlay" id="purchEditOverlay">
+  <div class="edit-modal">
+    <div class="edit-modal-title">修改進貨紀錄</div>
+    <input type="hidden" id="editPurchId">
+    <div class="edit-form-grid">
+      <div class="edit-field full">
+        <label>品號</label>
+        <input type="text" id="editPurchCode">
+      </div>
+      <div class="edit-field full">
+        <label>品名</label>
+        <input type="text" id="editPurchName">
+      </div>
+      <div class="edit-field">
+        <label>數量</label>
+        <input type="number" id="editPurchQty">
+      </div>
+      <div class="edit-field">
+        <label>單價</label>
+        <input type="number" id="editPurchPrice">
+      </div>
+      <div class="edit-field full">
+        <label>金額</label>
+        <input type="number" id="editPurchAmount">
+      </div>
+      <div class="edit-field full">
+        <label>廠商</label>
+        <input type="text" id="editPurchSupplier">
+      </div>
+      <div class="edit-field full">
+        <label>進貨公司</label>
+        <select id="editPurchCompany" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.86rem;font-family:'Noto Serif TC',serif;color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
+          <option value="電瑙舖資訊有限公司">電瑙舖資訊有限公司（27488187）</option>
+          <option value="鋒鑫資訊有限公司">鋒鑫資訊有限公司（90284112）</option>
+        </select>
+      </div>
+      <div class="edit-field full">
+        <label>發票號碼</label>
+        <input type="text" id="editPurchInvoice">
+      </div>
+      <div class="edit-field full">
+        <label>入庫倉庫</label>
+        <select id="editPurchWarehouse" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.86rem;font-family:'Noto Serif TC',serif;color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
+          <option value="">未指定</option>
+          <option value="總公司倉庫">總公司倉庫</option>
+          <option value="豐原門市">豐原門市</option>
+          <option value="潭子門市">潭子門市</option>
+          <option value="大雅門市">大雅門市</option>
+          <option value="業務部">業務部</option>
+        </select>
+      </div>
+    </div>
+    <div class="edit-modal-footer">
+      <button class="edit-cancel-btn" onclick="closePurchEditModal()">取消</button>
+      <button class="edit-save-btn" onclick="savePurchEdit()">儲存</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 let currentUser = null;
 let canDelete   = false;
+let canEdit     = false;
+let purchRowsMap = {};
 let rowCount    = 0;
 let listPage    = 1;
 let listTotal   = 1;
@@ -286,8 +414,9 @@ async function loadSuppliers() {
   const res  = await fetch('/api/purchase/suppliers');
   const data = await res.json();
   if (!data.success) return;
-  const dl = document.getElementById('supplierList');
-  dl.innerHTML = data.suppliers.map(s => `<option value="${s}">`).join('');
+  const sel = document.getElementById('fSupplier');
+  sel.innerHTML = '<option value="">請選擇供應商</option>' +
+    (data.suppliers || []).map(s => `<option value="${s}">${s}</option>`).join('');
 }
 
 /* ── 自動取得 PO 號碼 ── */
@@ -353,7 +482,23 @@ function calcTotal() {
     total += qty * price;
   });
   document.getElementById('totalAmount').textContent = formatNum(total);
+  updateTaxRow(total);
 }
+
+function updateTaxRow(total) {
+  const invoice = (document.getElementById('fInvoice')?.value || '').trim();
+  const taxRow  = document.getElementById('taxRow');
+  if (invoice) {
+    const tax = Math.round(total * 0.05);
+    document.getElementById('taxAmount').textContent    = formatNum(tax);
+    document.getElementById('totalWithTax').textContent = formatNum(total + tax);
+    taxRow.style.display = '';
+  } else {
+    taxRow.style.display = 'none';
+  }
+}
+
+document.getElementById('fInvoice').addEventListener('input', () => calcTotal());
 
 /* ── 產品搜尋 ── */
 async function searchProd(n) {
@@ -419,12 +564,20 @@ async function submitPurchase() {
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
 
+  const invoice = document.getElementById('fInvoice').value.trim();
+  // 計算稅額
+  let subtotal = 0;
+  items.forEach(it => subtotal += it.quantity * it.price);
+  const taxAmt = invoice ? Math.round(subtotal * 0.05) : 0;
+
   const payload = {
     order_no, date,
     supplier_name:  supplier,
-    invoice_number: document.getElementById('fInvoice').value.trim(),
+    invoice_number: invoice,
     warehouse:      document.getElementById('fWarehouse').value,
+    company:        document.getElementById('fCompany').value,
     created_by:     currentUser?.name || '',
+    tax_amount:     taxAmt,
     items,
   };
 
@@ -477,11 +630,11 @@ async function loadList() {
     const res = await fetch(`/api/purchase/list?page=${listPage}&q=${encodeURIComponent(q)}`);
     data = await res.json();
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#8b3a3a;padding:24px">載入失敗：${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b3a3a;padding:24px">載入失敗：${e.message}</td></tr>`;
     return;
   }
   if (!data.success) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#8b3a3a;padding:24px">${data.message || '載入失敗'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b3a3a;padding:24px">${data.message || '載入失敗'}</td></tr>`;
     return;
   }
 
@@ -491,20 +644,27 @@ async function loadList() {
   document.getElementById('nextBtn').disabled = listPage >= listTotal;
 
   if (!data.rows?.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9a9188;padding:24px">暫無紀錄</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">暫無紀錄</td></tr>';
     return;
   }
 
+  purchRowsMap = {};
   let lastPo = null;
   tbody.innerHTML = data.rows.map(r => {
+    purchRowsMap[r.id] = r;
     const isFirst = r.order_no !== lastPo;
     lastPo = r.order_no;
-    const delCell = canDelete
-      ? `<td><button class="del-row-btn-sm" onclick="deleteRow(${r.id})">刪除</button></td>`
+    let opBtns = '';
+    if (canEdit)   opBtns += `<button class="edit-row-btn" onclick="editPurchRow(${r.id})">修改</button>`;
+    if (canDelete) opBtns += `<button class="del-row-btn-sm" onclick="deleteRow(${r.id})">刪除</button>`;
+    const delCell = (canEdit || canDelete)
+      ? `<td><div style="display:flex;gap:4px">${opBtns}</div></td>`
       : '<td></td>';
+    const companyShort = r.company ? (r.company.includes('電瑙') ? '電瑙舖' : r.company.includes('鋒鑫') ? '鋒鑫' : r.company) : '';
     return `<tr style="${isFirst ? 'border-top:1px solid rgba(107,95,82,.1)' : ''}">
       <td style="white-space:nowrap;color:#9a9188;font-size:.8rem">${isFirst ? (r.date || '—') : ''}</td>
       <td>${isFirst ? `<span class="tag-po">${r.order_no || '—'}</span>` : ''}</td>
+      <td style="font-size:.82rem">${isFirst ? companyShort : ''}</td>
       <td style="font-size:.82rem">${isFirst ? (r.supplier_name || '—') : ''}</td>
       <td style="font-size:.82rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.product_name || '—'}</td>
       <td class="num-cell" style="font-size:.82rem">${r.quantity ?? '—'}</td>
@@ -531,10 +691,55 @@ async function deleteRow(rowId) {
   else alert(data.message || '刪除失敗');
 }
 
+/* ── 修改進貨紀錄 ── */
+function editPurchRow(id) {
+  const r = purchRowsMap[id];
+  if (!r) return;
+  document.getElementById('editPurchId').value       = id;
+  document.getElementById('editPurchCode').value     = r.product_code  || '';
+  document.getElementById('editPurchName').value     = r.product_name  || '';
+  document.getElementById('editPurchQty').value      = r.quantity       ?? '';
+  document.getElementById('editPurchPrice').value    = r.price          ?? '';
+  document.getElementById('editPurchAmount').value   = r.amount         ?? '';
+  document.getElementById('editPurchSupplier').value = r.supplier_name  || '';
+  document.getElementById('editPurchCompany').value   = r.company        || '';
+  document.getElementById('editPurchInvoice').value   = r.invoice_number || '';
+  document.getElementById('editPurchWarehouse').value = r.warehouse      || '';
+  document.getElementById('purchEditOverlay').classList.add('open');
+}
+function closePurchEditModal() {
+  document.getElementById('purchEditOverlay').classList.remove('open');
+}
+async function savePurchEdit() {
+  const id = document.getElementById('editPurchId').value;
+  const payload = {
+    product_code:  document.getElementById('editPurchCode').value.trim(),
+    product_name:  document.getElementById('editPurchName').value.trim(),
+    quantity:      parseInt(document.getElementById('editPurchQty').value)    || 0,
+    price:         parseInt(document.getElementById('editPurchPrice').value)  || 0,
+    amount:        parseInt(document.getElementById('editPurchAmount').value) || 0,
+    supplier_name:  document.getElementById('editPurchSupplier').value.trim(),
+    company:        document.getElementById('editPurchCompany').value.trim(),
+    invoice_number: document.getElementById('editPurchInvoice').value.trim(),
+    warehouse:      document.getElementById('editPurchWarehouse').value.trim(),
+  };
+  const res  = await fetch(`/api/purchase/row/${id}`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.success) { closePurchEditModal(); loadList(); }
+  else alert(data.message || '儲存失敗');
+}
+document.getElementById('purchEditOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePurchEditModal();
+});
+
 /* ── 初始化 ── */
 function onAppReady(user) {
   currentUser = user;
   canDelete   = (user.title === '老闆');
+  canEdit     = (user.title === '老闆' || user.title === '會計');
 
   document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
 

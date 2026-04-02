@@ -218,6 +218,6 @@ function showMsg(msg, ok) {
   setTimeout(() => { el.textContent = ''; }, 4000);
 }
 
-onAppReady(user => { loadAnns(); });
+function onAppReady(user) { loadAnns(); }
 </script>
 {% endblock %}

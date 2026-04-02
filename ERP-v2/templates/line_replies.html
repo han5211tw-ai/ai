@@ -406,9 +406,9 @@ function showMsg(msg, ok) {
   setTimeout(() => { el.textContent = ''; }, 4000);
 }
 
-onAppReady(user => {
+function onAppReady(user) {
   _user = user;
   loadList();
-});
+}
 </script>
 {% endblock %}

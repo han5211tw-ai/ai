@@ -27,12 +27,8 @@
     </div>
     <form id="loginForm" onsubmit="handleLogin(event)">
       <div class="form-group">
-        <label>姓名</label>
-        <input type="text" id="loginName" placeholder="請輸入姓名" autocomplete="username" required>
-      </div>
-      <div class="form-group">
         <label>密碼</label>
-        <input type="password" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password" required>
+        <input type="password" id="loginPassword" placeholder="請輸入個人密碼" autocomplete="current-password" required autofocus>
       </div>
       <div id="loginError" class="login-error" style="display:none"></div>
       <button type="submit" class="btn-primary btn-full" id="loginBtn">登入</button>
@@ -96,7 +92,7 @@
 <script>
 const MENU_STANDALONE = [
   { id: 'boss',       icon: '◈', label: '老闆控制台', route: '/boss',        roles: ['老闆'] },
-  { id: 'accountant', icon: '◈', label: '會計專區',   route: '/Accountants', roles: ['老闆', '會計'] },
+  { id: 'accountant', icon: '◈', label: '會計',   route: '/Accountants', roles: ['老闆', '會計'] },
 ];
 
 const MENU_GROUPS = [
@@ -120,6 +116,7 @@ const MENU_GROUPS = [
       { id: 'customer-search',  icon: '·', label: '客戶查詢', route: '/customer_search',  roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
       { id: 'product-create',   icon: '·', label: '產品建檔', route: '/product_create',   roles: ['老闆', '會計'] },
       { id: 'supplier-create',  icon: '·', label: '廠商建檔', route: '/supplier_create',  roles: ['老闆', '會計'] },
+      { id: 'supplier-search',  icon: '·', label: '廠商查詢', route: '/supplier_search',  roles: ['老闆', '會計'] },
     ]
   },
   {
@@ -154,6 +151,24 @@ const MENU_GROUPS = [
       { id: 'bonus-rules',    icon: '·', label: '獎金規則',   route: '/admin/bonus_rules',   roles: ['老闆', '會計'] },
       { id: 'bonus-report',   icon: '·', label: '獎金報表',   route: '/admin/bonus_report',  roles: ['老闆', '會計'] },
       { id: 'bonus-personal', icon: '·', label: '我的獎金',   route: '/bonus_personal',      roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+    ]
+  },
+  {
+    id: 'finance', title: '財務管理', items: [
+      { id: 'fin-dashboard',  icon: '·', label: '財務總覽',   route: '/finance_dashboard',         roles: ['老闆', '會計'] },
+      { id: 'fin-petty',      icon: '·', label: '零用金管理', route: '/finance_petty_cash',         roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'fin-receivable',  icon: '·', label: '應收帳款',   route: '/finance_receivables',       roles: ['老闆', '會計'] },
+      { id: 'fin-payable',    icon: '·', label: '應付帳款',   route: '/finance_payables',           roles: ['老闆', '會計'] },
+      { id: 'fin-transaction', icon: '·', label: '收支日記帳', route: '/finance_transactions',       roles: ['老闆', '會計'] },
+      { id: 'fin-vendor',     icon: '·', label: '廠商對帳',   route: '/finance_vendor_reconcile',   roles: ['老闆', '會計'] },
+      { id: 'fin-tax',        icon: '·', label: '稅務統計',   route: '/finance_tax',                roles: ['老闆', '會計'] },
+      { id: 'fin-cashflow',   icon: '·', label: '現金流預測', route: '/finance_cashflow',            roles: ['老闆', '會計'] },
+    ]
+  },
+  {
+    id: 'kpi', title: 'KPI 考核', items: [
+      { id: 'kpi-review',        icon: '·', label: 'KPI 考核',       route: '/kpi_review',        roles: ['老闆', '會計', '業務部主管', '門市部主管', '門市工程師', '業務人員', '工程師'] },
+      { id: 'kpi-contribution', icon: '·', label: '關鍵貢獻填報',   route: '/kpi_contribution',  roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管', '門市工程師'] },
     ]
   },
   {
@@ -212,14 +227,13 @@ async function handleLogin(e) {
   btn.disabled = true;
   btn.textContent = '登入中…';
 
-  const name     = document.getElementById('loginName').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
 
   try {
     const res  = await fetch('/api/auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password })
+      body: JSON.stringify({ password })
     });
     const data = await res.json();
     if (data.success) {

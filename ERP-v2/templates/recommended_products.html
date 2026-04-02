@@ -268,10 +268,9 @@ async function submitNeeds() {
   // 格式參考 needs_input 的 batch API
   const needsItems = items.map(([id, entry]) => ({
     product_code: entry.prod.product_code || '',
-    product_name: entry.prod.item_name,
+    item_name:    entry.prod.item_name,
     quantity:     entry.qty,
-    note:         note,
-    source:       '推薦備貨選購'
+    remark:       note ? `[推薦備貨] ${note}` : '[推薦備貨]',
   }));
 
   try {
@@ -279,15 +278,17 @@ async function submitNeeds() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items:       needsItems,
-        staff_name:  _user ? _user.name : '',
-        staff_dept:  _user ? _user.department : '',
-        note:        note
+        items:         needsItems,
+        staff_name:    _user ? _user.name : '',
+        staff_dept:    _user ? _user.department : '',
+        note:          note,
+        request_type:  '調撥',
+        transfer_from: '總公司倉庫',
       })
     });
     const data = await res.json();
     if (data.success) {
-      showMsg(`已送出 ${items.length} 筆備貨需求`, true);
+      showMsg(`已送出 ${items.length} 筆調撥需求，會計頁面可查看`, true);
       _cart = {};
       renderCartUI();
       // 清空 qty 輸入
@@ -309,9 +310,9 @@ function showMsg(msg, ok) {
   setTimeout(() => { el.textContent = ''; }, 4000);
 }
 
-onAppReady(user => {
+function onAppReady(user) {
   _user = user;
   loadCategories();
-});
+}
 </script>
 {% endblock %}

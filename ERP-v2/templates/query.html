@@ -108,6 +108,50 @@
 .page-info { font-size: .78rem; color: #9a9188; }
 
 .empty-hint { text-align: center; color: #9a9188; padding: 36px; font-size: .84rem; }
+/* ── 操作按鈕 ── */
+.op-btns { display: flex; gap: 4px; }
+.q-edit-btn {
+  padding: 2px 8px; border: 1px solid rgba(107,95,82,.3);
+  border-radius: 4px; background: none; font-size: .7rem; color: #6b5f52; cursor: pointer;
+}
+.q-edit-btn:hover { background: rgba(107,95,82,.07); }
+/* ── 修改 Modal ── */
+.qe-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(44,39,32,.45); z-index: 3000;
+  align-items: center; justify-content: center;
+}
+.qe-overlay.open { display: flex; }
+.qe-modal {
+  background: #fff; border-radius: 16px; padding: 28px 30px;
+  width: min(520px, 95vw); box-shadow: 0 8px 40px rgba(0,0,0,.18);
+}
+.qe-title {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 300;
+  color: #2c2720; letter-spacing: .06em; margin-bottom: 18px;
+  padding-bottom: 12px; border-bottom: 1px solid rgba(107,95,82,.12);
+}
+.qe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 16px; }
+.qe-grid .full { grid-column: 1 / -1; }
+.qe-field label {
+  display: block; font-size: .72rem; color: #9a9188;
+  letter-spacing: .06em; margin-bottom: 4px;
+}
+.qe-field input, .qe-field select {
+  width: 100%; padding: 8px 10px; border: 1px solid rgba(107,95,82,.22);
+  border-radius: 8px; font-size: .85rem; font-family: 'Noto Serif TC', serif;
+  color: #2c2720; background: #f5f0e8; box-sizing: border-box;
+}
+.qe-field input:focus, .qe-field select:focus {
+  outline: none; border-color: #FABF13; background: #fff;
+}
+.qe-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(107,95,82,.1);
+}
+.qe-cancel { padding: 8px 18px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px; background: none; font-size: .83rem; color: #6b5f52; cursor: pointer; }
+.qe-save   { padding: 8px 20px; background: #2c2720; color: #f5f0e8; border: none; border-radius: 8px; font-size: .83rem; font-family: 'Noto Serif TC', serif; cursor: pointer; }
+.qe-save:hover { opacity: .85; }
 </style>
 {% endblock %}
 
@@ -141,6 +185,76 @@
   </div>
 
 </div>
+
+<!-- 修改銷貨紀錄 Modal -->
+<div class="qe-overlay" id="qSaleOverlay">
+  <div class="qe-modal">
+    <div class="qe-title">修改銷貨紀錄</div>
+    <input type="hidden" id="qEditSaleId">
+    <div class="qe-grid">
+      <div class="qe-field full"><label>品號</label><input type="text" id="qEditSaleCode"></div>
+      <div class="qe-field full"><label>品名</label><input type="text" id="qEditSaleName"></div>
+      <div class="qe-field"><label>數量</label><input type="number" id="qEditSaleQty"></div>
+      <div class="qe-field"><label>單價</label><input type="number" id="qEditSalePrice"></div>
+      <div class="qe-field"><label>金額</label><input type="number" id="qEditSaleAmount"></div>
+      <div class="qe-field"><label>成本（每件）</label><input type="number" id="qEditSaleCost"></div>
+      <div class="qe-field"><label>業務</label><input type="text" id="qEditSaleSP"></div>
+      <div class="qe-field"><label>客戶</label><input type="text" id="qEditSaleCust"></div>
+    </div>
+    <div class="qe-footer">
+      <button class="qe-cancel" onclick="closeQEdit('qSaleOverlay')">取消</button>
+      <button class="qe-save" onclick="saveQSale()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改進貨紀錄 Modal -->
+<div class="qe-overlay" id="qPurchOverlay">
+  <div class="qe-modal">
+    <div class="qe-title">修改進貨紀錄</div>
+    <input type="hidden" id="qEditPurchId">
+    <div class="qe-grid">
+      <div class="qe-field full"><label>品號</label><input type="text" id="qEditPurchCode"></div>
+      <div class="qe-field full"><label>品名</label><input type="text" id="qEditPurchName"></div>
+      <div class="qe-field"><label>數量</label><input type="number" id="qEditPurchQty"></div>
+      <div class="qe-field"><label>單價</label><input type="number" id="qEditPurchPrice"></div>
+      <div class="qe-field full"><label>金額</label><input type="number" id="qEditPurchAmount"></div>
+      <div class="qe-field full"><label>廠商</label><input type="text" id="qEditPurchSupplier"></div>
+    </div>
+    <div class="qe-footer">
+      <button class="qe-cancel" onclick="closeQEdit('qPurchOverlay')">取消</button>
+      <button class="qe-save" onclick="saveQPurch()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改報價/訂單 Modal -->
+<div class="qe-overlay" id="qDocOverlay">
+  <div class="qe-modal">
+    <div class="qe-title">修改單據</div>
+    <input type="hidden" id="qEditDocNo">
+    <div class="qe-grid">
+      <div class="qe-field full"><label>客戶 / 對象</label><input type="text" id="qEditDocTarget"></div>
+      <div class="qe-field"><label>總金額</label><input type="number" id="qEditDocTotal"></div>
+      <div class="qe-field"><label>訂金</label><input type="number" id="qEditDocDeposit"></div>
+      <div class="qe-field"><label>有效期限</label><input type="date" id="qEditDocValid"></div>
+      <div class="qe-field"><label>狀態</label>
+        <select id="qEditDocStatus">
+          <option value="DRAFT">草稿</option>
+          <option value="CONFIRMED">已確認</option>
+          <option value="CONVERTED">已轉換</option>
+          <option value="CANCELLED">已取消</option>
+        </select>
+      </div>
+      <div class="qe-field full"><label>備注</label><input type="text" id="qEditDocNote"></div>
+    </div>
+    <div class="qe-footer">
+      <button class="qe-cancel" onclick="closeQEdit('qDocOverlay')">取消</button>
+      <button class="qe-save" onclick="saveQDoc()">儲存</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -150,6 +264,10 @@ let curPage   = 1;
 let totalPages= 1;
 let canViewCost = false;
 let canDelete   = false;
+let canEdit     = false;
+let qSaleRowsMap  = {};
+let qPurchRowsMap = {};
+let qDocMap       = {};
 
 const fmt = n => (n != null && n !== '') ? Math.round(n).toLocaleString('zh-TW') : '—';
 const ST_LABEL = { DRAFT:'草稿', CONFIRMED:'已確認', CONVERTED:'已轉換', CANCELLED:'已取消' };
@@ -258,14 +376,17 @@ async function loadSales() {
     ${costCols}<th></th>
   </tr></thead><tbody>`;
 
+  qSaleRowsMap = {};
   html += data.rows.map(r => {
+    qSaleRowsMap[r.id] = r;
     const costTds = canViewCost ? `
       <td class="num muted">${fmt(r.cost ? r.cost * r.quantity : null)}</td>
       <td class="num" style="color:${r.profit>0?'#4a7c59':r.profit<0?'#8b3a3a':'inherit'}">${fmt(r.profit)}</td>
       <td class="num muted">${r.margin != null ? r.margin + '%' : '—'}</td>` : '';
-    const delBtn = canDelete
-      ? `<td><button onclick="delSaleRow(${r.id})" style="padding:2px 8px;border:1px solid rgba(139,58,58,.3);border-radius:4px;background:none;font-size:.7rem;color:#8b3a3a;cursor:pointer">刪除</button></td>`
-      : '<td></td>';
+    let opBtns = '';
+    if (canEdit)   opBtns += `<button class="q-edit-btn" onclick="openQSaleEdit(${r.id})">修改</button>`;
+    if (canDelete) opBtns += `<button onclick="delSaleRow(${r.id})" style="padding:2px 8px;border:1px solid rgba(139,58,58,.3);border-radius:4px;background:none;font-size:.7rem;color:#8b3a3a;cursor:pointer">刪除</button>`;
+    const opCell = (canEdit || canDelete) ? `<td><div class="op-btns">${opBtns}</div></td>` : '<td></td>';
     return `<tr>
       <td class="muted">${r.date || '—'}</td>
       <td>${r.customer_name || '—'}</td>
@@ -273,7 +394,7 @@ async function loadSales() {
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.product_name || '—'}</td>
       <td class="num">${r.quantity ?? '—'}</td>
       <td class="num">${fmt(r.amount)}</td>
-      ${costTds}${delBtn}
+      ${costTds}${opCell}
     </tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -293,17 +414,20 @@ async function loadPurchase() {
 
   if (!data.rows?.length) { showEmpty(); return; }
 
+  qPurchRowsMap = {};
   let lastPo = null;
   let html = `<table class="r-table"><thead><tr>
     <th>日期</th><th>單號</th><th>供應商</th>
     <th>產品名稱</th><th class="num">數量</th><th class="num">金額</th><th></th>
   </tr></thead><tbody>`;
   html += data.rows.map(r => {
+    qPurchRowsMap[r.id] = r;
     const isFirst = r.order_no !== lastPo;
     lastPo = r.order_no;
-    const delBtn = canDelete
-      ? `<button onclick="delPurchaseRow(${r.id})" style="padding:2px 8px;border:1px solid rgba(139,58,58,.3);border-radius:4px;background:none;font-size:.7rem;color:#8b3a3a;cursor:pointer">刪除</button>`
-      : '';
+    let opBtns = '';
+    if (canEdit)   opBtns += `<button class="q-edit-btn" onclick="openQPurchEdit(${r.id})">修改</button>`;
+    if (canDelete) opBtns += `<button onclick="delPurchaseRow(${r.id})" style="padding:2px 8px;border:1px solid rgba(139,58,58,.3);border-radius:4px;background:none;font-size:.7rem;color:#8b3a3a;cursor:pointer">刪除</button>`;
+    const opCell = `<div class="op-btns">${opBtns}</div>`;
     return `<tr style="${isFirst?'border-top:1px solid rgba(107,95,82,.08)':''}">
       <td class="muted">${isFirst ? (r.date||'—') : ''}</td>
       <td class="muted" style="font-family:monospace;font-size:.78rem">${isFirst ? (r.order_no||'—') : ''}</td>
@@ -311,7 +435,7 @@ async function loadPurchase() {
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.product_name||'—'}</td>
       <td class="num">${r.quantity??'—'}</td>
       <td class="num">${fmt(r.amount)}</td>
-      <td>${delBtn}</td>
+      <td>${opCell}</td>
     </tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -336,10 +460,13 @@ async function loadDocs() {
     <th class="num">總金額</th><th class="num">訂金</th><th>建立時間</th><th>建立者</th>
   </tr></thead><tbody>`;
 
+  qDocMap = {};
   data.documents.forEach(d => {
+    qDocMap[d.doc_no] = d;
     const typeTag = `<span class="s-badge ${TYPE_CLASS[d.doc_type]||'tag-draft'}">${TYPE_LABEL[d.doc_type]||d.doc_type}</span>`;
     const stTag   = `<span class="s-badge ${ST_CLASS[d.status]||'tag-draft'}">${ST_LABEL[d.status]||d.status}</span>`;
     const rowId   = `doc-${d.doc_no.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    const editBtn = canEdit ? `<button class="q-edit-btn" onclick="event.stopPropagation();openQDocEdit('${d.doc_no}')">修改</button>` : '';
     html += `<tr class="expandable" onclick="toggleDetail('${rowId}')">
       <td style="font-family:monospace;font-size:.8rem">${d.doc_no}</td>
       <td>${typeTag}</td><td>${stTag}</td>
@@ -347,7 +474,7 @@ async function loadDocs() {
       <td class="num">${fmt(d.total_amount)}</td>
       <td class="num muted">${d.deposit_amount ? fmt(d.deposit_amount) : '—'}</td>
       <td class="muted">${(d.created_at||'').slice(0,10)}</td>
-      <td class="muted">${d.created_by||'—'}</td>
+      <td class="muted">${d.created_by||'—'}${editBtn ? ' ' + editBtn : ''}</td>
     </tr>
     <tr class="detail-row"><td colspan="8">
       <div class="detail-inner" id="${rowId}">
@@ -390,6 +517,108 @@ async function delPurchaseRow(id) {
   if (d.success) doSearch(); else alert(d.message||'刪除失敗');
 }
 
+/* ── 修改 Modals ── */
+function closeQEdit(overlayId) {
+  document.getElementById(overlayId).classList.remove('open');
+}
+['qSaleOverlay','qPurchOverlay','qDocOverlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) closeQEdit(id);
+  });
+});
+
+/* 修改銷貨 */
+function openQSaleEdit(id) {
+  const r = qSaleRowsMap[id]; if (!r) return;
+  document.getElementById('qEditSaleId').value     = id;
+  document.getElementById('qEditSaleCode').value   = r.product_code  || '';
+  document.getElementById('qEditSaleName').value   = r.product_name  || '';
+  document.getElementById('qEditSaleQty').value    = r.quantity       ?? '';
+  document.getElementById('qEditSalePrice').value  = r.price          ?? '';
+  document.getElementById('qEditSaleAmount').value = r.amount         ?? '';
+  document.getElementById('qEditSaleCost').value   = r.cost           ?? '';
+  document.getElementById('qEditSaleSP').value     = r.salesperson    || '';
+  document.getElementById('qEditSaleCust').value   = r.customer_name  || '';
+  document.getElementById('qSaleOverlay').classList.add('open');
+}
+async function saveQSale() {
+  const id = document.getElementById('qEditSaleId').value;
+  const payload = {
+    product_code: document.getElementById('qEditSaleCode').value.trim(),
+    product_name: document.getElementById('qEditSaleName').value.trim(),
+    quantity:     parseInt(document.getElementById('qEditSaleQty').value)    || 0,
+    price:        parseInt(document.getElementById('qEditSalePrice').value)  || 0,
+    amount:       parseInt(document.getElementById('qEditSaleAmount').value) || 0,
+    cost:         parseInt(document.getElementById('qEditSaleCost').value)   || 0,
+    salesperson:  document.getElementById('qEditSaleSP').value.trim(),
+    customer_name:document.getElementById('qEditSaleCust').value.trim(),
+  };
+  const res = await fetch(`/api/sales/row/${id}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  });
+  const d = await res.json();
+  if (d.success) { closeQEdit('qSaleOverlay'); doSearch(); } else alert(d.message||'儲存失敗');
+}
+
+/* 修改進貨 */
+function openQPurchEdit(id) {
+  const r = qPurchRowsMap[id]; if (!r) return;
+  document.getElementById('qEditPurchId').value       = id;
+  document.getElementById('qEditPurchCode').value     = r.product_code  || '';
+  document.getElementById('qEditPurchName').value     = r.product_name  || '';
+  document.getElementById('qEditPurchQty').value      = r.quantity       ?? '';
+  document.getElementById('qEditPurchPrice').value    = r.price          ?? '';
+  document.getElementById('qEditPurchAmount').value   = r.amount         ?? '';
+  document.getElementById('qEditPurchSupplier').value = r.supplier_name  || '';
+  document.getElementById('qPurchOverlay').classList.add('open');
+}
+async function saveQPurch() {
+  const id = document.getElementById('qEditPurchId').value;
+  const payload = {
+    product_code: document.getElementById('qEditPurchCode').value.trim(),
+    product_name: document.getElementById('qEditPurchName').value.trim(),
+    quantity:     parseInt(document.getElementById('qEditPurchQty').value)    || 0,
+    price:        parseInt(document.getElementById('qEditPurchPrice').value)  || 0,
+    amount:       parseInt(document.getElementById('qEditPurchAmount').value) || 0,
+    supplier_name:document.getElementById('qEditPurchSupplier').value.trim(),
+  };
+  const res = await fetch(`/api/purchase/row/${id}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  });
+  const d = await res.json();
+  if (d.success) { closeQEdit('qPurchOverlay'); doSearch(); } else alert(d.message||'儲存失敗');
+}
+
+/* 修改報價/訂單 */
+function openQDocEdit(docNo) {
+  const d = qDocMap[docNo]; if (!d) return;
+  document.getElementById('qEditDocNo').value      = docNo;
+  document.getElementById('qEditDocTarget').value  = d.target_name    || '';
+  document.getElementById('qEditDocTotal').value   = d.total_amount   || '';
+  document.getElementById('qEditDocDeposit').value = d.deposit_amount || '';
+  document.getElementById('qEditDocValid').value   = d.valid_until    || '';
+  document.getElementById('qEditDocStatus').value  = d.status         || 'DRAFT';
+  document.getElementById('qEditDocNote').value    = d.note           || '';
+  document.getElementById('qDocOverlay').classList.add('open');
+}
+async function saveQDoc() {
+  const docNo = document.getElementById('qEditDocNo').value;
+  const payload = {
+    doc_no:        docNo,
+    target_name:   document.getElementById('qEditDocTarget').value.trim(),
+    total_amount:  parseInt(document.getElementById('qEditDocTotal').value)   || 0,
+    deposit_amount:parseInt(document.getElementById('qEditDocDeposit').value) || 0,
+    valid_until:   document.getElementById('qEditDocValid').value,
+    status:        document.getElementById('qEditDocStatus').value,
+    note:          document.getElementById('qEditDocNote').value.trim(),
+  };
+  const res = await fetch('/api/sales-doc/update', {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  });
+  const d = await res.json();
+  if (d.success) { closeQEdit('qDocOverlay'); doSearch(); } else alert(d.message||'儲存失敗');
+}
+
 /* 工具 */
 function updatePager(total, pages) {
   totalPages = pages || 1;
@@ -423,6 +652,7 @@ function changePage(dir) {
 function onAppReady(user) {
   canViewCost = (user.title === '老闆' || user.title === '會計');
   canDelete   = (user.title === '老闆');
+  canEdit     = (user.title === '老闆' || user.title === '會計');
   renderFilter();
   doSearch(1);
 }

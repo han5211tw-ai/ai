@@ -250,6 +250,6 @@ function renderCalendar(roster, year, month) {
 }
 
 initSelectors();
-onAppReady(user => { load(); });
+function onAppReady(user) { load(); }
 </script>
 {% endblock %}

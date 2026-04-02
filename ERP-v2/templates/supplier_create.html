@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+{% block title %}廠商建檔 — COSH ERP{% endblock %}
+{% block page_title %}廠商建檔{% endblock %}
+
+{% block styles %}
+<style>
+.sc-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 860px;
+}
+.sc-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,0.15);
+  border-radius: 14px;
+  padding: 24px 28px;
+}
+.sc-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  letter-spacing: .12em;
+  color: #9a9188;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(107,95,82,0.12);
+}
+.sc-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.sc-field {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sc-field.full { flex: 0 0 100%; }
+.sc-field label {
+  font-size: .85rem;
+  color: #9a9188;
+  letter-spacing: .04em;
+}
+.sc-field label span.req { color: #c0392b; margin-left: 2px; }
+.sc-field input,
+.sc-field select,
+.sc-field textarea {
+  padding: 10px 14px;
+  border: 1px solid rgba(107,95,82,0.25);
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color .2s, box-shadow .2s;
+}
+.sc-field input:focus,
+.sc-field select:focus,
+.sc-field textarea:focus {
+  outline: none;
+  border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12);
+  background: #fff;
+}
+.sc-field input[readonly] {
+  background: #ede9e0;
+  color: #6b5f52;
+}
+.sc-field textarea { resize: vertical; min-height: 68px; }
+
+.section-sep {
+  margin: 18px 0 14px;
+  font-size: .78rem;
+  color: #b8b0a8;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border-top: 1px solid rgba(107,95,82,.08);
+  padding-top: 14px;
+}
+
+/* 搜尋查重 */
+.search-bar { display: flex; gap: 10px; align-items: center; }
+.search-bar input {
+  flex: 1; padding: 9px 14px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 10px;
+  font-size: .9rem; background: #f5f0e8;
+  font-family: 'Noto Serif TC', serif; outline: none;
+}
+.search-bar input:focus { border-color: #6b5f52; }
+.btn-search {
+  padding: 9px 18px; background: #f5f0e8;
+  border: 1px solid rgba(107,95,82,.3); border-radius: 10px;
+  font-size: .85rem; cursor: pointer; color: #6b5f52;
+  font-family: 'Noto Serif TC', serif; white-space: nowrap;
+}
+.btn-search:hover { background: #ede9e0; }
+
+.dup-result { margin-top: 10px; font-size: .85rem; color: #9a9188; }
+.dup-row {
+  display: flex; gap: 12px; padding: 8px 12px;
+  background: #fffbf5; border: 1px solid rgba(107,95,82,.12);
+  border-radius: 8px; margin-top: 6px; align-items: center;
+}
+.dup-id   { color: #6b5f52; font-size: .82rem; white-space: nowrap; }
+.dup-name { flex: 1; font-weight: 500; }
+.dup-sub  { font-size: .78rem; color: #9a9188; }
+
+.btn-submit {
+  padding: 10px 26px;
+  background: #2c2720;
+  color: #f5f0e8;
+  border: none;
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.btn-submit:disabled { opacity: .5; cursor: default; }
+
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  padding: 12px 22px; border-radius: 10px;
+  font-size: .88rem; color: #fff;
+  opacity: 0; transition: opacity .3s;
+  z-index: 999; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.ok  { background: #2e7d46; }
+.toast.err { background: #b94040; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sc-layout">
+
+  <!-- 查重複 -->
+  <div class="sc-card">
+    <div class="sc-card-title">查詢是否已建檔</div>
+    <div class="search-bar">
+      <input type="text" id="dupQ" placeholder="輸入廠商名稱或縮寫查詢…" oninput="onDupInput(this.value)">
+      <button class="btn-search" onclick="searchDup()">查詢</button>
+    </div>
+    <div class="dup-result" id="dupResult"></div>
+  </div>
+
+  <!-- 建檔表單 -->
+  <div class="sc-card">
+    <div class="sc-card-title">新廠商建檔</div>
+
+    <!-- 編號 + 名稱 -->
+    <div class="sc-row">
+      <div class="sc-field" style="max-width:160px">
+        <label>廠商編號（自動）</label>
+        <input type="text" id="suppId" readonly placeholder="載入中…">
+      </div>
+      <div class="sc-field">
+        <label>廠商全名 <span class="req">*</span></label>
+        <input type="text" id="suppName" placeholder="必填，如：精技電腦股份有限公司">
+      </div>
+      <div class="sc-field" style="max-width:180px">
+        <label>簡稱</label>
+        <input type="text" id="shortName" placeholder="如：精技">
+      </div>
+    </div>
+
+    <!-- 統編 + 聯絡人 -->
+    <div class="sc-row">
+      <div class="sc-field">
+        <label>統一編號</label>
+        <input type="text" id="taxId" placeholder="8碼統編">
+      </div>
+      <div class="sc-field">
+        <label>聯絡人</label>
+        <input type="text" id="contactPerson" placeholder="業務窗口姓名">
+      </div>
+    </div>
+
+    <!-- 聯絡方式 -->
+    <div class="sc-row">
+      <div class="sc-field">
+        <label>電話</label>
+        <input type="tel" id="phone" placeholder="02-xxxxxxxx">
+      </div>
+      <div class="sc-field">
+        <label>手機</label>
+        <input type="tel" id="mobile" placeholder="09xx-xxxxxx">
+      </div>
+      <div class="sc-field">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="xxx@example.com">
+      </div>
+    </div>
+
+    <!-- 地址 -->
+    <div class="sc-row">
+      <div class="sc-field full">
+        <label>地址</label>
+        <input type="text" id="address" placeholder="公司地址">
+      </div>
+    </div>
+
+    <!-- 付款 / 銀行 -->
+    <div class="section-sep">帳期與付款</div>
+    <div class="sc-row">
+      <div class="sc-field">
+        <label>付款方式</label>
+        <select id="paymentMethod">
+          <option value="">不指定</option>
+          <option value="匯款">匯款</option>
+          <option value="支票">支票</option>
+          <option value="現金自取">現金自取</option>
+        </select>
+      </div>
+      <div class="sc-field" style="max-width:140px">
+        <label>每月結帳日</label>
+        <input type="number" id="closingDay" min="1" max="31" placeholder="如 25">
+      </div>
+      <div class="sc-field" style="max-width:140px">
+        <label>匯款日（每月）</label>
+        <input type="number" id="payDay" min="1" max="31" placeholder="預設 28">
+      </div>
+    </div>
+    <div class="section-sep">銀行資訊</div>
+    <div class="sc-row">
+      <div class="sc-field">
+        <label>銀行名稱</label>
+        <input type="text" id="bankName" placeholder="如：台灣銀行">
+      </div>
+      <div class="sc-field">
+        <label>分行名稱</label>
+        <input type="text" id="bankBranch" placeholder="如：豐原分行">
+      </div>
+      <div class="sc-field">
+        <label>銀行帳號</label>
+        <input type="text" id="bankAccount" placeholder="帳號">
+      </div>
+    </div>
+
+    <!-- 備注 -->
+    <div class="sc-row">
+      <div class="sc-field full">
+        <label>備注</label>
+        <textarea id="remark" placeholder="其他說明…"></textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn-submit" id="submitBtn" onclick="submitForm()">建檔送出</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let _dupTimer   = null;
+
+function onAppReady(user) {
+  currentUser = user;
+  fetchNextId();
+}
+
+// ────────────────────────────────────
+// 自動編號
+// ────────────────────────────────────
+async function fetchNextId() {
+  try {
+    const res  = await fetch('/api/supplier/next-id');
+    const json = await res.json();
+    if (json.success) {
+      document.getElementById('suppId').value = json.data.next_id;
+    }
+  } catch(e) {
+    document.getElementById('suppId').value = '';
+  }
+}
+
+// ────────────────────────────────────
+// 查重複
+// ────────────────────────────────────
+function onDupInput(val) {
+  clearTimeout(_dupTimer);
+  if (val.trim().length < 2) { document.getElementById('dupResult').innerHTML = ''; return; }
+  _dupTimer = setTimeout(() => searchDup(), 400);
+}
+
+async function searchDup() {
+  const q = document.getElementById('dupQ').value.trim();
+  if (!q) return;
+  const res  = await fetch(`/api/supplier/list?q=${encodeURIComponent(q)}`);
+  const json = await res.json();
+  const box  = document.getElementById('dupResult');
+  const list = json.success ? (json.data || []) : [];
+  if (!list.length) {
+    box.innerHTML = '<span style="color:#5a9a6a">查無相同廠商，可放心建檔</span>';
+    return;
+  }
+  box.innerHTML = `<div style="color:#b94040;margin-bottom:4px">找到 ${list.length} 筆相似資料：</div>` +
+    list.slice(0, 5).map(s => `
+      <div class="dup-row">
+        <span class="dup-id">${escHtml(s.supplier_id)}</span>
+        <span class="dup-name">${escHtml(s.supplier_name)}</span>
+        <span class="dup-sub">${escHtml(s.short_name || '')}</span>
+        <span class="dup-sub">${escHtml(s.contact_person || '')}</span>
+      </div>`).join('');
+}
+
+// ────────────────────────────────────
+// 送出
+// ────────────────────────────────────
+async function submitForm() {
+  const sid  = document.getElementById('suppId').value.trim();
+  const name = document.getElementById('suppName').value.trim();
+  if (!sid)  { toast('無法取得廠商編號', 'err'); return; }
+  if (!name) { toast('請填寫廠商名稱', 'err'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '建檔中…';
+
+  const payload = {
+    supplier_id:     sid,
+    supplier_name:   name,
+    short_name:      document.getElementById('shortName').value.trim(),
+    tax_id:          document.getElementById('taxId').value.trim(),
+    contact_person:  document.getElementById('contactPerson').value.trim(),
+    phone:           document.getElementById('phone').value.trim(),
+    mobile:          document.getElementById('mobile').value.trim(),
+    email:           document.getElementById('email').value.trim(),
+    address:         document.getElementById('address').value.trim(),
+    payment_method:  document.getElementById('paymentMethod').value,
+    closing_day:     document.getElementById('closingDay').value ? parseInt(document.getElementById('closingDay').value) : null,
+    pay_day:         document.getElementById('payDay').value ? parseInt(document.getElementById('payDay').value) : null,
+    bank_name:       document.getElementById('bankName').value.trim(),
+    bank_branch:     document.getElementById('bankBranch').value.trim(),
+    bank_account:    document.getElementById('bankAccount').value.trim(),
+    remark:          document.getElementById('remark').value.trim(),
+    created_by:      currentUser ? currentUser.name : '',
+  };
+
+  try {
+    const res  = await fetch('/api/supplier/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast(json.data.message || '建檔成功', 'ok');
+      resetForm();
+      fetchNextId();
+    } else {
+      toast(json.message || '建檔失敗', 'err');
+    }
+  } catch(e) {
+    toast('網路錯誤：' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '建檔送出';
+  }
+}
+
+function resetForm() {
+  ['suppName','shortName','taxId','contactPerson','phone',
+   'mobile','email','address','closingDay','payDay','bankName','bankBranch','bankAccount','remark'
+  ].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('paymentMethod').value = '';
+}
+
+// ────────────────────────────────────
+// 工具
+// ────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _toastTimer = null;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = 'toast'; }, 3200);
+}
+</script>
+{% endblock %}

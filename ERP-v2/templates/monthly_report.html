@@ -605,8 +605,8 @@ function chartOpts(suffix = '') {
 
 /* ── 啟動 ─────────────────────────────────────── */
 initSelectors();
-onAppReady(user => {
+function onAppReady(user) {
   loadAll();
-});
+}
 </script>
 {% endblock %}

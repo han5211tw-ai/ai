@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% block title %}產品建檔 — COSH ERP{% endblock %}
+{% block page_title %}產品建檔{% endblock %}
+
+{% block styles %}
+<style>
+.pc-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 760px;
+}
+
+.pc-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,0.15);
+  border-radius: 14px;
+  padding: 24px 28px;
+}
+.pc-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  letter-spacing: .12em;
+  color: #9a9188;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(107,95,82,0.12);
+}
+
+.pc-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.pc-field {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pc-field.full { flex: 0 0 100%; }
+.pc-field label {
+  font-size: .85rem;
+  color: #9a9188;
+  letter-spacing: .04em;
+}
+.pc-field label span.req { color: #c0392b; margin-left: 2px; }
+
+.pc-field input,
+.pc-field select {
+  padding: 10px 14px;
+  border: 1px solid rgba(107,95,82,0.25);
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 300;
+  color: #2c2720;
+  background: #f5f0e8;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color .2s, box-shadow .2s;
+}
+.pc-field input:focus,
+.pc-field select:focus {
+  outline: none;
+  border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12);
+  background: #fff;
+}
+.pc-field input[readonly] {
+  background: #ede9e0;
+  color: #6b5f52;
+}
+
+/* 編號預覽 */
+.code-preview {
+  margin-top: 4px;
+  font-size: .82rem;
+  color: #6b5f52;
+  padding: 6px 10px;
+  background: rgba(107,95,82,.06);
+  border-radius: 8px;
+  min-height: 30px;
+  line-height: 1.6;
+}
+.code-preview strong { color: #2c2720; font-size: .9rem; }
+
+/* hint 文字 */
+.hint {
+  font-size: .78rem;
+  color: #b8b0a8;
+  margin-top: 2px;
+}
+
+/* dup result */
+.dup-result { margin-top: 10px; font-size: .85rem; color: #9a9188; }
+.dup-row {
+  display: flex; gap: 12px; padding: 8px 12px;
+  background: #fffbf5; border: 1px solid rgba(107,95,82,.12);
+  border-radius: 8px; margin-top: 6px; align-items: center;
+}
+.dup-code { color: #6b5f52; font-size: .82rem; white-space: nowrap; }
+.dup-name { flex: 1; }
+.dup-cat  { font-size: .78rem; color: #9a9188; }
+
+/* search bar */
+.search-bar { display: flex; gap: 10px; align-items: center; }
+.search-bar input {
+  flex: 1; padding: 9px 14px;
+  border: 1px solid rgba(107,95,82,.22); border-radius: 10px;
+  font-size: .9rem; background: #f5f0e8;
+  font-family: 'Noto Serif TC', serif; outline: none;
+}
+.search-bar input:focus { border-color: #6b5f52; }
+.btn-search {
+  padding: 9px 18px; background: #f5f0e8;
+  border: 1px solid rgba(107,95,82,.3); border-radius: 10px;
+  font-size: .85rem; cursor: pointer; color: #6b5f52;
+  font-family: 'Noto Serif TC', serif; white-space: nowrap;
+}
+.btn-search:hover { background: #ede9e0; }
+
+.btn-submit {
+  padding: 10px 26px;
+  background: #2c2720;
+  color: #f5f0e8;
+  border: none;
+  border-radius: 8px;
+  font-size: .82rem;
+  font-family: 'Noto Serif TC', serif;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.btn-submit:disabled { opacity: .5; cursor: default; }
+
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  padding: 12px 22px; border-radius: 10px;
+  font-size: .88rem; color: #fff;
+  opacity: 0; transition: opacity .3s;
+  z-index: 999; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.ok  { background: #2e7d46; }
+.toast.err { background: #b94040; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pc-layout">
+
+  <!-- 查重複 -->
+  <div class="pc-card">
+    <div class="pc-card-title">查詢是否已建檔</div>
+    <div class="search-bar">
+      <input type="text" id="dupQ" placeholder="輸入品名關鍵字或產品編號查詢…" oninput="onDupInput(this.value)">
+      <button class="btn-search" onclick="searchDup()">查詢</button>
+    </div>
+    <div class="dup-result" id="dupResult"></div>
+  </div>
+
+  <!-- 建檔表單 -->
+  <div class="pc-card">
+    <div class="pc-card-title">新產品建檔</div>
+
+    <!-- 類別 + 品牌碼 → 自動產生編號 -->
+    <div class="pc-row">
+      <div class="pc-field">
+        <label>類別 <span class="req">*</span></label>
+        <select id="catCode" onchange="onCodeChange()">
+          <option value="">選擇類別…</option>
+        </select>
+      </div>
+      <div class="pc-field" style="max-width:140px">
+        <label>品牌碼（2碼）<span class="req">*</span></label>
+        <input type="text" id="brandCode" maxlength="4" placeholder="如 MS、AC"
+               oninput="this.value=this.value.toUpperCase(); onCodeChange()">
+        <span class="hint">廠牌英文縮寫，2～4 碼</span>
+      </div>
+    </div>
+
+    <!-- 編號預覽 -->
+    <div class="pc-row">
+      <div class="pc-field full">
+        <label>產品編號（自動產生）</label>
+        <div class="code-preview" id="codePreview">請先選擇類別並輸入品牌碼</div>
+      </div>
+    </div>
+
+    <!-- 品名 + 單位 -->
+    <div class="pc-row">
+      <div class="pc-field">
+        <label>產品名稱 <span class="req">*</span></label>
+        <input type="text" id="productName" placeholder="完整品名，如：微星 M450 1TB M2 GEN4 SSD">
+      </div>
+      <div class="pc-field" style="max-width:120px">
+        <label>單位</label>
+        <input type="text" id="unit" value="個" placeholder="個">
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn-submit" id="submitBtn" onclick="submitForm()">建檔送出</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser  = null;
+let nextCode     = '';
+let _dupTimer    = null;
+let _codeTimer   = null;
+
+function onAppReady(user) {
+  currentUser = user;
+  loadCategories();
+}
+
+// ────────────────────────────────────
+// 載入類別下拉
+// ────────────────────────────────────
+async function loadCategories() {
+  const res  = await fetch('/api/product/categories');
+  const json = await res.json();
+  if (!json.success) return;
+  const sel = document.getElementById('catCode');
+  json.data.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value       = c.category_code;
+    opt.textContent = `${c.category_code}　${c.category_name}`;
+    opt.dataset.name = c.category_name;
+    sel.appendChild(opt);
+  });
+}
+
+// ────────────────────────────────────
+// 自動產生產品編號
+// ────────────────────────────────────
+function onCodeChange() {
+  clearTimeout(_codeTimer);
+  const cat   = document.getElementById('catCode').value;
+  const brand = document.getElementById('brandCode').value.trim();
+  const box   = document.getElementById('codePreview');
+  if (!cat || brand.length < 2) {
+    box.innerHTML = '請先選擇類別並輸入品牌碼（至少 2 碼）';
+    nextCode = '';
+    return;
+  }
+  box.innerHTML = '查詢中…';
+  _codeTimer = setTimeout(() => fetchNextCode(cat, brand), 350);
+}
+
+async function fetchNextCode(cat, brand) {
+  const box = document.getElementById('codePreview');
+  try {
+    const res  = await fetch(`/api/product/next-code?cat=${cat}&brand=${brand}`);
+    const json = await res.json();
+    if (json.success) {
+      nextCode = json.data.next_code;
+      box.innerHTML = `將建立編號：<strong>${escHtml(nextCode)}</strong>`;
+    } else {
+      box.innerHTML = '無法取得編號：' + escHtml(json.message || '');
+      nextCode = '';
+    }
+  } catch(e) {
+    box.innerHTML = '查詢失敗';
+    nextCode = '';
+  }
+}
+
+// ────────────────────────────────────
+// 查重複
+// ────────────────────────────────────
+function onDupInput(val) {
+  clearTimeout(_dupTimer);
+  if (val.trim().length < 2) { document.getElementById('dupResult').innerHTML = ''; return; }
+  _dupTimer = setTimeout(() => searchDup(), 400);
+}
+
+async function searchDup() {
+  const q = document.getElementById('dupQ').value.trim();
+  if (!q) return;
+  const res  = await fetch(`/api/products/search?q=${encodeURIComponent(q)}`);
+  const json = await res.json();
+  const box  = document.getElementById('dupResult');
+  const list = Array.isArray(json) ? json : (json.data || []);
+  if (!list.length) {
+    box.innerHTML = '<span style="color:#5a9a6a">查無相同產品，可放心建檔</span>';
+    return;
+  }
+  box.innerHTML = `<div style="color:#b94040;margin-bottom:4px">找到 ${list.length} 筆相似資料：</div>` +
+    list.slice(0, 8).map(p => `
+      <div class="dup-row">
+        <span class="dup-code">${escHtml(p.product_code)}</span>
+        <span class="dup-name">${escHtml(p.product_name)}</span>
+        <span class="dup-cat">${escHtml(p.category || '')}</span>
+        <span style="font-size:.78rem;color:#9a9188">庫存 ${p.total_qty || 0}</span>
+      </div>`).join('');
+}
+
+// ────────────────────────────────────
+// 送出建檔
+// ────────────────────────────────────
+async function submitForm() {
+  const catSel = document.getElementById('catCode');
+  const catName = catSel.options[catSel.selectedIndex]?.dataset?.name || '';
+  const name = document.getElementById('productName').value.trim();
+
+  if (!nextCode)  { toast('請先選擇類別並輸入品牌碼', 'err'); return; }
+  if (!name)      { toast('請填寫產品名稱', 'err'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '建檔中…';
+
+  const payload = {
+    product_code: nextCode,
+    product_name: name,
+    category:     catName,
+    unit:         document.getElementById('unit').value.trim() || '個',
+    created_by:   currentUser ? currentUser.name : '',
+  };
+
+  try {
+    const res  = await fetch('/api/product/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast(json.data.message || '建檔成功', 'ok');
+      resetForm();
+    } else {
+      toast(json.message || '建檔失敗', 'err');
+    }
+  } catch(e) {
+    toast('網路錯誤：' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '建檔送出';
+  }
+}
+
+function resetForm() {
+  document.getElementById('catCode').value    = '';
+  document.getElementById('brandCode').value  = '';
+  document.getElementById('productName').value = '';
+  document.getElementById('unit').value       = '個';
+  document.getElementById('codePreview').innerHTML = '請先選擇類別並輸入品牌碼';
+  nextCode = '';
+}
+
+// ────────────────────────────────────
+// 工具
+// ────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _toastTimer = null;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = 'toast'; }, 3200);
+}
+</script>
+{% endblock %}

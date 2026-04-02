@@ -95,13 +95,35 @@
 }
 .rec-table td { padding: 10px 12px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
 .rec-table tr:last-child td { border-bottom: none; }
-.del-btn {
-  padding: 3px 9px; border: 1px solid rgba(139,58,58,.3);
-  border-radius: 5px; background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer;
+.del-btn, .edit-btn {
+  padding: 3px 9px; border-radius: 5px; background: none; font-size: .72rem; cursor: pointer;
 }
+.del-btn { border: 1px solid rgba(139,58,58,.3); color: #8b3a3a; }
+.edit-btn { border: 1px solid rgba(107,95,82,.3); color: #6b5f52; margin-right: 4px; }
 .contract-yes { color: #4a7c59; font-size: .75rem; }
 .contract-no  { color: #9a9188; font-size: .75rem; }
 #recentWrap { overflow-x: auto; }
+
+/* ── 編輯 Modal ── */
+.sr-overlay {
+  display: none; position: fixed; inset: 0; z-index: 900;
+  background: rgba(44,39,32,.35); justify-content: center; align-items: center;
+}
+.sr-overlay.show { display: flex; }
+.sr-modal {
+  background: #fff; border-radius: 16px; padding: 28px 26px;
+  width: 92%; max-width: 520px; max-height: 85vh; overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(44,39,32,.18);
+}
+.sr-modal-title {
+  font-size: .95rem; font-weight: 400; color: #2c2720; margin-bottom: 18px;
+  padding-bottom: 10px; border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.sr-edit-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;
+}
+.sr-edit-full { grid-column: 1 / -1; }
+.sr-edit-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
 </style>
 {% endblock %}
 
@@ -206,11 +228,82 @@
   </div>
 
 </div>
+
+<!-- ── 編輯 Modal ── -->
+<div class="sr-overlay" id="editOverlay" onclick="if(event.target===this)closeEdit()">
+  <div class="sr-modal">
+    <div class="sr-modal-title">編輯服務記錄</div>
+    <input type="hidden" id="editId">
+    <div class="sr-edit-grid">
+      <div>
+        <div class="field-label">服務日期</div>
+        <input class="f-input" type="date" id="eDate">
+      </div>
+      <div>
+        <div class="field-label">服務類型</div>
+        <select class="f-select" id="eServiceType">
+          <option value="">請選擇</option>
+          <option value="現場維修">現場維修</option>
+          <option value="網通設定">網通設定</option>
+          <option value="施工">施工</option>
+          <option value="交機">交機</option>
+          <option value="設備問題">設備問題</option>
+          <option value="門市支援">門市支援</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">客戶名稱</div>
+        <input class="f-input" type="text" id="eCustomerName">
+      </div>
+      <div>
+        <div class="field-label">客戶來源</div>
+        <select class="f-select" id="eSource">
+          <option value="">請選擇</option>
+          <option value="業務聯絡">業務聯絡</option>
+          <option value="門市轉介">門市轉介</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">門市</div>
+        <select class="f-select" id="eStore">
+          <option value="">—</option>
+          <option value="豐原">豐原</option>
+          <option value="潭子">潭子</option>
+          <option value="大雅">大雅</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">業務員</div>
+        <input class="f-input" type="text" id="eSalesperson" readonly style="color:#9a9188;background:#eee9e0">
+      </div>
+      <div class="sr-edit-full">
+        <div class="field-label">服務內容</div>
+        <textarea class="f-textarea" id="eServiceItem"></textarea>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div class="check-row">
+          <input class="f-check" type="checkbox" id="eIsContract">
+          <label class="check-label" for="eIsContract">合約客戶</label>
+        </div>
+        <div class="check-row">
+          <input class="f-check" type="checkbox" id="eIsNew">
+          <label class="check-label" for="eIsNew">新客戶</label>
+        </div>
+      </div>
+    </div>
+    <div class="sr-edit-actions">
+      <button class="reset-btn" onclick="closeEdit()">取消</button>
+      <button class="submit-btn" onclick="saveEdit()">儲存</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 let currentUser = null;
+let srRowsMap = {};
 let custTimer   = null;
 
 /* ── 類型切換 ── */
@@ -226,7 +319,8 @@ function onTypeChange() {
 /* ── 客戶 autocomplete ── */
 async function searchCustomer() {
   const q = document.getElementById('fCustomerName').value.trim();
-  if (q.length < 1) { closeCustList(); return; }
+  const isNum = /^\d+$/.test(q);
+  if ((!isNum && q.length < 2) || (isNum && q.length < 3)) { closeCustList(); return; }
   clearTimeout(custTimer);
   custTimer = setTimeout(async () => {
     const res  = await fetch('/api/customers/search?q=' + encodeURIComponent(q));
@@ -235,12 +329,15 @@ async function searchCustomer() {
     if (!list.length) { closeCustList(); return; }
     const listEl = document.getElementById('custList');
     listEl.style.display = 'block';
-    listEl.innerHTML = list.map(c =>
-      `<div class="autocomplete-item" onclick="selectCustomer('${c.customer_id}','${(c.short_name||'').replace(/'/g,"\\'")}')">
-        <strong>${c.short_name || c.full_name}</strong>
-        <span style="font-size:.75rem;color:#9a9188;margin-left:8px">${c.customer_id}</span>
-      </div>`
-    ).join('');
+    listEl.innerHTML = list.map(c => {
+      const name = c.short_name || c.full_name || c.customer_id;
+      const mob = [c.mobile, c.phone1].find(p => p && /^09/.test(p)) || c.mobile || c.phone1 || '';
+      const sub  = [c.customer_id, mob].filter(Boolean).join(' · ');
+      return `<div class="autocomplete-item" onclick="selectCustomer('${(c.customer_id||'').replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
+        <strong>${name}</strong>
+        <span style="font-size:.75rem;color:#9a9188;margin-left:8px">${sub}</span>
+      </div>`;
+    }).join('');
   }, 200);
 }
 
@@ -337,7 +434,8 @@ async function loadRecent() {
       <th>業務員</th><th>合約</th><th>操作</th>
     </tr></thead><tbody>`;
   data.forEach(r => {
-    const canDel = r.salesperson === sp || title === '老闆';
+    srRowsMap[r.id] = r;
+    const canOp = r.salesperson === sp || title === '老闆';
     html += `<tr id="rr-${r.id}">
       <td>${r.date}</td>
       <td>${r.service_type || '—'}</td>
@@ -345,7 +443,7 @@ async function loadRecent() {
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.service_item || '—'}</td>
       <td>${r.salesperson || '—'}</td>
       <td>${r.is_contract ? '<span class="contract-yes">合約</span>' : '<span class="contract-no">—</span>'}</td>
-      <td>${canDel ? `<button class="del-btn" onclick="deleteRecord(${r.id})">刪除</button>` : ''}</td>
+      <td>${canOp ? `<button class="edit-btn" onclick="openEdit(${r.id})">編輯</button><button class="del-btn" onclick="deleteRecord(${r.id})">刪除</button>` : ''}</td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -362,14 +460,61 @@ async function deleteRecord(id) {
   }
 }
 
+/* ── 編輯功能 ── */
+function openEdit(id) {
+  const r = srRowsMap[id];
+  if (!r) return;
+  document.getElementById('editId').value        = id;
+  document.getElementById('eDate').value          = r.date || '';
+  document.getElementById('eServiceType').value   = r.service_type || '';
+  document.getElementById('eCustomerName').value  = r.customer_name || '';
+  document.getElementById('eSource').value        = r.customer_source || '';
+  document.getElementById('eStore').value         = r.store || '';
+  document.getElementById('eSalesperson').value   = r.salesperson || '';
+  document.getElementById('eServiceItem').value   = r.service_item || '';
+  document.getElementById('eIsContract').checked  = !!r.is_contract;
+  document.getElementById('eIsNew').checked       = !!r.is_new_customer;
+  document.getElementById('editOverlay').classList.add('show');
+}
+
+function closeEdit() {
+  document.getElementById('editOverlay').classList.remove('show');
+}
+
+async function saveEdit() {
+  const id = document.getElementById('editId').value;
+  const payload = {
+    date:            document.getElementById('eDate').value,
+    service_type:    document.getElementById('eServiceType').value,
+    customer_name:   document.getElementById('eCustomerName').value,
+    customer_source: document.getElementById('eSource').value,
+    store:           document.getElementById('eStore').value,
+    salesperson:     document.getElementById('eSalesperson').value,
+    service_item:    document.getElementById('eServiceItem').value,
+    is_contract:     document.getElementById('eIsContract').checked,
+    is_new_customer: document.getElementById('eIsNew').checked,
+  };
+  try {
+    const res  = await fetch('/api/service-records/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.success) { alert(data.message || '儲存失敗'); return; }
+    closeEdit();
+    loadRecent();
+  } catch (e) { alert('儲存失敗：' + e.message); }
+}
+
 /* ── 初始化 ── */
-onAppReady(user => {
+function onAppReady(user) {
   currentUser = user;
   document.getElementById('fSalesperson').value = user.name;
   // 預設今天
   document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
   onTypeChange();
   loadRecent();
-});
+}
 </script>
 {% endblock %}

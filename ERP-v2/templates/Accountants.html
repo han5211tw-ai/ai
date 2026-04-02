@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}會計專區 — COSH ERP{% endblock %}
-{% block page_title %}會計專區{% endblock %}
+{% block title %}會計 — COSH ERP{% endblock %}
+{% block page_title %}會計{% endblock %}
 
 {% block styles %}
 <style>
@@ -102,6 +102,113 @@
 }
 @keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 #tableWrap { overflow-x: auto; }
+
+/* ── 班表區塊 ── */
+.roster-header {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.roster-nav-btn {
+  width: 30px; height: 30px; border: 1px solid rgba(107,95,82,.2);
+  border-radius: 7px; background: none; cursor: pointer;
+  font-size: .9rem; color: #6b5f52; display: flex; align-items: center; justify-content: center;
+}
+.roster-nav-btn:hover { background: rgba(107,95,82,.06); }
+.roster-month-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; color: #2c2720; min-width: 90px; text-align: center;
+}
+.roster-location-label {
+  padding: 7px 18px; background: #faf7f2;
+  font-size: .7rem; color: #9a9188; letter-spacing: .1em;
+  border-bottom: 1px solid rgba(107,95,82,.08);
+}
+.roster-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.roster-table th {
+  padding: 7px 5px; text-align: center;
+  font-weight: 300; color: #9a9188; font-size: .7rem;
+  background: #faf7f2; white-space: nowrap; min-width: 28px;
+}
+.roster-table th:first-child { text-align: left; padding-left: 16px; min-width: 72px; position: sticky; left: 0; background: #faf7f2; z-index: 1; }
+.roster-table td {
+  padding: 6px 4px; text-align: center;
+  border-top: 1px solid rgba(107,95,82,.05); white-space: nowrap;
+}
+.roster-table td:first-child {
+  text-align: left; padding-left: 16px; font-size: .82rem; color: #2c2720; font-weight: 400;
+  position: sticky; left: 0; background: #fff; z-index: 1;
+}
+.roster-table tr:hover td { background: rgba(107,95,82,.025); }
+.roster-table tr:hover td:first-child { background: rgba(107,95,82,.04); }
+
+/* 班別色票 */
+.sc { display: inline-block; width: 22px; height: 22px; line-height: 22px;
+      border-radius: 5px; font-size: .72rem; font-weight: 500; }
+.sc-值 { background: rgba(58,90,138,.14); color: #3a5a8a; }
+.sc-早 { background: rgba(220,140,30,.16); color: #8a5200; }
+.sc-晚 { background: rgba(80,50,130,.13); color: #503282; }
+.sc-全 { background: rgba(46,125,70,.14); color: #2e7d46; }
+.sc-休 { background: rgba(107,95,82,.09); color: #9a9188; }
+.sc-特 { background: rgba(185,64,64,.12); color: #b94040; }
+.sc-空 { color: #d8d0c8; font-size: .65rem; }
+/* 週末欄位淡底 */
+.roster-table th.weekend { color: #b94040; }
+.roster-table td.weekend { background: rgba(185,64,64,.03); }
+/* today 欄 */
+.roster-table th.today-col { background: rgba(250,191,19,.15); color: #7a5500; }
+.roster-table td.today-col { background: rgba(250,191,19,.06); }
+
+/* ── 異常警示卡 ── */
+.anomaly-card {
+  background: #fff8f0;
+  border: 1.5px solid rgba(184,100,50,.25);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.anomaly-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 20px;
+  border-bottom: 1px solid rgba(184,100,50,.15);
+  flex-wrap: wrap; gap: 8px;
+}
+.anomaly-card-title {
+  font-size: .72rem; color: #8a3a10; letter-spacing: .1em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.anomaly-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .75rem; font-family: 'Noto Serif TC', serif;
+  background: rgba(184,100,50,.12); color: #b86432;
+}
+.anomaly-badge.ok { background: rgba(107,138,92,.12); color: #6b8a5c; }
+.anomaly-btn-refresh {
+  padding: 5px 12px; background: none; border: 1px solid rgba(184,100,50,.3);
+  border-radius: 7px; font-size: .78rem; color: #8a3a10; cursor: pointer;
+}
+.anomaly-btn-refresh:hover { background: rgba(184,100,50,.07); }
+.anomaly-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.anomaly-table th {
+  text-align: left; padding: 8px 14px; font-weight: 300;
+  color: #9a7a68; font-size: .72rem; letter-spacing: .06em;
+  background: #fff3e8; border-bottom: 1px solid rgba(184,100,50,.12);
+  white-space: nowrap;
+}
+.anomaly-table td {
+  padding: 9px 14px; border-bottom: 1px solid rgba(184,100,50,.06);
+  vertical-align: middle; color: #2c2720;
+}
+.anomaly-table tr:last-child td { border-bottom: none; }
+.anomaly-table tr:hover td { background: rgba(255,235,218,.4); }
+.anomaly-amount { font-weight: 500; color: #b86432; }
+.anomaly-code { font-family: 'Courier New', monospace; font-size: .8rem; color: #b86432; }
+.ack-btn {
+  padding: 2px 10px; font-size: .75rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid #6b8a5c; background: #f0f7ec; color: #3a5a30;
+  white-space: nowrap;
+}
+.ack-btn:hover { background: #6b8a5c; color: #fff; }
+.ack-btn:disabled { opacity: .5; cursor: not-allowed; }
 </style>
 {% endblock %}
 
@@ -138,6 +245,35 @@
   <div class="card">
     <div class="card-title">調撥需求列表</div>
     <div id="tableWrap">
+      <div class="skel" style="margin:16px"></div>
+    </div>
+  </div>
+
+  <!-- 當月班表 -->
+  <div class="card">
+    <div class="card-title">
+      <div class="roster-header">
+        <span>全員班表</span>
+        <button class="roster-nav-btn" onclick="changeMonth(-1)">‹</button>
+        <span class="roster-month-label" id="rosterMonthLabel">—</span>
+        <button class="roster-nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+    <div id="rosterWrap" style="overflow-x:auto">
+      <div class="skel" style="margin:16px"></div>
+    </div>
+  </div>
+
+  <!-- 異常警示：銷貨異常 -->
+  <div class="anomaly-card">
+    <div class="anomaly-card-header">
+      <div class="anomaly-card-title">
+        ⚠ 銷貨異常警示
+        <span class="anomaly-badge" id="anomalyBadge">載入中</span>
+      </div>
+      <button class="anomaly-btn-refresh" onclick="loadAnomalies()">重新整理</button>
+    </div>
+    <div id="anomalyWrap" style="overflow-x:auto">
       <div class="skel" style="margin:16px"></div>
     </div>
   </div>
@@ -247,6 +383,184 @@ async function doTransfer(id) {
   }
 }
 
-function onAppReady(user) { load(); }
+function onAppReady(user) {
+  load();
+  loadRoster();
+  loadAnomalies();
+}
+
+/* ══════════════════════════════════════
+   銷貨異常警示
+   ══════════════════════════════════════ */
+async function loadAnomalies() {
+  const wrap  = document.getElementById('anomalyWrap');
+  const badge = document.getElementById('anomalyBadge');
+  wrap.innerHTML = '<div style="padding:16px;color:#9a9188;font-size:.83rem">載入中…</div>';
+  try {
+    const res  = await fetch('/api/sales/anomalies?days=30&threshold=5000');
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    renderAnomalies(json.rows, badge, wrap);
+  } catch (e) {
+    wrap.innerHTML = `<div style="padding:16px;color:#b86432;font-size:.83rem">載入失敗：${e.message}</div>`;
+  }
+}
+
+async function ackAnomaly(rowId, btn) {
+  btn.disabled = true;
+  btn.textContent = '處理中…';
+  try {
+    const res = await fetch(`/api/sales/anomaly-ack/${rowId}`, { method: 'PUT' });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    const tr = btn.closest('tr');
+    tr.style.transition = 'opacity .3s';
+    tr.style.opacity = '0';
+    setTimeout(() => {
+      tr.remove();
+      const wrap  = document.getElementById('anomalyWrap');
+      const badge = document.getElementById('anomalyBadge');
+      const tbody = wrap.querySelector('tbody');
+      if (!tbody || tbody.rows.length === 0) {
+        badge.textContent = '無異常';
+        badge.className = 'anomaly-badge ok';
+        wrap.innerHTML = '<div style="padding:16px;color:#6b8a5c;font-size:.83rem">近 30 日無銷貨異常紀錄 ✓</div>';
+      } else {
+        badge.textContent = `${tbody.rows.length} 筆`;
+      }
+    }, 300);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '確認';
+    alert('確認失敗：' + e.message);
+  }
+}
+
+function renderAnomalies(rows, badge, wrap) {
+  if (!rows || !rows.length) {
+    badge.textContent = '無異常';
+    badge.className = 'anomaly-badge ok';
+    wrap.innerHTML = '<div style="padding:16px;color:#6b8a5c;font-size:.83rem">近 30 日無銷貨異常紀錄 ✓</div>';
+    return;
+  }
+  badge.textContent = `${rows.length} 筆`;
+  badge.className = 'anomaly-badge';
+  const esc = s => { const d = document.createElement('div'); d.textContent = String(s||''); return d.innerHTML; };
+  const trs = rows.map(r => `<tr>
+    <td>${esc(r.date)}</td>
+    <td><span class="anomaly-code">${esc(r.product_code)}</span></td>
+    <td>${esc(r.product_name)}</td>
+    <td style="text-align:center">${r.quantity ?? '—'}</td>
+    <td class="anomaly-amount" style="text-align:right">NT$ ${(r.amount||0).toLocaleString()}</td>
+    <td>${esc(r.salesperson)}</td>
+    <td>${esc(r.customer_name)}</td>
+    <td><button class="ack-btn" onclick="ackAnomaly(${r.id}, this)">確認</button></td>
+  </tr>`).join('');
+  wrap.innerHTML = `<table class="anomaly-table">
+    <thead><tr>
+      <th>日期</th><th>品號</th><th>品名</th>
+      <th style="text-align:center">數量</th>
+      <th style="text-align:right">金額</th>
+      <th>業務</th><th>客戶</th><th></th>
+    </tr></thead>
+    <tbody>${trs}</tbody>
+  </table>`;
+}
+
+/* ══════════════════════════════════════
+   當月班表
+   ══════════════════════════════════════ */
+let rosterYear  = new Date().getFullYear();
+let rosterMonth = new Date().getMonth() + 1;
+
+const WEEKDAY_ZH = ['日','一','二','三','四','五','六'];
+
+function changeMonth(delta) {
+  rosterMonth += delta;
+  if (rosterMonth > 12) { rosterMonth = 1;  rosterYear++; }
+  if (rosterMonth < 1)  { rosterMonth = 12; rosterYear--; }
+  loadRoster();
+}
+
+async function loadRoster() {
+  const wrap = document.getElementById('rosterWrap');
+  const label = document.getElementById('rosterMonthLabel');
+  wrap.innerHTML = '<div class="skel" style="margin:16px"></div>';
+  label.textContent = `${rosterYear} 年 ${rosterMonth} 月`;
+
+  const res  = await fetch(`/api/roster/monthly?year=${rosterYear}&month=${rosterMonth}`);
+  const json = await res.json();
+  if (!json.success) { wrap.innerHTML = '<div style="padding:20px;color:#9a9188">載入失敗</div>'; return; }
+
+  const roster    = json.roster || {};     // { "2026-04-01": [{staff_name, location, shift_code}] }
+  const today     = new Date();
+  const todayStr  = today.toISOString().slice(0,10);
+
+  // 計算本月天數
+  const daysInMonth = new Date(rosterYear, rosterMonth, 0).getDate();
+
+  // 整理成 { staff_name: { location, shifts: {1: 'sc', 2: 'sc', ...} } }
+  const staffMap = {};
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${rosterYear}-${String(rosterMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const entries = roster[dateStr] || [];
+    entries.forEach(e => {
+      if (!staffMap[e.staff_name]) staffMap[e.staff_name] = { location: e.location, shifts: {} };
+      staffMap[e.staff_name].shifts[d] = e.shift_code;
+    });
+  }
+
+  if (!Object.keys(staffMap).length) {
+    wrap.innerHTML = '<div style="padding:24px;text-align:center;color:#9a9188;font-size:.85rem">本月尚無班表資料</div>';
+    return;
+  }
+
+  // 依門市分組
+  const byLocation = {};
+  Object.entries(staffMap).forEach(([name, data]) => {
+    const loc = data.location || '未指定';
+    if (!byLocation[loc]) byLocation[loc] = [];
+    byLocation[loc].push({ name, shifts: data.shifts });
+  });
+
+  // 建立欄標頭（日 + 星期）
+  const dayHeaders = Array.from({length: daysInMonth}, (_, i) => {
+    const d = i + 1;
+    const dow = new Date(rosterYear, rosterMonth - 1, d).getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const isToday   = `${rosterYear}-${String(rosterMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}` === todayStr;
+    const cls = isToday ? 'today-col' : (isWeekend ? 'weekend' : '');
+    return { d, dow, cls };
+  });
+
+  const thCols = dayHeaders.map(h =>
+    `<th class="${h.cls}">${h.d}<br><span style="font-size:.62rem">${WEEKDAY_ZH[h.dow]}</span></th>`
+  ).join('');
+
+  let html = '';
+  Object.entries(byLocation).sort(([a],[b]) => a.localeCompare(b, 'zh-TW')).forEach(([loc, staff]) => {
+    html += `<div class="roster-location-label">${loc}</div>
+    <table class="roster-table">
+      <thead><tr>
+        <th>姓名</th>${thCols}
+      </tr></thead><tbody>`;
+
+    staff.forEach(s => {
+      const cells = dayHeaders.map(h => {
+        const sc = s.shifts[h.d] || '';
+        const cellCls = h.cls;
+        const inner = sc
+          ? `<span class="sc sc-${sc}">${sc}</span>`
+          : `<span class="sc sc-空">·</span>`;
+        return `<td class="${cellCls}">${inner}</td>`;
+      }).join('');
+      html += `<tr><td>${s.name}</td>${cells}</tr>`;
+    });
+
+    html += '</tbody></table>';
+  });
+
+  wrap.innerHTML = html;
+}
 </script>
 {% endblock %}

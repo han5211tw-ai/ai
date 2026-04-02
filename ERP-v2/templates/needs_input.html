@@ -267,20 +267,17 @@
   flex-wrap: wrap;
 }
 .btn-submit {
-  padding: 12px 36px;
+  padding: 10px 26px;
   background: #2c2720;
   color: #f5f0e8;
   border: none;
-  border-radius: 999px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: .82rem;
   font-family: 'Noto Serif TC', serif;
-  font-weight: 300;
-  letter-spacing: .08em;
+  letter-spacing: .06em;
   cursor: pointer;
-  transition: opacity .2s, transform .2s;
 }
-.btn-submit:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
-.btn-submit:disabled { opacity: .45; cursor: not-allowed; }
+.btn-submit:disabled { opacity: .5; cursor: default; }
 
 /* ── 近期提交 ─────────────────────────── */
 .recent-list { display: flex; flex-direction: column; gap: 10px; }
@@ -648,7 +645,7 @@
 // 全域狀態
 // ────────────────────────────────────
 let currentUser = null;
-let selectedCustomer = null;   // { id, name }
+let selectedCustomer = null;   // { id, name, mobile, isNew }
 let histPage = 1;
 let customerTimer = null;
 const ROWS_DEFAULT = 5;
@@ -700,7 +697,7 @@ function updateTransferOptions() {
   if (!currentUser) return;
   const dept = currentUser.department || '';
   const sel = document.getElementById('transferFrom');
-  const all = ['豐原門市', '潭子門市', '大雅門市'];
+  const all = ['豐原門市', '潭子門市', '大雅門市', '總公司倉庫'];
   sel.innerHTML = '<option value="">選擇來源門市</option>';
   all.forEach(store => {
     if (store !== dept) {
@@ -717,8 +714,10 @@ function updateTransferOptions() {
 let custDebounce = null;
 function onCustomerSearch(val) {
   clearTimeout(custDebounce);
-  if (val.length < 1) { closeDropdown('customerDropdown'); return; }
-  custDebounce = setTimeout(() => doCustomerSearch(val), 300);
+  const q = val.trim();
+  const isNum = /^\d+$/.test(q);
+  if ((!isNum && q.length < 2) || (isNum && q.length < 3)) { closeDropdown('customerDropdown'); return; }
+  custDebounce = setTimeout(() => doCustomerSearch(q), 300);
 }
 
 async function doCustomerSearch(q) {
@@ -729,7 +728,7 @@ async function doCustomerSearch(q) {
   dd.innerHTML = json.data.map(c => `
     <div class="ac-item" onclick="selectCustomer('${c.customer_id}','${escHtml(c.short_name || c.full_name)}')">
       <div>${escHtml(c.short_name || c.full_name)}</div>
-      <div class="ac-sub">${c.customer_id}${c.mobile ? ' · ' + c.mobile : ''}</div>
+      <div class="ac-sub">${c.customer_id}${(() => { const mob = [c.mobile, c.phone1].find(p => p && /^09/.test(p)) || c.mobile || c.phone1 || ''; return mob ? ' · ' + mob : ''; })()}</div>
     </div>`).join('');
   dd.classList.add('show');
 }
@@ -769,9 +768,9 @@ function confirmNewCustomer() {
   const name = document.getElementById('newCustName').value.trim();
   if (!name) { toast('請輸入客戶姓名', 'error'); return; }
   const mobile = document.getElementById('newCustMobile').value.trim();
-  const ts = Date.now().toString().slice(-8);
-  const tempId = `TEMP-C-${ts}`;
-  selectCustomer(tempId, name);
+  selectedCustomer = { id: '', name, mobile, isNew: true };
+  document.getElementById('selectedCustomerText').textContent = `${name}（新客戶）${mobile ? ' ' + mobile : ''}`;
+  document.getElementById('selectedCustomer').classList.add('show');
   closeNewCustomerModal();
   toast('暫存客戶已建立', 'success');
 }
@@ -846,20 +845,33 @@ function onNameInput(id, val) {
 }
 
 async function fetchProductAc(id, field, q) {
-  const res = await fetch(`/api/products/search?q=${encodeURIComponent(q)}`);
+  const res  = await fetch(`/api/products/search?q=${encodeURIComponent(q)}`);
   const json = await res.json();
   const acId = field === 'code' ? `codeAc-${id}` : `nameAc-${id}`;
-  const ac = document.getElementById(acId);
-  if (!json.success || !json.data.length) { closeAc(acId); return; }
-  ac.innerHTML = json.data.map(p => `
-    <div class="ac-item" onclick="fillProduct(${id},'${escHtml(p.product_code)}','${escHtml(p.product_name)}')">
-      <span style="color:#6b5f52;font-size:.82rem">${escHtml(p.product_code)}</span>
-      <span style="margin-left:8px">${escHtml(p.product_name)}</span>
-    </div>`).join('');
+  const ac   = document.getElementById(acId);
+  // API 直接回傳陣列
+  const list = Array.isArray(json) ? json : (json.data || []);
+  if (!list.length) { closeAc(acId); return; }
+  ac.innerHTML = list.map(p => {
+    const qty = Number(p.total_qty) || 0;
+    const qtyTag = qty > 0
+      ? `<span style="margin-left:auto;font-size:.75rem;color:#5a9a6a">庫存 ${qty}</span>`
+      : `<span style="margin-left:auto;font-size:.75rem;color:#b8b0a8">零庫存</span>`;
+    return `
+    <div class="ac-item" style="display:flex;align-items:center;gap:6px"
+         onclick="fillProduct(${id},'${escHtml(p.product_code)}','${escHtml(p.product_name || p.item_spec || '')}')">
+      <span style="color:#6b5f52;font-size:.82rem;white-space:nowrap">${escHtml(p.product_code)}</span>
+      <span style="flex:1">${escHtml(p.product_name || p.item_spec || '')}</span>
+      ${qtyTag}
+    </div>`;
+  }).join('');
   ac.classList.add('show');
 }
 
 function fillProduct(id, code, name) {
+  // 取消尚未觸發的防抖計時器，避免舊的 partial code 蓋過正確庫存
+  clearTimeout(codeTimers[id]);
+  clearTimeout(nameTimers[id]);
   document.getElementById(`code-${id}`).value = code;
   document.getElementById(`name-${id}`).value = name;
   closeAc(`codeAc-${id}`);
@@ -869,12 +881,15 @@ function fillProduct(id, code, name) {
 
 async function fetchStock(id, code) {
   const el = document.getElementById(`stock-${id}`);
-  if (!code || document.getElementById(`newProd-${id}`).checked) { el.textContent=''; return; }
-  const res = await fetch(`/api/inventory/product/${encodeURIComponent(code)}`);
+  if (!code || document.getElementById(`newProd-${id}`).checked) { el.innerHTML = ''; return; }
+  const res  = await fetch(`/api/inventory/product/${encodeURIComponent(code)}`);
   const json = await res.json();
-  if (!json.success || !json.data.length) { el.textContent = '庫存：查無'; return; }
-  const parts = json.data.map(r => `${r.warehouse} ${r.quantity}`).join(' · ');
-  el.innerHTML = `<span class="stock-ok">庫存：${parts}</span>`;
+  const list = json.success ? (json.data || []) : [];
+  if (!list.length) { el.innerHTML = '<span style="color:#a0763a;font-size:.75rem">庫存：查無</span>'; return; }
+  const parts = list.map(r =>
+    `<span style="white-space:nowrap">${r.warehouse} <strong>${r.quantity}</strong></span>`
+  ).join('<span style="color:#ccc;margin:0 4px">·</span>');
+  el.innerHTML = `<span class="stock-ok" style="font-size:.75rem;display:flex;flex-wrap:wrap;gap:2px;align-items:center">庫存：${parts}</span>`;
 }
 
 function onNewProdCheck(id) {
@@ -950,6 +965,9 @@ async function submitForm() {
       requester:     currentUser.name,
       department:    dept,
       customer_code: selectedCustomer ? selectedCustomer.id : '',
+      customer_name: selectedCustomer ? selectedCustomer.name : '',
+      customer_mobile: selectedCustomer ? (selectedCustomer.mobile || '') : '',
+      is_new_customer: selectedCustomer ? !!selectedCustomer.isNew : false,
       transfer_from: document.getElementById('transferFrom').value || '',
     },
     items

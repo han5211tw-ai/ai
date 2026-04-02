@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}稅務統計 — COSH ERP{% endblock %}
+{% block page_title %}稅務統計{% endblock %}
+
+{% block styles %}
+<style>
+.controls { display:flex; gap:.8rem; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; }
+.controls select { padding:.4rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.88rem; }
+.data-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.data-table th, .data-table td { padding:.6rem .8rem; border-bottom:1px solid var(--border); text-align:right; }
+.data-table th { font-weight:400; color:#888; font-size:.8rem; }
+.data-table td:first-child, .data-table th:first-child { text-align:left; }
+.data-table tfoot td { font-weight:bold; border-top:2px solid var(--border); }
+.chart-area { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin-bottom:1.5rem; }
+.bar-chart { display:flex; align-items:flex-end; gap:.4rem; height:180px; }
+.bar-item { display:flex; flex-direction:column; align-items:center; flex:1; }
+.bar-fill { width:100%; max-width:50px; border-radius:4px 4px 0 0; min-height:2px; }
+.bar-fill.sales { background:#2c2720; opacity:.7; }
+.bar-fill.tax { background:#c0392b; opacity:.7; }
+.bar-label { font-size:.72rem; color:#888; margin-top:.3rem; }
+.bar-value { font-size:.7rem; font-family:'Cormorant Garamond',serif; }
+.legend { display:flex; gap:1rem; margin-bottom:.8rem; font-size:.82rem; }
+.legend span::before { content:''; display:inline-block; width:12px; height:12px; border-radius:2px; margin-right:.4rem; vertical-align:middle; }
+.legend .l-sales::before { background:#2c2720; opacity:.7; }
+.legend .l-tax::before { background:#c0392b; opacity:.7; }
+.note { font-size:.8rem; color:#888; margin-top:1rem; }
+.empty-msg { text-align:center; color:#999; padding:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="controls">
+  <label>年度</label>
+  <select id="taxYear" onchange="loadTax()"></select>
+</div>
+
+<div class="legend"><span class="l-sales">銷售額</span><span class="l-tax">稅額</span></div>
+<div class="chart-area"><div class="bar-chart" id="taxChart"></div></div>
+
+<table class="data-table">
+  <thead><tr><th>月份</th><th>銷售額（含稅）</th><th>稅額（5%）</th><th>未稅銷售額</th></tr></thead>
+  <tbody id="dataBody"><tr><td colspan="4" class="empty-msg">載入中…</td></tr></tbody>
+  <tfoot id="dataFoot"></tfoot>
+</table>
+
+<div class="note">* 稅額以含稅銷售額 × 5/105 推算（營業稅內含計算）</div>
+
+<script>
+function onAppReady(user) {
+  if (!['老闆','會計'].includes(user.title)) { window.location.href = '/'; return; }
+  const sel = document.getElementById('taxYear');
+  const thisYear = new Date().getFullYear();
+  for (let y = thisYear; y >= thisYear - 3; y--) {
+    const o = document.createElement('option'); o.value = y; o.textContent = y + '年'; sel.appendChild(o);
+  }
+  loadTax();
+}
+
+async function loadTax() {
+  const year = document.getElementById('taxYear').value;
+  const res = await fetch('/api/finance/tax?year=' + year);
+  const j = await res.json();
+  const body = document.getElementById('dataBody');
+  const foot = document.getElementById('dataFoot');
+  if (!j.success || !j.data.length) {
+    body.innerHTML = '<tr><td colspan="4" class="empty-msg">無資料</td></tr>';
+    foot.innerHTML = '';
+    document.getElementById('taxChart').innerHTML = '<div style="text-align:center;color:#999;width:100%;padding:2rem;">無銷貨資料</div>';
+    return;
+  }
+
+  const fmt = v => '$' + Math.round(v).toLocaleString();
+  let totalSales = 0, totalTax = 0;
+  j.data.forEach(r => { totalSales += r.sales_amount; totalTax += r.tax_amount; });
+
+  body.innerHTML = j.data.map(r => `<tr>
+    <td>${r.month}</td>
+    <td>${fmt(r.sales_amount)}</td>
+    <td>${fmt(r.tax_amount)}</td>
+    <td>${fmt(r.sales_amount - r.tax_amount)}</td>
+  </tr>`).join('');
+
+  foot.innerHTML = `<tr><td>合計</td><td>${fmt(totalSales)}</td><td>${fmt(totalTax)}</td><td>${fmt(totalSales - totalTax)}</td></tr>`;
+
+  // Chart
+  const maxVal = Math.max(...j.data.map(r => r.sales_amount), 1);
+  document.getElementById('taxChart').innerHTML = j.data.map(r => {
+    const h1 = Math.max(2, (r.sales_amount / maxVal) * 150);
+    const h2 = Math.max(2, (r.tax_amount / maxVal) * 150);
+    return `<div class="bar-item" style="gap:2px;">
+      <div class="bar-value">${fmt(r.sales_amount)}</div>
+      <div style="display:flex;gap:2px;align-items:flex-end;">
+        <div class="bar-fill sales" style="height:${h1}px;width:22px;"></div>
+        <div class="bar-fill tax" style="height:${h2}px;width:22px;"></div>
+      </div>
+      <div class="bar-label">${r.month.slice(5)}</div>
+    </div>`;
+  }).join('');
+}
+</script>
+{% endblock %}

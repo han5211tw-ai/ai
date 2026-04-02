@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% block title %}關鍵貢獻填報 — COSH ERP{% endblock %}
+{% block page_title %}關鍵貢獻填報{% endblock %}
+
+{% block styles %}
+<style>
+.contrib-layout { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+
+/* ── 說明欄 ── */
+.info-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 16px 24px;
+  font-size: .82rem; color: #6b5f52; line-height: 1.8;
+}
+.info-card strong { color: #2c2720; }
+.info-rule { margin-top: 8px; padding-left: 16px; }
+.info-rule li { margin-bottom: 3px; }
+.team-cats { margin-top: 4px; padding-left: 16px; color: #3a6e4a; }
+.team-cats li { margin-bottom: 2px; }
+
+/* ── 控制列 ── */
+.ctrl-bar {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+.ctrl-bar label { font-size: .8rem; color: #9a9188; margin-right: 4px; }
+.ctrl-select {
+  padding: 8px 14px; border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px; font-size: .86rem;
+  font-family: 'Noto Serif TC', serif; background: #f5f0e8; color: #2c2720; outline: none;
+}
+.ctrl-select:focus { border-color: #6b5f52; }
+
+/* ── 提交表單 ── */
+.submit-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px; overflow: hidden;
+}
+.submit-card-title {
+  padding: 12px 20px; font-size: .72rem; color: #9a9188;
+  letter-spacing: .12em; text-transform: uppercase;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.submit-form { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.form-row { display: flex; flex-direction: column; gap: 6px; }
+.form-row label { font-size: .82rem; color: #9a9188; letter-spacing: .04em; }
+.form-input, .form-select, .form-textarea {
+  padding: 10px 14px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px; font-size: .86rem;
+  font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12);
+  background: #fff;
+}
+.form-textarea { min-height: 80px; resize: vertical; }
+.upload-zone {
+  border: 1.5px dashed rgba(107,95,82,.25);
+  border-radius: 10px; padding: 18px;
+  text-align: center; cursor: pointer;
+  font-size: .82rem; color: #9a9188;
+  transition: border-color .15s, background .15s;
+}
+.upload-zone:hover { border-color: #6b5f52; background: #faf7f2; }
+.upload-zone.has-file { border-color: #3a6e4a; background: rgba(58,110,74,.04); color: #2e7d46; }
+.upload-preview { max-width: 100%; max-height: 140px; margin-top: 8px; border-radius: 6px; }
+.submit-btn {
+  padding: 10px 26px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  letter-spacing: .06em; cursor: pointer; align-self: flex-start;
+}
+.submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── 已提交列表 ── */
+.list-card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 14px; overflow: hidden;
+}
+.list-card-title {
+  padding: 12px 20px; font-size: .72rem; color: #9a9188;
+  letter-spacing: .12em; text-transform: uppercase;
+  border-bottom: 1px solid rgba(107,95,82,.1);
+}
+.item-row {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(107,95,82,.06);
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.item-row:last-child { border-bottom: none; }
+.item-num {
+  width: 26px; height: 26px; line-height: 26px;
+  border-radius: 50%; background: rgba(107,95,82,.1);
+  text-align: center; font-size: .78rem; flex-shrink: 0;
+  color: #6b5f52; font-family: 'Cormorant Garamond', serif;
+}
+.item-body { flex: 1; min-width: 0; }
+.item-desc { font-size: .86rem; color: #2c2720; margin-bottom: 4px; }
+.item-meta { font-size: .74rem; color: #9a9188; display: flex; gap: 10px; flex-wrap: wrap; }
+.status-tag {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .72rem; letter-spacing: .04em;
+}
+.st-pending  { background: rgba(250,191,19,.15); color: #8a6800; }
+.st-approved { background: rgba(46,125,70,.12); color: #2e7d46; }
+.st-rejected { background: rgba(185,64,64,.1); color: #b94040; }
+.item-score {
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: #2e7d46;
+  flex-shrink: 0; text-align: right; min-width: 44px;
+}
+.del-btn {
+  background: none; border: none; cursor: pointer;
+  color: #c09090; font-size: .8rem; padding: 4px 8px;
+  border-radius: 8px; font-family: 'Noto Serif TC', serif;
+}
+.del-btn:hover { color: #b94040; background: rgba(185,64,64,.07); }
+.evidence-thumb {
+  width: 48px; height: 48px; object-fit: cover;
+  border-radius: 6px; border: 1px solid rgba(107,95,82,.15);
+  flex-shrink: 0; cursor: pointer;
+}
+.empty-list { padding: 28px; text-align: center; font-size: .84rem; color: #b8b0a8; }
+.score-summary {
+  padding: 12px 20px;
+  background: #faf7f2;
+  border-top: 1px solid rgba(107,95,82,.1);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: .82rem; color: #6b5f52;
+}
+.score-total {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; color: #2c2720;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="contrib-layout">
+
+  <!-- 說明 -->
+  <div class="info-card">
+    <strong>關鍵貢獻舉證表規則</strong>：每季最多提出 3 項，每項 5 分，滿分 15 分。
+    <ul class="info-rule">
+      <li>每項需附照片或紀錄佐證，由主管判斷是否屬實後核准計分。</li>
+      <li><strong>團隊合作條款</strong>：若沒有任何一項屬於以下類別，本項最高僅得 10 分：</li>
+    </ul>
+    <ul class="team-cats">
+      <li>指導新人或分享專業技巧</li>
+      <li>跨分店/部門支援（主管指派或經主管同意）</li>
+      <li>SOP改善提案被採納</li>
+      <li>客戶轉介給同事</li>
+    </ul>
+  </div>
+
+  <!-- 期別選擇 -->
+  <div class="ctrl-bar">
+    <div>
+      <label>年度</label>
+      <select class="ctrl-select" id="selYear" onchange="loadMyItems()"></select>
+    </div>
+    <div>
+      <label>季度</label>
+      <select class="ctrl-select" id="selQuarter" onchange="loadMyItems()">
+        <option value="1">Q1（1–3月）</option>
+        <option value="2">Q2（4–6月）</option>
+        <option value="3">Q3（7–9月）</option>
+        <option value="4">Q4（10–12月）</option>
+      </select>
+    </div>
+    <span id="itemCountBadge" style="font-size:.78rem;color:#9a9188;"></span>
+  </div>
+
+  <!-- 提交表單 -->
+  <div class="submit-card" id="submitCard">
+    <div class="submit-card-title">新增貢獻項目</div>
+    <div class="submit-form">
+      <div class="form-row">
+        <label>貢獻類別 <span style="color:#b94040">*</span></label>
+        <select class="form-select" id="fCategory">
+          <option value="">── 請選擇 ──</option>
+          <optgroup label="✦ 團隊合作類（有助於達到滿分）">
+            <option value="指導新人或分享專業技巧">指導新人或分享專業技巧</option>
+            <option value="跨分店/部門支援">跨分店/部門支援（主管指派或經主管同意）</option>
+            <option value="SOP改善提案">SOP改善提案被採納</option>
+            <option value="客戶轉介給同事">客戶轉介給同事</option>
+          </optgroup>
+          <optgroup label="一般貢獻">
+            <option value="服務品質提升">服務品質提升</option>
+            <option value="業績突破">業績突破</option>
+            <option value="客戶開發">客戶開發</option>
+            <option value="流程改善">流程改善</option>
+            <option value="其他">其他</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>貢獻說明 <span style="color:#b94040">*</span>（具體描述做了什麼、結果為何）</label>
+        <textarea class="form-textarea" id="fDescription" placeholder="例：協助潭子店處理電腦重灌，完成 3 台，節省客戶等待時間約 2 小時…"></textarea>
+      </div>
+      <div class="form-row">
+        <label>佐證照片／紀錄（選填，建議附上）</label>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div id="uploadHint">📎 點擊或拖曳上傳圖片（JPG / PNG / PDF）</div>
+          <img id="uploadPreview" class="upload-preview" style="display:none">
+        </div>
+        <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" onchange="handleFileSelect(this)">
+      </div>
+      <button class="submit-btn" id="submitBtn" onclick="submitItem()">提交</button>
+    </div>
+  </div>
+
+  <!-- 已提交清單 -->
+  <div class="list-card">
+    <div class="list-card-title">本季已提交項目</div>
+    <div id="itemList"><div style="padding:24px; text-align:center; color:#b8b0a8; font-size:.84rem">載入中…</div></div>
+  </div>
+
+</div>
+
+<!-- 大圖預覽 modal -->
+<div id="imgModal" onclick="this.style.display='none'"
+  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999;
+  display:none; align-items:center; justify-content:center; cursor:zoom-out;">
+  <img id="imgModalSrc" style="max-width:90vw; max-height:88vh; border-radius:10px; box-shadow:0 8px 40px rgba(0,0,0,.5);">
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let uploadedUrl  = '';
+
+function onAppReady(user) {
+  currentUser = user;
+  // 初始化年份選單
+  const year = new Date().getFullYear();
+  const sel  = document.getElementById('selYear');
+  for (let y = year; y >= year - 2; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y + ' 年';
+    sel.appendChild(o);
+  }
+  // 預設當季
+  const q = Math.ceil((new Date().getMonth() + 1) / 3);
+  document.getElementById('selQuarter').value = q;
+  loadMyItems();
+}
+
+/* ── 載入本人本季項目 ── */
+async function loadMyItems() {
+  const year    = document.getElementById('selYear').value;
+  const quarter = document.getElementById('selQuarter').value;
+  const res  = await fetch(`/api/kpi/contributions?year=${year}&quarter=${quarter}&staff_name=${encodeURIComponent(currentUser.name)}`);
+  const json = await res.json();
+  const items = json.items || [];
+
+  // 更新提交表單可見性（已有 3 項就隱藏）
+  const active = items.filter(i => i.status !== 'rejected');
+  document.getElementById('submitCard').style.display = active.length >= 3 ? 'none' : 'block';
+  document.getElementById('itemCountBadge').textContent =
+    `本季已提交 ${active.length} / 3 項`;
+
+  renderItems(items);
+}
+
+/* ── 渲染清單 ── */
+function renderItems(items) {
+  const container = document.getElementById('itemList');
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-list">本季尚未提交任何貢獻項目</div>';
+    return;
+  }
+
+  let approved_total = 0;
+  let has_team = false;
+  const TEAM_CATS = new Set(['指導新人或分享專業技巧','跨分店/部門支援','SOP改善提案','客戶轉介給同事']);
+
+  let html = '';
+  items.forEach((item, idx) => {
+    const stCls  = item.status === 'approved' ? 'st-approved'
+                 : item.status === 'rejected' ? 'st-rejected' : 'st-pending';
+    const stLbl  = item.status === 'approved' ? '已核准'
+                 : item.status === 'rejected' ? '未通過' : '待審核';
+    const scoreHtml = item.status === 'approved'
+      ? `<div class="item-score">+${item.score || 5} 分</div>` : '';
+    const delBtn = item.status === 'pending'
+      ? `<button class="del-btn" onclick="deleteItem(${item.id})" title="刪除">✕</button>` : '';
+    const thumbHtml = item.evidence_url
+      ? `<img src="${esc(item.evidence_url)}" class="evidence-thumb"
+             onclick="openImg('${esc(item.evidence_url)}')" alt="佐證">`
+      : '';
+    const reviewMeta = item.reviewed_by
+      ? ` · 審核：${esc(item.reviewed_by)} ${(item.reviewed_at||'').substring(0,10)}` : '';
+
+    if (item.status === 'approved') {
+      approved_total += (item.score || 5);
+      if (TEAM_CATS.has(item.category)) has_team = true;
+    }
+
+    html += `<div class="item-row">
+      <div class="item-num">${idx + 1}</div>
+      ${thumbHtml}
+      <div class="item-body">
+        <div class="item-desc">${esc(item.description)}</div>
+        <div class="item-meta">
+          <span>${esc(item.category)}</span>
+          <span class="status-tag ${stCls}">${stLbl}</span>
+          <span>${(item.created_at||'').substring(0,10)}</span>
+          ${reviewMeta}
+        </div>
+      </div>
+      ${scoreHtml}
+      ${delBtn}
+    </div>`;
+  });
+
+  // 計算預估分數
+  let estimated = approved_total;
+  if (!has_team && estimated > 10) estimated = 10;
+  estimated = Math.min(15, estimated);
+  const pending_count = items.filter(i => i.status === 'pending').length;
+  const note = pending_count ? `（另有 ${pending_count} 項待審核）` : '';
+
+  html += `<div class="score-summary">
+    <span>核准後估計 KPI⑤ 分數 ${note}</span>
+    <span class="score-total">${estimated.toFixed(1)} 分</span>
+  </div>`;
+
+  container.innerHTML = html;
+}
+
+/* ── 上傳照片 ── */
+async function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const zone = document.getElementById('uploadZone');
+  const hint = document.getElementById('uploadHint');
+  const prev = document.getElementById('uploadPreview');
+  hint.textContent = '上傳中…';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  const res  = await fetch('/api/kpi/contribution/upload', { method: 'POST', body: fd });
+  const json = await res.json();
+
+  if (json.success) {
+    uploadedUrl = json.data.url;
+    zone.classList.add('has-file');
+    hint.textContent = '✓ ' + file.name;
+    if (file.type.startsWith('image/')) {
+      prev.src = uploadedUrl;
+      prev.style.display = 'block';
+    }
+  } else {
+    hint.textContent = '上傳失敗：' + (json.message || '');
+    uploadedUrl = '';
+  }
+}
+
+/* 拖曳上傳 */
+const zone = document.getElementById('uploadZone');
+if (zone) {
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor='#6b5f52'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor=''; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.style.borderColor='';
+    const dt = e.dataTransfer; if (dt.files.length) { document.getElementById('fileInput').files = dt.files; handleFileSelect(document.getElementById('fileInput')); }
+  });
+}
+
+/* ── 提交 ── */
+async function submitItem() {
+  const category    = document.getElementById('fCategory').value;
+  const description = document.getElementById('fDescription').value.trim();
+  if (!category)    { alert('請選擇貢獻類別'); return; }
+  if (!description) { alert('請填寫貢獻說明'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '提交中…';
+
+  const year    = document.getElementById('selYear').value;
+  const quarter = document.getElementById('selQuarter').value;
+
+  const res  = await fetch('/api/kpi/contribution/submit', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      staff_name: currentUser.name, year: parseInt(year), quarter: parseInt(quarter),
+      description, category, evidence_url: uploadedUrl,
+    }),
+  });
+  const json = await res.json();
+  btn.disabled = false; btn.textContent = '提交';
+
+  if (json.success) {
+    // 重設表單
+    document.getElementById('fCategory').value = '';
+    document.getElementById('fDescription').value = '';
+    document.getElementById('uploadHint').textContent = '📎 點擊或拖曳上傳圖片（JPG / PNG / PDF）';
+    document.getElementById('uploadPreview').style.display = 'none';
+    document.getElementById('uploadZone').classList.remove('has-file');
+    document.getElementById('fileInput').value = '';
+    uploadedUrl = '';
+    loadMyItems();
+  } else {
+    alert('提交失敗：' + (json.message || '未知錯誤'));
+  }
+}
+
+/* ── 刪除 ── */
+async function deleteItem(id) {
+  if (!confirm('確定要刪除此貢獻項目？')) return;
+  const res  = await fetch('/api/kpi/contribution/delete', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id, staff_name: currentUser.name }),
+  });
+  const json = await res.json();
+  if (json.success) loadMyItems();
+  else alert('刪除失敗：' + (json.message || ''));
+}
+
+/* ── 大圖 ── */
+function openImg(url) {
+  const m = document.getElementById('imgModal');
+  document.getElementById('imgModalSrc').src = url;
+  m.style.display = 'flex';
+}
+
+/* ── 工具 ── */
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+{% endblock %}
