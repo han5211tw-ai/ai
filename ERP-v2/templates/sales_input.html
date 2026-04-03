@@ -301,13 +301,30 @@
       <div class="form-grid" style="margin-bottom:16px">
 
         <div>
-          <div class="field-label required">日期</div>
-          <input class="f-input" type="date" id="fDate">
+          <div class="field-label required">出貨倉庫</div>
+          <select class="f-select" id="fWarehouse" onchange="genSalesNo()">
+            <option value="豐原門市">豐原門市</option>
+            <option value="潭子門市">潭子門市</option>
+            <option value="大雅門市">大雅門市</option>
+            <option value="業務部">業務部</option>
+            <option value="總公司倉庫">總公司倉庫</option>
+          </select>
         </div>
 
         <div>
-          <div class="field-label required">發票號碼</div>
-          <input class="f-input" type="text" id="fInvoice" placeholder="例：EK12345678" maxlength="20">
+          <div class="field-label required">日期</div>
+          <input class="f-input" type="date" id="fDate" onchange="genSalesNo()">
+        </div>
+
+        <div>
+          <div class="field-label required">銷貨單號</div>
+          <input class="f-input f-readonly" type="text" id="fSalesNo" readonly
+                 style="font-weight:600;color:#5a3e28;background:#f5f0eb">
+        </div>
+
+        <div>
+          <div class="field-label">發票號碼</div>
+          <input class="f-input" type="text" id="fInvoice" placeholder="例：EK12345678（選填）" maxlength="20">
         </div>
 
         <div>
@@ -324,18 +341,6 @@
             <option value="刷卡">刷卡</option>
             <option value="月結">月結</option>
             <option value="申辦分期">申辦分期</option>
-          </select>
-        </div>
-
-        <div>
-          <div class="field-label">出貨倉庫</div>
-          <select class="f-select" id="fWarehouse">
-            <option value="">請選擇</option>
-            <option value="豐原門市">豐原門市</option>
-            <option value="潭子門市">潭子門市</option>
-            <option value="大雅門市">大雅門市</option>
-            <option value="業務部">業務部</option>
-            <option value="總公司倉庫">總公司倉庫</option>
           </select>
         </div>
 
@@ -416,6 +421,7 @@
       <table class="list-table">
         <thead id="listThead">
           <tr>
+            <th>單號</th>
             <th>日期</th>
             <th>客戶</th>
             <th>業務員</th>
@@ -426,7 +432,7 @@
           </tr>
         </thead>
         <tbody id="listBody">
-          <tr><td colspan="7" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
         </tbody>
       </table>
     </div>
@@ -728,11 +734,28 @@ document.addEventListener('click', e => {
   }
 });
 
+/* ── 自動產生銷貨單號 ── */
+async function genSalesNo() {
+  const warehouse = document.getElementById('fWarehouse').value;
+  const date      = document.getElementById('fDate').value;
+  if (!date) return;
+  try {
+    const res = await fetch(`/api/sales/next-invoice-no?warehouse=${encodeURIComponent(warehouse)}&date=${date}`);
+    const d   = await res.json();
+    if (d.success) {
+      document.getElementById('fSalesNo').value = d.invoice_no;
+    }
+  } catch (e) {
+    console.warn('產生銷貨單號失敗', e);
+  }
+}
+
 /* ── 提交 ── */
 async function submitSale() {
   const date     = document.getElementById('fDate').value;
+  const salesNo  = document.getElementById('fSalesNo').value.trim();
   const invoice  = document.getElementById('fInvoice').value.trim();
-  if (!date || !invoice) { showMsg('日期與發票號碼為必填', false); return; }
+  if (!date || !salesNo) { showMsg('日期與銷貨單號為必填（請先選擇出貨倉庫）', false); return; }
 
   const items = [];
   let hasError = false;
@@ -754,7 +777,9 @@ async function submitSale() {
   btn.disabled = true;
 
   const payload = {
-    date, invoice_no: invoice,
+    date,
+    sales_invoice_no: salesNo,
+    invoice_no: invoice,
     customer_id:   document.getElementById('fCustomerId').value,
     customer_name: document.getElementById('fCustomerName').value.trim(),
     salesperson:   document.getElementById('fSalesperson').value,
@@ -774,8 +799,9 @@ async function submitSale() {
   btn.disabled = false;
 
   if (data.success) {
-    showMsg(`儲存成功！發票 ${data.invoice_no}，共 ${data.item_count} 品項`, true);
+    showMsg(`儲存成功！單號 ${data.sales_invoice_no}，共 ${data.item_count} 品項`, true);
     resetForm();
+    genSalesNo();  // 重新產生下一個單號
     loadList();
   } else {
     showMsg(data.message || '儲存失敗', false);
@@ -787,7 +813,6 @@ function resetForm() {
   document.getElementById('fCustomerName').value = '';
   document.getElementById('fCustomerId').value   = '';
   document.getElementById('fPayment').value      = '';
-  document.getElementById('fWarehouse').value    = '';
   document.getElementById('fSourceDocNo').value  = '';
   document.getElementById('fDepositAmount').value = '0';
   document.getElementById('importedOrderLabel').textContent = '';
@@ -827,7 +852,7 @@ async function loadList() {
 
   const tbody = document.getElementById('listBody');
   if (!data.rows?.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9a9188;padding:24px">暫無紀錄</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">暫無紀錄</td></tr>';
     return;
   }
 
@@ -835,8 +860,9 @@ async function loadList() {
   let lastInv = null;
   tbody.innerHTML = data.rows.map(r => {
     salesRowsMap[r.id] = r;
-    const isFirst   = r.invoice_no !== lastInv;
-    lastInv = r.invoice_no;
+    const sno = r.sales_invoice_no || r.invoice_no || '';
+    const isFirst   = sno !== lastInv;
+    lastInv = sno;
     const costAmt   = (r.cost && r.quantity) ? formatNum(r.cost * r.quantity) : '—';
     const profitVal = r.profit != null ? formatNum(r.profit) : '—';
     const profitCls = r.profit > 0 ? 'profit-pos' : r.profit < 0 ? 'profit-neg' : '';
@@ -845,12 +871,14 @@ async function loadList() {
          <td style="text-align:right;font-size:.8rem" class="${profitCls}">${profitVal}</td>`
       : '';
     let opBtns = '';
+    if (isFirst && sno) opBtns += `<button class="edit-row-btn" onclick="window.open('/print/sales/' + encodeURIComponent('${sno}'))">列印</button>`;
     if (canEdit)   opBtns += `<button class="edit-row-btn" onclick="editSaleRow(${r.id})">修改</button>`;
     if (canDelete) opBtns += `<button class="del-sale-btn" onclick="deleteRow(${r.id})">刪除</button>`;
     const delCell = (canEdit || canDelete)
       ? `<td><div style="display:flex;gap:4px">${opBtns}</div></td>`
       : '<td></td>';
     return `<tr style="${isFirst ? 'border-top:1px solid rgba(107,95,82,.1)' : ''}">
+      <td style="white-space:nowrap;color:#5a3e28;font-size:.78rem;font-weight:${isFirst ? 600 : 400}">${isFirst ? sno || '—' : ''}</td>
       <td style="white-space:nowrap;color:#9a9188;font-size:.8rem">${r.date || '—'}</td>
       <td>${r.customer_name || '—'}</td>
       <td style="font-size:.82rem">${r.salesperson || '—'}</td>
@@ -924,6 +952,7 @@ function renderOrderList(orders, wrap) {
         <span class="order-no">${esc(o.doc_no)}</span>
         <span class="order-customer">${esc(o.target_name || '—')}</span>
         <span class="order-meta">NT$ ${(o.total_amount||0).toLocaleString()}${depInfo}</span>
+        <button class="edit-row-btn" style="margin-left:auto;font-size:.72rem;padding:3px 10px" onclick="event.stopPropagation();window.open('/print/order/' + encodeURIComponent('${o.doc_no}'))">列印</button>
       </div>
       <div class="order-meta">${(o.created_at||'').slice(0,10)}</div>
       <div class="order-items-preview">${itemsText}</div>
@@ -1013,6 +1042,14 @@ function onAppReady(user) {
 
   document.getElementById('fSalesperson').value = user.name;
   document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  // 預設門市：依使用者所屬（若有），否則豐原
+  const whEl = document.getElementById('fWarehouse');
+  if (user.store) {
+    for (const opt of whEl.options) {
+      if (opt.value === user.store) { whEl.value = user.store; break; }
+    }
+  }
+  genSalesNo();  // 頁面載入自動產生銷貨單號
 
   // 輸入表單成本欄
   if (canViewCost) {

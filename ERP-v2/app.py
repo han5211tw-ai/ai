@@ -8,7 +8,7 @@ import sqlite3
 import json
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, render_template, jsonify, request, abort, send_from_directory
+from flask import Flask, render_template, jsonify, request, abort, send_from_directory, send_file
 
 
 # ─────────────────────────────────────────────
@@ -332,9 +332,9 @@ def create_announcement():
         return err('請輸入標題')
     conn = get_db()
     conn.execute(
-        '''INSERT INTO system_announcements (title, content, priority, is_active, created_at)
+        '''INSERT INTO system_announcements (title, content, level, is_active, created_at)
            VALUES (?, ?, ?, 1, datetime('now','localtime'))''',
-        (title, content, data.get('priority', 0))
+        (title, content, data.get('level', 'info'))
     )
     conn.commit()
     conn.close()
@@ -2064,6 +2064,66 @@ def get_personal_supervision():
         conn.close()
 
 
+# API: 所有人員督導評分（老闆用）
+@app.route('/api/personal/supervision/all')
+def get_all_personal_supervision():
+    today      = datetime.today()
+    date_start = f'{today.year}-{today.month:02d}-01'
+    conn       = get_db()
+    try:
+        # 取得本月有評分的所有人員
+        names = conn.execute(
+            "SELECT DISTINCT employee_name FROM supervision_scores WHERE date >= ? ORDER BY employee_name",
+            (date_start,)
+        ).fetchall()
+        if not names:
+            return ok(staff=[])
+
+        avgs = ', '.join(
+            f"AVG(CAST(COALESCE({f},'0') AS FLOAT)) as avg_{f}"
+            for f, _ in SUPERVISION_FIELDS
+        )
+
+        result = []
+        for nr in names:
+            emp = nr['employee_name']
+            row = conn.execute(
+                f"SELECT {avgs} FROM supervision_scores WHERE employee_name=? AND date>=?",
+                (emp, date_start)
+            ).fetchone()
+            if not row or row[f'avg_{SUPERVISION_FIELDS[0][0]}'] is None:
+                continue
+
+            scores = {f: round(row[f'avg_{f}'] or 0, 1) for f, _ in SUPERVISION_FIELDS}
+            total  = sum(scores.values())
+            max_t  = len(SUPERVISION_FIELDS) * 5
+            pct    = round((total / max_t) * 100)
+            cnt    = conn.execute(
+                "SELECT COUNT(DISTINCT date) as cnt FROM supervision_scores WHERE employee_name=? AND date>=?",
+                (emp, date_start)
+            ).fetchone()['cnt']
+
+            result.append({
+                'name':       emp,
+                'scores':     scores,
+                'total':      round(total, 1),
+                'max':        max_t,
+                'percentage': pct,
+                'count':      cnt,
+            })
+
+        # 依百分比降序
+        result.sort(key=lambda x: x['percentage'], reverse=True)
+        return ok(
+            staff=result,
+            labels={f: lbl for f, lbl in SUPERVISION_FIELDS}
+        )
+    except Exception as e:
+        return err(str(e))
+    finally:
+        conn.close()
+
+
 # ─────────────────────────────────────────────
 # API: 業務部績效
 # ─────────────────────────────────────────────
@@ -2531,14 +2591,20 @@ def transfer_need(need_id):
 def need_arrive(need_id):
     conn = get_db()
     try:
-        conn.execute("""
-            UPDATE needs SET arrived_at=datetime('now','localtime'), status='已到貨'
-            WHERE id=?
-        """, (need_id,))
+        row = conn.execute("SELECT status FROM needs WHERE id=?", (need_id,)).fetchone()
+        if not row:
+            return err('找不到此需求')
+        if row['status'] not in ('已採購', '已調撥'):
+            return err('狀態不符，無法標記到貨')
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn.execute(
+            "UPDATE needs SET status='已完成', arrived_at=?, completed_at=? WHERE id=?",
+            (now, now, need_id)
+        )
         conn.commit()
-        return jsonify({'success': True})
+        return ok()
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return err(str(e))
     finally:
         conn.close()
 
@@ -3014,8 +3080,8 @@ def sales_list():
     try:
         conds, params = [], []
         if q:
-            conds.append("(invoice_no LIKE ? OR customer_name LIKE ? OR product_name LIKE ? OR salesperson LIKE ?)")
-            params += [f'%{q}%', f'%{q}%', f'%{q}%', f'%{q}%']
+            conds.append("(sales_invoice_no LIKE ? OR invoice_no LIKE ? OR customer_name LIKE ? OR product_name LIKE ? OR salesperson LIKE ?)")
+            params += [f'%{q}%', f'%{q}%', f'%{q}%', f'%{q}%', f'%{q}%']
         if sp:
             conds.append("salesperson = ?")
             params.append(sp)
@@ -3037,7 +3103,8 @@ def sales_list():
                   AND quantity > 0 AND amount > 0
                 GROUP BY product_code
             )
-            SELECT s.id, s.invoice_no, s.date, s.customer_name, s.salesperson,
+            SELECT s.id, s.invoice_no, s.sales_invoice_no, s.date,
+                   s.customer_name, s.salesperson,
                    s.product_code, s.product_name, s.quantity, s.price, s.amount,
                    COALESCE(mc.avg_cost, s.cost * 1.0 / MAX(s.quantity, 1)) AS cost,
                    s.amount - s.quantity * COALESCE(mc.avg_cost, s.cost * 1.0 / MAX(s.quantity, 1)) AS profit,
@@ -3047,7 +3114,7 @@ def sales_list():
             FROM sales_history s
             LEFT JOIN monthly_cost mc ON mc.product_code = s.product_code
             {where}
-            ORDER BY s.date DESC, s.invoice_no DESC, s.id ASC
+            ORDER BY s.date DESC, s.sales_invoice_no DESC, s.id ASC
             LIMIT ? OFFSET ?
         """, [month_start, month_end] + params + [per_page, offset]).fetchall()
 
@@ -3064,6 +3131,69 @@ def sales_list():
         conn.close()
 
 
+# ── 門市代碼對照 ──
+STORE_CODE_MAP = {
+    '豐原門市': 'FY', '豐原': 'FY',
+    '潭子門市': 'TZ', '潭子': 'TZ',
+    '大雅門市': 'DY', '大雅': 'DY',
+    '業務部':   'OW', '-': 'OW', '': 'OW',
+}
+
+
+def _ensure_sales_no_column(conn):
+    """確保 sales_history 有新增欄位"""
+    cols = {c[1] for c in conn.execute('PRAGMA table_info(sales_history)')}
+    new_cols = [
+        ('source_doc_no', "TEXT DEFAULT ''"),
+        ('warehouse', "TEXT DEFAULT ''"),
+        ('payment_method', "TEXT DEFAULT ''"),
+        ('deposit_amount', "INTEGER DEFAULT 0"),
+    ]
+    changed = False
+    for col, dtype in new_cols:
+        if col not in cols:
+            conn.execute(f"ALTER TABLE sales_history ADD COLUMN {col} {dtype}")
+            changed = True
+    if changed:
+        conn.commit()
+
+
+@app.route('/api/sales/next-invoice-no')
+def next_sales_invoice_no():
+    """自動產生銷貨單號：{門市代碼}-{YYYYMMDD}-{NNN}"""
+    warehouse = request.args.get('warehouse', '').strip()
+    date_str  = request.args.get('date', '').strip().replace('-', '')
+    if not date_str:
+        date_str = datetime.now().strftime('%Y%m%d')
+    # 取門市代碼，無對應預設 FY
+    store_code = STORE_CODE_MAP.get(warehouse, 'FY')
+    prefix = f'{store_code}-{date_str}-'
+    conn = get_db()
+    try:
+        _ensure_sales_no_column(conn)
+        row = conn.execute(
+            "SELECT sales_invoice_no FROM sales_history "
+            "WHERE sales_invoice_no LIKE ? "
+            "ORDER BY sales_invoice_no DESC LIMIT 1",
+            (prefix + '%',)
+        ).fetchone()
+        if row and row['sales_invoice_no']:
+            last_no = row['sales_invoice_no']
+            try:
+                last_seq = int(last_no.rsplit('-', 1)[-1])
+            except ValueError:
+                last_seq = 0
+            next_seq = last_seq + 1
+        else:
+            next_seq = 1
+        invoice_no = f'{prefix}{next_seq:03d}'
+        return jsonify({'success': True, 'invoice_no': invoice_no, 'store_code': store_code})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
 @app.route('/api/sales/submit', methods=['POST'])
 def sales_submit():
     """新增銷貨單 → 寫入 sales_history"""
@@ -3072,28 +3202,31 @@ def sales_submit():
     if not items:
         return jsonify({'success': False, 'message': '請至少輸入一項產品'}), 400
 
-    invoice_no    = data.get('invoice_no', '').strip()
-    date          = data.get('date', '')
-    customer_id   = data.get('customer_id', '')
-    customer_name = data.get('customer_name', '')
-    salesperson   = data.get('salesperson', '')
-    salesperson_id= data.get('salesperson_id', '')
-    warehouse     = data.get('warehouse', '')
-    source_doc_no = data.get('source_doc_no', '')   # 來源訂單單號
+    invoice_no     = data.get('invoice_no', '').strip()       # 發票號碼（選填）
+    sales_no       = data.get('sales_invoice_no', '').strip() # 銷貨單號 FY-YYYYMMDD-NNN
+    date           = data.get('date', '')
+    customer_id    = data.get('customer_id', '')
+    customer_name  = data.get('customer_name', '')
+    salesperson    = data.get('salesperson', '')
+    salesperson_id = data.get('salesperson_id', '')
+    warehouse      = data.get('warehouse', '')
+    source_doc_no  = data.get('source_doc_no', '')   # 來源訂單單號
     payment_method = data.get('payment_method', '')  # 付款方式：現金/匯款/刷卡/月結/申辦分期
     deposit_amount = int(data.get('deposit_amount', 0) or 0)  # 訂金（從訂單帶入）
 
-    if not date or not invoice_no:
-        return jsonify({'success': False, 'message': '日期與發票號碼為必填'}), 400
+    if not date or not sales_no:
+        return jsonify({'success': False, 'message': '日期與銷貨單號為必填'}), 400
 
     conn = get_db()
     try:
-        # 確認發票號碼不重複
+        _ensure_sales_no_column(conn)
+
+        # 確認銷貨單號不重複
         exists = conn.execute(
-            "SELECT 1 FROM sales_history WHERE invoice_no=? LIMIT 1", (invoice_no,)
+            "SELECT 1 FROM sales_history WHERE sales_invoice_no=? LIMIT 1", (sales_no,)
         ).fetchone()
         if exists:
-            return jsonify({'success': False, 'message': f'發票號碼 {invoice_no} 已存在'}), 409
+            return jsonify({'success': False, 'message': f'銷貨單號 {sales_no} 已存在'}), 409
 
         # 預先查詢成本：最近一次進貨單價 > 近 90 天加權平均 > 0
         cost_map = {}
@@ -3143,12 +3276,14 @@ def sales_submit():
                   (invoice_no, date, customer_id, salesperson, product_code,
                    product_name, quantity, price, amount, customer_name,
                    cost, profit, margin, salesperson_id, source_file, source_row,
-                   sales_invoice_no)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                   sales_invoice_no, source_doc_no, warehouse, payment_method,
+                   deposit_amount)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (invoice_no, date, customer_id, salesperson, product_code,
                   product_name, qty, price, amount, customer_name,
                   cost, profit, margin, salesperson_id, 'manual', idx + 1,
-                  source_doc_no))
+                  sales_no, source_doc_no, warehouse, payment_method,
+                  deposit_amount))
 
         # ── 自動產生應收帳款（月結 / 申辦分期） ──
         total_amount = sum(int(it.get('quantity', 1)) * float(it.get('price', 0)) for it in items)
@@ -3204,7 +3339,8 @@ def sales_submit():
                      due_date_str, 'unpaid', f'申辦分期{dep_note}', now_ts))
 
         conn.commit()
-        return jsonify({'success': True, 'invoice_no': invoice_no, 'item_count': len(items)})
+        return jsonify({'success': True, 'invoice_no': invoice_no,
+                        'sales_invoice_no': sales_no, 'item_count': len(items)})
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -3263,7 +3399,7 @@ def sales_update_row(row_id):
         cost          = int(data.get('cost',      row['cost'] or 0))
         salesperson   = data.get('salesperson',   row['salesperson'])
         customer_name = data.get('customer_name', row['customer_name'])
-        profit = amount - quantity * cost
+        profit = amount - cost
         margin = round(profit / amount * 100, 2) if amount else 0
         conn.execute(
             """UPDATE sales_history SET
@@ -4438,6 +4574,11 @@ def supplier_search_page():
     return render_template('supplier_search.html')
 
 
+@app.route('/inventory_count')
+def inventory_count_page():
+    return render_template('inventory_count.html')
+
+
 @app.route('/api/supplier/list')
 def supplier_list():
     q    = (request.args.get('q') or '').strip()
@@ -4514,7 +4655,7 @@ def supplier_create():
                payment_method, closing_day, pay_day,
                bank_name, bank_branch, bank_account, remark, status,
                created_at, updated_at, created_by)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'啟用',
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'正常',
                     datetime('now','localtime'), datetime('now','localtime'), ?)
         """, (
             sid,
@@ -5780,6 +5921,720 @@ def _ensure_company_columns():
         conn.close()
 
 _ensure_company_columns()
+
+
+# ─────────────────────────────────────────────
+# 盤點作業
+# ─────────────────────────────────────────────
+
+@app.route('/api/inventory-count/create', methods=['POST'])
+def inventory_count_create():
+    """建立盤點單：快照指定倉庫當下庫存"""
+    data = request.get_json() or {}
+    warehouse = (data.get('warehouse') or '').strip()
+    created_by = (data.get('created_by') or '').strip()
+    note = (data.get('note') or '').strip()
+    if not warehouse:
+        return err('請選擇盤點倉庫')
+
+    conn = get_db()
+    try:
+        # 產生盤點單號 IC-YYYYMMDD-NNN
+        today = datetime.now().strftime('%Y%m%d')
+        tag = f'IC-{today}-'
+        last = conn.execute(
+            "SELECT count_no FROM inventory_count WHERE count_no LIKE ? ORDER BY count_no DESC LIMIT 1",
+            (f'{tag}%',)
+        ).fetchone()
+        seq = 1
+        if last:
+            try: seq = int(last['count_no'].replace(tag, '')) + 1
+            except: seq = 1
+        count_no = f'{tag}{seq:03d}'
+
+        # 建主表
+        conn.execute(
+            """INSERT INTO inventory_count (count_no, warehouse, status, note, created_by)
+               VALUES (?, ?, 'drafting', ?, ?)""",
+            (count_no, warehouse, note, created_by)
+        )
+        count_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+        # 快照該倉庫當下庫存（最新 report_date）
+        items = conn.execute(
+            """SELECT product_id, item_spec, stock_quantity
+               FROM inventory
+               WHERE warehouse = ?
+                 AND report_date = (SELECT MAX(report_date) FROM inventory WHERE warehouse = ?)
+                 AND stock_quantity > 0
+               ORDER BY product_id""",
+            (warehouse, warehouse)
+        ).fetchall()
+
+        for item in items:
+            conn.execute(
+                """INSERT INTO inventory_count_items (count_id, product_code, product_name, book_qty)
+                   VALUES (?, ?, ?, ?)""",
+                (count_id, item['product_id'], item['item_spec'], item['stock_quantity'])
+            )
+
+        conn.commit()
+        return ok(count_id=count_id, count_no=count_no, item_count=len(items))
+    except Exception as e:
+        return err(str(e))
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory-count/list')
+def inventory_count_list():
+    """盤點單列表"""
+    status = request.args.get('status', '')
+    conn = get_db()
+    try:
+        sql = "SELECT * FROM inventory_count ORDER BY created_at DESC"
+        params = []
+        if status:
+            sql = "SELECT * FROM inventory_count WHERE status=? ORDER BY created_at DESC"
+            params = [status]
+        rows = conn.execute(sql, params).fetchall()
+        return ok(counts=[dict(r) for r in rows])
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory-count/<int:count_id>')
+def inventory_count_detail(count_id):
+    """盤點單明細（含所有品項）"""
+    conn = get_db()
+    try:
+        header = conn.execute("SELECT * FROM inventory_count WHERE id=?", (count_id,)).fetchone()
+        if not header:
+            return err('找不到此盤點單')
+        items = conn.execute(
+            """SELECT * FROM inventory_count_items WHERE count_id=?
+               ORDER BY product_code""",
+            (count_id,)
+        ).fetchall()
+        return ok(header=dict(header), items=[dict(i) for i in items])
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory-count/<int:count_id>/save', methods=['POST'])
+def inventory_count_save(count_id):
+    """儲存盤點實盤數量（可多次儲存）"""
+    data = request.get_json() or {}
+    items = data.get('items', [])  # [{id, actual_qty, remark}]
+    conn = get_db()
+    try:
+        header = conn.execute("SELECT status FROM inventory_count WHERE id=?", (count_id,)).fetchone()
+        if not header:
+            return err('找不到此盤點單')
+        if header['status'] != 'drafting':
+            return err('此盤點單已送出，無法修改')
+        for item in items:
+            aq = item.get('actual_qty')
+            conn.execute(
+                "UPDATE inventory_count_items SET actual_qty=?, remark=? WHERE id=? AND count_id=?",
+                (int(aq) if aq is not None and str(aq).strip() != '' else None,
+                 item.get('remark', ''),
+                 item['id'], count_id)
+            )
+        conn.commit()
+        return ok(message='已儲存')
+    except Exception as e:
+        return err(str(e))
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory-count/<int:count_id>/submit', methods=['POST'])
+def inventory_count_submit(count_id):
+    """送出盤點單（鎖定不可再改）"""
+    conn = get_db()
+    try:
+        header = conn.execute("SELECT status FROM inventory_count WHERE id=?", (count_id,)).fetchone()
+        if not header:
+            return err('找不到此盤點單')
+        if header['status'] != 'drafting':
+            return err('此盤點單已送出')
+        # 檢查是否所有品項都已填入實盤數量
+        unfilled = conn.execute(
+            "SELECT COUNT(*) as cnt FROM inventory_count_items WHERE count_id=? AND actual_qty IS NULL",
+            (count_id,)
+        ).fetchone()['cnt']
+        if unfilled > 0:
+            return err(f'尚有 {unfilled} 項未填寫實盤數量')
+        conn.execute(
+            "UPDATE inventory_count SET status='submitted', submitted_at=datetime('now','localtime') WHERE id=?",
+            (count_id,)
+        )
+        conn.commit()
+        return ok(message='盤點單已送出')
+    except Exception as e:
+        return err(str(e))
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory-count/<int:count_id>/approve', methods=['POST'])
+def inventory_count_approve(count_id):
+    """老闆審核通過：將有差異的品項寫入調整紀錄"""
+    data = request.get_json() or {}
+    approved_by = (data.get('approved_by') or '').strip()
+    conn = get_db()
+    try:
+        header = conn.execute("SELECT * FROM inventory_count WHERE id=?", (count_id,)).fetchone()
+        if not header:
+            return err('找不到此盤點單')
+        if header['status'] != 'submitted':
+            return err('此盤點單尚未送出或已審核')
+
+        # 取得有差異的品項
+        diffs = conn.execute(
+            """SELECT * FROM inventory_count_items
+               WHERE count_id=? AND diff != 0""",
+            (count_id,)
+        ).fetchall()
+
+        # 寫入調整紀錄
+        for d in diffs:
+            conn.execute(
+                """INSERT INTO inventory_adjustments
+                   (count_id, product_code, product_name, warehouse, book_qty, actual_qty, adjust_qty, approved_by)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (count_id, d['product_code'], d['product_name'], header['warehouse'],
+                 d['book_qty'], d['actual_qty'], d['diff'], approved_by)
+            )
+
+        conn.execute(
+            "UPDATE inventory_count SET status='approved', reviewed_by=?, reviewed_at=datetime('now','localtime') WHERE id=?",
+            (approved_by, count_id)
+        )
+        conn.commit()
+        return ok(message='審核通過', adjusted_count=len(diffs))
+    except Exception as e:
+        return err(str(e))
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory-count/<int:count_id>', methods=['DELETE'])
+def inventory_count_delete(count_id):
+    """刪除盤點單（僅 drafting 狀態可刪）"""
+    conn = get_db()
+    try:
+        header = conn.execute("SELECT status FROM inventory_count WHERE id=?", (count_id,)).fetchone()
+        if not header:
+            return err('找不到此盤點單')
+        if header['status'] != 'drafting':
+            return err('僅「盤點中」的盤點單可以刪除')
+        conn.execute("DELETE FROM inventory_count_items WHERE count_id=?", (count_id,))
+        conn.execute("DELETE FROM inventory_count WHERE id=?", (count_id,))
+        conn.commit()
+        return ok(message='已刪除')
+    except Exception as e:
+        return err(str(e))
+    finally:
+        conn.close()
+
+
+@app.route('/api/inventory-count/<int:count_id>/reject', methods=['POST'])
+def inventory_count_reject(count_id):
+    """老闆退回盤點單（回到 drafting 可重新填寫）"""
+    data = request.get_json() or {}
+    reviewed_by = (data.get('reviewed_by') or '').strip()
+    conn = get_db()
+    try:
+        header = conn.execute("SELECT status FROM inventory_count WHERE id=?", (count_id,)).fetchone()
+        if not header:
+            return err('找不到此盤點單')
+        if header['status'] != 'submitted':
+            return err('此盤點單尚未送出')
+        conn.execute(
+            "UPDATE inventory_count SET status='drafting', reviewed_by=?, reviewed_at=datetime('now','localtime') WHERE id=?",
+            (reviewed_by, count_id)
+        )
+        conn.commit()
+        return ok(message='已退回重新盤點')
+    except Exception as e:
+        return err(str(e))
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# PDF 列印
+# ─────────────────────────────────────────────
+from pdf_utils import (
+    generate_pdf, build_header, build_items_table, build_totals_block,
+    build_note_block, build_signature_block, build_footer_elements,
+    fmt_num, fmt_date, Spacer, mm
+)
+
+@app.route('/api/pdf/quote/<path:doc_no>')
+def pdf_quote(doc_no):
+    """報價單 PDF"""
+    conn = get_db()
+    try:
+        doc = conn.execute("SELECT * FROM sales_documents WHERE doc_no=?", (doc_no,)).fetchone()
+        if not doc:
+            return err('找不到此報價單'), 404
+        items = conn.execute(
+            "SELECT * FROM sales_document_items WHERE doc_no=? ORDER BY id", (doc_no,)
+        ).fetchall()
+        d = dict(doc)
+        item_list = [dict(i) for i in items]
+
+        def make():
+            fields = [
+                ('客戶', d.get('target_name') or ''),
+                ('日期', fmt_date(d.get('created_at'))),
+                ('有效期限', fmt_date(d.get('valid_until') or '')),
+                ('客戶編號', d.get('target_id') or ''),
+                ('業務', d.get('created_by') or ''),
+            ]
+            cust = d.get('target_name') or ''
+            sp = d.get('created_by') or ''
+            elems = build_header('報價單', doc_no, extra_fields=fields,
+                                 customer_name=cust, salesperson=sp)
+
+            rows = []
+            for idx, it in enumerate(item_list, 1):
+                rows.append([
+                    str(idx),
+                    it.get('product_name') or it.get('product_code') or '',
+                    fmt_num(it.get('qty')),
+                    fmt_num(it.get('unit_price')),
+                    fmt_num(it.get('subtotal')),
+                ])
+            elems.append(build_items_table(
+                ['#', '品名', '數量', '單價', '小計'],
+                rows,
+                col_widths=[8, 68, 14, 22, 22],
+                align_right_cols={2, 3, 4}
+            ))
+            elems.append(Spacer(1, 4 * mm))
+            elems.append(build_totals_block([('合計', fmt_num(d.get('total_amount')))]))
+            note = d.get('note') or ''
+            if note:
+                elems.append(Spacer(1, 4 * mm))
+                elems.append(build_note_block(note))
+            elems.extend(build_signature_block(salesperson=sp))
+            elems += build_footer_elements()
+            return elems
+
+        buf = generate_pdf(make)
+        resp = send_file(buf, mimetype='application/pdf',
+                         as_attachment=False, download_name=f'報價單_{doc_no}.pdf')
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return resp
+    except Exception as e:
+        return err(str(e)), 500
+    finally:
+        conn.close()
+
+
+# ── 書信式列印（HTML）──────────────────────────────
+def _fmt_date_zh(d):
+    """將 '2026-04-03' 轉為 '2026 年 4 月 3 日'"""
+    s = fmt_date(d)
+    if not s:
+        return ''
+    try:
+        parts = s.split('-')
+        return f'{parts[0]} 年 {int(parts[1])} 月 {int(parts[2])} 日'
+    except Exception:
+        return s
+
+
+@app.route('/print/quote/<path:doc_no>')
+def print_quote(doc_no):
+    """報價單 — 書信式 HTML 列印"""
+    conn = get_db()
+    try:
+        doc = conn.execute("SELECT * FROM sales_documents WHERE doc_no=?", (doc_no,)).fetchone()
+        if not doc:
+            return err('找不到此報價單'), 404
+        rows = conn.execute(
+            "SELECT * FROM sales_document_items WHERE doc_no=? ORDER BY id", (doc_no,)
+        ).fetchall()
+        d = dict(doc)
+        items = []
+        for it in rows:
+            it = dict(it)
+            items.append({
+                'name': it.get('product_name') or it.get('product_code') or '',
+                'qty': fmt_num(it.get('qty')),
+                'price': fmt_num(it.get('subtotal')),
+            })
+        total = fmt_num(d.get('total_amount'))
+        return render_template('print_letter.html',
+            doc_type='報價單',
+            doc_no=doc_no,
+            company=d.get('company') or '電瑙舖資訊有限公司',
+            tax_id='27488187',
+            date_display=_fmt_date_zh(d.get('created_at')),
+            customer_name=d.get('target_name') or '',
+            salesperson=d.get('created_by') or '',
+            valid_until=fmt_date(d.get('valid_until') or ''),
+            valid_until_display=_fmt_date_zh(d.get('valid_until') or ''),
+            items=items,
+            totals=[{'label': '商品合計', 'value': total}, {'label': '本次報價', 'value': total}],
+            note=d.get('note') or '',
+            extra_info=[],
+        )
+    except Exception as e:
+        return err(str(e)), 500
+    finally:
+        conn.close()
+
+
+@app.route('/print/order/<path:doc_no>')
+def print_order(doc_no):
+    """訂單 — 書信式 HTML 列印"""
+    conn = get_db()
+    try:
+        doc = conn.execute("SELECT * FROM sales_documents WHERE doc_no=?", (doc_no,)).fetchone()
+        if not doc:
+            return err('找不到此訂單'), 404
+        rows = conn.execute(
+            "SELECT * FROM sales_document_items WHERE doc_no=? ORDER BY id", (doc_no,)
+        ).fetchall()
+        d = dict(doc)
+        items = []
+        for it in rows:
+            it = dict(it)
+            items.append({
+                'name': it.get('product_name') or it.get('product_code') or '',
+                'qty': fmt_num(it.get('qty')),
+                'price': fmt_num(it.get('subtotal')),
+            })
+        total = int(d.get('total_amount') or 0)
+        deposit = int(d.get('deposit_amount') or 0)
+        balance = int(d.get('balance_amount') or 0) or (total - deposit)
+        totals = [{'label': '商品合計', 'value': fmt_num(total)}]
+        if deposit:
+            totals.append({'label': '訂金', 'value': fmt_num(deposit)})
+            totals.append({'label': '尾款', 'value': fmt_num(balance)})
+        else:
+            totals.append({'label': '本次應付', 'value': fmt_num(total)})
+        return render_template('print_letter.html',
+            doc_type='訂購單',
+            doc_no=doc_no,
+            company=d.get('company') or '電瑙舖資訊有限公司',
+            tax_id='27488187',
+            date_display=_fmt_date_zh(d.get('created_at')),
+            customer_name=d.get('target_name') or '',
+            salesperson=d.get('created_by') or '',
+            valid_until='',
+            valid_until_display='',
+            items=items,
+            totals=totals,
+            note=d.get('note') or '',
+            extra_info=[],
+        )
+    except Exception as e:
+        return err(str(e)), 500
+    finally:
+        conn.close()
+
+
+@app.route('/print/sales/<path:sales_no>')
+def print_sales(sales_no):
+    """銷貨單 — 書信式 HTML 列印"""
+    sales_no = sales_no.strip()
+    if not sales_no:
+        return err('缺少銷貨單號'), 400
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM sales_history WHERE sales_invoice_no=? ORDER BY id", (sales_no,)
+        ).fetchall()
+        if not rows:
+            rows = conn.execute(
+                "SELECT * FROM sales_history WHERE invoice_no=? ORDER BY id", (sales_no,)
+            ).fetchall()
+        if not rows:
+            return err(f'找不到銷貨單號: {sales_no}'), 404
+        row_list = [dict(r) for r in rows]
+        first = row_list[0]
+        items = []
+        total_amount = 0
+        for it in row_list:
+            amt = int(it.get('amount') or 0)
+            total_amount += amt
+            items.append({
+                'name': it.get('product_name') or it.get('product_code') or '',
+                'qty': fmt_num(it.get('quantity')),
+                'price': fmt_num(amt),
+            })
+        deposit = int(first.get('deposit_amount') or 0)
+        totals = [{'label': '商品合計', 'value': fmt_num(total_amount)}]
+        if deposit:
+            totals.append({'label': '訂金', 'value': fmt_num(deposit)})
+            totals.append({'label': '尾款', 'value': fmt_num(total_amount - deposit)})
+        else:
+            totals.append({'label': '本次應付', 'value': fmt_num(total_amount)})
+        extra = []
+        wh = first.get('warehouse') or ''
+        if wh:
+            extra.append(('門市', wh))
+        pm = first.get('payment_method') or ''
+        if pm:
+            extra.append(('付款方式', pm))
+        return render_template('print_letter.html',
+            doc_type='銷貨單',
+            doc_no=sales_no,
+            company='電瑙舖資訊有限公司',
+            tax_id='27488187',
+            date_display=_fmt_date_zh(first.get('date')),
+            customer_name=first.get('customer_name') or '',
+            salesperson=first.get('salesperson') or '',
+            valid_until='',
+            valid_until_display='',
+            items=items,
+            totals=totals,
+            note='',
+            extra_info=extra,
+        )
+    except Exception as e:
+        return err(str(e)), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/pdf/order/<path:doc_no>')
+def pdf_order(doc_no):
+    """訂單 PDF"""
+    conn = get_db()
+    try:
+        doc = conn.execute("SELECT * FROM sales_documents WHERE doc_no=?", (doc_no,)).fetchone()
+        if not doc:
+            return err('找不到此訂單'), 404
+        items = conn.execute(
+            "SELECT * FROM sales_document_items WHERE doc_no=? ORDER BY id", (doc_no,)
+        ).fetchall()
+        d = dict(doc)
+        item_list = [dict(i) for i in items]
+
+        def make():
+            fields = [
+                ('客戶', d.get('target_name') or ''),
+                ('日期', fmt_date(d.get('created_at'))),
+                ('客戶編號', d.get('target_id') or ''),
+                ('業務', d.get('created_by') or ''),
+            ]
+            cust = d.get('target_name') or ''
+            sp = d.get('created_by') or ''
+            elems = build_header('訂購單', doc_no, extra_fields=fields,
+                                 customer_name=cust, salesperson=sp)
+
+            rows = []
+            for idx, it in enumerate(item_list, 1):
+                rows.append([
+                    str(idx),
+                    it.get('product_name') or it.get('product_code') or '',
+                    fmt_num(it.get('qty')),
+                    fmt_num(it.get('unit_price')),
+                    fmt_num(it.get('subtotal')),
+                ])
+            elems.append(build_items_table(
+                ['#', '品名', '數量', '單價', '小計'],
+                rows,
+                col_widths=[8, 68, 14, 22, 22],
+                align_right_cols={2, 3, 4}
+            ))
+            elems.append(Spacer(1, 4 * mm))
+            total = int(d.get('total_amount') or 0)
+            deposit = int(d.get('deposit_amount') or 0)
+            balance = int(d.get('balance_amount') or 0) or (total - deposit)
+            totals = [('合計', fmt_num(total))]
+            if deposit:
+                totals.append(('訂金', fmt_num(deposit)))
+                totals.append(('尾款', fmt_num(balance)))
+            elems.append(build_totals_block(totals))
+            note = d.get('note') or ''
+            if note:
+                elems.append(Spacer(1, 4 * mm))
+                elems.append(build_note_block(note))
+            elems.extend(build_signature_block(salesperson=sp))
+            elems += build_footer_elements()
+            return elems
+
+        buf = generate_pdf(make)
+        resp = send_file(buf, mimetype='application/pdf',
+                         as_attachment=False, download_name=f'訂單_{doc_no}.pdf')
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return resp
+    except Exception as e:
+        return err(str(e)), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/pdf/sales/<path:sales_no>')
+def pdf_sales(sales_no):
+    """銷貨單（出貨單）PDF — 依銷貨單號列印整張"""
+    sales_no = sales_no.strip()
+    if not sales_no:
+        return err('缺少銷貨單號'), 400
+    print(f'[PDF] 銷貨單列印 sales_invoice_no={repr(sales_no)}')
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM sales_history WHERE sales_invoice_no=? ORDER BY id", (sales_no,)
+        ).fetchall()
+        # 向下相容：若新欄位查不到，嘗試用舊 invoice_no 欄位
+        if not rows:
+            rows = conn.execute(
+                "SELECT * FROM sales_history WHERE invoice_no=? ORDER BY id", (sales_no,)
+            ).fetchall()
+        print(f'[PDF] 查詢結果: {len(rows)} 筆')
+        if not rows:
+            return err(f'找不到銷貨單號: {sales_no}'), 404
+        items = [dict(r) for r in rows]
+        first = items[0]
+
+        def make():
+            fields = [
+                ('客戶', first.get('customer_name') or ''),
+                ('日期', fmt_date(first.get('date'))),
+                ('客戶編號', first.get('customer_id') or ''),
+                ('業務', first.get('salesperson') or ''),
+                ('倉庫', first.get('warehouse') or ''),
+                ('付款方式', first.get('payment_method') or ''),
+            ]
+            cust = first.get('customer_name') or ''
+            sp = first.get('salesperson') or ''
+            elems = build_header('銷貨單', sales_no, extra_fields=fields,
+                                 customer_name=cust, salesperson=sp)
+
+            tbl_rows = []
+            total_amount = 0
+            for idx, it in enumerate(items, 1):
+                amt = int(it.get('amount') or 0)
+                total_amount += amt
+                tbl_rows.append([
+                    str(idx),
+                    it.get('product_code') or '',
+                    it.get('product_name') or '',
+                    fmt_num(it.get('quantity')),
+                    fmt_num(it.get('price')),
+                    fmt_num(amt),
+                ])
+            elems.append(build_items_table(
+                ['#', '品號', '品名', '數量', '單價', '金額'],
+                tbl_rows,
+                col_widths=[7, 22, 50, 12, 22, 22],
+                align_right_cols={3, 4, 5}
+            ))
+            elems.append(Spacer(1, 4 * mm))
+            totals = [('合計', fmt_num(total_amount))]
+            deposit = int(first.get('deposit_amount') or 0)
+            if deposit:
+                totals.append(('訂金', fmt_num(deposit)))
+                totals.append(('尾款', fmt_num(total_amount - deposit)))
+            elems.append(build_totals_block(totals))
+            elems.extend(build_signature_block(salesperson=sp))
+            elems += build_footer_elements()
+            return elems
+
+        buf = generate_pdf(make)
+        resp = send_file(buf, mimetype='application/pdf',
+                         as_attachment=False, download_name=f'銷貨單_{sales_no}.pdf')
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return resp
+    except Exception as e:
+        return err(str(e)), 500
+    finally:
+        conn.close()
+
+
+
+
+@app.route('/api/pdf/inventory-count/<int:count_id>')
+def pdf_inventory_count(count_id):
+    """盤點表 PDF"""
+    conn = get_db()
+    try:
+        header = conn.execute("SELECT * FROM inventory_count WHERE id=?", (count_id,)).fetchone()
+        if not header:
+            return err('找不到此盤點單'), 404
+        h = dict(header)
+        items = conn.execute(
+            "SELECT * FROM inventory_count_items WHERE count_id=? ORDER BY id", (count_id,)
+        ).fetchall()
+        item_list = [dict(i) for i in items]
+
+        def make():
+            status_map = {
+                'drafting': '盤點中', 'submitted': '待審核',
+                'approved': '已核准', 'rejected': '已退回'
+            }
+            fields = [
+                ('倉庫', h.get('warehouse') or ''),
+                ('盤點日期', fmt_date(h.get('created_at'))),
+                ('狀態', status_map.get(h.get('status'), h.get('status') or '')),
+                ('盤點人', h.get('created_by') or ''),
+            ]
+            reviewed_by = h.get('reviewed_by')
+            if reviewed_by:
+                fields.append(('審核人', reviewed_by))
+                fields.append(('審核日期', fmt_date(h.get('reviewed_at'))))
+            elems = build_header('盤點表', h.get('count_no') or '', extra_fields=fields)
+
+            tbl_rows = []
+            diff_count = 0
+            for idx, it in enumerate(item_list, 1):
+                book = it.get('book_qty')
+                actual = it.get('actual_qty')
+                diff_val = ''
+                if actual is not None and book is not None:
+                    d = actual - book
+                    diff_val = fmt_num(d) if d != 0 else '0'
+                    if d != 0:
+                        diff_count += 1
+                tbl_rows.append([
+                    str(idx),
+                    it.get('product_code') or '',
+                    it.get('product_name') or '',
+                    fmt_num(book),
+                    fmt_num(actual) if actual is not None else '—',
+                    diff_val or '—',
+                    it.get('remark') or '',
+                ])
+            elems.append(build_items_table(
+                ['#', '品號', '品名', '帳面數量', '實際數量', '差異', '備註'],
+                tbl_rows,
+                col_widths=[7, 20, 42, 16, 16, 14, 20],
+                align_right_cols={3, 4, 5}
+            ))
+            elems.append(Spacer(1, 4 * mm))
+            elems.append(build_totals_block([
+                ('品項數', str(len(item_list))),
+                ('差異項', str(diff_count)),
+            ]))
+            note = h.get('note') or ''
+            if note:
+                elems.append(Spacer(1, 4 * mm))
+                elems.append(build_note_block(note))
+            elems.append(Spacer(1, 8 * mm))
+            elems.extend(build_signature_block(['主管', '盤點人']))
+            elems += build_footer_elements()
+            return elems
+
+        buf = generate_pdf(make)
+        count_no = h.get('count_no') or f'IC-{count_id}'
+        resp = send_file(buf, mimetype='application/pdf',
+                         as_attachment=False, download_name=f'盤點表_{count_no}.pdf')
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return resp
+    except Exception as e:
+        return err(str(e)), 500
+    finally:
+        conn.close()
 
 
 # ─────────────────────────────────────────────

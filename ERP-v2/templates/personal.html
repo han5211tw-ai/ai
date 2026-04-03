@@ -116,7 +116,7 @@
 /* ── 橫向 Bar Chart ───────────────────── */
 .chart-box { position: relative; }
 
-/* ── 督導評分區（本人才顯示） ─────────── */
+/* ── 督導評分區 ───────────────────────── */
 .sup-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -168,6 +168,42 @@
 }
 .sup-total-fill { height: 100%; border-radius: 999px; background: #6b5f52; transition: width .6s; }
 
+/* ── 全員督導（老闆視角） ─────────────── */
+.all-sup-card {
+  background: rgba(107,95,82,.04);
+  border: 1px solid rgba(107,95,82,.12);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+.all-sup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.all-sup-name {
+  font-size: .95rem;
+  font-weight: 400;
+  color: #2c2720;
+}
+.all-sup-pct {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+}
+.all-sup-sub { font-size: .74rem; color: #9a9188; }
+.all-sup-track {
+  height: 6px;
+  background: rgba(107,95,82,.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.all-sup-fill { height: 100%; border-radius: 999px; transition: width .5s; }
+
 .empty-hint { text-align: center; padding: 28px 0; color: #9a9188; font-size: .86rem; }
 #tableWrap { overflow-x: auto; }
 </style>
@@ -217,9 +253,9 @@
     </div>
   </div>
 
-  <!-- ── 本人督導評分 ── -->
+  <!-- ── 督導評分 ── -->
   <div class="p-card" id="supCard" style="display:none">
-    <div class="p-card-title">個人督導評分（本月）</div>
+    <div class="p-card-title" id="supTitle">個人督導評分（本月）</div>
     <div id="supContent"><div class="empty-hint">載入中…</div></div>
   </div>
 
@@ -248,9 +284,15 @@ function onAppReady(user) {
   document.getElementById('monthSel').value = new Date().getMonth() + 1;
   load();
 
-  // 督導評分：所有門市人員都顯示
+  // 督導評分
   document.getElementById('supCard').style.display = '';
-  loadSupervision(user.name);
+  const isBoss = user.title === '老闆' || user.role === '老闆';
+  if (isBoss) {
+    document.getElementById('supTitle').textContent = '全員督導評分（本月）';
+    loadAllSupervision();
+  } else {
+    loadSupervision(user.name);
+  }
 }
 
 function initYearSel() {
@@ -496,6 +538,58 @@ async function loadSupervision(name) {
       </div>
     </div>
     <div class="sup-grid">${itemsHtml}</div>`;
+}
+
+// ────────────────────────────────────
+// 全員督導評分（老闆）
+// ────────────────────────────────────
+async function loadAllSupervision() {
+  const el  = document.getElementById('supContent');
+  const res = await fetch('/api/personal/supervision/all');
+  const json = await res.json();
+
+  if (!json.success || !json.data || !json.data.staff || !json.data.staff.length) {
+    el.innerHTML = '<div class="empty-hint">本月尚無督導評分記錄</div>';
+    return;
+  }
+
+  const staff  = json.data.staff;
+  const labels = json.data.labels || {};
+
+  el.innerHTML = staff.map(s => {
+    const pct = s.percentage || 0;
+    const clr = pct >= 85 ? '#6b8a5c' : pct >= 70 ? '#b8893a' : pct >= 50 ? '#a87a4a' : '#a85c5c';
+
+    // 各項小條
+    const itemsHtml = Object.keys(s.scores).map(f => {
+      const score = s.scores[f];
+      const fw = (score / 5) * 100;
+      const fc = fw >= 85 ? '#6b8a5c' : fw >= 70 ? '#b8893a' : fw >= 50 ? '#a87a4a' : '#a85c5c';
+      return `
+        <div class="sup-item">
+          <div class="sup-item-label">${labels[f] || f}</div>
+          <div class="sup-item-body">
+            <div class="sup-track"><div class="sup-fill" style="width:${fw}%;background:${fc}"></div></div>
+            <span class="sup-score">${score} / 5</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="all-sup-card">
+        <div class="all-sup-header">
+          <div>
+            <div class="all-sup-name">${esc(s.name)}</div>
+            <div class="all-sup-sub">${s.total} / ${s.max} 分 · 本月督導 ${s.count} 次</div>
+          </div>
+          <div class="all-sup-pct" style="color:${clr}">${pct}%</div>
+        </div>
+        <div class="all-sup-track" style="margin-bottom:12px">
+          <div class="all-sup-fill" style="width:${Math.min(100,pct)}%;background:${clr}"></div>
+        </div>
+        <div class="sup-grid">${itemsHtml}</div>
+      </div>`;
+  }).join('');
 }
 
 // ────────────────────────────────────

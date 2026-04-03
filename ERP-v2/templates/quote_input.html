@@ -581,6 +581,8 @@ async function loadList(q) {
       ? `<button class="btn-outline" style="font-size:.75rem;padding:5px 12px"
            onclick='openConvert(${JSON.stringify(doc)})'>轉訂單</button>`
       : '';
+    const pdfBtn = `<button class="btn-outline" style="font-size:.75rem;padding:5px 12px"
+           onclick="window.open('/print/quote/' + encodeURIComponent('${doc.doc_no}'))">列印</button>`;
     return `
       <div class="quote-row">
         <div>
@@ -592,7 +594,8 @@ async function loadList(q) {
           <div class="quote-meta">${itemCount} 項${validStr ? '・' + validStr : ''}${doc.note ? '・' + doc.note : ''}</div>
         </div>
         <div>${tag}</div>
-        <div class="quote-action">
+        <div class="quote-action" style="display:flex;gap:6px">
+          ${pdfBtn}
           ${convertBtn}
         </div>
       </div>`;

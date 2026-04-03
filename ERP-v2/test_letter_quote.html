@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>報價單 — QT-20260403-001</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 22mm 24mm 20mm 24mm;
+  }
+
+  body {
+    font-family: 'Noto Serif TC', 'Georgia', serif;
+    font-size: 14px;
+    line-height: 2.0;
+    color: #2c2720;
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 30px auto;
+    padding: 60px 56px 48px;
+    background: #ffffff;
+    min-height: 920px;
+  }
+
+  @media print {
+    body { background: #ffffff; }
+    .page {
+      margin: 0; padding: 0;
+      max-width: none; min-height: auto;
+    }
+    .no-print { display: none !important; }
+    .item-line { page-break-inside: avoid; }
+    .closing-section { page-break-inside: avoid; }
+  }
+
+  /* ── 信紙底線 ── */
+  .lined {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent calc(2.0em - 1px),
+      #efe9e0 calc(2.0em - 1px),
+      #efe9e0 calc(2.0em)
+    );
+    background-size: 100% 2.0em;
+    background-position: 0 0.1em;
+  }
+
+  /* ── letterhead ── */
+  .letterhead {
+    margin-bottom: 32px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #d4c5b2;
+  }
+  .brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: #5a3e28;
+    letter-spacing: 2px;
+  }
+  .brand-sub {
+    font-size: 11px;
+    color: #9a8b78;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+  }
+
+  /* ── letter body ── */
+  .letter-body { padding-top: 4px; }
+  .letter-body p { margin: 0; padding: 0; }
+
+  .date-line {
+    text-align: right;
+    color: #9a8b78;
+    font-size: 13px;
+  }
+
+  .greeting { font-size: 15px; margin-top: 0.5em; }
+  .greeting .name { font-weight: 600; color: #5a3e28; }
+
+  /* ── 段落文字 ── */
+  .letter-para {
+    color: #3d3229;
+    font-size: 14px;
+    text-indent: 2em;
+  }
+  .letter-para .hl {
+    font-weight: 600;
+    color: #5a3e28;
+  }
+
+  .ruled-space { height: 2.0em; }
+
+  /* ── items ── */
+  .items-title {
+    font-size: 13px;
+    color: #9a8b78;
+    letter-spacing: 1px;
+  }
+  .item-line {
+    font-size: 14px;
+    display: flex;
+    align-items: baseline;
+  }
+  .item-dot {
+    color: #c8956c;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .item-name { flex: 1; }
+  .item-detail {
+    color: #7a6e62;
+    font-size: 13px;
+    white-space: nowrap;
+    margin-left: 12px;
+  }
+
+  /* ── totals ── */
+  .total-line {
+    text-align: right;
+    font-size: 14px;
+    color: #5a4a3a;
+  }
+  .total-line.grand {
+    font-size: 16px;
+    font-weight: 700;
+    color: #5a3e28;
+  }
+  .total-label { color: #9a8b78; margin-right: 12px; }
+  .grand .total-label { color: #5a3e28; }
+
+  /* ── note ── */
+  .note-tag { font-size: 12px; color: #9a8b78; }
+  .note-text { font-size: 13px; color: #7a6e62; }
+
+  /* ── closing ── */
+  .closing { color: #5a4a3a; font-size: 14px; }
+  .sign-brand { font-weight: 700; color: #5a3e28; font-size: 15px; }
+  .sign-person { font-size: 13px; color: #9a8b78; }
+
+  /* ── receipt ── */
+  .receipt-area {
+    font-size: 13px;
+    color: #9a8b78;
+    display: flex;
+    gap: 48px;
+  }
+  .receipt-blank {
+    display: inline-block;
+    width: 140px;
+    border-bottom: 1px solid #ccc;
+    margin-left: 4px;
+  }
+
+  /* ── footer ── */
+  .page-footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 11px;
+    color: #b8aa98;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+
+  /* ── print button ── */
+  .print-bar { text-align: center; padding: 16px; }
+  .print-bar button {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    padding: 10px 32px;
+    background: #5a3e28;
+    color: #faf7f2;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .print-bar button:hover { background: #7a5a40; }
+</style>
+</head>
+<body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+<div class="print-bar no-print">
+  <button onclick="window.print()">列 印</button>
+  <button onclick="savePDF()" style="margin-left:8px">存為 PDF</button>
+</div>
+<script>
+function savePDF(){
+  var el = document.querySelector('.page');
+  var opt = {
+    margin:       [18, 20, 16, 20],
+    filename:     '報價單_QT-20260403-001.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+</script>
+
+<div class="page">
+
+  <!-- Letterhead -->
+  <div class="letterhead">
+    <div class="brand">COSH 電腦舖</div>
+    <div class="brand-sub">電瑙舖資訊有限公司　台中豐原 · 潭子 · 大雅　統編 27488187</div>
+  </div>
+
+  <!-- 書信主體 -->
+  <div class="letter-body lined">
+
+    <p class="date-line">2026 年 4 月 3 日</p>
+
+    <p class="greeting"><span class="name">張先生</span>　您好：</p>
+
+    <p class="letter-para">感謝您選擇 COSH 電腦舖，這份報價單於 <span class="hl">2026 年 4 月 3 日</span>為<span class="hl">張先生</span>特別準備，由您的專屬服務顧問 <span class="hl">林榮祺</span> 為您提供服務。</p>
+
+    <p class="letter-para">以下是我們為您準備的品項明細：</p>
+
+    <div class="ruled-space"></div>
+
+    <div class="item-line">
+      <span class="item-dot">·</span>
+      <span class="item-name">ASUS ROG STRIX B650E-F</span>
+      <span class="item-detail">×1　NT$ 8,990</span>
+    </div>
+    <div class="item-line">
+      <span class="item-dot">·</span>
+      <span class="item-name">AMD Ryzen 7 7800X3D</span>
+      <span class="item-detail">×1　NT$ 13,500</span>
+    </div>
+    <div class="item-line">
+      <span class="item-dot">·</span>
+      <span class="item-name">G.SKILL 幻鋒戟 DDR5-6000 32GB</span>
+      <span class="item-detail">×1　NT$ 3,690</span>
+    </div>
+    <div class="item-line">
+      <span class="item-dot">·</span>
+      <span class="item-name">WD Black SN850X 2TB</span>
+      <span class="item-detail">×1　NT$ 5,490</span>
+    </div>
+    <div class="item-line">
+      <span class="item-dot">·</span>
+      <span class="item-name">MSI MAG A850GL PCIE5 850W</span>
+      <span class="item-detail">×1　NT$ 4,290</span>
+    </div>
+    <div class="item-line">
+      <span class="item-dot">·</span>
+      <span class="item-name">NZXT H7 Flow RGB 白色</span>
+      <span class="item-detail">×1　NT$ 3,590</span>
+    </div>
+
+    <div class="ruled-space"></div>
+
+    <p class="total-line"><span class="total-label">商品合計</span>NT$ 39,550</p>
+    <p class="total-line grand"><span class="total-label">本次報價</span>NT$ 39,550</p>
+
+    <div class="ruled-space"></div>
+
+    <p class="letter-para">本報價單編號 <span class="hl">QT-20260403-001</span>，報價有效期限至 <span class="hl">2026 年 4 月 17 日</span>，若您有任何疑問，歡迎在此期限內隨時與我們聯繫。</p>
+
+    <div class="ruled-space"></div>
+
+    <p class="note-tag">備註</p>
+    <p class="note-text">整機組裝，保固一年。如有問題歡迎回店檢測。</p>
+
+    <div class="ruled-space"></div>
+
+    <div class="closing-section">
+    <p class="closing">有任何問題，歡迎隨時與我們聯繫，</p>
+    <p class="closing">我們很榮幸能夠為您服務。</p>
+
+    <div class="ruled-space"></div>
+
+    <p class="sign-brand">COSH 電腦舖</p>
+    <p class="sign-person">專屬服務顧問：林榮祺</p>
+
+    <div class="ruled-space"></div>
+    <div class="ruled-space"></div>
+
+    <div class="receipt-area">
+      <span>簽收 <span class="receipt-blank"></span></span>
+      <span>日期 <span class="receipt-blank"></span></span>
+    </div>
+    </div><!-- /.closing-section -->
+
+  </div>
+
+  <div class="page-footer">
+    COSH 電腦舖　台中豐原 · 潭子 · 大雅
+  </div>
+
+</div>
+</body>
+</html>

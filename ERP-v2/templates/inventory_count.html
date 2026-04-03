@@ -1,0 +1,634 @@
+{% extends "base.html" %}
+{% block title %}盤點作業 — COSH ERP{% endblock %}
+{% block page_title %}盤點作業{% endblock %}
+
+{% block styles %}
+<style>
+.ic-layout { display: flex; flex-direction: column; gap: 20px; }
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(107,95,82,.14);
+  border-radius: 16px; overflow: hidden;
+}
+.card-head {
+  padding: 12px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+}
+.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase; }
+.card-body { padding: 20px 22px; }
+
+.f-select, .f-input {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px; font-size: 15px;
+  font-family: 'Noto Serif TC', serif; font-weight: 300;
+  color: #2c2720; background: #f5f0e8;
+  box-sizing: border-box;
+}
+.f-select:focus, .f-input:focus {
+  outline: none; border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12); background: #fff;
+}
+
+.btn-main {
+  padding: 9px 22px; background: #2c2720; color: #f5f0e8;
+  border: none; border-radius: 8px; font-size: .82rem;
+  font-family: 'Noto Serif TC', serif; letter-spacing: .06em; cursor: pointer;
+}
+.btn-main:disabled { opacity: .5; cursor: default; }
+.btn-sec {
+  padding: 8px 18px; background: transparent; color: #6b5f52;
+  border: 1px solid rgba(107,95,82,.25); border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.btn-sec:hover { background: rgba(107,95,82,.06); }
+.btn-danger {
+  padding: 8px 18px; background: transparent; color: #8b3a3a;
+  border: 1px solid rgba(139,58,58,.25); border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+.btn-ok {
+  padding: 8px 18px; background: transparent; color: #3d7a3d;
+  border: 1px solid rgba(61,122,61,.25); border-radius: 8px;
+  font-size: .82rem; font-family: 'Noto Serif TC', serif; cursor: pointer;
+}
+
+/* ── 建單區 ── */
+.create-bar {
+  display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+}
+.create-bar .field { display: flex; flex-direction: column; gap: 5px; }
+.create-bar .field label { font-size: .74rem; color: #9a9188; }
+
+/* ── 歷史列表 ── */
+.ic-list { border-collapse: collapse; width: 100%; font-size: .85rem; }
+.ic-list th {
+  text-align: left; font-size: .7rem; color: #9a9188;
+  letter-spacing: .06em; padding: 8px 10px;
+  border-bottom: 1px solid rgba(107,95,82,.12);
+}
+.ic-list td {
+  padding: 10px 10px; border-bottom: 1px solid rgba(107,95,82,.06);
+  color: #2c2720;
+}
+.ic-list tr:hover td { background: rgba(107,95,82,.03); }
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: .72rem; font-weight: 400;
+}
+.badge.drafting { background: rgba(250,191,19,.15); color: #7a5500; }
+.badge.submitted { background: rgba(59,130,246,.12); color: #2563eb; }
+.badge.approved { background: rgba(61,122,61,.12); color: #3d7a3d; }
+.badge.rejected { background: rgba(139,58,58,.12); color: #8b3a3a; }
+
+/* ── 盤點表格 ── */
+.count-table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+.count-table th {
+  position: sticky; top: 0; z-index: 2;
+  text-align: left; font-size: .7rem; color: #9a9188;
+  letter-spacing: .06em; padding: 8px 10px;
+  border-bottom: 1px solid rgba(107,95,82,.15);
+  background: #fff;
+}
+.count-table td { padding: 8px 10px; border-bottom: 1px solid rgba(107,95,82,.06); }
+.count-table .qty-input {
+  width: 80px; padding: 6px 8px; text-align: center;
+  border: 1px solid rgba(107,95,82,.2); border-radius: 8px;
+  font-size: .88rem; font-family: 'Noto Serif TC', serif;
+  background: #f5f0e8;
+}
+.count-table .qty-input:focus {
+  outline: none; border-color: #FABF13;
+  box-shadow: 0 0 0 3px rgba(250,191,19,.12); background: #fff;
+}
+.count-table .rmk-input {
+  width: 100%; padding: 5px 8px;
+  border: 1px solid rgba(107,95,82,.15); border-radius: 6px;
+  font-size: .78rem; font-family: 'Noto Serif TC', serif;
+  background: transparent; color: #6b5f52;
+}
+.count-table .rmk-input:focus { outline: none; border-color: #9a9188; }
+
+.diff-pos { color: #3d7a3d; font-weight: 500; }
+.diff-neg { color: #8b3a3a; font-weight: 500; }
+.diff-zero { color: #9a9188; }
+
+.scroll-wrap { max-height: 65vh; overflow-y: auto; }
+
+/* ── 摘要列 ── */
+.summary-bar {
+  display: flex; gap: 24px; flex-wrap: wrap;
+  padding: 14px 0; font-size: .84rem; color: #6b5f52;
+}
+.summary-bar .num { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; color: #2c2720; }
+
+/* ── tabs ── */
+.tab-bar { display: flex; gap: 0; }
+.tab-btn {
+  padding: 9px 20px; font-size: .8rem; border: none; background: transparent;
+  color: #9a9188; font-family: 'Noto Serif TC', serif; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tab-btn.active { color: #2c2720; border-bottom-color: #2c2720; }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 28px; right: 28px; padding: 12px 22px;
+  border-radius: 10px; font-size: .88rem; color: #fff;
+  opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.ok  { background: #2e7d46; }
+.toast.err { background: #b94040; }
+
+.empty-hint { text-align: center; padding: 32px 0; color: #9a9188; font-size: .86rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ic-layout">
+
+  <!-- ── Tab 切換 ── -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('create')">建立盤點</button>
+    <button class="tab-btn" onclick="switchTab('history')">盤點紀錄</button>
+  </div>
+
+  <!-- ════════ Tab: 建立盤點 ════════ -->
+  <div id="tabCreate">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">新增盤點單</span>
+      </div>
+      <div class="card-body">
+        <div class="create-bar">
+          <div class="field">
+            <label>盤點倉庫</label>
+            <select id="selWarehouse" class="f-select" style="width:180px">
+              <option value="豐原門市">豐原門市</option>
+              <option value="潭子門市">潭子門市</option>
+              <option value="大雅門市">大雅門市</option>
+              <option value="業務部">業務部</option>
+              <option value="總公司倉庫">總公司倉庫</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>備註（選填）</label>
+            <input type="text" id="inpNote" class="f-input" style="width:240px" placeholder="例：4月上旬盤點">
+          </div>
+          <button class="btn-main" id="btnCreate" onclick="createCount()">建立盤點單</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 盤點表格 -->
+    <div class="card" id="countCard" style="display:none">
+      <div class="card-head">
+        <div>
+          <span class="card-title" id="countTitle">盤點中</span>
+          <span id="countBadge" style="margin-left:10px"></span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sec" onclick="printCount()">列印</button>
+          <button class="btn-sec" onclick="saveCount()">暫存</button>
+          <button class="btn-main" id="btnSubmit" onclick="submitCount()">送出盤點</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:10px 16px">
+        <div class="summary-bar" id="summaryBar"></div>
+        <div class="scroll-wrap">
+          <table class="count-table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>產品編號</th>
+                <th>產品名稱</th>
+                <th style="width:80px;text-align:center">帳面</th>
+                <th style="width:100px;text-align:center">實盤</th>
+                <th style="width:70px;text-align:center">差異</th>
+                <th style="min-width:120px">備註</th>
+              </tr>
+            </thead>
+            <tbody id="countBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 老闆審核區 -->
+    <div class="card" id="reviewCard" style="display:none">
+      <div class="card-head">
+        <span class="card-title">差異審核</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sec" onclick="printCount()">列印</button>
+          <button class="btn-danger" onclick="rejectCount()">退回重盤</button>
+          <button class="btn-ok" onclick="approveCount()">審核通過</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:10px 16px">
+        <div class="summary-bar" id="reviewSummary"></div>
+        <div class="scroll-wrap">
+          <table class="count-table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>產品編號</th>
+                <th>產品名稱</th>
+                <th style="width:80px;text-align:center">帳面</th>
+                <th style="width:80px;text-align:center">實盤</th>
+                <th style="width:70px;text-align:center">差異</th>
+                <th>備註</th>
+              </tr>
+            </thead>
+            <tbody id="reviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ Tab: 盤點紀錄 ════════ -->
+  <div id="tabHistory" style="display:none">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">盤點單列表</span>
+      </div>
+      <div class="card-body" style="padding:10px 16px">
+        <div style="overflow-x:auto">
+          <table class="ic-list">
+            <thead>
+              <tr>
+                <th>盤點單號</th>
+                <th>倉庫</th>
+                <th>狀態</th>
+                <th>建立者</th>
+                <th>建立時間</th>
+                <th>送出時間</th>
+                <th>審核者</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="histBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let currentCountId = null;
+let currentCountStatus = null;
+const statusLabel = { drafting: '盤點中', submitted: '待審核', approved: '已核准', rejected: '已退回' };
+
+function onAppReady(user) {
+  currentUser = user;
+  // 依登入者預設倉庫
+  const dept = user.department || '';
+  const whMap = { '豐原': '豐原門市', '潭子': '潭子門市', '大雅': '大雅門市', '業務': '業務部', '總公司': '總公司倉庫' };
+  for (const [key, val] of Object.entries(whMap)) {
+    if (dept.includes(key)) { document.getElementById('selWarehouse').value = val; break; }
+  }
+  loadHistory();
+}
+
+// ─── Tab ──────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (tab === 'create' && i === 0) || (tab === 'history' && i === 1));
+  });
+  document.getElementById('tabCreate').style.display = tab === 'create' ? '' : 'none';
+  document.getElementById('tabHistory').style.display = tab === 'history' ? '' : 'none';
+  if (tab === 'history') loadHistory();
+}
+
+// ─── 建立盤點單 ──────────────────
+async function createCount() {
+  if (!currentUser) { toast('請先登入', 'err'); return; }
+  const wh = document.getElementById('selWarehouse').value;
+  const note = document.getElementById('inpNote').value.trim();
+  const btn = document.getElementById('btnCreate');
+  btn.disabled = true; btn.textContent = '建立中…';
+  try {
+    const res = await fetch('/api/inventory-count/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ warehouse: wh, note, created_by: currentUser.name })
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast(`已建立 ${json.count_no}，共 ${json.item_count} 項`, 'ok');
+      openCount(json.count_id);
+    } else {
+      toast(json.message || '建立失敗', 'err');
+    }
+  } catch(e) { toast('錯誤：' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = '建立盤點單'; }
+}
+
+// ─── 開啟盤點單 ──────────────────
+async function openCount(countId) {
+  const res = await fetch(`/api/inventory-count/${countId}`);
+  const json = await res.json();
+  if (!json.success) { toast(json.message || '載入失敗', 'err'); return; }
+
+  const h = json.header;
+  const items = json.items;
+  currentCountId = countId;
+  currentCountStatus = h.status;
+
+  const isBoss = currentUser.title === '老闆' || currentUser.role === '老闆';
+
+  // 如果是 submitted 且老闆 → 顯示審核區
+  if (h.status === 'submitted' && isBoss) {
+    document.getElementById('countCard').style.display = 'none';
+    showReview(h, items);
+    return;
+  }
+
+  // 顯示盤點表格
+  document.getElementById('reviewCard').style.display = 'none';
+  document.getElementById('countCard').style.display = '';
+  document.getElementById('countTitle').textContent = `${h.count_no}　${h.warehouse}`;
+  document.getElementById('countBadge').innerHTML =
+    `<span class="badge ${h.status}">${statusLabel[h.status]}</span>`;
+
+  const readonly = h.status !== 'drafting';
+  document.getElementById('btnSubmit').style.display = readonly ? 'none' : '';
+  document.querySelectorAll('.card-head .btn-sec').forEach(b => b.style.display = readonly ? 'none' : '');
+
+  const tbody = document.getElementById('countBody');
+  tbody.innerHTML = items.map((item, idx) => {
+    const diff = item.actual_qty != null ? item.actual_qty - item.book_qty : '';
+    const diffCls = diff === '' ? '' : diff > 0 ? 'diff-pos' : diff < 0 ? 'diff-neg' : 'diff-zero';
+    const diffTxt = diff === '' ? '' : (diff > 0 ? '+' + diff : diff);
+    return `<tr>
+      <td style="color:#9a9188">${idx + 1}</td>
+      <td style="font-size:.8rem;color:#6b5f52">${esc(item.product_code)}</td>
+      <td>${esc(item.product_name)}</td>
+      <td style="text-align:center">${item.book_qty}</td>
+      <td style="text-align:center">
+        ${readonly
+          ? (item.actual_qty != null ? item.actual_qty : '—')
+          : `<input type="number" class="qty-input" data-id="${item.id}" min="0"
+               value="${item.actual_qty != null ? item.actual_qty : ''}"
+               oninput="onQtyChange(this)">`}
+      </td>
+      <td style="text-align:center" class="${diffCls}" id="diff-${item.id}">${diffTxt}</td>
+      <td>${readonly
+          ? esc(item.remark || '')
+          : `<input type="text" class="rmk-input" data-id="${item.id}" value="${esc(item.remark || '')}">`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  updateSummary(items);
+  switchTab('create');
+}
+
+function onQtyChange(el) {
+  const id = el.dataset.id;
+  const row = el.closest('tr');
+  const bookQty = parseInt(row.children[3].textContent);
+  const actual = el.value !== '' ? parseInt(el.value) : null;
+  const diffEl = document.getElementById('diff-' + id);
+  if (actual == null) {
+    diffEl.textContent = '';
+    diffEl.className = '';
+  } else {
+    const d = actual - bookQty;
+    diffEl.textContent = d > 0 ? '+' + d : d;
+    diffEl.className = d > 0 ? 'diff-pos' : d < 0 ? 'diff-neg' : 'diff-zero';
+  }
+}
+
+function updateSummary(items) {
+  const total = items.length;
+  const filled = items.filter(i => i.actual_qty != null).length;
+  const diffItems = items.filter(i => i.actual_qty != null && i.actual_qty !== i.book_qty);
+  const gain = diffItems.filter(i => i.actual_qty > i.book_qty).length;
+  const loss = diffItems.filter(i => i.actual_qty < i.book_qty).length;
+  document.getElementById('summaryBar').innerHTML = `
+    <div>品項數 <span class="num">${total}</span></div>
+    <div>已盤 <span class="num">${filled}</span> / ${total}</div>
+    <div style="color:#3d7a3d">盤盈 <span class="num">${gain}</span></div>
+    <div style="color:#8b3a3a">盤虧 <span class="num">${loss}</span></div>
+  `;
+}
+
+// ─── 暫存 ────────────────────────
+async function saveCount() {
+  if (!currentCountId) return;
+  const items = collectItems();
+  const res = await fetch(`/api/inventory-count/${currentCountId}/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items })
+  });
+  const json = await res.json();
+  toast(json.success ? '已暫存' : (json.message || '儲存失敗'), json.success ? 'ok' : 'err');
+}
+
+function collectItems() {
+  const items = [];
+  document.querySelectorAll('.qty-input').forEach(el => {
+    const id = parseInt(el.dataset.id);
+    const rmkEl = document.querySelector(`.rmk-input[data-id="${id}"]`);
+    items.push({
+      id,
+      actual_qty: el.value !== '' ? parseInt(el.value) : null,
+      remark: rmkEl ? rmkEl.value : ''
+    });
+  });
+  return items;
+}
+
+// ─── 送出 ────────────────────────
+async function submitCount() {
+  if (!currentCountId) return;
+  // 先儲存再送出
+  const items = collectItems();
+  const unfilled = items.filter(i => i.actual_qty == null).length;
+  if (unfilled > 0) {
+    if (!confirm(`尚有 ${unfilled} 項未填寫，是否仍要送出？\n（未填寫的品項將無法送出）`)) return;
+  }
+
+  await fetch(`/api/inventory-count/${currentCountId}/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items })
+  });
+
+  const res = await fetch(`/api/inventory-count/${currentCountId}/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const json = await res.json();
+  if (json.success) {
+    toast('盤點單已送出，等待老闆審核', 'ok');
+    openCount(currentCountId);
+  } else {
+    toast(json.message || '送出失敗', 'err');
+  }
+}
+
+// ─── 老闆審核 ────────────────────
+function showReview(header, items) {
+  document.getElementById('reviewCard').style.display = '';
+  const diffs = items.filter(i => i.diff !== 0);
+  const gain = diffs.filter(i => i.diff > 0);
+  const loss = diffs.filter(i => i.diff < 0);
+
+  document.getElementById('reviewSummary').innerHTML = `
+    <div>${esc(header.count_no)}　${esc(header.warehouse)}</div>
+    <div>品項 <span class="num">${items.length}</span></div>
+    <div style="color:#8b3a3a">差異 <span class="num">${diffs.length}</span></div>
+    <div style="color:#3d7a3d">盤盈 <span class="num">${gain.length}</span></div>
+    <div style="color:#8b3a3a">盤虧 <span class="num">${loss.length}</span></div>
+  `;
+
+  // 只顯示有差異的品項（差異為0的不顯示）
+  const showItems = diffs.length > 0 ? diffs : items;
+  const tbody = document.getElementById('reviewBody');
+  tbody.innerHTML = showItems.map((item, idx) => {
+    const diffCls = item.diff > 0 ? 'diff-pos' : item.diff < 0 ? 'diff-neg' : 'diff-zero';
+    const diffTxt = item.diff > 0 ? '+' + item.diff : item.diff;
+    return `<tr>
+      <td style="color:#9a9188">${idx + 1}</td>
+      <td style="font-size:.8rem;color:#6b5f52">${esc(item.product_code)}</td>
+      <td>${esc(item.product_name)}</td>
+      <td style="text-align:center">${item.book_qty}</td>
+      <td style="text-align:center">${item.actual_qty}</td>
+      <td style="text-align:center" class="${diffCls}">${diffTxt}</td>
+      <td style="font-size:.78rem;color:#9a9188">${esc(item.remark || '')}</td>
+    </tr>`;
+  }).join('');
+
+  if (diffs.length === 0) {
+    document.getElementById('reviewBody').innerHTML =
+      '<tr><td colspan="7" class="empty-hint">全部品項帳實相符，無差異</td></tr>';
+  }
+}
+
+async function approveCount() {
+  if (!currentCountId) return;
+  if (!confirm('確認審核通過？有差異的品項將記錄調整紀錄。')) return;
+  const res = await fetch(`/api/inventory-count/${currentCountId}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ approved_by: currentUser.name })
+  });
+  const json = await res.json();
+  if (json.success) {
+    toast(`審核通過，${json.adjusted_count} 項差異已記錄`, 'ok');
+    openCount(currentCountId);
+  } else {
+    toast(json.message || '審核失敗', 'err');
+  }
+}
+
+async function rejectCount() {
+  if (!currentCountId) return;
+  if (!confirm('確認退回？盤點單將回到「盤點中」狀態，會計可重新填寫。')) return;
+  const res = await fetch(`/api/inventory-count/${currentCountId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reviewed_by: currentUser.name })
+  });
+  const json = await res.json();
+  if (json.success) {
+    toast('已退回重新盤點', 'ok');
+    openCount(currentCountId);
+  } else {
+    toast(json.message || '退回失敗', 'err');
+  }
+}
+
+// ─── 歷史列表 ────────────────────
+async function loadHistory() {
+  const res = await fetch('/api/inventory-count/list');
+  const json = await res.json();
+  const tbody = document.getElementById('histBody');
+  const counts = json.counts || [];
+  if (!json.success || !counts.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-hint">尚無盤點紀錄</td></tr>';
+    return;
+  }
+  tbody.innerHTML = counts.map(c => `
+    <tr>
+      <td style="font-weight:400">${esc(c.count_no)}</td>
+      <td>${esc(c.warehouse)}</td>
+      <td><span class="badge ${c.status}">${statusLabel[c.status] || c.status}</span></td>
+      <td>${esc(c.created_by || '')}</td>
+      <td style="font-size:.78rem;color:#9a9188">${(c.created_at||'').slice(0,16).replace('T',' ')}</td>
+      <td style="font-size:.78rem;color:#9a9188">${c.submitted_at ? c.submitted_at.slice(0,16).replace('T',' ') : '—'}</td>
+      <td>${esc(c.reviewed_by || '—')}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn-sec" style="padding:5px 14px;font-size:.76rem" onclick="openCount(${c.id})">開啟</button>
+        ${c.status === 'drafting' ? `<button class="btn-danger" style="padding:5px 12px;font-size:.76rem" onclick="deleteCount(${c.id},'${esc(c.count_no)}')">刪除</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ─── 列印盤點單 ──────────────────
+function printCount() {
+  if (!currentCountId) { toast('請先選擇盤點單', 'err'); return; }
+  window.open(`/api/pdf/inventory-count/${currentCountId}`);
+}
+
+// ─── 刪除盤點單 ──────────────────
+async function deleteCount(countId, countNo) {
+  if (!confirm(`確認刪除盤點單 ${countNo}？此操作無法復原。`)) return;
+  try {
+    const res = await fetch(`/api/inventory-count/${countId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) {
+      toast(`伺服器錯誤 (${res.status})`, 'err');
+      return;
+    }
+    const json = await res.json();
+    if (json.success) {
+      toast('已刪除', 'ok');
+      if (currentCountId === countId) {
+        document.getElementById('countCard').style.display = 'none';
+        document.getElementById('reviewCard').style.display = 'none';
+        currentCountId = null;
+      }
+      loadHistory();
+    } else {
+      toast(json.message || '刪除失敗', 'err');
+    }
+  } catch (e) {
+    console.error('deleteCount error:', e);
+    toast('網路錯誤，請重試', 'err');
+  }
+}
+
+// ─── 工具 ────────────────────────
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+
+let _tt;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.className = 'toast', 3200);
+}
+</script>
+{% endblock %}
