@@ -114,11 +114,22 @@
     flex-shrink: 0;
   }
   .item-name { flex: 1; }
-  .item-detail {
+  .item-qty {
     color: #7a6e62;
     font-size: 13px;
     white-space: nowrap;
     margin-left: 12px;
+    width: 36px;
+    text-align: left;
+  }
+  .item-price {
+    color: #7a6e62;
+    font-size: 13px;
+    white-space: nowrap;
+    margin-left: 12px;
+    min-width: 80px;
+    text-align: right;
+    display: inline-block;
   }
 
   .total-line {
@@ -141,27 +152,30 @@
   .sign-brand { font-weight: 700; color: #5a3e28; font-size: 15px; }
   .sign-person { font-size: 13px; color: #9a8b78; }
 
-  .receipt-area {
+  .receipt-line {
     font-size: 13px;
     color: #9a8b78;
-    display: flex;
-    gap: 48px;
   }
-  .receipt-blank {
-    display: inline-block;
-    width: 140px;
-    border-bottom: 1px solid #ccc;
-    margin-left: 4px;
+  .stamp-area {
+    float: right;
+    margin-top: -2em;
+    position: relative;
+    z-index: 1;
   }
 
   .page-footer {
     margin-top: 32px;
     text-align: center;
+    font-family: 'Noto Serif TC', 'Georgia', serif;
     font-size: 11px;
     color: #b8aa98;
     letter-spacing: 1px;
     line-height: 1.6;
   }
+
+  /* ── 隱藏細項金額模式 ── */
+  .hide-detail .item-price { display: none; }
+  .hide-detail .total-line:not(.grand) { display: none; }
 
   .print-bar { text-align: center; padding: 16px; }
   .print-bar button {
@@ -184,8 +198,14 @@
 <div class="print-bar no-print">
   <button onclick="window.print()">列 印</button>
   <button onclick="savePDF()" style="margin-left:8px">存為 PDF</button>
+  <button onclick="toggleDetail(this)" style="margin-left:8px">隱藏細項金額</button>
 </div>
 <script>
+function toggleDetail(btn){
+  var page = document.querySelector('.page');
+  page.classList.toggle('hide-detail');
+  btn.textContent = page.classList.contains('hide-detail') ? '顯示細項金額' : '隱藏細項金額';
+}
 function savePDF(){
   var el = document.querySelector('.page');
   var opt = {
@@ -204,19 +224,29 @@ function savePDF(){
 
   <div class="letterhead">
     <div class="brand">COSH 電腦舖</div>
-    <div class="brand-sub">{{ company }}　台中豐原 · 潭子 · 大雅{% if tax_id %}　統編 {{ tax_id }}{% endif %}</div>
+    <div class="brand-sub">{{ company }}　台中豐原 · 潭子 · 大雅</div>
   </div>
 
   <div class="letter-body lined">
 
-    <p class="date-line">{{ date_display }}</p>
-
     <p class="greeting"><span class="name">{{ customer_name }}</span>　您好：</p>
 
     {# ── 開場段落（三種單據共用） ── #}
-    <p class="letter-para">感謝您選擇 COSH 電腦舖，這份{{ doc_type }}於 <span class="hl">{{ date_display }}</span>為<span class="hl">{{ customer_name }}</span>特別準備{% if salesperson %}，由您的專屬服務顧問 <span class="hl">{{ salesperson }}</span> 為您提供服務{% endif %}。</p>
+    <p class="letter-para">感謝您選擇 COSH 電腦舖，這份是為您特別準備的{{ doc_type }}。</p>
 
-    <p class="letter-para">以下是我們為您準備的品項明細：</p>
+    {% if salesperson %}
+    <p class="letter-para">由專屬服務顧問 <span class="hl">{{ salesperson }}</span> 為您提供服務。</p>
+    {% endif %}
+
+    <div class="ruled-space"></div>
+
+    {% if doc_type == '報價單' %}
+    <p class="letter-para" style="text-indent:0">以下是您此次報價的商品明細：</p>
+    {% elif doc_type == '訂購單' %}
+    <p class="letter-para" style="text-indent:0">以下是您此次訂購的商品明細：</p>
+    {% else %}
+    <p class="letter-para" style="text-indent:0">以下是您此次消費的商品明細：</p>
+    {% endif %}
 
     <div class="ruled-space"></div>
 
@@ -224,7 +254,7 @@ function savePDF(){
     <div class="item-line">
       <span class="item-dot">·</span>
       <span class="item-name">{{ item.name }}</span>
-      <span class="item-detail">×{{ item.qty }}　NT$ {{ item.price }}</span>
+      <span class="item-qty">×{{ item.qty }}</span><span class="item-price">NT$ {{ item.price }}</span>
     </div>
     {% endfor %}
 
@@ -256,29 +286,50 @@ function savePDF(){
     {% endif %}
 
     <div class="closing-section">
-    <p class="closing">有任何問題，歡迎隨時與我們聯繫，</p>
-    <p class="closing">我們很榮幸能夠為您服務。</p>
+    <p class="closing">有任何問題歡迎隨時與我們聯繫，我們很榮幸能夠為您服務。</p>
 
     <div class="ruled-space"></div>
 
     <p class="sign-brand">COSH 電腦舖</p>
     {% if salesperson %}
-    <p class="sign-person">專屬服務顧問：{{ salesperson }}</p>
+    <p class="sign-person">您的專屬服務顧問：{{ salesperson }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ date_short }}</p>
+    {% else %}
+    <p class="sign-person">{{ date_short }}</p>
     {% endif %}
 
-    <div class="ruled-space"></div>
-    <div class="ruled-space"></div>
-
-    <div class="receipt-area">
-      <span>簽收 <span class="receipt-blank"></span></span>
-      <span>日期 <span class="receipt-blank"></span></span>
+    <div class="stamp-area">
+      <svg width="120" height="120" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style="opacity:0.82;transform:rotate(-30deg)">
+        <g transform="translate(200, 200)">
+          <circle cx="0" cy="0" r="155" fill="none" stroke="#6b4c2a" stroke-width="5"/>
+          <circle cx="0" cy="0" r="141" fill="none" stroke="#6b4c2a" stroke-width="1.5" opacity="0.7"/>
+          <circle cx="0" cy="-148" r="3.5" fill="#6b4c2a"/>
+          <circle cx="0" cy="148" r="3.5" fill="#6b4c2a"/>
+          <circle cx="-148" cy="0" r="3.5" fill="#6b4c2a"/>
+          <circle cx="148" cy="0" r="3.5" fill="#6b4c2a"/>
+          <path id="topArc-s" d="M -118 0 A 118 118 0 0 1 118 0" fill="none"/>
+          <text fill="#6b4c2a" font-family="'Noto Serif TC', serif" font-size="22" letter-spacing="7">
+            <textPath href="#topArc-s" startOffset="50%" text-anchor="middle">電瑙舖資訊有限公司</textPath>
+          </text>
+          <line x1="-72" y1="-20" x2="72" y2="-20" stroke="#6b4c2a" stroke-width="0.9" opacity="0.5"/>
+          <line x1="-72" y1="28" x2="72" y2="28" stroke="#6b4c2a" stroke-width="0.9" opacity="0.5"/>
+          <text x="0" y="10" text-anchor="middle" fill="#6b4c2a" font-family="'Noto Serif TC', serif" font-size="28" font-weight="600" letter-spacing="3">{{ date_stamp }}</text>
+          <path id="bottomArc-s" d="M -86 0 A 86 86 0 0 0 86 0" fill="none"/>
+          <text fill="#6b4c2a" font-family="'Noto Serif TC', serif" font-size="22" font-weight="300" letter-spacing="12">
+            <textPath href="#bottomArc-s" startOffset="50%" text-anchor="middle">收發專用</textPath>
+          </text>
+        </g>
+      </svg>
     </div>
+
+    <div class="ruled-space"></div>
+    <p class="receipt-line">簽收　　　　　　　　　　日期</p>
     </div><!-- /.closing-section -->
 
   </div>
 
   <div class="page-footer">
-    COSH 電腦舖　台中豐原 · 潭子 · 大雅
+    COSH 電腦舖　台中豐原 · 潭子 · 大雅<br>
+    電話 04-3707-8096　LINE ID @cosh
   </div>
 
 </div>

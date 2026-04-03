@@ -6249,6 +6249,18 @@ def _fmt_date_zh(d):
         return s
 
 
+def _fmt_date_dot(d):
+    """將 '2026-04-03' 轉為 '2026 . 4 . 3'"""
+    s = fmt_date(d)
+    if not s:
+        return ''
+    try:
+        parts = s.split('-')
+        return f'{parts[0]} . {int(parts[1])} . {int(parts[2])}'
+    except Exception:
+        return s
+
+
 @app.route('/print/quote/<path:doc_no>')
 def print_quote(doc_no):
     """報價單 — 書信式 HTML 列印"""
@@ -6276,6 +6288,8 @@ def print_quote(doc_no):
             company=d.get('company') or '電瑙舖資訊有限公司',
             tax_id='27488187',
             date_display=_fmt_date_zh(d.get('created_at')),
+            date_short=_fmt_date_dot(d.get('created_at')),
+            date_stamp=fmt_date(d.get('created_at')),
             customer_name=d.get('target_name') or '',
             salesperson=d.get('created_by') or '',
             valid_until=fmt_date(d.get('valid_until') or ''),
@@ -6326,6 +6340,8 @@ def print_order(doc_no):
             company=d.get('company') or '電瑙舖資訊有限公司',
             tax_id='27488187',
             date_display=_fmt_date_zh(d.get('created_at')),
+            date_short=_fmt_date_dot(d.get('created_at')),
+            date_stamp=fmt_date(d.get('created_at')),
             customer_name=d.get('target_name') or '',
             salesperson=d.get('created_by') or '',
             valid_until='',
@@ -6390,6 +6406,8 @@ def print_sales(sales_no):
             company='電瑙舖資訊有限公司',
             tax_id='27488187',
             date_display=_fmt_date_zh(first.get('date')),
+            date_short=_fmt_date_dot(first.get('date')),
+            date_stamp=fmt_date(first.get('date')),
             customer_name=first.get('customer_name') or '',
             salesperson=first.get('salesperson') or '',
             valid_until='',

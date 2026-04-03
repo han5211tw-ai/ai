@@ -296,8 +296,8 @@ function onAppReady(user) {
   _user = user;
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('quoteDate').value = today;
-  // 有效期限預設 +14 天
-  const exp = new Date(); exp.setDate(exp.getDate() + 14);
+  // 有效期限預設 +7 天
+  const exp = new Date(); exp.setDate(exp.getDate() + 7);
   document.getElementById('validUntil').value = exp.toISOString().slice(0,10);
 
   genQuoteNo(today.replace(/-/g,''));
