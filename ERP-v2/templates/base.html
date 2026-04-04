@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Serif+TC:wght@200;300;400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260404">
   {% block styles %}{% endblock %}
 </head>
 <body>
@@ -85,13 +85,56 @@
   </main>
 </div><!-- /.app-shell -->
 
+<!-- ═══════════════════════════════════════════
+     手機版底部導覽列
+     ═══════════════════════════════════════════ -->
+<div class="bottom-nav" id="bottomNav">
+  <nav class="bottom-nav-bar">
+    <a class="bnav-item" href="/" data-bnav="home">
+      <span class="bnav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5l8-7 8 7"/><path d="M6 10v9a1 1 0 001 1h3.5v-5h3v5H17a1 1 0 001-1v-9"/></svg></span>
+      <span class="bnav-label">首頁</span>
+    </a>
+    <a class="bnav-item" href="/needs_input" data-bnav="needs">
+      <span class="bnav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a1.5 1.5 0 00-1.5 1.5v15A1.5 1.5 0 007 21h10a1.5 1.5 0 001.5-1.5V7.5L14 3z"/><path d="M14 3v5h4.5"/><path d="M9 13h6M9 17h4"/></svg></span>
+      <span class="bnav-label">需求</span>
+    </a>
+    <a class="bnav-item" href="/inventory_query" data-bnav="inventory">
+      <span class="bnav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8L12 3.5 20.5 8 12 12.5z"/><path d="M3.5 8v8L12 20.5 20.5 16V8"/><path d="M12 12.5V20.5"/></svg></span>
+      <span class="bnav-label">庫存</span>
+    </a>
+    <a class="bnav-item" href="/pending_needs" data-bnav="pending">
+      <span class="bnav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="1.5"/><path d="M9 2.5v3M15 2.5v3"/><path d="M8.5 11l1.5 1.5 3-3"/><path d="M8.5 15.5l1.5 1.5 3-3"/></svg></span>
+      <span class="bnav-label">待處理</span>
+    </a>
+    <button class="bnav-item" data-bnav="more" onclick="toggleMorePanel()">
+      <span class="bnav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></span>
+      <span class="bnav-label">更多</span>
+    </button>
+  </nav>
+</div>
+
+<!-- 「更多」滑出面板 -->
+<div class="more-overlay" id="moreOverlay" onclick="closeMorePanel(event)">
+  <div class="more-panel" id="morePanel">
+    <div class="more-handle"></div>
+    <div class="more-user">
+      <div>
+        <div class="more-user-name" id="moreUserName">—</div>
+        <div class="more-user-role" id="moreUserRole">—</div>
+      </div>
+      <button class="more-logout" onclick="logout()">登出</button>
+    </div>
+    <div id="moreMenuContent"><!-- JS 動態生成 --></div>
+  </div>
+</div>
+
 
 <!-- ═══════════════════════════════════════════
      導航選單定義
      ═══════════════════════════════════════════ -->
 <script>
 const MENU_STANDALONE = [
-  { id: 'boss',       icon: '◈', label: '老闆控制台', route: '/boss',        roles: ['老闆'] },
+  { id: 'boss',       icon: '◈', label: '老闆', route: '/boss',        roles: ['老闆'] },
   { id: 'accountant', icon: '◈', label: '會計',   route: '/Accountants', roles: ['老闆', '會計'] },
 ];
 
@@ -109,6 +152,7 @@ const MENU_GROUPS = [
     id: 'documents', title: '單據與需求', items: [
       { id: 'doc-query', icon: '·', label: '單據查詢', route: '/query',       roles: ['老闆', '會計'] },
       { id: 'needs',     icon: '·', label: '需求作業', route: '/needs_input', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'fault',     icon: '·', label: '電腦檢測', route: '/fault_diagnose', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
     ]
   },
   {
@@ -122,7 +166,10 @@ const MENU_GROUPS = [
   },
   {
     id: 'pending', title: '待辦清單', items: [
-      { id: 'staging', icon: '·', label: '待建檔中心', route: '/staging_center_v2', roles: ['老闆', '會計'] },
+      { id: 'pend-needs',     icon: '·', label: '待處理需求', route: '/pending_needs',      roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'pend-purchase',  icon: '·', label: '待採購清單', route: '/pending_purchase',   roles: ['老闆'] },
+      { id: 'pend-transfer',  icon: '·', label: '待調撥清單', route: '/pending_transfer',   roles: ['老闆', '會計'] },
+      { id: 'staging',        icon: '·', label: '待建檔中心', route: '/staging_center_v2',  roles: ['老闆', '會計'] },
     ]
   },
   {
@@ -157,7 +204,7 @@ const MENU_GROUPS = [
   {
     id: 'finance', title: '財務管理', items: [
       { id: 'fin-dashboard',  icon: '·', label: '財務總覽',   route: '/finance_dashboard',         roles: ['老闆', '會計'] },
-      { id: 'fin-petty',      icon: '·', label: '零用金管理', route: '/finance_petty_cash',         roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'fin-petty',      icon: '·', label: '零用金管理', route: '/finance_petty_cash',         roles: ['老闆', '會計'] },
       { id: 'fin-receivable',  icon: '·', label: '應收帳款',   route: '/finance_receivables',       roles: ['老闆', '會計'] },
       { id: 'fin-payable',    icon: '·', label: '應付帳款',   route: '/finance_payables',           roles: ['老闆', '會計'] },
       { id: 'fin-transaction', icon: '·', label: '收支日記帳', route: '/finance_transactions',       roles: ['老闆', '會計'] },
@@ -178,6 +225,7 @@ const MENU_GROUPS = [
       { id: 'targets',      icon: '·', label: '業績目標',   route: '/target_input',                  roles: ['老闆'] },
       { id: 'staff-mgmt',   icon: '·', label: '員工管理',   route: '/staff_management',              roles: ['老闆'] },
       { id: 'sys-health',   icon: '·', label: '系統健康',   route: '/admin/health',                  roles: ['老闆'] },
+      { id: 'audit-log',   icon: '·', label: '操作日誌',   route: '/admin/audit_log',               roles: ['老闆'] },
     ]
   },
 ];
@@ -311,6 +359,101 @@ function toggleGroup(header) {
 }
 
 // ── 初始化 ───────────────────────────────────
+// ── 底部導覽列（手機版）──────────────────────
+const _BNAV_ROUTES = {
+  home:      ['/', '/index'],
+  needs:     ['/needs_input'],
+  inventory: ['/inventory_query'],
+  pending:   ['/pending_needs'],
+};
+
+function _highlightBottomNav() {
+  const path = currentPath();
+  document.querySelectorAll('.bnav-item').forEach(el => {
+    const key = el.dataset.bnav;
+    if (!key || key === 'more') return;
+    const routes = _BNAV_ROUTES[key] || [];
+    el.classList.toggle('active', routes.includes(path));
+  });
+}
+
+function toggleMorePanel() {
+  const overlay = document.getElementById('moreOverlay');
+  overlay.classList.toggle('open');
+}
+
+function closeMorePanel(e) {
+  if (e.target === document.getElementById('moreOverlay')) {
+    document.getElementById('moreOverlay').classList.remove('open');
+  }
+}
+
+// 已完成手機版優化的路由（不含底部導覽列已有的首頁/需求/庫存/班表）
+const _MOBILE_ROUTES = new Set([
+  '/roster',
+  '/inventory_count',
+  '/service_record',
+  '/supervision_score',
+  '/pending_purchase',
+  '/pending_transfer',
+]);
+
+function renderMoreMenu(userRole) {
+  const container = document.getElementById('moreMenuContent');
+  if (!container) return;
+  const path = currentPath();
+  const isMobile = window.innerWidth < 768;
+  let html = '';
+
+  const standaloneVisible = MENU_STANDALONE.filter(i => {
+    if (!hasRole(i.roles, userRole)) return false;
+    if (isMobile && !_MOBILE_ROUTES.has(i.route)) return false;
+    return true;
+  });
+  if (standaloneVisible.length) {
+    standaloneVisible.forEach(item => {
+      const act = path === item.route ? ' active' : '';
+      html += `<a class="more-link${act}" href="${item.route}">
+        <span class="more-dot"></span>${item.label}</a>`;
+    });
+  }
+
+  MENU_GROUPS.forEach(group => {
+    const visible = group.items.filter(i => {
+      if (!hasRole(i.roles, userRole)) return false;
+      if (isMobile && !_MOBILE_ROUTES.has(i.route)) return false;
+      return true;
+    });
+    if (!visible.length) return;
+    if (isMobile) {
+      // 手機版不分群組，直接列出
+      visible.forEach(item => {
+        const act = path === item.route ? ' active' : '';
+        html += `<a class="more-link${act}" href="${item.route}">
+          <span class="more-dot"></span>${item.label}</a>`;
+      });
+    } else {
+      html += `<div class="more-group-title">${group.title}</div>`;
+      visible.forEach(item => {
+        const act = path === item.route ? ' active' : '';
+        html += `<a class="more-link${act}" href="${item.route}">
+          <span class="more-dot"></span>${item.label}</a>`;
+      });
+    }
+  });
+
+  container.innerHTML = html;
+}
+
+function _initBottomNav(user) {
+  const nameEl = document.getElementById('moreUserName');
+  const roleEl = document.getElementById('moreUserRole');
+  if (nameEl) nameEl.textContent = user.name;
+  if (roleEl) roleEl.textContent = user.title;
+  renderMoreMenu(user.title);
+  _highlightBottomNav();
+}
+
 function initApp(user) {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appShell').style.display = 'flex';
@@ -319,6 +462,7 @@ function initApp(user) {
   document.getElementById('sidebarUserRole').textContent = user.title;
 
   renderMenu(user.title);
+  _initBottomNav(user);
 
   // 觸發頁面自訂初始化
   if (typeof onAppReady === 'function') onAppReady(user);
@@ -334,6 +478,7 @@ function initApp(user) {
     document.getElementById('sidebarUserName').textContent = user.name;
     document.getElementById('sidebarUserRole').textContent = user.title;
     renderMenu(user.title);
+    _initBottomNav(user);
     // onAppReady 定義在頁面底部的 scripts block（比此段晚載入），
     // 必須等所有 scripts 跑完才能呼叫
     window.addEventListener('load', function () {
@@ -356,5 +501,527 @@ function closeSidebar() {
 </script>
 
 {% block scripts %}{% endblock %}
+
+<!-- ═══════════════════════════════════════════
+     AI 幫手浮動對話框（山中民宿風格）
+     ═══════════════════════════════════════════ -->
+<style>
+/* ── 山丘 SVG 圖標（共用） ── */
+.ai-mountain-icon {
+  display:inline-block; width:26px; height:26px; flex-shrink:0;
+}
+
+/* ── 浮動按鈕 ── */
+#aiFab {
+  position:fixed; bottom:24px; right:24px; z-index:9000;
+  width:54px; height:54px; border-radius:50%;
+  background:var(--bg-card, #faf8f4);
+  border:1.5px solid rgba(107,95,82,.18);
+  cursor:pointer;
+  box-shadow:0 2px 12px rgba(44,39,32,.10), 0 0 0 0 rgba(250,191,19,0);
+  display:flex; align-items:center; justify-content:center;
+  transition:bottom .8s cubic-bezier(.4,0,.2,1), right .8s cubic-bezier(.4,0,.2,1),
+             transform .25s ease, box-shadow .3s ease, border-color .3s;
+}
+#aiFab:hover {
+  transform:translateY(-3px) !important;
+  box-shadow:0 6px 20px rgba(44,39,32,.14), 0 0 0 3px rgba(250,191,19,.15);
+  border-color:rgba(250,191,19,.45);
+  animation:none !important;  /* hover 時停止自動動畫 */
+}
+#aiFab.open { display:none; }
+#aiFab .ai-mountain-icon { width:28px; height:28px; }
+
+/* 呼吸光暈 */
+@keyframes aiBreathe {
+  0%, 100% { box-shadow:0 2px 12px rgba(44,39,32,.10), 0 0 0 0 rgba(250,191,19,0); border-color:rgba(107,95,82,.18); }
+  50%      { box-shadow:0 2px 12px rgba(44,39,32,.10), 0 0 0 4px rgba(250,191,19,.12); border-color:rgba(250,191,19,.35); }
+}
+/* 輕晃 */
+@keyframes aiNudge {
+  0%, 100% { transform:translate(0,0) rotate(0deg); }
+  20%      { transform:translate(-2px,-3px) rotate(-3deg); }
+  40%      { transform:translate(2px,-1px) rotate(2deg); }
+  60%      { transform:translate(-1px,-2px) rotate(-1deg); }
+  80%      { transform:translate(1px,0) rotate(1deg); }
+}
+/* 小跳 */
+@keyframes aiBounce {
+  0%, 100% { transform:translateY(0); }
+  40%      { transform:translateY(-8px); }
+  60%      { transform:translateY(-3px); }
+}
+
+/* ── 對話視窗 ── */
+#aiChat {
+  display:none; position:fixed; bottom:24px; right:24px; z-index:9001;
+  width:380px; max-height:560px; border-radius:16px;
+  background:var(--bg-card, #faf8f4);
+  border:1px solid rgba(107,95,82,.12);
+  box-shadow:0 8px 40px rgba(44,39,32,.12), 0 1px 3px rgba(44,39,32,.06);
+  flex-direction:column; overflow:hidden;
+  font-family:var(--font-serif);
+  transform:translateY(12px); opacity:0;
+  transition:transform .25s ease, opacity .2s ease;
+}
+#aiChat.open { display:flex; transform:translateY(0); opacity:1; }
+
+/* header — 暖白底、細線分隔 */
+.ai-header {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 18px;
+  border-bottom:1px solid rgba(107,95,82,.10);
+  background:var(--bg-card, #faf8f4);
+}
+.ai-header-info { flex:1; }
+.ai-header-title {
+  font-size:.88rem; font-weight:400; letter-spacing:.04em;
+  color:var(--text, #2c2720);
+}
+.ai-header-sub {
+  font-size:.64rem; color:var(--text-sub, #9a9188);
+  letter-spacing:.03em; margin-top:2px;
+}
+.ai-close {
+  background:none; border:1px solid rgba(107,95,82,.15);
+  color:var(--text-sub, #9a9188); cursor:pointer;
+  font-size:.82rem; width:30px; height:30px;
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  transition:background .15s, border-color .15s;
+}
+.ai-close:hover {
+  background:rgba(107,95,82,.06);
+  border-color:rgba(107,95,82,.25);
+}
+
+/* 訊息區 */
+.ai-messages {
+  flex:1; overflow-y:auto; padding:16px 16px;
+  display:flex; flex-direction:column; gap:12px;
+  min-height:280px; max-height:380px;
+  background:var(--bg, #f5f0e8);
+}
+.ai-messages::-webkit-scrollbar { width:5px; }
+.ai-messages::-webkit-scrollbar-thumb {
+  background:rgba(107,95,82,.18); border-radius:4px;
+}
+
+/* 訊息列 — flex row 放頭像 + 氣泡 */
+.ai-msg-row {
+  display:flex; gap:8px; align-items:flex-end;
+}
+.ai-msg-row.user { flex-direction:row-reverse; }
+
+/* 頭像 */
+.ai-avatar {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg-card, #faf8f4);
+  border:1px solid rgba(107,95,82,.12);
+}
+.ai-avatar .ai-mountain-icon { width:18px; height:18px; }
+.ai-avatar-user {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  background:var(--bg-card, #faf8f4);
+  border:1px solid rgba(107,95,82,.12);
+  display:flex; align-items:center; justify-content:center;
+  font-size:.68rem; color:var(--text-sub, #9a9188);
+}
+
+/* 氣泡 */
+.ai-msg {
+  max-width:82%; padding:10px 14px; border-radius:12px;
+  font-size:.82rem; line-height:1.65; word-break:break-word;
+  white-space:pre-wrap;
+}
+.ai-msg.user {
+  background:#fff; color:var(--text, #2c2720);
+  border:1px solid rgba(107,95,82,.10);
+  border-bottom-right-radius:4px;
+}
+.ai-msg.assistant {
+  background:#fff; color:var(--text, #2c2720);
+  border:1px solid rgba(107,95,82,.10);
+  border-bottom-left-radius:4px;
+}
+.ai-msg.system {
+  font-size:.72rem; color:var(--text-sub, #9a9188);
+  background:none; padding:4px 0; text-align:center;
+  max-width:100%;
+}
+
+/* 思考中 */
+.ai-typing-row {
+  display:flex; gap:8px; align-items:flex-end;
+}
+.ai-typing {
+  font-size:.76rem; color:var(--text-light, #b8b0a6);
+  padding:6px 0;
+}
+.ai-typing::after {
+  content:''; display:inline-block; width:12px;
+  animation:aiDots 1.2s steps(4,end) infinite;
+}
+@keyframes aiDots {
+  0%   { content:''; }
+  25%  { content:'.'; }
+  50%  { content:'..'; }
+  75%  { content:'...'; }
+}
+
+/* 輸入區 */
+.ai-input-bar {
+  display:flex; gap:8px; padding:12px 14px;
+  border-top:1px solid rgba(107,95,82,.10);
+  background:var(--bg-card, #faf8f4);
+}
+.ai-input {
+  flex:1; padding:9px 13px;
+  border:1px solid rgba(107,95,82,.18);
+  border-radius:8px; font-size:.82rem; font-family:var(--font-serif);
+  font-weight:300; background:var(--bg, #f5f0e8); color:var(--text, #2c2720);
+  outline:none; resize:none; max-height:80px;
+  transition:border-color .15s, box-shadow .15s;
+}
+.ai-input:focus {
+  border-color:rgba(250,191,19,.5);
+  box-shadow:0 0 0 3px rgba(250,191,19,.10);
+}
+.ai-input::placeholder { color:var(--text-light, #b8b0a6); }
+.ai-send {
+  padding:8px 16px;
+  border:1.5px solid rgba(250,191,19,.5);
+  border-radius:8px;
+  background:transparent; color:var(--text, #2c2720);
+  font-size:.80rem; font-family:var(--font-serif); font-weight:400;
+  cursor:pointer; white-space:nowrap;
+  transition:background .15s, border-color .15s;
+}
+.ai-send:hover {
+  background:rgba(250,191,19,.10);
+  border-color:rgba(250,191,19,.7);
+}
+.ai-send:disabled { opacity:.35; cursor:wait; }
+
+/* 手機版 */
+@media(max-width:640px){
+  #aiChat { width:calc(100vw - 16px); right:8px; bottom:8px; max-height:80vh; border-radius:14px; }
+  #aiFab  { bottom:16px; right:16px; width:46px; height:46px; }
+  #aiFab .ai-mountain-icon { width:24px; height:24px; }
+}
+</style>
+
+<!-- 山丘 SVG 定義（隱藏，供引用） -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="iconMountain" viewBox="0 0 100 100">
+    <!-- 遠山（淺色） -->
+    <path d="M10 78 Q25 42, 42 60 Q50 50, 58 58 Q72 38, 90 78 Z"
+          fill="rgba(107,95,82,.12)" stroke="none"/>
+    <!-- 近山（深色） -->
+    <path d="M5 82 Q22 50, 38 65 Q50 45, 62 62 Q78 44, 95 82 Z"
+          fill="rgba(107,95,82,.25)" stroke="none"/>
+    <!-- 山頂煙嵐 -->
+    <circle cx="50" cy="40" r="6" fill="rgba(250,191,19,.18)"/>
+    <circle cx="44" cy="43" r="4" fill="rgba(250,191,19,.10)"/>
+  </symbol>
+</svg>
+
+<button id="aiFab" onclick="aiToggle()" title="AI 幫手" style="display:none">
+  <svg class="ai-mountain-icon"><use href="#iconMountain"/></svg>
+</button>
+
+<div id="aiChat">
+  <div class="ai-header">
+    <div class="ai-avatar" style="width:32px;height:32px;">
+      <svg class="ai-mountain-icon" style="width:20px;height:20px;"><use href="#iconMountain"/></svg>
+    </div>
+    <div class="ai-header-info">
+      <div class="ai-header-title">電腦舖 AI</div>
+      <div class="ai-header-sub">ERP 資料即時查詢</div>
+    </div>
+    <button class="ai-close" onclick="aiToggle()">✕</button>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="ai-msg system">有什麼可以幫你的？可以問銷貨、庫存、客戶、財務等問題。</div>
+  </div>
+  <div class="ai-input-bar">
+    <textarea class="ai-input" id="aiInput" placeholder="輸入問題…" rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend()}"></textarea>
+    <button class="ai-send" id="aiSendBtn" onclick="aiSend()">發送</button>
+  </div>
+</div>
+
+<script>
+// ── AI Chat ──
+const _aiHistory = [];
+let _aiOpen = false;
+let _aiBusy = false;
+
+/* 山丘 avatar HTML */
+const _aiAvatarHTML = '<div class="ai-avatar"><svg class="ai-mountain-icon" style="width:18px;height:18px"><use href="#iconMountain"/></svg></div>';
+const _userAvatarHTML = '<div class="ai-avatar-user">我</div>';
+
+function aiToggle(){
+  _aiOpen = !_aiOpen;
+  const chat = document.getElementById('aiChat');
+  const fab  = document.getElementById('aiFab');
+  if(_aiOpen){
+    chat.style.display = 'flex';
+    fab.classList.add('open');
+    requestAnimationFrame(()=> chat.classList.add('open'));
+    document.getElementById('aiInput').focus();
+  } else {
+    chat.classList.remove('open');
+    fab.classList.remove('open');
+    setTimeout(()=>{ chat.style.display='none'; }, 250);
+  }
+}
+
+function aiAppend(role, text){
+  const box = document.getElementById('aiMessages');
+
+  if(role === 'system'){
+    const div = document.createElement('div');
+    div.className = 'ai-msg system';
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  const row = document.createElement('div');
+  row.className = 'ai-msg-row ' + role;
+
+  const avatar = document.createElement('div');
+  avatar.innerHTML = role === 'assistant' ? _aiAvatarHTML : _userAvatarHTML;
+  row.appendChild(avatar.firstElementChild);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'ai-msg ' + role;
+  bubble.textContent = text;
+  row.appendChild(bubble);
+
+  box.appendChild(row);
+  box.scrollTop = box.scrollHeight;
+  return bubble;
+}
+
+async function aiSend(){
+  if(_aiBusy) return;
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  aiAppend('user', msg);
+  _aiHistory.push({role:'user', content:msg});
+
+  // typing indicator（帶頭像）
+  const box = document.getElementById('aiMessages');
+  const typingRow = document.createElement('div');
+  typingRow.className = 'ai-typing-row';
+  typingRow.innerHTML = _aiAvatarHTML + '<div class="ai-typing">思考中</div>';
+  box.appendChild(typingRow);
+  box.scrollTop = box.scrollHeight;
+
+  _aiBusy = true;
+  document.getElementById('aiSendBtn').disabled = true;
+
+  try {
+    const user = getUser();
+    const res = await fetch('/api/ai/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        message: msg,
+        history: _aiHistory.slice(-20),
+        user_name: user?.name || '同事',
+      })
+    });
+    typingRow.remove();
+
+    const ct = res.headers.get('content-type') || '';
+    if(!ct.includes('application/json')){
+      aiAppend('system', '⚠ 伺服器回傳非 JSON（可能需要重啟 Gunicorn）');
+      return;
+    }
+    const json = await res.json();
+
+    if(json.success){
+      const reply = json.response || '（無回應）';
+      aiAppend('assistant', reply);
+      _aiHistory.push({role:'assistant', content:reply});
+      // 保留最近 40 條（20 輪對話 = user+assistant 各 20）
+      if (_aiHistory.length > 40) _aiHistory.splice(0, _aiHistory.length - 40);
+    } else {
+      aiAppend('system', '⚠ ' + (json.message || '發生錯誤'));
+    }
+  } catch(e){
+    typingRow.remove();
+    aiAppend('system', '⚠ 無法連線：' + e.message);
+  } finally {
+    _aiBusy = false;
+    document.getElementById('aiSendBtn').disabled = false;
+  }
+}
+
+// 自動調整輸入框高度
+document.getElementById('aiInput')?.addEventListener('input', function(){
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+
+// 登入後才顯示 AI 按鈕 + 自動載入今日摘要
+async function _aiLoadDailySummary(user) {
+  try {
+    const params = new URLSearchParams({
+      name: user.name || '',
+      title: user.title || '',
+      department: user.department || '',
+    });
+    const res = await fetch('/api/ai/daily-summary?' + params);
+    const json = await res.json();
+    if (json.success && json.summary) {
+      // 自動展開對話框並顯示摘要
+      const chat = document.getElementById('aiChat');
+      const fab  = document.getElementById('aiFab');
+      _aiOpen = true;
+      chat.style.display = 'flex';
+      fab.classList.add('open');
+      requestAnimationFrame(() => chat.classList.add('open'));
+      // 清空預設歡迎訊息，替換為摘要
+      const box = document.getElementById('aiMessages');
+      box.innerHTML = '';
+      aiAppend('assistant', json.summary);
+    }
+  } catch (e) {
+    // 摘要失敗不阻塞，靜默忽略
+  }
+}
+
+(function(){
+  const _origInitApp = window.initApp;
+  if(typeof _origInitApp === 'function'){
+    window.initApp = function(user){
+      _origInitApp(user);
+      document.getElementById('aiFab').style.display = 'flex';
+      _aiStartIdle();
+      _aiLoadDailySummary(user);
+    };
+  }
+  const _check = setInterval(()=>{
+    if(document.getElementById('appShell')?.style.display === 'flex'){
+      document.getElementById('aiFab').style.display = 'flex';
+      _aiStartIdle();
+      const u = getUser();
+      if(u) _aiLoadDailySummary(u);
+      clearInterval(_check);
+    }
+  }, 500);
+  setTimeout(()=>clearInterval(_check), 10000);
+})();
+
+// ── AI 浮動按鈕：隨機生命感 ──
+let _aiIdleTimer = null;
+const _aiFabHome = { bottom:24, right:24 };  // 原點
+
+/* sidebar 寬度（避開左側作業區） */
+function _aiSidebarW(){
+  const sb = document.getElementById('sidebar');
+  return sb ? sb.offsetWidth : 240;
+}
+
+/* 安全漂移範圍：右側 & 底部邊緣，不進入主要作業區中央 */
+function _aiRandomPos(){
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const sbw = _aiSidebarW();
+  const fab = document.getElementById('aiFab');
+  const size = fab ? fab.offsetWidth : 54;
+  const margin = 16;
+
+  // 只在右邊 300px 範圍 & 下方 300px 範圍內漂移
+  const maxRight = 300;
+  const maxBottom = 300;
+
+  // 隨機選一個邊：0=底邊, 1=右邊
+  const edge = Math.random() < 0.5 ? 0 : 1;
+  let b, r;
+
+  if(edge === 0){
+    // 底邊：bottom 固定在 20~60px, right 在 20~maxRight
+    b = 20 + Math.random() * 40;
+    r = 20 + Math.random() * (maxRight - 20);
+  } else {
+    // 右邊：right 固定在 20~60px, bottom 在 20~maxBottom
+    r = 20 + Math.random() * 40;
+    b = 20 + Math.random() * (maxBottom - 20);
+  }
+
+  // 確保不超出螢幕
+  r = Math.min(r, vw - sbw - size - margin);
+  b = Math.min(b, vh - size - margin - 60); // 60 = topbar 高度
+
+  return { bottom: Math.max(16, b), right: Math.max(16, r) };
+}
+
+/* 隨機播一個動畫 */
+function _aiPlayAnim(){
+  const fab = document.getElementById('aiFab');
+  if(!fab || _aiOpen) return;
+
+  const roll = Math.random();
+
+  if(roll < 0.35){
+    // 呼吸光暈
+    fab.style.animation = 'aiBreathe 2s ease-in-out 1';
+  } else if(roll < 0.65){
+    // 輕晃
+    fab.style.animation = 'aiNudge .6s ease-in-out 1';
+  } else if(roll < 0.85){
+    // 小跳
+    fab.style.animation = 'aiBounce .5s ease 1';
+  } else {
+    // 漂移到新位置
+    const pos = _aiRandomPos();
+    fab.style.bottom = pos.bottom + 'px';
+    fab.style.right  = pos.right + 'px';
+  }
+
+  // 動畫結束後清掉 animation 屬性，為下次做準備
+  setTimeout(()=>{ if(fab) fab.style.animation = ''; }, 2200);
+}
+
+/* 排程下一次動作（8~20 秒隨機間隔） */
+function _aiScheduleNext(){
+  const delay = 8000 + Math.random() * 12000;
+  _aiIdleTimer = setTimeout(()=>{
+    _aiPlayAnim();
+    _aiScheduleNext();
+  }, delay);
+}
+
+/* 啟動 */
+function _aiStartIdle(){
+  if(_aiIdleTimer) return; // 已啟動
+  // 首次延遲 3~6 秒
+  setTimeout(()=> _aiScheduleNext(), 3000 + Math.random() * 3000);
+}
+
+/* 打開對話時回歸原點 & 停止漂移 */
+const _origAiToggle = aiToggle;
+aiToggle = function(){
+  _origAiToggle();
+  const fab = document.getElementById('aiFab');
+  if(_aiOpen){
+    // 回歸原點
+    fab.style.bottom = _aiFabHome.bottom + 'px';
+    fab.style.right  = _aiFabHome.right + 'px';
+    fab.style.animation = '';
+  }
+};
+</script>
+
 </body>
 </html>

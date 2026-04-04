@@ -27,10 +27,13 @@
 .f-input, .f-select {
   width: 100%; padding: 10px 14px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 10px;
-  font-size: .86rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .84rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
 }
 .f-input:focus, .f-select:focus { border-color: #6b5f52; }
+/* 奇偶交替：日期(奇)暖米色、店別(偶)淺色 */
+#fDate  { background: #f5f0e8; }
+#fStore { background: var(--bg-card, #faf8f4); }
 
 /* ── 評分區塊 ── */
 .score-section { margin-bottom: 22px; }
@@ -56,7 +59,7 @@
   width: 44px; height: 36px;
   border: 1px solid rgba(107,95,82,.25); border-radius: 8px;
   background: none; font-size: .9rem; color: #6b5f52;
-  font-family: 'Cormorant Garamond', serif; font-weight: 300;
+  font-family: var(--font-en); font-weight: 300;
   cursor: pointer; transition: all .15s;
 }
 .sc-btn.sel-1 { background: #fde8d8; border-color: #c07050; color: #7a3a10; }
@@ -72,12 +75,12 @@
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
 }
 .total-score-val {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 2rem; font-weight: 300; color: #2c2720;
 }
 .total-score-max { font-size: .78rem; color: #9a9188; }
 .total-pct {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 1.2rem; font-weight: 300;
 }
 .pct-good { color: #4a7c59; }
@@ -92,7 +95,7 @@
 /* ── 備註 ── */
 .f-textarea {
   width: 100%; padding: 10px 14px; border: 1px solid rgba(107,95,82,.22);
-  border-radius: 10px; font-size: .85rem; font-family: 'Noto Serif TC', serif;
+  border-radius: 10px; font-size: .84rem; font-family: var(--font-serif);
   font-weight: 300; color: #2c2720; background: #f5f0e8;
   outline: none; resize: vertical; min-height: 64px; box-sizing: border-box;
 }
@@ -103,13 +106,13 @@
 .submit-btn {
   padding: 11px 28px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 10px; font-size: .84rem;
-  font-family: 'Noto Serif TC', serif; letter-spacing: .08em; cursor: pointer;
+  font-family: var(--font-serif); letter-spacing: .08em; cursor: pointer;
 }
 .submit-btn:disabled { opacity: .5; cursor: default; }
 .reset-btn {
   padding: 11px 18px; border: 1px solid rgba(107,95,82,.3);
   border-radius: 10px; background: none; font-size: .82rem; color: #6b5f52;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .msg-ok  { font-size: .82rem; color: #4a7c59; }
 .msg-err { font-size: .82rem; color: #8b3a3a; }
@@ -123,8 +126,118 @@
 }
 .rec-table td { padding: 10px 12px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
 .rec-table tr:last-child td { border-bottom: none; }
-.num { font-family: 'Cormorant Garamond', serif; font-size: .88rem; }
+.num { font-family: var(--font-en); font-size: .88rem; }
 #recentWrap { overflow-x: auto; }
+
+/* ── 手機版固定送出按鈕（桌機隱藏） ── */
+.m-fixed-submit { display: none; }
+
+/* ── 手機版 ──────────────────────────── */
+@media (max-width: 767px) {
+  .sup-layout { gap: 12px; padding-bottom: 68px; /* 空間給固定按鈕 */ }
+  .card { padding: 16px 14px; border-radius: 12px; }
+  .card-title { margin-bottom: 12px; }
+
+  /* 頭部選擇：單欄 */
+  .head-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+  .f-input, .f-select { font-size: 16px; padding: 11px 14px; }
+
+  /* 總分進度條 */
+  .total-bar { padding: 12px 14px; gap: 12px; border-radius: 10px; }
+  .total-score-val { font-size: 1.6rem; }
+  .pct-bar-wrap { min-width: 80px; }
+
+  /* 評分列：每列變卡片 */
+  .score-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    background: var(--bg-card, #faf8f4);
+    border: 1px solid rgba(107,95,82,.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .score-item-label { font-size: .88rem; }
+
+  /* 分數按鈕加大，等寬填滿 */
+  .score-btns { gap: 6px; }
+  .sc-btn {
+    flex: 1;
+    width: auto;
+    height: 42px;
+    font-size: 1rem;
+    border-radius: 10px;
+  }
+
+  /* 備註：單欄堆疊 */
+  div[style*="grid-template-columns:1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .f-textarea { font-size: 16px; min-height: 80px; padding: 12px 14px; }
+
+  /* 原始按鈕列隱藏 */
+  .btn-row { display: none; }
+
+  /* 固定底部送出按鈕 */
+  .m-fixed-submit {
+    display: flex;
+    position: fixed;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    left: 0; right: 0;
+    padding: 10px 16px;
+    background: rgba(255,255,255,.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(107,95,82,.12);
+    gap: 10px;
+    z-index: 90;
+  }
+  .m-fixed-submit button {
+    flex: 1;
+    padding: 12px 0;
+    font-size: .88rem;
+    font-family: var(--font-serif);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .m-fixed-submit .mf-submit {
+    background: var(--text, #2c2720);
+    color: var(--bg, #f5f0e8);
+    border: none;
+    letter-spacing: .08em;
+  }
+  .m-fixed-submit .mf-submit:disabled { opacity: .5; }
+  .m-fixed-submit .mf-reset {
+    background: none;
+    border: 1px solid rgba(107,95,82,.3);
+    color: #6b5f52;
+  }
+
+  /* 近期紀錄 → 卡片化 */
+  #recentWrap { overflow-x: visible; }
+  .rec-table thead { display: none; }
+  .rec-table,
+  .rec-table tbody,
+  .rec-table tr,
+  .rec-table td { display: block; width: 100%; }
+  .rec-table tr {
+    background: var(--bg, #f5f0e8);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .rec-table td { padding: 2px 0; border-bottom: none; }
+  .rec-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 4em;
+    color: var(--text-sub, #9a9188);
+    font-size: .75rem;
+    margin-right: 6px;
+  }
+}
 </style>
 {% endblock %}
 
@@ -207,6 +320,12 @@
     <div class="card-title">近期督導紀錄</div>
     <div id="recentWrap"><div style="color:#9a9188;font-size:.82rem">載入中…</div></div>
   </div>
+
+<!-- 手機版固定送出按鈕 -->
+<div class="m-fixed-submit">
+  <button class="mf-reset" onclick="resetForm()">清除</button>
+  <button class="mf-submit" id="mSubmitBtn" onclick="submitScore()">送出評分</button>
+</div>
 
 </div>
 {% endblock %}
@@ -302,7 +421,9 @@ async function submitScore() {
   }
 
   const btn = document.getElementById('submitBtn');
+  const mBtn = document.getElementById('mSubmitBtn');
   btn.disabled = true;
+  if (mBtn) mBtn.disabled = true;
 
   const payload = {
     date, store_name: store, employee_name: emp,
@@ -319,6 +440,7 @@ async function submitScore() {
   });
   const data = await res.json();
   btn.disabled = false;
+  if (mBtn) mBtn.disabled = false;
 
   if (data.success) {
     showMsg(`送出成功！總分 ${data.total} / 80（${data.percentage}%）`, true);
@@ -361,12 +483,12 @@ async function loadRecent() {
   data.forEach(r => {
     const pct = r.percentage != null ? r.percentage.toFixed(1) + '%' : '—';
     html += `<tr>
-      <td>${r.date}</td>
-      <td>${r.store_name || '—'}</td>
-      <td>${r.employee_name || '—'}</td>
-      <td class="num">${r.total_score != null ? r.total_score : '—'}</td>
-      <td class="num">${pct}</td>
-      <td>${r.evaluator || '—'}</td>
+      <td data-label="日期">${r.date}</td>
+      <td data-label="店別">${r.store_name || '—'}</td>
+      <td data-label="員工">${r.employee_name || '—'}</td>
+      <td data-label="總分" class="num">${r.total_score != null ? r.total_score : '—'}</td>
+      <td data-label="百分比" class="num">${pct}</td>
+      <td data-label="督導">${r.evaluator || '—'}</td>
     </tr>`;
   });
   html += '</tbody></table>';

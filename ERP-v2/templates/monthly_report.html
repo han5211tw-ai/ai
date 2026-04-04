@@ -20,7 +20,7 @@
   flex-wrap: wrap;
 }
 .month-bar-title {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 1.2rem;
   font-weight: 300;
   color: #2c2720;
@@ -33,7 +33,7 @@
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 8px;
   font-size: .82rem;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   font-weight: 300;
   color: #2c2720;
   background: #f5f0e8;
@@ -46,7 +46,7 @@
   font-size: .8rem;
   color: #6b5f52;
   cursor: pointer;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   letter-spacing: .06em;
   transition: background .15s;
 }
@@ -83,7 +83,7 @@
   text-align: center;
 }
 .ov-val {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 1.6rem;
   font-weight: 300;
   color: #2c2720;
@@ -108,7 +108,7 @@
   border-bottom: 1px solid rgba(107,95,82,.06);
 }
 .rep-table tr:last-child td { border-bottom: none; }
-.num { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: .92rem; }
+.num { font-family: var(--font-en); font-weight: 300; font-size: .92rem; }
 .tag-good { color: #4a7c59; font-weight: 400; }
 .tag-warn { color: #a0763a; font-weight: 400; }
 .tag-bad  { color: #8b3a3a; font-weight: 400; }
@@ -128,8 +128,8 @@
 .store-name { font-size: .83rem; color: #2c2720; letter-spacing: .04em; }
 .ach-bar-bg { background: rgba(107,95,82,.1); border-radius: 4px; height: 8px; overflow: hidden; }
 .ach-bar-fill { height: 100%; border-radius: 4px; }
-.ach-val { font-family: 'Cormorant Garamond', serif; font-size: .9rem; text-align: right; }
-.ach-rev { font-family: 'Cormorant Garamond', serif; font-size: .82rem; color: #9a9188; text-align: right; }
+.ach-val { font-family: var(--font-en); font-size: .9rem; text-align: right; }
+.ach-rev { font-family: var(--font-en); font-size: .82rem; color: #9a9188; text-align: right; }
 
 /* ── 個人排名 ─────────────────────────── */
 .rank-list { display: flex; flex-direction: column; gap: 8px; }
@@ -144,8 +144,8 @@
 .rank-row:hover { background: rgba(107,95,82,.04); }
 .rank-num { width: 24px; text-align: center; font-size: .9rem; }
 .rank-name { flex: 1; color: #2c2720; }
-.rank-ach  { font-family: 'Cormorant Garamond', serif; font-size: .88rem; width: 64px; text-align: right; }
-.rank-rev  { font-family: 'Cormorant Garamond', serif; font-size: .88rem; color: #6b5f52; width: 120px; text-align: right; }
+.rank-ach  { font-family: var(--font-en); font-size: .88rem; width: 64px; text-align: right; }
+.rank-rev  { font-family: var(--font-en); font-size: .88rem; color: #6b5f52; width: 120px; text-align: right; }
 
 /* ── 分析區塊 ─────────────────────────── */
 .analysis-grid {
@@ -583,6 +583,11 @@ function renderAnalysis(dept, stores, personal, svc) {
   `;
 }
 
+/* ── Chart.js 字型（讀 CSS 變數，保持單一來源） ── */
+const _cs = getComputedStyle(document.documentElement);
+const _fSerif = _cs.getPropertyValue('--font-serif').trim() || "'Noto Serif TC', serif";
+const _fEn    = _cs.getPropertyValue('--font-en').trim()    || "'Cormorant Garamond', serif";
+
 /* ── Chart.js 通用選項 ────────────────────────── */
 function chartOpts(suffix = '') {
   return {
@@ -591,12 +596,12 @@ function chartOpts(suffix = '') {
     scales: {
       y: {
         beginAtZero: true,
-        ticks: { color: '#9a9188', font: { family: 'Cormorant Garamond', size: 12 },
+        ticks: { color: '#9a9188', font: { family: _fEn, size: 12 },
                  callback: v => v + suffix },
         grid: { color: 'rgba(107,95,82,.08)' },
       },
       x: {
-        ticks: { color: '#6b5f52', font: { family: 'Noto Serif TC', size: 12 } },
+        ticks: { color: '#6b5f52', font: { family: _fSerif, size: 12 } },
         grid: { display: false },
       }
     }

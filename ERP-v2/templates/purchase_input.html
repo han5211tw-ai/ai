@@ -29,12 +29,19 @@
 .f-input, .f-select {
   width: 100%; padding: 9px 12px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
-  font-size: .84rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .84rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
   transition: border .15s;
 }
 .f-input:focus, .f-select:focus { border-color: #6b5f52; }
 .f-readonly { color: #9a9188; background: #eee9e0; }
+/* 奇偶交替：奇數欄暖米色、偶數欄淺色 */
+#fDate    { background: #f5f0e8; }
+#fCompany { background: var(--bg-card, #faf8f4); }
+#fOrderNo { background: #f5f0e8; color: #9a9188; }
+#fSupplier{ background: var(--bg-card, #faf8f4); }
+#fInvoice { background: #f5f0e8; }
+#fWarehouse { background: var(--bg-card, #faf8f4); }
 
 /* 產品明細表格 */
 .items-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
@@ -53,7 +60,7 @@
 .cell-input {
   width: 100%; padding: 5px 7px;
   border: 1px solid rgba(107,95,82,.15); border-radius: 6px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
 }
 .cell-input:focus { border-color: #6b5f52; }
@@ -85,23 +92,25 @@
 .submit-btn {
   padding: 10px 26px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .82rem;
-  font-family: 'Noto Serif TC', serif; letter-spacing: .06em; cursor: pointer;
+  font-family: var(--font-serif); letter-spacing: .06em; cursor: pointer;
 }
 .submit-btn:disabled { opacity: .5; cursor: default; }
 .add-row-btn {
   padding: 7px 16px; border: 1px dashed rgba(107,95,82,.3); border-radius: 7px;
   background: none; font-size: .8rem; color: #6b5f52; cursor: pointer;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif); transition: background .15s;
 }
-.add-row-btn:hover { background: #f5f0e8; }
+.add-row-btn:hover { background: rgba(107,95,82,.05); }
 .del-row-btn {
-  padding: 3px 7px; border: 1px solid rgba(139,58,58,.2); border-radius: 5px;
-  background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer;
+  padding: 4px 9px; border: 1px solid rgba(139,58,58,.3); border-radius: 5px;
+  background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer; white-space: nowrap;
+  transition: background .15s;
 }
+.del-row-btn:hover { background: rgba(139,58,58,.06); }
 .reset-btn {
   padding: 10px 16px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
   background: none; font-size: .8rem; color: #6b5f52;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .msg-ok  { font-size: .82rem; color: #4a7c59; }
 .msg-err { font-size: .82rem; color: #8b3a3a; }
@@ -124,14 +133,14 @@
 .list-search {
   flex: 1; padding: 8px 12px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none; max-width: 280px;
 }
 .list-search:focus { border-color: #6b5f52; }
 .search-btn {
   padding: 8px 16px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .78rem;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .del-row-btn-sm {
   padding: 3px 9px; border: 1px solid rgba(139,58,58,.3);
@@ -150,7 +159,7 @@
 .tag-po {
   display: inline-block; padding: 1px 7px; border-radius: 4px;
   font-size: .72rem; background: #eee9e0; color: #6b5f52;
-  font-family: monospace; letter-spacing: .02em;
+  font-family: var(--font-mono); letter-spacing: .02em;
 }
 .edit-row-btn {
   padding: 3px 9px; border: 1px solid rgba(107,95,82,.3);
@@ -169,7 +178,7 @@
   width: min(500px, 95vw); box-shadow: 0 8px 40px rgba(0,0,0,.18);
 }
 .edit-modal-title {
-  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem;
+  font-family: var(--font-en); font-size: 1.15rem;
   font-weight: 300; color: #2c2720; letter-spacing: .06em;
   margin-bottom: 20px; padding-bottom: 12px;
   border-bottom: 1px solid rgba(107,95,82,.12);
@@ -182,7 +191,7 @@
 }
 .edit-field input {
   width: 100%; padding: 8px 10px; border: 1px solid rgba(107,95,82,.22);
-  border-radius: 8px; font-size: .86rem; font-family: 'Noto Serif TC', serif;
+  border-radius: 8px; font-size: .84rem; font-family: var(--font-serif);
   color: #2c2720; background: #f5f0e8; box-sizing: border-box;
 }
 .edit-field input:focus { outline: none; border-color: #FABF13; background: #fff; }
@@ -197,7 +206,7 @@
 .edit-save-btn {
   padding: 8px 20px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .83rem;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .edit-save-btn:hover { opacity: .85; }
 </style>
@@ -369,7 +378,7 @@
       </div>
       <div class="edit-field full">
         <label>進貨公司</label>
-        <select id="editPurchCompany" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.86rem;font-family:'Noto Serif TC',serif;color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
+        <select id="editPurchCompany" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.84rem;font-family:var(--font-serif);color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
           <option value="電瑙舖資訊有限公司">電瑙舖資訊有限公司（27488187）</option>
           <option value="鋒鑫資訊有限公司">鋒鑫資訊有限公司（90284112）</option>
         </select>
@@ -380,7 +389,7 @@
       </div>
       <div class="edit-field full">
         <label>入庫倉庫</label>
-        <select id="editPurchWarehouse" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.86rem;font-family:'Noto Serif TC',serif;color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
+        <select id="editPurchWarehouse" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.84rem;font-family:var(--font-serif);color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
           <option value="">未指定</option>
           <option value="總公司倉庫">總公司倉庫</option>
           <option value="豐原門市">豐原門市</option>
@@ -453,7 +462,7 @@ function addRow(code='', name='', qty=1, price=0) {
       ${formatNum(qty * price)}
     </td>
     <td style="text-align:center">
-      <button class="del-row-btn" onclick="removeRow(${n})">✕</button>
+      <button class="del-row-btn" onclick="removeRow(${n})">刪除</button>
     </td>`;
   document.getElementById('itemsBody').appendChild(tr);
   calcRow(n);

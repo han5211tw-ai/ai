@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% block title %}操作日誌 — COSH ERP{% endblock %}
+{% block page_title %}操作日誌{% endblock %}
+
+{% block styles %}
+<style>
+.al-layout { display: flex; flex-direction: column; gap: 16px; max-width: none; }
+
+/* ── 篩選列 ── */
+.al-filter {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+}
+.al-filter-group {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.al-filter-group label {
+  font-size: .72rem; color: var(--text-sub); letter-spacing: .06em;
+}
+.al-filter-group input,
+.al-filter-group select {
+  padding: 8px 12px; border: 1px solid var(--border-mid);
+  border-radius: 8px; font-size: .84rem;
+  font-family: var(--font-serif); font-weight: 300;
+  background: var(--bg); color: var(--text); outline: none;
+}
+.al-filter-group input:focus,
+.al-filter-group select:focus { border-color: #6b5f52; }
+
+.al-btn {
+  padding: 8px 18px; border: none; border-radius: 8px;
+  font-size: .84rem; font-family: var(--font-serif);
+  cursor: pointer; min-height: 38px; letter-spacing: .04em;
+}
+.al-btn-search { background: #3a5a8a; color: #fff; }
+.al-btn-search:hover { background: #2e4a72; }
+.al-btn-export { background: none; border: 1px solid var(--border-mid); color: var(--text-sub); }
+.al-btn-export:hover { background: rgba(107,95,82,.05); }
+
+/* ── 統計 ── */
+.al-stats {
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+.al-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 18px; min-width: 100px; text-align: center;
+}
+.al-stat-val {
+  font-family: var(--font-en); font-size: 1.2rem; color: var(--text); font-weight: 600;
+}
+.al-stat-label {
+  font-size: .72rem; color: var(--text-sub); margin-top: 2px; letter-spacing: .06em;
+}
+
+/* ── 表格 ── */
+.al-table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.al-table {
+  width: 100%; border-collapse: collapse;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
+}
+.al-table th {
+  padding: 10px 12px; text-align: left;
+  font-size: .72rem; color: var(--text-sub); font-weight: 300;
+  letter-spacing: .08em; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.al-table td {
+  padding: 10px 12px; border-bottom: 1px solid rgba(107,95,82,.06);
+  color: var(--text);
+}
+.al-table tr:hover td { background: rgba(107,95,82,.03); }
+
+.al-action-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: .7rem; letter-spacing: .04em;
+}
+.al-a-login    { background: rgba(80,110,155,.1); color: #3a5a8a; }
+.al-a-create   { background: rgba(46,125,70,.12); color: #2e7d46; }
+.al-a-delete   { background: rgba(185,64,64,.12); color: #b94040; }
+.al-a-update   { background: rgba(250,191,19,.15); color: #8a6800; }
+.al-a-default  { background: rgba(107,95,82,.08); color: var(--text-sub); }
+
+.al-ts { font-family: var(--font-en); font-size: .78rem; color: var(--text-sub); white-space: nowrap; }
+.al-ip { font-family: var(--font-mono); font-size: .74rem; color: var(--text-sub); }
+
+/* ── 分頁 ── */
+.al-pager {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  padding: 10px 0;
+}
+.al-pager-btn {
+  padding: 6px 14px; border: 1px solid var(--border-mid);
+  border-radius: 8px; background: none; color: var(--text);
+  font-size: .82rem; font-family: var(--font-serif); cursor: pointer;
+  min-height: 36px;
+}
+.al-pager-btn:hover { background: rgba(107,95,82,.05); }
+.al-pager-btn:disabled { opacity: .4; cursor: default; }
+.al-pager-info { font-size: .78rem; color: var(--text-sub); }
+
+.al-empty {
+  text-align: center; padding: 40px 20px; color: var(--text-sub); font-size: .86rem;
+}
+
+/* ── Toast ── */
+.al-toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  padding: 10px 24px; border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); z-index: 9999;
+  opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.al-toast.show { opacity: 1; }
+.al-toast.success { background: #2e7d46; color: #fff; }
+.al-toast.error { background: #b94040; color: #fff; }
+
+/* ── 手機版 ── */
+@media (max-width: 767px) {
+  .al-layout { gap: 10px; }
+  .al-filter { padding: 10px 12px; gap: 8px; }
+  .al-filter-group input,
+  .al-filter-group select { padding: 8px 10px; min-height: 40px; }
+  .al-stats { gap: 8px; }
+  .al-stat { padding: 8px 10px; min-width: 0; border-radius: 10px; }
+  .al-stat-val { font-size: 1rem; }
+  .al-table { font-size: .78rem; }
+  .al-table th, .al-table td { padding: 8px 8px; }
+  .al-toast { top: auto; bottom: 72px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="al-layout">
+  <div class="al-filter">
+    <div class="al-filter-group">
+      <label>操作者</label>
+      <input type="text" id="fOperator" placeholder="姓名…">
+    </div>
+    <div class="al-filter-group">
+      <label>動作</label>
+      <select id="fAction">
+        <option value="">全部</option>
+        <option value="auth.login">登入</option>
+        <option value="auth.fail">登入失敗</option>
+        <option value="sales.create">銷貨新增</option>
+        <option value="sales.delete">銷貨刪除</option>
+        <option value="needs.create">需求提交</option>
+        <option value="needs.cancel">需求取消</option>
+        <option value="needs.purchase">標記已採購</option>
+        <option value="needs.transfer">標記已調撥</option>
+        <option value="needs.arrive">確認到貨</option>
+        <option value="needs.complete">標記完成</option>
+        <option value="doc.create">單據新增</option>
+        <option value="doc.delete">單據刪除</option>
+        <option value="customer.create">客戶建檔</option>
+        <option value="supplier.create">廠商建檔</option>
+        <option value="finance.expense">零用金支出</option>
+        <option value="finance.refill">零用金補充</option>
+        <option value="kpi.update">KPI 更新</option>
+      </select>
+    </div>
+    <div class="al-filter-group">
+      <label>起始日期</label>
+      <input type="date" id="fDateFrom">
+    </div>
+    <div class="al-filter-group">
+      <label>結束日期</label>
+      <input type="date" id="fDateTo">
+    </div>
+    <button class="al-btn al-btn-search" onclick="loadLogs(1)">查詢</button>
+    <button class="al-btn al-btn-export" onclick="exportCsv()">匯出 CSV</button>
+  </div>
+
+  <div class="al-stats">
+    <div class="al-stat">
+      <div class="al-stat-val" id="statTotal">—</div>
+      <div class="al-stat-label">總筆數</div>
+    </div>
+    <div class="al-stat">
+      <div class="al-stat-val" id="statPage">—</div>
+      <div class="al-stat-label">目前頁</div>
+    </div>
+  </div>
+
+  <div class="al-table-wrap">
+    <table class="al-table">
+      <thead>
+        <tr>
+          <th>時間</th>
+          <th>操作者</th>
+          <th>動作</th>
+          <th>對象</th>
+          <th>描述</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody id="logBody">
+        <tr><td colspan="6" class="al-empty">載入中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="al-pager">
+    <button class="al-pager-btn" id="btnPrev" onclick="prevPage()" disabled>上一頁</button>
+    <span class="al-pager-info" id="pagerInfo">—</span>
+    <button class="al-pager-btn" id="btnNext" onclick="nextPage()" disabled>下一頁</button>
+  </div>
+</div>
+
+<div class="al-toast" id="alToast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let _page = 1;
+let _total = 0;
+const _per = 50;
+
+function onAppReady(user) {
+  currentUser = user;
+  // 預設查詢今天
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('fDateFrom').value = today;
+  document.getElementById('fDateTo').value = today;
+  loadLogs(1);
+}
+
+function _qp() {
+  const op = document.getElementById('fOperator').value.trim();
+  const act = document.getElementById('fAction').value;
+  const df = document.getElementById('fDateFrom').value;
+  const dt = document.getElementById('fDateTo').value;
+  let q = [];
+  if (op) q.push('operator=' + encodeURIComponent(op));
+  if (act) q.push('action=' + encodeURIComponent(act));
+  if (df) q.push('date_from=' + encodeURIComponent(df));
+  if (dt) q.push('date_to=' + encodeURIComponent(dt));
+  return q.join('&');
+}
+
+async function loadLogs(page) {
+  _page = page || 1;
+  const qs = _qp();
+  const url = `/api/audit-log?page=${_page}&per=${_per}` + (qs ? '&' + qs : '');
+
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+
+    _total = json.total || 0;
+    document.getElementById('statTotal').textContent = _total;
+    document.getElementById('statPage').textContent =
+      `${_page} / ${Math.max(1, Math.ceil(_total / _per))}`;
+
+    renderTable(json.logs || []);
+    updatePager();
+  } catch (e) {
+    document.getElementById('logBody').innerHTML =
+      `<tr><td colspan="6" class="al-empty">載入失敗：${_esc(e.message)}</td></tr>`;
+  }
+}
+
+function renderTable(logs) {
+  const tbody = document.getElementById('logBody');
+  if (!logs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="al-empty">沒有符合條件的記錄</td></tr>';
+    return;
+  }
+
+  let html = '';
+  logs.forEach(l => {
+    const actionCls = _actionClass(l.action);
+    const actionLabel = l.action || '—';
+    const targetStr = l.target_type ? (l.target_type + (l.target_id ? ' #' + _esc(l.target_id) : '')) : '—';
+    html += `<tr>
+      <td class="al-ts">${_esc(l.timestamp || '')}</td>
+      <td>${_esc(l.operator || '—')}</td>
+      <td><span class="al-action-badge ${actionCls}">${_esc(actionLabel)}</span></td>
+      <td>${_esc(targetStr)}</td>
+      <td>${_esc(l.description || '')}</td>
+      <td class="al-ip">${_esc(l.ip_address || '')}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+function _actionClass(act) {
+  if (!act) return 'al-a-default';
+  if (act.includes('login') || act.includes('fail')) return 'al-a-login';
+  if (act.includes('create')) return 'al-a-create';
+  if (act.includes('delete') || act.includes('cancel')) return 'al-a-delete';
+  if (act.includes('update') || act.includes('purchase') || act.includes('transfer')
+      || act.includes('arrive') || act.includes('complete') || act.includes('expense')
+      || act.includes('refill')) return 'al-a-update';
+  return 'al-a-default';
+}
+
+function updatePager() {
+  const totalPages = Math.max(1, Math.ceil(_total / _per));
+  document.getElementById('btnPrev').disabled = (_page <= 1);
+  document.getElementById('btnNext').disabled = (_page >= totalPages);
+  document.getElementById('pagerInfo').textContent = `${_page} / ${totalPages}`;
+}
+
+function prevPage() { if (_page > 1) loadLogs(_page - 1); }
+function nextPage() { loadLogs(_page + 1); }
+
+function exportCsv() {
+  const qs = _qp();
+  const url = '/api/audit-log/export' + (qs ? '?' + qs : '');
+  window.open(url, '_blank');
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('alToast');
+  el.textContent = msg;
+  el.className = `al-toast show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

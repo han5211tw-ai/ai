@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>電腦檢測報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 22mm 24mm 20mm 24mm;
+  }
+
+  body {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    line-height: 2.0;
+    color: #2c2720;
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 30px auto;
+    padding: 60px 56px 48px;
+    background: #ffffff;
+    min-height: 920px;
+  }
+
+  @media print {
+    body { background: #ffffff; }
+    .page {
+      margin: 0; padding: 0;
+      max-width: none; min-height: auto;
+    }
+    .no-print { display: none !important; }
+  }
+
+  .lined {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent calc(2.0em - 1px),
+      #efe9e0 calc(2.0em - 1px),
+      #efe9e0 calc(2.0em)
+    );
+    background-size: 100% 2.0em;
+    background-position: 0 0.1em;
+  }
+
+  .letterhead {
+    margin-bottom: 32px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #d4c5b2;
+  }
+  .brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: #5a3e28;
+    letter-spacing: 2px;
+  }
+  .brand-sub {
+    font-size: 11px;
+    color: #9a8b78;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+  }
+
+  .letter-body { padding-top: 4px; }
+  .letter-body p { margin: 0; padding: 0; }
+
+  .date-line {
+    text-align: right;
+    color: #9a8b78;
+    font-size: 13px;
+  }
+  .greeting { font-size: 15px; margin-top: 0.5em; }
+  .greeting .name { font-weight: 600; color: #5a3e28; }
+
+  .letter-para {
+    color: #3d3229;
+    font-size: 14px;
+    text-indent: 2em;
+  }
+  .letter-para .hl {
+    font-weight: 600;
+    color: #5a3e28;
+  }
+
+  .ruled-space { height: 2.0em; }
+
+  .section-label {
+    font-size: 12px;
+    color: #9a8b78;
+    letter-spacing: 1px;
+  }
+  .section-content {
+    color: #3d3229;
+    font-size: 14px;
+  }
+
+  .step-line {
+    font-size: 14px;
+    display: flex;
+    align-items: baseline;
+  }
+  .step-num {
+    color: #c8956c;
+    margin-right: 8px;
+    flex-shrink: 0;
+    font-weight: 600;
+    min-width: 24px;
+  }
+  .step-text { flex: 1; }
+
+  .fix-line {
+    font-size: 14px;
+    display: flex;
+    align-items: baseline;
+  }
+  .fix-dot {
+    color: #c8956c;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .fix-text { flex: 1; }
+
+  .severity-tag {
+    display: inline-block;
+    padding: 0 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .sev-high { background: rgba(185,64,64,.1); color: #b94040; }
+  .sev-mid  { background: rgba(200,149,108,.15); color: #8a6800; }
+  .sev-low  { background: rgba(46,125,70,.1); color: #2e7d46; }
+
+  .closing { color: #5a4a3a; font-size: 14px; }
+  .sign-brand { font-weight: 700; color: #5a3e28; font-size: 15px; }
+  .sign-person { font-size: 13px; color: #9a8b78; }
+
+  /* 簽名欄 */
+  .signature-row {
+    display: flex; justify-content: space-between; margin-top: 1em;
+  }
+  .signature-box {
+    width: 45%;
+  }
+  .signature-label {
+    font-size: 12px; color: #9a8b78; letter-spacing: 1px;
+  }
+  .signature-line {
+    margin-top: 2.5em;
+    border-bottom: 1px solid #d4c5b2;
+  }
+
+  .stamp-area {
+    float: right;
+    margin-top: -2em;
+    position: relative;
+    z-index: 1;
+  }
+
+  .page-footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 11px;
+    color: #b8aa98;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+
+  .print-bar { text-align: center; padding: 16px; }
+  .print-bar button {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    padding: 10px 32px;
+    background: #5a3e28;
+    color: #faf7f2;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .print-bar button:hover { background: #7a5a40; }
+</style>
+</head>
+<body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+<div class="print-bar no-print">
+  <button onclick="window.print()">列 印</button>
+  <button onclick="savePDF()" style="margin-left:8px">存為 PDF</button>
+</div>
+<script>
+function savePDF(){
+  var el = document.querySelector('.page');
+  var opt = {
+    margin:       [18, 20, 16, 20],
+    filename:     '檢測報告_' + (document.getElementById('custName').textContent || '客戶') + '.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+</script>
+
+<div class="page">
+
+  <div class="letterhead">
+    <div class="brand">COSH 電腦舖</div>
+    <div class="brand-sub">電腦檢測報告　台中豐原 · 潭子 · 大雅</div>
+    <div class="brand-sub" id="reportNoLine" style="font-size:12px;color:#9a8b78;margin-top:2px"></div>
+  </div>
+
+  <div class="letter-body lined">
+
+    <p class="date-line" id="reportDate"></p>
+
+    <p class="greeting"><span class="name" id="custName"></span>　您好：</p>
+
+    <p class="letter-para">感謝您將電腦交由 COSH 電腦舖進行檢測，以下是我們的診斷結果與建議。</p>
+
+    <div class="ruled-space"></div>
+
+    <p class="section-label">故障情境</p>
+    <p class="section-content"><span id="scenarioText" class="hl"></span></p>
+
+    <div class="ruled-space"></div>
+
+    <p class="section-label">排查步驟</p>
+    <div id="stepsArea"></div>
+
+    <div class="ruled-space"></div>
+
+    <p class="section-label">處置建議</p>
+    <div id="fixArea"></div>
+
+    <div class="ruled-space"></div>
+
+    <p class="closing">以上為本次檢測結果，如有任何疑問歡迎隨時與我們聯繫。維修完成後將另行通知取件。</p>
+
+    <div class="ruled-space"></div>
+
+    <p class="sign-brand">COSH 電腦舖</p>
+    <p class="sign-person" id="techName"></p>
+
+    <div class="stamp-area">
+      <svg width="120" height="120" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style="opacity:0.82;transform:rotate(-30deg)">
+        <g transform="translate(200, 200)">
+          <circle cx="0" cy="0" r="155" fill="none" stroke="#6b4c2a" stroke-width="5"/>
+          <circle cx="0" cy="0" r="141" fill="none" stroke="#6b4c2a" stroke-width="1.5" opacity="0.7"/>
+          <circle cx="0" cy="-148" r="3.5" fill="#6b4c2a"/>
+          <circle cx="0" cy="148" r="3.5" fill="#6b4c2a"/>
+          <circle cx="-148" cy="0" r="3.5" fill="#6b4c2a"/>
+          <circle cx="148" cy="0" r="3.5" fill="#6b4c2a"/>
+          <path id="topArc-s" d="M -118 0 A 118 118 0 0 1 118 0" fill="none"/>
+          <text fill="#6b4c2a" font-family="'Noto Serif TC', serif" font-size="22" letter-spacing="7">
+            <textPath href="#topArc-s" startOffset="50%" text-anchor="middle">電瑙舖資訊有限公司</textPath>
+          </text>
+          <line x1="-72" y1="-20" x2="72" y2="-20" stroke="#6b4c2a" stroke-width="0.9" opacity="0.5"/>
+          <line x1="-72" y1="28" x2="72" y2="28" stroke="#6b4c2a" stroke-width="0.9" opacity="0.5"/>
+          <text x="0" y="10" text-anchor="middle" fill="#6b4c2a" font-family="'Noto Serif TC', serif" font-size="28" font-weight="600" letter-spacing="3" id="dateStamp"></text>
+          <path id="bottomArc-s" d="M -86 0 A 86 86 0 0 0 86 0" fill="none"/>
+          <text fill="#6b4c2a" font-family="'Noto Serif TC', serif" font-size="22" font-weight="300" letter-spacing="12">
+            <textPath href="#bottomArc-s" startOffset="50%" text-anchor="middle">收發專用</textPath>
+          </text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="ruled-space"></div>
+
+    <div class="signature-row">
+      <div class="signature-box">
+        <p class="signature-label">技術人員簽名</p>
+        <div class="signature-line"></div>
+      </div>
+      <div class="signature-box">
+        <p class="signature-label">客戶簽名確認</p>
+        <div class="signature-line"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    COSH 電腦舖 · 台中市豐原區 · 電話洽詢各門市
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var reportNo  = p.get('report_no') || '';
+  var customer  = p.get('customer') || '';
+  var scenario  = p.get('scenario') || '';
+  var steps     = p.get('steps') || '';
+  var fix       = p.get('fix') || '';
+  var tech      = p.get('tech') || '';
+
+  // 日期
+  var now = new Date();
+  var ds = now.getFullYear() + ' 年 ' + (now.getMonth()+1) + ' 月 ' + now.getDate() + ' 日';
+  document.getElementById('reportDate').textContent = ds;
+
+  // 檢測單號
+  if (reportNo) {
+    document.getElementById('reportNoLine').textContent = '檢測單號：' + reportNo;
+  }
+
+  // 客戶
+  document.getElementById('custName').textContent = customer || '貴客戶';
+
+  // 情境
+  document.getElementById('scenarioText').textContent = scenario;
+
+  // 排查步驟
+  var stepsArr = steps.split('\n').filter(function(s){ return s.trim(); });
+  var stepsHtml = '';
+  stepsArr.forEach(function(s){
+    var t = s.replace(/^\d+\.\s*/, '');
+    var n = s.match(/^(\d+)\./);
+    stepsHtml += '<div class="step-line"><span class="step-num">' +
+      (n ? n[1] : '·') + '</span><span class="step-text">' + esc(t) + '</span></div>';
+  });
+  document.getElementById('stepsArea').innerHTML = stepsHtml;
+
+  // 處置建議
+  var fixArr = fix.split('\n').filter(function(s){ return s.trim(); });
+  var fixHtml = '';
+  fixArr.forEach(function(s){
+    var t = s.replace(/^\d+\.\s*/, '');
+    fixHtml += '<div class="fix-line"><span class="fix-dot">·</span><span class="fix-text">' + esc(t) + '</span></div>';
+  });
+  document.getElementById('fixArea').innerHTML = fixHtml;
+
+  // 技術人員
+  if (tech) {
+    document.getElementById('techName').textContent = '檢測人員：' + tech + '　　' + ds;
+  } else {
+    document.getElementById('techName').textContent = ds;
+  }
+
+  // 印章日期
+  var mm = String(now.getMonth()+1).padStart(2,'0');
+  var dd = String(now.getDate()).padStart(2,'0');
+  document.getElementById('dateStamp').textContent = now.getFullYear() + '.' + mm + '.' + dd;
+
+  function esc(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -16,13 +16,13 @@
 .ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
 .ctl-sel {
   padding: 7px 12px; border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8;
 }
 .save-btn {
   padding: 9px 22px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .82rem;
-  font-family: 'Noto Serif TC', serif; letter-spacing: .06em; cursor: pointer;
+  font-family: var(--font-serif); letter-spacing: .06em; cursor: pointer;
   margin-left: auto;
 }
 .save-btn:disabled { opacity: .5; cursor: default; }
@@ -62,7 +62,7 @@
 .target-input {
   width: 140px; padding: 7px 10px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
-  font-size: .86rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .84rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; text-align: right;
 }
 .target-input:focus { outline: none; border-color: #6b5f52; }
@@ -143,9 +143,14 @@
 {% block scripts %}
 <script>
 // 所有需要設定目標的對象
-const STORE_STAFF   = ['林榮祺', '林峙文', '劉育仕', '林煜捷', '張永承', '張家碩'];
+const STORE_MAP = {
+  '豐原': ['林榮祺', '林峙文'],
+  '潭子': ['劉育仕', '林煜捷'],
+  '大雅': ['張永承', '張家碩'],
+};
+const STORE_STAFF   = Object.values(STORE_MAP).flat();
 const BIZ_STAFF     = ['鄭宇晉', '梁仁佑'];
-const STORES        = ['豐原', '潭子', '大雅'];
+const STORES        = Object.keys(STORE_MAP);
 const DEPARTMENTS   = ['門市部', '業務部'];
 
 const now = new Date();
@@ -211,12 +216,29 @@ function buildTables() {
   Object.keys(inputMap).length && Object.keys(inputMap).forEach(k => delete inputMap[k]);
   document.querySelectorAll('.target-input').forEach(el => {
     inputMap[el.dataset.key] = el;
+    // 個人目標變動時自動重算門市 / 部門 / 公司
+    if (el.dataset.category === '個人') {
+      el.addEventListener('input', recalcStoreSums);
+    }
   });
 }
 
 function rowHtml(category, name) {
   const key = `${category}__${name}`;
   const catLabel = { '個人': '個人', '門市': '門市', '部門': '部門', '公司': '公司' }[category];
+  if (category === '門市') {
+    // 門市目標＝自動加總所屬人員，唯讀顯示
+    return `
+      <tr>
+        <td>
+          <div class="subject-name">${name}</div>
+          <div class="subject-cat">${catLabel}（自動加總）</div>
+        </td>
+        <td>
+          <span class="store-sum" id="sum-${name}" style="font-size:.88rem;color:#2c2720;font-weight:600">0</span>
+        </td>
+      </tr>`;
+  }
   return `
     <tr>
       <td>
@@ -231,6 +253,44 @@ function rowHtml(category, name) {
     </tr>`;
 }
 
+/* ── 門市加總 ── */
+function recalcStoreSums() {
+  for (const [store, members] of Object.entries(STORE_MAP)) {
+    let sum = 0;
+    members.forEach(name => {
+      const el = inputMap[`個人__${name}`];
+      if (el) sum += parseFloat(el.value) || 0;
+    });
+    const sumEl = document.getElementById(`sum-${store}`);
+    if (sumEl) sumEl.textContent = sum.toLocaleString();
+  }
+  // 門市部 = 所有門市人員加總
+  let storeTotal = 0;
+  STORE_STAFF.forEach(name => {
+    const el = inputMap[`個人__${name}`];
+    if (el) storeTotal += parseFloat(el.value) || 0;
+  });
+  const deptStoreEl = inputMap['部門__門市部'];
+  if (deptStoreEl && (!deptStoreEl.dataset.manual || deptStoreEl.dataset.manual === '0')) {
+    deptStoreEl.value = storeTotal || '';
+  }
+  // 業務部 = 業務人員加總
+  let bizTotal = 0;
+  BIZ_STAFF.forEach(name => {
+    const el = inputMap[`個人__${name}`];
+    if (el) bizTotal += parseFloat(el.value) || 0;
+  });
+  const deptBizEl = inputMap['部門__業務部'];
+  if (deptBizEl && (!deptBizEl.dataset.manual || deptBizEl.dataset.manual === '0')) {
+    deptBizEl.value = bizTotal || '';
+  }
+  // 公司 = 門市部 + 業務部
+  const companyEl = inputMap['公司__公司'];
+  if (companyEl && (!companyEl.dataset.manual || companyEl.dataset.manual === '0')) {
+    companyEl.value = (storeTotal + bizTotal) || '';
+  }
+}
+
 /* ── 載入已有目標 ── */
 async function load() {
   const res  = await fetch(`/api/targets?year=${tYear}&month=${tMonth}`);
@@ -240,13 +300,14 @@ async function load() {
   // 先清空所有輸入
   Object.values(inputMap).forEach(el => { el.value = ''; });
 
-  // 填入現有值
+  // 填入現有值（只填個人與業務，門市由加總產生）
   (data.targets || []).forEach(t => {
     const key = `${t.category}__${t.subject_name}`;
-    if (inputMap[key] && t.target_amount) {
+    if (inputMap[key] && t.target_amount && t.category !== '門市') {
       inputMap[key].value = t.target_amount;
     }
   });
+  recalcStoreSums();
 }
 
 /* ── 儲存 ── */
@@ -264,6 +325,18 @@ async function saveTargets() {
       });
     }
   });
+  // 門市加總也存入（供其他報表讀取）
+  for (const [store, members] of Object.entries(STORE_MAP)) {
+    let sum = 0;
+    members.forEach(name => {
+      const el = inputMap[`個人__${name}`];
+      if (el) sum += parseFloat(el.value) || 0;
+    });
+    targets.push({
+      category: '門市', subject_name: store,
+      target_amount: sum, year: tYear, month: tMonth,
+    });
+  }
 
   if (!targets.length) {
     showMsg('請至少填寫一個目標金額', false); return;

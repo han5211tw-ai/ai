@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% block title %}待採購清單 — COSH ERP{% endblock %}
+{% block page_title %}待採購清單{% endblock %}
+
+{% block styles %}
+<style>
+.pp-layout { display: flex; flex-direction: column; gap: 16px; max-width: none; }
+
+/* ── 統計列 ── */
+.pp-stats {
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+.pp-stat {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px; flex: 1; min-width: 120px;
+  text-align: center;
+}
+.pp-stat-val {
+  font-family: var(--font-en); font-size: 1.3rem; color: var(--text);
+  font-weight: 600;
+}
+.pp-stat-label {
+  font-size: .72rem; color: var(--text-sub); margin-top: 2px;
+  letter-spacing: .06em;
+}
+
+/* ── 卡片列表 ── */
+.pp-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pp-card-header {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+}
+.pp-product-name {
+  font-size: .9rem; color: var(--text); font-weight: 600; flex: 1;
+}
+.pp-qty {
+  font-family: var(--font-en); font-size: 1rem; color: var(--text);
+  background: rgba(107,95,82,.08); padding: 2px 10px;
+  border-radius: 8px; white-space: nowrap;
+}
+.pp-meta {
+  font-size: .76rem; color: var(--text-sub);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.pp-meta-item { white-space: nowrap; }
+.pp-purpose {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .7rem; letter-spacing: .04em;
+  background: rgba(250,191,19,.12); color: #8a6800;
+}
+.pp-last-purchase {
+  font-size: .74rem; color: var(--text-sub);
+}
+.pp-last-vendor { color: #3a6e4a; }
+.pp-last-price { color: var(--text); }
+.pp-actions {
+  display: flex; gap: 8px; padding-top: 6px;
+  border-top: 1px solid rgba(107,95,82,.06);
+}
+.pp-btn-purchase {
+  flex: 1; padding: 10px 0; border: none; border-radius: 10px;
+  background: #2e7d46; color: #fff; font-size: .84rem;
+  font-family: var(--font-serif); cursor: pointer;
+  min-height: 44px; letter-spacing: .04em;
+}
+.pp-btn-purchase:hover { background: #256b3a; }
+.pp-btn-cancel {
+  flex: 1; padding: 10px 0; border: 1px solid rgba(185,64,64,.25);
+  border-radius: 10px; background: none; color: #b94040;
+  font-size: .84rem; font-family: var(--font-serif); cursor: pointer;
+  min-height: 44px; letter-spacing: .04em;
+}
+.pp-btn-cancel:hover { background: rgba(185,64,64,.05); }
+
+.pp-status {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .7rem;
+}
+.pp-s-pending  { background: rgba(250,191,19,.15); color: #8a6800; }
+.pp-s-purchased { background: rgba(46,125,70,.12); color: #2e7d46; }
+.pp-empty {
+  text-align: center; padding: 40px 20px; color: var(--text-sub);
+  font-size: .86rem;
+}
+
+/* ── 備注 ── */
+.pp-notes-row { display: flex; gap: 8px; align-items: center; }
+.pp-notes-input {
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: .82rem; font-family: var(--font-serif);
+  font-weight: 300; color: var(--text); background: var(--bg);
+  outline: none;
+}
+.pp-notes-input:focus { border-color: var(--brand); }
+.pp-btn-save-note {
+  padding: 8px 14px; border: 1px solid var(--border-mid);
+  border-radius: 8px; background: none; color: var(--text-sub);
+  font-size: .78rem; font-family: var(--font-serif); cursor: pointer;
+  min-height: 44px;
+}
+.pp-btn-save-note:hover { background: rgba(107,95,82,.05); }
+
+/* ── Toast ── */
+.pp-toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  padding: 10px 24px; border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); z-index: 9999;
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+.pp-toast.show { opacity: 1; }
+.pp-toast.success { background: #2e7d46; color: #fff; }
+.pp-toast.error { background: #b94040; color: #fff; }
+
+/* ── 手機版 ── */
+@media (max-width: 767px) {
+  .pp-layout { gap: 10px; }
+  .pp-stats { gap: 8px; }
+  .pp-stat { padding: 10px 8px; min-width: 0; border-radius: 10px; }
+  .pp-stat-val { font-size: 1.1rem; }
+  .pp-card { padding: 14px 14px; border-radius: 12px; gap: 8px; }
+  .pp-product-name { font-size: .86rem; }
+  .pp-actions { flex-direction: column; gap: 8px; }
+  .pp-btn-purchase, .pp-btn-cancel { min-height: 46px; font-size: .86rem; }
+  .pp-notes-input { min-height: 40px; font-size: .84rem; }
+  .pp-btn-save-note { min-height: 40px; }
+  .pp-toast { top: auto; bottom: 72px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pp-layout">
+  <div class="pp-stats">
+    <div class="pp-stat">
+      <div class="pp-stat-val" id="statPending">—</div>
+      <div class="pp-stat-label">待處理</div>
+    </div>
+    <div class="pp-stat">
+      <div class="pp-stat-val" id="statProducts">—</div>
+      <div class="pp-stat-label">品項</div>
+    </div>
+    <div class="pp-stat">
+      <div class="pp-stat-val" id="statOldest">—</div>
+      <div class="pp-stat-label">最久等待</div>
+    </div>
+  </div>
+
+  <div id="cardList"><div class="pp-empty">載入中…</div></div>
+</div>
+
+<div class="pp-toast" id="ppToast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+
+function onAppReady(user) {
+  currentUser = user;
+  loadNeeds();
+}
+
+async function loadNeeds() {
+  try {
+    const res  = await fetch('/api/boss/pending-needs');
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    updateStats(json.stats);
+    renderCards(json.needs);
+  } catch (e) {
+    document.getElementById('cardList').innerHTML =
+      `<div class="pp-empty">載入失敗：${esc(e.message)}</div>`;
+  }
+}
+
+function updateStats(s) {
+  document.getElementById('statPending').textContent = s.pending_count ?? '—';
+  document.getElementById('statProducts').textContent = s.product_count ?? '—';
+  document.getElementById('statOldest').textContent =
+    s.oldest_days != null ? `${s.oldest_days} 天` : '—';
+}
+
+function renderCards(needs) {
+  const container = document.getElementById('cardList');
+  if (!needs || !needs.length) {
+    container.innerHTML = '<div class="pp-empty">目前沒有待採購項目 ✓</div>';
+    return;
+  }
+
+  let html = '';
+  needs.forEach(n => {
+    const statusCls = n.status === '已採購' ? 'pp-s-purchased' : 'pp-s-pending';
+    const statusLbl = n.status || '待處理';
+
+    let lastHtml = '';
+    if (n.last_vendor && n.last_price) {
+      lastHtml = `<div class="pp-last-purchase">
+        <span class="pp-last-vendor">${esc(n.last_vendor)}</span> ·
+        <span class="pp-last-price">NT$ ${Number(n.last_price).toLocaleString()}</span></div>`;
+    } else if (n.last_vendor) {
+      lastHtml = `<div class="pp-last-purchase"><span class="pp-last-vendor">${esc(n.last_vendor)}</span></div>`;
+    }
+
+    const purposeText = n.purpose === '客戶' && n.customer_name
+      ? `客戶：${esc(n.customer_name)}` : esc(n.purpose || '備貨');
+
+    const actionsHtml = n.status === '待處理' ? `
+      <div class="pp-actions">
+        <button class="pp-btn-purchase" onclick="markPurchased(${n.id})">已採購</button>
+        <button class="pp-btn-cancel" onclick="cancelNeed(${n.id})">取消</button>
+      </div>` : '';
+
+    const dateStr = (n.created_at || '').substring(0, 10);
+
+    html += `<div class="pp-card" data-id="${n.id}">
+      <div class="pp-card-header">
+        <div class="pp-product-name">${esc(n.product_name || '—')}</div>
+        <div class="pp-qty">× ${n.quantity || '—'}</div>
+      </div>
+      ${lastHtml}
+      <div class="pp-meta">
+        <span class="pp-purpose">${purposeText}</span>
+        <span class="pp-meta-item">${esc(n.department || '—')}</span>
+        <span class="pp-meta-item">${esc(n.requester || '—')}</span>
+        <span class="pp-meta-item">${dateStr}</span>
+        <span class="pp-status ${statusCls}">${statusLbl}</span>
+      </div>
+      <div class="pp-notes-row">
+        <input class="pp-notes-input" id="notes-${n.id}" placeholder="備注…" value="${esc(n.notes || '')}">
+        <button class="pp-btn-save-note" onclick="saveNotes(${n.id})">存</button>
+      </div>
+      ${actionsHtml}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+async function markPurchased(id) {
+  if (!confirm('確定標記為已採購？')) return;
+  const res  = await fetch('/api/needs/purchase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, requester: currentUser.name })
+  });
+  const json = await res.json();
+  if (json.success) { toast('已標記為已採購', 'success'); loadNeeds(); }
+  else toast(json.message || '失敗', 'error');
+}
+
+async function cancelNeed(id) {
+  if (!confirm('確定取消此請購？')) return;
+  const res  = await fetch(`/api/boss/needs/${id}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'cancelled' })
+  });
+  const json = await res.json();
+  if (json.success) { toast('已取消', 'success'); loadNeeds(); }
+  else toast(json.message || '失敗', 'error');
+}
+
+async function saveNotes(id) {
+  const input = document.getElementById(`notes-${id}`);
+  const notes = input ? input.value : '';
+  const res  = await fetch(`/api/boss/needs/${id}/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes })
+  });
+  const json = await res.json();
+  if (json.success) toast('已儲存', 'success');
+  else toast(json.message || '儲存失敗', 'error');
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('ppToast');
+  el.textContent = msg;
+  el.className = `pp-toast show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+{% endblock %}

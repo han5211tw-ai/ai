@@ -15,7 +15,7 @@
 .tab-btn {
   padding:11px 22px; font-size:.8rem; color:#9a9188;
   border:none; background:none; cursor:pointer;
-  font-family:'Noto Serif TC',serif; letter-spacing:.04em;
+  font-family:var(--font-serif); letter-spacing:.04em;
   border-bottom:2px solid transparent; margin-bottom:-1px;
   transition:color .2s;
 }
@@ -34,11 +34,13 @@
 .field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
 .f-input, .f-select {
   padding:7px 11px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
-  font-size:.83rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  font-size:.83rem; font-family:var(--font-serif); font-weight:300;
   color:#2c2720; background:#f5f0e8; outline:none;
 }
 .f-input:focus { border-color:#6b5f52; }
 .f-select:focus { border-color:#6b5f52; }
+/* 篩選列奇偶交替 */
+#fSrStatus { background: var(--bg-card, #faf8f4); }
 
 /* 統計列 */
 .stat-row { display:flex; gap:10px; padding:10px 20px; flex-wrap:wrap; border-bottom:1px solid rgba(107,95,82,.06); }
@@ -79,14 +81,14 @@
 .action-btn {
   padding:3px 10px; border-radius:5px; font-size:.74rem;
   border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
-  font-family:'Noto Serif TC',serif; white-space:nowrap;
+  font-family:var(--font-serif); white-space:nowrap;
 }
 .action-btn.resolve { border-color:rgba(61,122,61,.3); color:#3d7a3d; }
 .action-btn.resolve:hover { background:#e8f4e8; }
 .action-btn:hover { background:#f5f0e8; }
 
 /* 內容摺疊 */
-.code-text { font-size:.74rem; color:#6b5f52; font-family:monospace; word-break:break-all; max-width:160px; }
+.code-text { font-size:.74rem; color:#6b5f52; font-family:var(--font-mono); word-break:break-all; max-width:160px; }
 .sub-text   { font-size:.74rem; color:#9a9188; }
 
 .empty-msg { text-align:center; color:#9a9188; padding:32px; font-size:.84rem; }
@@ -108,7 +110,7 @@
 .match-field label { display:block; font-size:.76rem; color:#9a9188; margin-bottom:4px; }
 .match-field input, .match-field select {
   width:100%; padding:8px 10px; border:1px solid rgba(107,95,82,.22);
-  border-radius:8px; font-size:.84rem; font-family:'Noto Serif TC',serif;
+  border-radius:8px; font-size:.84rem; font-family:var(--font-serif);
   color:#2c2720; background:#f5f0e8; box-sizing:border-box;
 }
 .match-field .search-result {
@@ -125,7 +127,7 @@
 .match-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 .match-actions button {
   padding:8px 16px; border-radius:8px; font-size:.82rem;
-  font-family:'Noto Serif TC',serif; cursor:pointer;
+  font-family:var(--font-serif); cursor:pointer;
 }
 .btn-match-cancel { border:1px solid rgba(107,95,82,.3); background:none; color:#6b5f52; }
 .btn-match-save { border:none; background:#2c2720; color:#f5f0e8; }

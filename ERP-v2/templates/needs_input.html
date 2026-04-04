@@ -10,7 +10,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 900px;
+  max-width: none;
 }
 
 /* ── 區塊卡片 ────────────────────────── */
@@ -21,7 +21,7 @@
   padding: 24px 28px;
 }
 .n-card-title {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 1rem;
   letter-spacing: .12em;
   color: #9a9188;
@@ -56,14 +56,18 @@
   border: 1px solid rgba(107,95,82,0.25);
   border-radius: 10px;
   font-size: 16px;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   font-weight: 300;
   color: #2c2720;
-  background: #f5f0e8;
   transition: border-color .2s, box-shadow .2s;
   width: 100%;
   box-sizing: border-box;
 }
+/* 奇偶交替：日期(奇)暖米色、需求類型(偶)淺色、用途(奇)暖米色 */
+#reqDate    { background: #f5f0e8; }
+#reqType    { background: var(--bg-card, #faf8f4); }
+.n-field select { background: #f5f0e8; }  /* 用途、代送門市等預設暖米色 */
+#proxyStore { background: var(--bg-card, #faf8f4); }  /* 第四欄(偶)淺色 */
 .n-field input:focus {
   outline: none;
   border-color: #FABF13;
@@ -113,6 +117,7 @@
 }
 .ac-item:last-child { border-bottom: none; }
 .ac-item:hover { background: rgba(250,191,19,.08); }
+.ac-item .pid { font-size: .72rem; color: #9a9188; }
 .ac-item .ac-sub { font-size: .8rem; color: #9a9188; margin-top: 2px; }
 
 .selected-badge {
@@ -154,56 +159,56 @@
 .prod-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: .88rem;
+  font-size: .83rem;
 }
 .prod-table th {
   text-align: left;
-  padding: 10px 10px;
-  font-weight: 400;
+  padding: 8px 12px;
+  font-weight: 300;
   color: #9a9188;
-  font-size: .8rem;
+  font-size: .72rem;
   letter-spacing: .06em;
-  border-bottom: 1px solid rgba(107,95,82,.15);
+  background: #faf7f2;
+  border-bottom: 1px solid rgba(107,95,82,.1);
   white-space: nowrap;
 }
 .prod-table td {
-  padding: 8px 6px;
+  padding: 7px 8px;
   vertical-align: top;
-  border-bottom: 1px solid rgba(107,95,82,.07);
+  border-bottom: 1px solid rgba(107,95,82,.06);
 }
 .prod-table tr:last-child td { border-bottom: none; }
 
 .cell-wrap { position: relative; }
 .prod-input {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid rgba(107,95,82,.2);
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: 'Noto Serif TC', serif;
+  padding: 5px 7px;
+  border: 1px solid rgba(107,95,82,.15);
+  border-radius: 6px;
+  font-size: .82rem;
+  font-family: var(--font-serif);
   font-weight: 300;
   color: #2c2720;
   background: #f5f0e8;
+  outline: none;
   box-sizing: border-box;
-  transition: border-color .2s, box-shadow .2s;
 }
 .prod-input:focus {
-  outline: none;
-  border-color: #FABF13;
-  box-shadow: 0 0 0 2px rgba(250,191,19,.12);
-  background: #fff;
+  border-color: #6b5f52;
 }
 .prod-input.error { border-color: #a85c5c; background: #fdf5f5; }
 
 .prod-autocomplete {
   position: absolute;
-  top: calc(100% + 2px);
-  left: 0; right: 0;
+  top: 100%;
+  left: 0;
+  min-width: 280px;
   background: #fff;
   border: 1px solid rgba(107,95,82,.2);
   border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(44,39,32,.1);
-  max-height: 160px;
+  box-shadow: 0 4px 16px rgba(44,39,32,.12);
+  margin-top: 2px;
+  max-height: 200px;
   overflow-y: auto;
   z-index: 100;
   display: none;
@@ -233,30 +238,24 @@
 }
 
 .btn-del-row {
-  background: none;
-  border: 1px solid rgba(168,92,92,.3);
-  border-radius: 6px;
-  color: #a85c5c;
-  padding: 5px 8px;
-  cursor: pointer;
-  font-size: .9rem;
-  line-height: 1;
-  transition: background .15s;
+  padding: 4px 9px; border: 1px solid rgba(139,58,58,.3); border-radius: 5px;
+  background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer;
+  white-space: nowrap; transition: background .15s;
 }
-.btn-del-row:hover { background: rgba(168,92,92,.08); }
+.btn-del-row:hover { background: rgba(139,58,58,.06); }
 
 .btn-add-row {
   background: none;
-  border: 1px solid rgba(107,95,82,.3);
-  border-radius: 8px;
+  border: 1px dashed rgba(107,95,82,.3);
+  border-radius: 7px;
   color: #6b5f52;
-  padding: 8px 16px;
-  font-size: .85rem;
+  padding: 7px 16px;
+  font-size: .8rem;
   cursor: pointer;
   margin-top: 12px;
   transition: background .15s;
 }
-.btn-add-row:hover { background: rgba(107,95,82,.06); }
+.btn-add-row:hover { background: rgba(107,95,82,.05); }
 
 /* ── 提交按鈕 ─────────────────────────── */
 .submit-zone {
@@ -273,7 +272,7 @@
   border: none;
   border-radius: 8px;
   font-size: .82rem;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   letter-spacing: .06em;
   cursor: pointer;
 }
@@ -332,7 +331,7 @@
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 8px;
   font-size: .85rem;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   background: #f5f0e8;
   color: #2c2720;
 }
@@ -352,7 +351,7 @@
 .history-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: .86rem;
+  font-size: .83rem;
 }
 .history-table th {
   text-align: left;
@@ -411,7 +410,7 @@
   box-shadow: 0 20px 60px rgba(44,39,32,.18);
 }
 .modal-box h3 {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 1.2rem;
   font-weight: 300;
   color: #2c2720;
@@ -425,18 +424,18 @@
 }
 .modal-actions button { flex: 1; }
 .btn-outline {
-  padding: 10px 0;
+  padding: 8px 18px;
   background: none;
-  border: 1px solid rgba(107,95,82,.35);
-  border-radius: 999px;
+  border: 1px solid rgba(107,95,82,.25);
+  border-radius: 8px;
   color: #6b5f52;
   cursor: pointer;
-  font-size: .9rem;
-  font-family: 'Noto Serif TC', serif;
+  font-size: .8rem;
+  font-family: var(--font-serif);
   font-weight: 300;
   transition: background .15s;
 }
-.btn-outline:hover { background: rgba(107,95,82,.06); }
+.btn-outline:hover { background: rgba(107,95,82,.05); }
 
 /* ── Toast ───────────────────────────── */
 .toast-wrap {
@@ -468,10 +467,139 @@
   font-size: .88rem;
 }
 
-@media (max-width: 640px) {
-  .n-card { padding: 18px 16px; }
-  .prod-table th:nth-child(3),
-  .prod-table td:nth-child(3) { display: none; }
+/* ── 手機版 ──────────────────────────── */
+@media (max-width: 767px) {
+  .needs-layout { gap: 14px; }
+  .n-card { padding: 16px 14px; border-radius: 12px; }
+  .n-card-title { font-size: .88rem; margin-bottom: 12px; padding-bottom: 10px; }
+
+  /* 表單頭：單欄堆疊 */
+  .n-row { flex-direction: column; gap: 10px; margin-bottom: 10px; }
+  .n-field { min-width: 0 !important; }
+  .n-field[style*="max-width"] { max-width: none !important; }
+
+  /* 客戶區塊 */
+  .customer-zone { padding: 12px 14px; }
+
+  /* 品項：卡片化，隱藏表頭 */
+  .products-wrap { overflow-x: visible; }
+  .prod-table thead { display: none; }
+  .prod-table,
+  .prod-table tbody,
+  .prod-table tr,
+  .prod-table td { display: block; width: 100%; }
+  .prod-table tr {
+    background: var(--bg-card, #faf8f4);
+    border: 1px solid rgba(107,95,82,.12);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .prod-table td {
+    padding: 4px 0;
+    border-bottom: none;
+  }
+  /* 數量欄：加大輸入框 + 加減按鈕 */
+  .prod-table td:nth-child(3) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .prod-table td:nth-child(3) .prod-input {
+    width: 64px !important;
+    font-size: 1rem;
+    text-align: center;
+    padding: 8px 4px;
+  }
+  /* 刪除按鈕：右上角 */
+  .prod-table td:last-child {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: auto;
+    padding: 0;
+  }
+  /* 產品搜尋欄加大 */
+  .prod-input {
+    font-size: .88rem;
+    padding: 8px 10px;
+  }
+  .prod-autocomplete { min-width: 0; width: 100%; }
+
+  /* 數量加減按鈕（JS 注入） */
+  .qty-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(107,95,82,.25);
+    border-radius: 8px;
+    background: var(--bg, #f5f0e8);
+    font-size: 1.2rem;
+    color: var(--text, #2c2720);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    flex-shrink: 0;
+  }
+  .qty-btn:active { background: rgba(107,95,82,.12); }
+
+  /* 提交按鈕加大 */
+  .submit-zone { flex-direction: column; align-items: stretch; gap: 10px; }
+  .btn-submit {
+    padding: 14px 0;
+    font-size: .92rem;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* 近期提交卡片 */
+  .recent-row { flex-direction: column; gap: 8px; padding: 14px; }
+
+  /* 歷史篩選：堆疊 */
+  .history-bar { flex-direction: column; gap: 8px; }
+  .history-bar select,
+  .history-bar input { width: 100%; }
+  .btn-search-hist { width: 100%; text-align: center; padding: 10px 0; }
+
+  /* 歷史表格 → 卡片化 */
+  .history-table thead { display: none; }
+  .history-table,
+  .history-table tbody,
+  .history-table tr,
+  .history-table td { display: block; width: 100%; }
+  .history-table tr {
+    background: var(--bg, #f5f0e8);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-bottom: none;
+  }
+  .history-table td {
+    padding: 3px 0;
+    border-bottom: none;
+    font-size: .85rem;
+  }
+  .history-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 5em;
+    color: var(--text-sub, #9a9188);
+    font-size: .78rem;
+    margin-right: 6px;
+  }
+
+  /* 分頁按鈕加大 */
+  .hist-pagination { gap: 8px; }
+  .hist-pagination button { padding: 8px 18px; font-size: .88rem; }
+
+  /* Modal 全寬 */
+  .modal-box { width: 94%; padding: 22px 18px; }
+
+  /* Toast 避開底部導覽 */
+  .toast-wrap { bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 10px); }
 }
 </style>
 {% endblock %}
@@ -553,8 +681,8 @@
       <table class="prod-table">
         <thead>
           <tr>
-            <th style="width:130px">產品代碼</th>
-            <th>品名 / 規格</th>
+            <th style="min-width:110px">產品編號</th>
+            <th style="min-width:180px">產品名稱</th>
             <th style="width:70px">數量</th>
             <th style="width:130px">備注</th>
             <th style="width:36px"></th>
@@ -788,8 +916,8 @@ function addRow() {
   tr.innerHTML = `
     <td>
       <div class="cell-wrap">
-        <input type="text" class="prod-input" id="code-${id}" placeholder="如 PCB-123"
-               oninput="onCodeInput(${id}, this.value)" autocomplete="off">
+        <input class="prod-input" id="code-${id}" placeholder="產品編號"
+               oninput="onCodeInput(${id}, this.value)" autocomplete="off" style="width:110px">
         <div class="prod-autocomplete" id="codeAc-${id}"></div>
         <div class="stock-hint" id="stock-${id}"></div>
         <label class="new-prod-check">
@@ -800,7 +928,7 @@ function addRow() {
     </td>
     <td>
       <div class="cell-wrap">
-        <input type="text" class="prod-input" id="name-${id}" placeholder="品名規格"
+        <input class="prod-input" id="name-${id}" placeholder="產品名稱"
                oninput="onNameInput(${id}, this.value)" autocomplete="off">
         <div class="prod-autocomplete" id="nameAc-${id}"></div>
       </div>
@@ -810,10 +938,10 @@ function addRow() {
              style="text-align:center;width:60px">
     </td>
     <td>
-      <input type="text" class="prod-input" id="remark-${id}" placeholder="選填">
+      <input class="prod-input" id="remark-${id}" placeholder="選填">
     </td>
     <td>
-      <button class="btn-del-row" onclick="delRow(${id})" title="刪除">×</button>
+      <button class="btn-del-row" onclick="delRow(${id})" title="刪除">刪除</button>
     </td>`;
   document.getElementById('prodBody').appendChild(tr);
 }
@@ -852,17 +980,14 @@ async function fetchProductAc(id, field, q) {
   // API 直接回傳陣列
   const list = Array.isArray(json) ? json : (json.data || []);
   if (!list.length) { closeAc(acId); return; }
-  ac.innerHTML = list.map(p => {
+  ac.innerHTML = list.slice(0, 20).map(p => {
     const qty = Number(p.total_qty) || 0;
-    const qtyTag = qty > 0
-      ? `<span style="margin-left:auto;font-size:.75rem;color:#5a9a6a">庫存 ${qty}</span>`
-      : `<span style="margin-left:auto;font-size:.75rem;color:#b8b0a8">零庫存</span>`;
+    const qtyStr = qty > 0 ? ` · 庫存 ${qty}` : '';
     return `
-    <div class="ac-item" style="display:flex;align-items:center;gap:6px"
+    <div class="ac-item"
          onclick="fillProduct(${id},'${escHtml(p.product_code)}','${escHtml(p.product_name || p.item_spec || '')}')">
-      <span style="color:#6b5f52;font-size:.82rem;white-space:nowrap">${escHtml(p.product_code)}</span>
-      <span style="flex:1">${escHtml(p.product_name || p.item_spec || '')}</span>
-      ${qtyTag}
+      <div>${escHtml(p.product_name || p.item_spec || '')}</div>
+      <div class="pid">${escHtml(p.product_code || '')}${qtyStr}</div>
     </div>`;
   }).join('');
   ac.classList.add('show');
@@ -1092,7 +1217,7 @@ async function loadHistory(page) {
   const pager = document.getElementById('histPager');
 
   if (!json.success) { body.innerHTML = '<div class="empty-hint">載入失敗</div>'; return; }
-  if (!json.data.items.length) {
+  if (!json.items || !json.items.length) {
     body.innerHTML = '<div class="empty-hint">無記錄</div>';
     pager.style.display = 'none';
     return;
@@ -1111,24 +1236,24 @@ async function loadHistory(page) {
         </tr>
       </thead>
       <tbody>
-        ${json.data.items.map(item => {
+        ${json.items.map(item => {
           const statusCls = item.status === '已完成' ? 'done'
                           : item.cancelled_at ? 'cancelled'
                           : item.status === '已採購' || item.status === '已調撥' ? 'purchased' : '';
           return `<tr>
-            <td style="color:#9a9188;white-space:nowrap">${(item.date||'').slice(5)}</td>
-            <td><span style="font-size:.8rem;color:#9a9188">${item.request_type||'請購'}</span></td>
-            <td>${escHtml(item.item_name || item.product_code || '—')}</td>
-            <td style="text-align:center">${item.quantity}</td>
-            <td style="color:#9a9188">${escHtml(item.requester||'')}</td>
-            <td><span class="badge-status ${statusCls}">${item.cancelled_at ? '已取消' : (item.status||'待處理')}</span></td>
+            <td data-label="日期" style="color:#9a9188;white-space:nowrap">${(item.date||'').slice(5)}</td>
+            <td data-label="類型"><span style="font-size:.8rem;color:#9a9188">${item.request_type||'請購'}</span></td>
+            <td data-label="品名">${escHtml(item.item_name || item.product_code || '—')}</td>
+            <td data-label="數量" style="text-align:center">${item.quantity}</td>
+            <td data-label="提交人" style="color:#9a9188">${escHtml(item.requester||'')}</td>
+            <td data-label="狀態"><span class="badge-status ${statusCls}">${item.cancelled_at ? '已取消' : (item.status||'待處理')}</span></td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>`;
 
-  const total = json.data.total;
-  const pages = json.data.pages;
+  const total = json.total;
+  const pages = json.pages;
   if (pages > 1) {
     pager.style.display = 'flex';
     document.getElementById('pgInfo').textContent = `第 ${page} / ${pages} 頁，共 ${total} 筆`;
@@ -1154,5 +1279,50 @@ function toast(msg, type='success') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
+
+// ────────────────────────────────────
+// 手機版：數量加減按鈕
+// ────────────────────────────────────
+function _isMobile() { return window.innerWidth <= 767; }
+
+function _injectQtyBtns(id) {
+  if (!_isMobile()) return;
+  const qtyInput = document.getElementById(`qty-${id}`);
+  if (!qtyInput || qtyInput.parentElement.querySelector('.qty-btn')) return;
+  const parent = qtyInput.parentElement;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;align-items:center;gap:8px';
+  const btnMinus = document.createElement('button');
+  btnMinus.type = 'button';
+  btnMinus.className = 'qty-btn';
+  btnMinus.textContent = '−';
+  btnMinus.onclick = () => { const v = parseInt(qtyInput.value)||1; if(v>1) qtyInput.value = v-1; };
+  const btnPlus = document.createElement('button');
+  btnPlus.type = 'button';
+  btnPlus.className = 'qty-btn';
+  btnPlus.textContent = '＋';
+  btnPlus.onclick = () => { const v = parseInt(qtyInput.value)||0; qtyInput.value = v+1; };
+  parent.insertBefore(wrap, qtyInput);
+  wrap.appendChild(btnMinus);
+  wrap.appendChild(qtyInput);
+  wrap.appendChild(btnPlus);
+}
+
+// 覆蓋 addRow，加入手機版強化
+const _origAddRow = addRow;
+addRow = function() {
+  const nextId = rowCounter + 1;
+  _origAddRow();
+  _injectQtyBtns(nextId);
+};
+
+// 頁面載入後對已有列注入
+window.addEventListener('load', () => {
+  if (!_isMobile()) return;
+  document.querySelectorAll('[id^="qty-"]').forEach(el => {
+    const id = el.id.replace('qty-', '');
+    _injectQtyBtns(id);
+  });
+});
 </script>
 {% endblock %}

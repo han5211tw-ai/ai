@@ -33,12 +33,16 @@
 .f-input, .f-select {
   width: 100%; padding: 9px 12px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
-  font-size: .84rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .84rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
   transition: border .15s;
 }
 .f-input:focus, .f-select:focus { border-color: #6b5f52; }
 .f-readonly { color: #9a9188; background: #eee9e0; }
+/* 第二列奇偶校正：業務員(奇)→暖米色，付款方式(偶)→淺色 */
+#fSalesperson { background: #f5f0e8; }
+#fPayment { background: var(--bg-card, #faf8f4); }
+#fCustomerName { background: #f5f0e8; }
 
 /* 客戶 autocomplete */
 .autocomplete-wrap { position: relative; }
@@ -68,7 +72,7 @@
 .cell-input {
   width: 100%; padding: 5px 7px;
   border: 1px solid rgba(107,95,82,.15); border-radius: 6px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
 }
 .cell-input:focus { border-color: #6b5f52; }
@@ -104,23 +108,25 @@
 .submit-btn {
   padding: 10px 26px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .82rem;
-  font-family: 'Noto Serif TC', serif; letter-spacing: .06em; cursor: pointer;
+  font-family: var(--font-serif); letter-spacing: .06em; cursor: pointer;
 }
 .submit-btn:disabled { opacity: .5; cursor: default; }
 .add-row-btn {
   padding: 7px 16px; border: 1px dashed rgba(107,95,82,.3); border-radius: 7px;
   background: none; font-size: .8rem; color: #6b5f52; cursor: pointer;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif); transition: background .15s;
 }
-.add-row-btn:hover { background: #f5f0e8; }
+.add-row-btn:hover { background: rgba(107,95,82,.05); }
 .del-row-btn {
-  padding: 3px 7px; border: 1px solid rgba(139,58,58,.2); border-radius: 5px;
-  background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer;
+  padding: 4px 9px; border: 1px solid rgba(139,58,58,.3); border-radius: 5px;
+  background: none; font-size: .72rem; color: #8b3a3a; cursor: pointer; white-space: nowrap;
+  transition: background .15s;
 }
+.del-row-btn:hover { background: rgba(139,58,58,.06); }
 .reset-btn {
   padding: 10px 16px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
   background: none; font-size: .8rem; color: #6b5f52;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .msg-ok  { font-size: .82rem; color: #4a7c59; }
 .msg-err { font-size: .82rem; color: #8b3a3a; }
@@ -144,14 +150,14 @@
 .list-search {
   flex: 1; padding: 8px 12px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none; max-width: 280px;
 }
 .list-search:focus { border-color: #6b5f52; }
 .search-btn {
   padding: 8px 16px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .78rem;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .del-sale-btn {
   padding: 3px 9px; border: 1px solid rgba(139,58,58,.3);
@@ -161,7 +167,7 @@
 .import-order-btn {
   padding: 7px 16px; border: 1px solid rgba(107,95,82,.3);
   border-radius: 8px; background: none; font-size: .8rem; color: #6b5f52;
-  cursor: pointer; font-family: 'Noto Serif TC', serif; letter-spacing: .04em;
+  cursor: pointer; font-family: var(--font-serif); letter-spacing: .04em;
   white-space: nowrap; transition: background .15s;
 }
 .import-order-btn:hover { background: rgba(107,95,82,.06); }
@@ -179,7 +185,7 @@
   display: flex; flex-direction: column; gap: 16px;
 }
 .order-modal-title {
-  font-family: 'Cormorant Garamond', serif; font-size: 1.12rem; font-weight: 300;
+  font-family: var(--font-en); font-size: 1.12rem; font-weight: 300;
   color: #2c2720; letter-spacing: .06em; padding-bottom: 12px;
   border-bottom: 1px solid rgba(107,95,82,.12); flex-shrink: 0;
 }
@@ -188,7 +194,7 @@
 }
 .order-search-input {
   flex: 1; padding: 8px 12px; border: 1px solid rgba(107,95,82,.22);
-  border-radius: 8px; font-size: .84rem; font-family: 'Noto Serif TC', serif;
+  border-radius: 8px; font-size: .84rem; font-family: var(--font-serif);
   color: #2c2720; background: #f5f0e8; outline: none;
 }
 .order-search-input:focus { border-color: #FABF13; background: #fff; }
@@ -207,7 +213,7 @@
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 6px;
 }
-.order-no { font-family: monospace; font-size: .84rem; color: #6b5f52; font-weight: 500; }
+.order-no { font-family: var(--font-mono); font-size: .84rem; color: #6b5f52; font-weight: 500; }
 .order-customer { font-size: .86rem; color: #2c2720; }
 .order-meta { font-size: .74rem; color: #9a9188; }
 .order-items-preview {
@@ -238,7 +244,7 @@
   width: min(520px, 95vw); box-shadow: 0 8px 40px rgba(0,0,0,.18);
 }
 .edit-modal-title {
-  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem;
+  font-family: var(--font-en); font-size: 1.15rem;
   font-weight: 300; color: #2c2720; letter-spacing: .06em;
   margin-bottom: 20px; padding-bottom: 12px;
   border-bottom: 1px solid rgba(107,95,82,.12);
@@ -253,7 +259,7 @@
 }
 .edit-field input {
   width: 100%; padding: 8px 10px; border: 1px solid rgba(107,95,82,.22);
-  border-radius: 8px; font-size: .86rem; font-family: 'Noto Serif TC', serif;
+  border-radius: 8px; font-size: .84rem; font-family: var(--font-serif);
   color: #2c2720; background: #f5f0e8; box-sizing: border-box;
 }
 .edit-field input:focus { outline: none; border-color: #FABF13; background: #fff; }
@@ -269,7 +275,7 @@
 .edit-save-btn {
   padding: 8px 20px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .83rem;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .edit-save-btn:hover { opacity: .85; }
 /* 翻頁 */
@@ -283,6 +289,62 @@
 }
 .page-btn:disabled { opacity: .4; cursor: default; }
 .page-info { font-size: .78rem; color: #9a9188; }
+
+/* ── 智慧銷售建議 ── */
+.smart-suggest {
+  display: none;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-top: -4px;
+}
+.smart-suggest.show { display: block; }
+.ss-title {
+  font-size: .76rem; color: var(--text-sub); letter-spacing: .08em;
+  margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+}
+.ss-close {
+  background: none; border: none; cursor: pointer; font-size: .82rem;
+  color: var(--text-sub); padding: 2px 6px;
+}
+.ss-close:hover { color: var(--text); }
+.ss-section { margin-bottom: 12px; }
+.ss-section:last-child { margin-bottom: 0; }
+.ss-label {
+  font-size: .72rem; color: var(--text-sub); margin-bottom: 4px;
+  letter-spacing: .06em; font-weight: 600;
+}
+.ss-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid rgba(107,95,82,.06);
+  font-size: .82rem; color: var(--text);
+}
+.ss-item:last-child { border-bottom: none; }
+.ss-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-item-meta { font-size: .72rem; color: var(--text-sub); white-space: nowrap; }
+.ss-add-btn {
+  padding: 3px 10px; border: 1px solid rgba(46,125,70,.3); border-radius: 6px;
+  background: none; color: #2e7d46; font-size: .72rem;
+  font-family: var(--font-serif); cursor: pointer; white-space: nowrap;
+  min-height: 28px;
+}
+.ss-add-btn:hover { background: rgba(46,125,70,.06); }
+.ss-empty { font-size: .78rem; color: var(--text-sub); padding: 4px 0; }
+
+@media (max-width: 767px) {
+  .smart-suggest { padding: 12px 14px; border-radius: 12px; }
+  .ss-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; padding: 10px 14px; background: #fff;
+    border: 1px solid var(--border); border-radius: 12px;
+    font-size: .82rem; color: var(--text); margin-top: -4px;
+  }
+  .ss-toggle .ss-arrow { transition: transform .2s; }
+  .ss-toggle.open .ss-arrow { transform: rotate(180deg); }
+  .smart-suggest.show { display: none; }
+  .smart-suggest.m-open { display: block; border-top: none; border-radius: 0 0 12px 12px; margin-top: -1px; }
+}
 </style>
 {% endblock %}
 
@@ -363,6 +425,19 @@
         <input type="hidden" id="fDepositAmount" value="0">
       </div>
 
+      <!-- 智慧銷售建議（手機版摺疊 toggle） -->
+      <div class="ss-toggle" id="ssMobileToggle" style="display:none" onclick="ssToggleMobile()">
+        💡 客戶購買建議 <span class="ss-arrow">▾</span>
+      </div>
+      <!-- 智慧銷售建議（內容區塊） -->
+      <div class="smart-suggest" id="smartSuggest">
+        <div class="ss-title">
+          💡 客戶購買建議
+          <button class="ss-close" onclick="ssClose()">✕</button>
+        </div>
+        <div id="ssContent"><div class="ss-empty">選擇客戶後自動載入…</div></div>
+      </div>
+
       <!-- 產品明細 -->
       <table class="items-table">
         <thead>
@@ -394,7 +469,7 @@
         <span class="total-label">元</span>
         <span id="depositDeductArea" style="display:none;margin-left:16px">
           <span class="total-label">− 訂金</span>
-          <span style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:#3d7a50" id="depositAmountDisplay">0</span>
+          <span style="font-family:var(--font-en);font-size:1.1rem;color:#3d7a50" id="depositAmountDisplay">0</span>
           <span class="total-label" style="margin-left:12px">＝ 應收</span>
           <span class="total-amount" id="balanceAmount" style="color:#c0392b">0</span>
           <span class="total-label">元</span>
@@ -564,11 +639,103 @@ function selectCust(id, name, payType) {
     wrap.appendChild(tag);
   }
   closeCustList();
+  ssLoad(id);
 }
 function closeCustList() { document.getElementById('custList').style.display = 'none'; }
 document.addEventListener('click', e => {
   if (!e.target.closest('#custWrap')) closeCustList();
 });
+
+// ── 智慧銷售建議 ──
+async function ssLoad(customerId) {
+  const panel = document.getElementById('smartSuggest');
+  const toggle = document.getElementById('ssMobileToggle');
+  const content = document.getElementById('ssContent');
+  if (!customerId) { panel.classList.remove('show','m-open'); toggle.style.display = 'none'; return; }
+
+  content.innerHTML = '<div class="ss-empty">載入中…</div>';
+  const isMobile = window.innerWidth < 768;
+  if (isMobile) {
+    toggle.style.display = 'flex';
+    toggle.classList.remove('open');
+    panel.classList.remove('show','m-open');
+  } else {
+    panel.classList.add('show');
+    toggle.style.display = 'none';
+  }
+
+  try {
+    const res = await fetch('/api/customer/smart-suggest?customer_id=' + encodeURIComponent(customerId));
+    const json = await res.json();
+    if (!json.success) { content.innerHTML = '<div class="ss-empty">載入失敗</div>'; return; }
+
+    let html = '';
+
+    // 上次購買
+    if (json.recent && json.recent.length) {
+      html += '<div class="ss-section"><div class="ss-label">上次購買</div>';
+      json.recent.forEach(r => {
+        const d = (r.date || '').substring(5);
+        html += `<div class="ss-item">
+          <span class="ss-item-name">${_ssEsc(r.product_name)}</span>
+          <span class="ss-item-meta">${d} ×${r.quantity} $${Number(r.price||0).toLocaleString()}</span>
+          <button class="ss-add-btn" onclick="ssAddItem('${_ssEsc(r.product_code||'')}','${_ssEsc(r.product_name||'')}',${r.price||0})">＋加入</button>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // 常買商品
+    if (json.frequent && json.frequent.length) {
+      html += '<div class="ss-section"><div class="ss-label">常買商品</div>';
+      json.frequent.forEach(r => {
+        html += `<div class="ss-item">
+          <span class="ss-item-name">${_ssEsc(r.product_name)}</span>
+          <span class="ss-item-meta">買過 ${r.times} 次</span>
+          <button class="ss-add-btn" onclick="ssAddItem('${_ssEsc(r.product_code||'')}','${_ssEsc(r.product_name||'')}',0)">＋加入</button>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // 或許感興趣
+    if (json.interest && json.interest.length) {
+      html += '<div class="ss-section"><div class="ss-label">或許感興趣</div>';
+      json.interest.forEach(r => {
+        html += `<div class="ss-item">
+          <span class="ss-item-name">${_ssEsc(r.product_name)}</span>
+          <span class="ss-item-meta">熱門 ${r.pop} 筆</span>
+          <button class="ss-add-btn" onclick="ssAddItem('${_ssEsc(r.product_code||'')}','${_ssEsc(r.product_name||'')}',0)">＋加入</button>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    if (!html) html = '<div class="ss-empty">此客戶尚無購買紀錄</div>';
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = '<div class="ss-empty">載入失敗：' + e.message + '</div>';
+  }
+}
+
+function ssAddItem(code, name, price) {
+  addRow(code, name, 1, price, 0);
+}
+
+function ssClose() {
+  const panel = document.getElementById('smartSuggest');
+  panel.classList.remove('show', 'm-open');
+  document.getElementById('ssMobileToggle').style.display = 'none';
+}
+
+function ssToggleMobile() {
+  const toggle = document.getElementById('ssMobileToggle');
+  const panel = document.getElementById('smartSuggest');
+  toggle.classList.toggle('open');
+  panel.classList.toggle('m-open');
+}
+
+function _ssEsc(s) { return String(s||'').replace(/'/g,"\\'").replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* ── 產品列 ── */
 function addRow(code='', name='', qty=1, price=0, cost=0) {
@@ -603,7 +770,7 @@ function addRow(code='', name='', qty=1, price=0, cost=0) {
     </td>
     <td class="cost-col" id="profit-${n}" style="text-align:right;font-size:.82rem">—</td>
     <td style="text-align:center">
-      <button class="del-row-btn" onclick="removeRow(${n})">✕</button>
+      <button class="del-row-btn" onclick="removeRow(${n})">刪除</button>
     </td>`;
   document.getElementById('itemsBody').appendChild(tr);
   calcRow(n);

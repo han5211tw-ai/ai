@@ -17,14 +17,16 @@
 .field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
 .f-input {
   padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
-  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  font-size:.84rem; font-family:var(--font-serif); font-weight:300;
   color:#2c2720; background:#f5f0e8; outline:none;
 }
 .f-input:focus { border-color:#6b5f52; }
+/* 開始日期(奇)暖米色 */
+#cStart { background: #f5f0e8; }
 .calc-btn {
   padding:9px 20px; background:#2c2720; color:#f5f0e8;
   border:none; border-radius:8px; font-size:.82rem;
-  font-family:'Noto Serif TC',serif; cursor:pointer;
+  font-family:var(--font-serif); cursor:pointer;
 }
 .calc-btn:disabled { opacity:.5; cursor:default; }
 .msg-ok  { font-size:.8rem; color:#4a7c59; }

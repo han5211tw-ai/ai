@@ -4,7 +4,7 @@
 
 {% block styles %}
 <style>
-.ss-layout { display: flex; flex-direction: column; gap: 20px; max-width: 900px; }
+.ss-layout { display: flex; flex-direction: column; gap: 20px; max-width: none; }
 
 /* 搜尋列 */
 .search-bar {
@@ -20,7 +20,7 @@
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px;
   font-size: .9rem;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   font-weight: 300;
   color: #2c2720;
   background: #f5f0e8;
@@ -31,7 +31,7 @@
   padding: 10px 22px;
   background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  font-size: .82rem; font-family: var(--font-serif);
   cursor: pointer;
 }
 
@@ -125,7 +125,7 @@
   padding: 3px 9px; margin: 0 2px;
   border: 1px solid rgba(107,95,82,.25); border-radius: 6px;
   background: #f5f0e8; font-size: .78rem; cursor: pointer; color: #6b5f52;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
 }
 .pg-btn:hover { background: #ede9e0; }
 .pg-cur { background: #2c2720 !important; color: #f5f0e8 !important; border-color: #2c2720 !important; }
@@ -141,7 +141,7 @@
 .edit-field label { font-size:.78rem; color:#9a9188; }
 .edit-field input, .edit-field select, .edit-field textarea {
   padding:8px 12px; border:1px solid rgba(107,95,82,.25); border-radius:8px;
-  font-size:.88rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  font-size:.88rem; font-family:var(--font-serif); font-weight:300;
   color:#2c2720; background:#f5f0e8; width:100%; box-sizing:border-box;
 }
 .edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus {
@@ -149,12 +149,12 @@
 }
 .edit-field textarea { resize:vertical; min-height:60px; }
 .edit-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
-.btn-cancel { padding:8px 18px; border:1px solid rgba(107,95,82,.3); border-radius:8px; background:#f5f0e8; font-size:.82rem; cursor:pointer; color:#6b5f52; font-family:'Noto Serif TC',serif; }
-.btn-save { padding:8px 18px; border:none; border-radius:8px; background:#2c2720; color:#f5f0e8; font-size:.82rem; cursor:pointer; font-family:'Noto Serif TC',serif; }
+.btn-cancel { padding:8px 18px; border:1px solid rgba(107,95,82,.3); border-radius:8px; background:#f5f0e8; font-size:.82rem; cursor:pointer; color:#6b5f52; font-family:var(--font-serif); }
+.btn-save { padding:8px 18px; border:none; border-radius:8px; background:#2c2720; color:#f5f0e8; font-size:.82rem; cursor:pointer; font-family:var(--font-serif); }
 .btn-edit {
   padding:4px 12px; border:1px solid rgba(107,95,82,.25); border-radius:6px;
   background:#2c2720; font-size:.78rem; cursor:pointer; color:#f5f0e8;
-  font-family:'Noto Serif TC',serif;
+  font-family:var(--font-serif);
 }
 .btn-edit:hover { background:#444; }
 </style>

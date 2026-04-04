@@ -13,10 +13,13 @@
 .field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
 .f-input, .f-select {
   width:100%; padding:8px 11px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
-  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  font-size:.84rem; font-family:var(--font-serif); font-weight:300;
   color:#2c2720; background:#f5f0e8; box-sizing:border-box; outline:none;
 }
 .f-input:focus, .f-select:focus { border-color:#6b5f52; }
+/* 奇數欄暖米色 */
+#pName { background: #f5f0e8; }
+#pQty  { background: #f5f0e8; }
 .f-small { padding:6px 9px; font-size:.8rem; }
 
 /* 新增分類 */
@@ -27,7 +30,7 @@
 .cat-tab {
   padding:6px 14px; border-radius:20px; font-size:.78rem; cursor:pointer;
   border:1px solid rgba(107,95,82,.2); color:#6b5f52; background:none;
-  font-family:'Noto Serif TC',serif; position:relative;
+  font-family:var(--font-serif); position:relative;
 }
 .cat-tab.active { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
 .cat-tab .del-cat {
@@ -52,12 +55,12 @@
 .add-btn {
   padding:8px 16px; background:#2c2720; color:#f5f0e8;
   border:none; border-radius:8px; font-size:.8rem;
-  font-family:'Noto Serif TC',serif; cursor:pointer; white-space:nowrap;
+  font-family:var(--font-serif); cursor:pointer; white-space:nowrap;
 }
 .action-btn {
   padding:3px 9px; border-radius:5px; font-size:.74rem;
   border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
-  font-family:'Noto Serif TC',serif; margin-right:4px;
+  font-family:var(--font-serif); margin-right:4px;
 }
 .action-btn.del { border-color:rgba(139,58,58,.25); color:#8b3a3a; }
 .action-btn:hover { background:#f5f0e8; }

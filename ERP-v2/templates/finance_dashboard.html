@@ -9,7 +9,7 @@
 .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:2rem; }
 .kpi-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem; }
 .kpi-label { font-size:.8rem; color:#888; }
-.kpi-value { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:300; margin-top:.2rem; }
+.kpi-value { font-family:var(--font-en); font-size:1.8rem; font-weight:300; margin-top:.2rem; }
 .kpi-value.positive { color:#27ae60; }
 .kpi-value.negative { color:#c0392b; }
 .section-title { font-size:1rem; font-weight:400; margin:1.5rem 0 .8rem; border-bottom:1px solid var(--border); padding-bottom:.4rem; }
@@ -18,11 +18,11 @@
 .bar-item { display:flex; flex-direction:column; align-items:center; flex:1; }
 .bar-fill { width:100%; max-width:60px; background:#2c2720; border-radius:4px 4px 0 0; transition:height .3s; min-height:2px; }
 .bar-label { font-size:.75rem; color:#888; margin-top:.4rem; text-align:center; word-break:break-all; }
-.bar-value { font-size:.75rem; font-family:'Cormorant Garamond',serif; }
+.bar-value { font-size:.75rem; font-family:var(--font-en); }
 .summary-row { display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.5rem; }
 .summary-box { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1rem 1.2rem; flex:1; min-width:200px; }
 .summary-box .label { font-size:.8rem; color:#888; }
-.summary-box .value { font-family:'Cormorant Garamond',serif; font-size:1.4rem; margin-top:.2rem; }
+.summary-box .value { font-family:var(--font-en); font-size:1.4rem; margin-top:.2rem; }
 </style>
 {% endblock %}
 
@@ -111,7 +111,7 @@ async function loadDashboard() {
       <div style="flex:1;position:relative;height:22px;">
         <div style="height:100%;width:${w}%;background:${i.color};border-radius:3px;opacity:.7;"></div>
       </div>
-      <div style="width:100px;font-size:.85rem;font-family:'Cormorant Garamond',serif;text-align:right;">${fmt(Math.abs(i.value))}</div>
+      <div style="width:100px;font-size:.85rem;font-family:var(--font-en);text-align:right;">${fmt(Math.abs(i.value))}</div>
     </div>`;
   }).join('');
 }

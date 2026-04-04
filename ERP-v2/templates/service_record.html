@@ -35,8 +35,8 @@
   padding: 10px 14px;
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px;
-  font-size: .86rem;
-  font-family: 'Noto Serif TC', serif;
+  font-size: .84rem;
+  font-family: var(--font-serif);
   font-weight: 300;
   color: #2c2720;
   background: #f5f0e8;
@@ -46,6 +46,13 @@
 }
 .f-input:focus, .f-select:focus, .f-textarea:focus { border-color: #6b5f52; }
 .f-readonly { color: #9a9188; background: #eee9e0; }
+/* 奇偶交替：奇數欄暖米色、偶數欄淺色 */
+#fDate         { background: #f5f0e8; }
+#fServiceType  { background: var(--bg-card, #faf8f4); }
+#fSalesperson  { background: #f5f0e8; }
+#fStore        { background: var(--bg-card, #faf8f4); }
+#fCustomerName { background: #f5f0e8; }
+#fSource       { background: var(--bg-card, #faf8f4); }
 .f-textarea { resize: vertical; min-height: 72px; }
 
 /* 客戶 autocomplete */
@@ -73,7 +80,7 @@
   padding: 11px 28px;
   background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 10px;
-  font-size: .84rem; font-family: 'Noto Serif TC', serif;
+  font-size: .84rem; font-family: var(--font-serif);
   letter-spacing: .08em; cursor: pointer;
 }
 .submit-btn:disabled { opacity: .5; cursor: default; }
@@ -81,7 +88,7 @@
   padding: 11px 18px;
   border: 1px solid rgba(107,95,82,.3); border-radius: 10px;
   background: none; font-size: .82rem; color: #6b5f52;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .msg-ok  { font-size: .82rem; color: #4a7c59; }
 .msg-err { font-size: .82rem; color: #8b3a3a; }
@@ -124,6 +131,98 @@
 }
 .sr-edit-full { grid-column: 1 / -1; }
 .sr-edit-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+
+/* ── 手機版服務類型按鈕組（桌機隱藏） ── */
+.svc-type-btns { display: none; }
+
+/* ── 手機版 ──────────────────────────── */
+@media (max-width: 767px) {
+  .sr-layout { gap: 12px; }
+  .card { padding: 16px 14px; border-radius: 12px; }
+  .card-title { margin-bottom: 14px; }
+
+  /* 表單單欄 */
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  /* 服務類型：按鈕組取代下拉 */
+  .svc-type-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .svc-type-btn {
+    padding: 8px 14px;
+    border: 1px solid rgba(107,95,82,.22);
+    border-radius: 8px;
+    background: var(--bg, #f5f0e8);
+    font-size: .84rem;
+    font-family: var(--font-serif);
+    font-weight: 300;
+    color: var(--text, #2c2720);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .svc-type-btn.active {
+    background: var(--text, #2c2720);
+    color: var(--bg, #f5f0e8);
+    border-color: var(--text, #2c2720);
+  }
+  /* 手機版隱藏原始 select，由按鈕組取代 */
+  #fServiceType { display: none; }
+
+  /* 輸入框加大 */
+  .f-input, .f-select, .f-textarea { font-size: 16px; padding: 12px 14px; }
+  .f-textarea { min-height: 90px; }
+
+  /* checkbox 列 */
+  .check-row { gap: 8px; }
+  .check-label { font-size: .88rem; }
+
+  /* 送出按鈕全寬 */
+  .btn-row { flex-direction: column; gap: 10px; }
+  .submit-btn { width: 100%; padding: 14px 0; font-size: .88rem; text-align: center; }
+  .reset-btn { width: 100%; padding: 12px 0; text-align: center; }
+
+  /* 近期紀錄 → 卡片化 */
+  #recentWrap { overflow-x: visible; }
+  .rec-table thead { display: none; }
+  .rec-table,
+  .rec-table tbody,
+  .rec-table tr,
+  .rec-table td { display: block; width: 100%; }
+  .rec-table tr {
+    background: var(--bg, #f5f0e8);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .rec-table td { padding: 2px 0; border-bottom: none; }
+  .rec-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 4.5em;
+    color: var(--text-sub, #9a9188);
+    font-size: .75rem;
+    margin-right: 6px;
+  }
+  /* 服務內容欄：取消截斷 */
+  .rec-table td:nth-child(4) {
+    max-width: none !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+  /* 操作欄 */
+  .rec-table td:last-child { margin-top: 6px; display: flex; gap: 8px; }
+  .rec-table td:last-child::before { display: none; }
+  .edit-btn, .del-btn { flex: 1; text-align: center; padding: 6px 0; font-size: .8rem; }
+
+  /* 編輯 Modal */
+  .sr-modal { width: 96%; padding: 20px 16px; max-height: 90vh; }
+  .sr-edit-grid { grid-template-columns: 1fr; gap: 12px; }
+  .sr-edit-actions { flex-direction: column; }
+  .sr-edit-actions button { width: 100%; text-align: center; padding: 12px 0; }
+}
 </style>
 {% endblock %}
 
@@ -154,6 +253,7 @@
           <option value="門市支援">門市支援</option>
           <option value="其他">其他</option>
         </select>
+        <div class="svc-type-btns" id="svcTypeBtns"></div>
       </div>
 
       <!-- 業務員（唯讀，從登入取得） -->
@@ -437,12 +537,12 @@ async function loadRecent() {
     srRowsMap[r.id] = r;
     const canOp = r.salesperson === sp || title === '老闆';
     html += `<tr id="rr-${r.id}">
-      <td>${r.date}</td>
-      <td>${r.service_type || '—'}</td>
-      <td>${r.customer_name || r.store || '—'}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.service_item || '—'}</td>
-      <td>${r.salesperson || '—'}</td>
-      <td>${r.is_contract ? '<span class="contract-yes">合約</span>' : '<span class="contract-no">—</span>'}</td>
+      <td data-label="日期">${r.date}</td>
+      <td data-label="類型">${r.service_type || '—'}</td>
+      <td data-label="客戶">${r.customer_name || r.store || '—'}</td>
+      <td data-label="內容" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.service_item || '—'}</td>
+      <td data-label="業務">${r.salesperson || '—'}</td>
+      <td data-label="合約">${r.is_contract ? '<span class="contract-yes">合約</span>' : '<span class="contract-no">—</span>'}</td>
       <td>${canOp ? `<button class="edit-btn" onclick="openEdit(${r.id})">編輯</button><button class="del-btn" onclick="deleteRecord(${r.id})">刪除</button>` : ''}</td>
     </tr>`;
   });
@@ -507,6 +607,27 @@ async function saveEdit() {
   } catch (e) { alert('儲存失敗：' + e.message); }
 }
 
+/* ── 手機版服務類型按鈕組 ── */
+function _initSvcTypeBtns() {
+  if (window.innerWidth > 767) return;
+  const wrap = document.getElementById('svcTypeBtns');
+  if (!wrap || wrap.children.length) return;
+  const types = ['現場維修','網通設定','施工','交機','設備問題','門市支援','其他'];
+  types.forEach(t => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'svc-type-btn';
+    btn.textContent = t;
+    btn.onclick = () => {
+      document.getElementById('fServiceType').value = t;
+      wrap.querySelectorAll('.svc-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onTypeChange();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
 /* ── 初始化 ── */
 function onAppReady(user) {
   currentUser = user;
@@ -515,6 +636,7 @@ function onAppReady(user) {
   document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
   onTypeChange();
   loadRecent();
+  _initSvcTypeBtns();
 }
 </script>
 {% endblock %}

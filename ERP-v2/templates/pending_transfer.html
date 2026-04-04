@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% block title %}待調撥清單 — COSH ERP{% endblock %}
+{% block page_title %}待調撥清單{% endblock %}
+
+{% block styles %}
+<style>
+.pt-layout { display: flex; flex-direction: column; gap: 16px; max-width: none; }
+
+/* ── 篩選列 ── */
+.pt-filter {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.pt-filter label { font-size: .8rem; color: var(--text-sub); }
+.pt-filter-select {
+  padding: 8px 14px; border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); background: var(--bg); color: var(--text);
+  outline: none;
+}
+.pt-filter-select:focus { border-color: #6b5f52; }
+
+/* ── 統計 ── */
+.pt-stats {
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+.pt-stat {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px; flex: 1; min-width: 100px;
+  text-align: center;
+}
+.pt-stat-val {
+  font-family: var(--font-en); font-size: 1.3rem; color: var(--text);
+  font-weight: 600;
+}
+.pt-stat-label {
+  font-size: .72rem; color: var(--text-sub); margin-top: 2px;
+  letter-spacing: .06em;
+}
+
+/* ── 卡片 ── */
+.pt-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pt-card-header {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+}
+.pt-product-name {
+  font-size: .9rem; color: var(--text); font-weight: 600; flex: 1;
+}
+.pt-qty {
+  font-family: var(--font-en); font-size: 1rem; color: var(--text);
+  background: rgba(107,95,82,.08); padding: 2px 10px;
+  border-radius: 8px; white-space: nowrap;
+}
+.pt-meta {
+  font-size: .76rem; color: var(--text-sub);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.pt-meta-item { white-space: nowrap; }
+.pt-from-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .7rem; letter-spacing: .04em;
+  background: rgba(80,110,155,.1); color: #3a5a8a;
+}
+.pt-status {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .7rem;
+}
+.pt-s-pending   { background: rgba(250,191,19,.15); color: #8a6800; }
+.pt-s-transferred { background: rgba(80,110,155,.12); color: #3a5a8a; }
+.pt-s-done      { background: rgba(46,125,70,.12); color: #2e7d46; }
+
+.pt-actions {
+  display: flex; gap: 8px; padding-top: 6px;
+  border-top: 1px solid rgba(107,95,82,.06);
+}
+.pt-btn-transfer {
+  flex: 1; padding: 10px 0; border: none; border-radius: 10px;
+  background: #3a5a8a; color: #fff; font-size: .84rem;
+  font-family: var(--font-serif); cursor: pointer;
+  min-height: 44px; letter-spacing: .04em;
+}
+.pt-btn-transfer:hover { background: #2e4a72; }
+.pt-btn-arrive {
+  flex: 1; padding: 10px 0; border: none; border-radius: 10px;
+  background: #2e7d46; color: #fff; font-size: .84rem;
+  font-family: var(--font-serif); cursor: pointer;
+  min-height: 44px; letter-spacing: .04em;
+}
+.pt-btn-arrive:hover { background: #256b3a; }
+
+.pt-empty {
+  text-align: center; padding: 40px 20px; color: var(--text-sub);
+  font-size: .86rem;
+}
+
+/* ── Toast ── */
+.pt-toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  padding: 10px 24px; border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); z-index: 9999;
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+.pt-toast.show { opacity: 1; }
+.pt-toast.success { background: #2e7d46; color: #fff; }
+.pt-toast.error { background: #b94040; color: #fff; }
+
+/* ── 手機版 ── */
+@media (max-width: 767px) {
+  .pt-layout { gap: 10px; }
+  .pt-filter { padding: 10px 12px; gap: 10px; }
+  .pt-filter-select { padding: 8px 10px; min-height: 40px; }
+  .pt-stats { gap: 8px; }
+  .pt-stat { padding: 10px 8px; min-width: 0; border-radius: 10px; }
+  .pt-stat-val { font-size: 1.1rem; }
+  .pt-card { padding: 14px 14px; border-radius: 12px; gap: 8px; }
+  .pt-product-name { font-size: .86rem; }
+  .pt-btn-transfer, .pt-btn-arrive { min-height: 46px; font-size: .86rem; }
+  .pt-toast { top: auto; bottom: 72px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pt-layout">
+  <div class="pt-filter">
+    <div>
+      <label>狀態</label>
+      <select class="pt-filter-select" id="filterStatus" onchange="loadTransfers()">
+        <option value="待處理">待處理</option>
+        <option value="已調撥">已調撥</option>
+        <option value="all">全部</option>
+      </select>
+    </div>
+    <div>
+      <label>部門</label>
+      <select class="pt-filter-select" id="filterDept" onchange="loadTransfers()">
+        <option value="">全部</option>
+        <option value="豐原門市">豐原</option>
+        <option value="潭子門市">潭子</option>
+        <option value="大雅門市">大雅</option>
+        <option value="業務部">業務部</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="pt-stats">
+    <div class="pt-stat">
+      <div class="pt-stat-val" id="statTotal">—</div>
+      <div class="pt-stat-label">筆數</div>
+    </div>
+    <div class="pt-stat">
+      <div class="pt-stat-val" id="statPending">—</div>
+      <div class="pt-stat-label">待處理</div>
+    </div>
+    <div class="pt-stat">
+      <div class="pt-stat-val" id="statTransferred">—</div>
+      <div class="pt-stat-label">已調撥</div>
+    </div>
+  </div>
+
+  <div id="cardList"><div class="pt-empty">載入中…</div></div>
+</div>
+
+<div class="pt-toast" id="ptToast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+
+function onAppReady(user) {
+  currentUser = user;
+  loadTransfers();
+}
+
+async function loadTransfers() {
+  const status = document.getElementById('filterStatus').value;
+  const dept   = document.getElementById('filterDept').value;
+  let url = `/api/needs/transfers?status=${encodeURIComponent(status)}`;
+  if (dept) url += `&department=${encodeURIComponent(dept)}`;
+
+  try {
+    const res  = await fetch(url);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    const needs = json.needs || [];
+
+    // 統計
+    const pending = needs.filter(n => n.status === '待處理').length;
+    const transferred = needs.filter(n => n.status === '已調撥').length;
+    document.getElementById('statTotal').textContent = needs.length;
+    document.getElementById('statPending').textContent = pending;
+    document.getElementById('statTransferred').textContent = transferred;
+
+    renderCards(needs);
+  } catch (e) {
+    document.getElementById('cardList').innerHTML =
+      `<div class="pt-empty">載入失敗：${esc(e.message)}</div>`;
+  }
+}
+
+function renderCards(needs) {
+  const container = document.getElementById('cardList');
+  if (!needs || !needs.length) {
+    container.innerHTML = '<div class="pt-empty">沒有符合條件的調撥需求</div>';
+    return;
+  }
+
+  let html = '';
+  needs.forEach(n => {
+    const statusCls = n.status === '已調撥' ? 'pt-s-transferred'
+                    : n.status === '已完成' ? 'pt-s-done' : 'pt-s-pending';
+    const statusLbl = n.status || '待處理';
+    const dateStr   = (n.created_at || '').substring(0, 10);
+    const fromText  = n.transfer_from || '—';
+
+    let actionsHtml = '';
+    if (n.status === '待處理') {
+      actionsHtml = `<div class="pt-actions">
+        <button class="pt-btn-transfer" onclick="markTransferred(${n.id})">標記已調撥</button>
+      </div>`;
+    } else if (n.status === '已調撥') {
+      actionsHtml = `<div class="pt-actions">
+        <button class="pt-btn-arrive" onclick="markArrived(${n.id})">確認到貨</button>
+      </div>`;
+    }
+
+    html += `<div class="pt-card" data-id="${n.id}">
+      <div class="pt-card-header">
+        <div class="pt-product-name">${esc(n.item_name || '—')}</div>
+        <div class="pt-qty">× ${n.quantity || '—'}</div>
+      </div>
+      <div class="pt-meta">
+        <span class="pt-from-badge">來源：${esc(fromText)}</span>
+        <span class="pt-meta-item">${esc(n.department || '—')}</span>
+        <span class="pt-meta-item">${esc(n.requester || '—')}</span>
+        <span class="pt-meta-item">${dateStr}</span>
+        <span class="pt-status ${statusCls}">${statusLbl}</span>
+      </div>
+      ${n.remark ? `<div style="font-size:.78rem;color:var(--text-sub);">備注：${esc(n.remark)}</div>` : ''}
+      ${actionsHtml}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+async function markTransferred(id) {
+  if (!confirm('確定標記為已調撥？')) return;
+  const res  = await fetch(`/api/needs/${id}/transfer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+  const json = await res.json();
+  if (json.success) { toast('已標記為已調撥', 'success'); loadTransfers(); }
+  else toast(json.message || '失敗', 'error');
+}
+
+async function markArrived(id) {
+  if (!confirm('確定到貨完成？')) return;
+  const res  = await fetch(`/api/needs/${id}/arrive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+  const json = await res.json();
+  if (json.success) { toast('已完成', 'success'); loadTransfers(); }
+  else toast(json.message || '失敗', 'error');
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('ptToast');
+  el.textContent = msg;
+  el.className = `pt-toast show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+{% endblock %}

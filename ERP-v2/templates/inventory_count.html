@@ -22,7 +22,7 @@
   width: 100%; padding: 9px 12px;
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px; font-size: 15px;
-  font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8;
   box-sizing: border-box;
 }
@@ -34,24 +34,24 @@
 .btn-main {
   padding: 9px 22px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .82rem;
-  font-family: 'Noto Serif TC', serif; letter-spacing: .06em; cursor: pointer;
+  font-family: var(--font-serif); letter-spacing: .06em; cursor: pointer;
 }
 .btn-main:disabled { opacity: .5; cursor: default; }
 .btn-sec {
   padding: 8px 18px; background: transparent; color: #6b5f52;
   border: 1px solid rgba(107,95,82,.25); border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-size: .82rem; font-family: var(--font-serif); cursor: pointer;
 }
 .btn-sec:hover { background: rgba(107,95,82,.06); }
 .btn-danger {
   padding: 8px 18px; background: transparent; color: #8b3a3a;
   border: 1px solid rgba(139,58,58,.25); border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-size: .82rem; font-family: var(--font-serif); cursor: pointer;
 }
 .btn-ok {
   padding: 8px 18px; background: transparent; color: #3d7a3d;
   border: 1px solid rgba(61,122,61,.25); border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-size: .82rem; font-family: var(--font-serif); cursor: pointer;
 }
 
 /* ── 建單區 ── */
@@ -94,22 +94,19 @@
 }
 .count-table td { padding: 8px 10px; border-bottom: 1px solid rgba(107,95,82,.06); }
 .count-table .qty-input {
-  width: 80px; padding: 6px 8px; text-align: center;
-  border: 1px solid rgba(107,95,82,.2); border-radius: 8px;
-  font-size: .88rem; font-family: 'Noto Serif TC', serif;
-  background: #f5f0e8;
-}
-.count-table .qty-input:focus {
-  outline: none; border-color: #FABF13;
-  box-shadow: 0 0 0 3px rgba(250,191,19,.12); background: #fff;
-}
-.count-table .rmk-input {
-  width: 100%; padding: 5px 8px;
+  width: 80px; padding: 5px 7px; text-align: center;
   border: 1px solid rgba(107,95,82,.15); border-radius: 6px;
-  font-size: .78rem; font-family: 'Noto Serif TC', serif;
-  background: transparent; color: #6b5f52;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none;
 }
-.count-table .rmk-input:focus { outline: none; border-color: #9a9188; }
+.count-table .qty-input:focus { border-color: #6b5f52; }
+.count-table .rmk-input {
+  width: 100%; padding: 5px 7px;
+  border: 1px solid rgba(107,95,82,.15); border-radius: 6px;
+  font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
+  color: #2c2720; background: #f5f0e8; outline: none;
+}
+.count-table .rmk-input:focus { border-color: #6b5f52; }
 
 .diff-pos { color: #3d7a3d; font-weight: 500; }
 .diff-neg { color: #8b3a3a; font-weight: 500; }
@@ -122,13 +119,13 @@
   display: flex; gap: 24px; flex-wrap: wrap;
   padding: 14px 0; font-size: .84rem; color: #6b5f52;
 }
-.summary-bar .num { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; color: #2c2720; }
+.summary-bar .num { font-family: var(--font-en); font-size: 1.4rem; color: #2c2720; }
 
 /* ── tabs ── */
 .tab-bar { display: flex; gap: 0; }
 .tab-btn {
   padding: 9px 20px; font-size: .8rem; border: none; background: transparent;
-  color: #9a9188; font-family: 'Noto Serif TC', serif; cursor: pointer;
+  color: #9a9188; font-family: var(--font-serif); cursor: pointer;
   border-bottom: 2px solid transparent;
 }
 .tab-btn.active { color: #2c2720; border-bottom-color: #2c2720; }
@@ -144,6 +141,133 @@
 .toast.err { background: #b94040; }
 
 .empty-hint { text-align: center; padding: 32px 0; color: #9a9188; font-size: .86rem; }
+
+/* ── 手機版進度條（桌機隱藏） ── */
+.m-progress { display: none; }
+
+/* ── 手機版 ──────────────────────────── */
+@media (max-width: 767px) {
+  .ic-layout { gap: 12px; }
+
+  /* Tab bar */
+  .tab-bar { gap: 0; }
+  .tab-btn { flex: 1; text-align: center; padding: 10px 8px; font-size: .84rem; }
+
+  /* 卡片 */
+  .card { border-radius: 12px; }
+  .card-head {
+    padding: 10px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .card-head > div { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card-body { padding: 14px !important; }
+
+  /* 建單區：堆疊 */
+  .create-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .create-bar .field { width: 100%; }
+  .create-bar .field select,
+  .create-bar .field input { width: 100% !important; font-size: 16px; }
+  .btn-main { width: 100%; padding: 12px 0; font-size: .88rem; text-align: center; }
+
+  /* 操作按鈕：全寬 */
+  .btn-sec, .btn-danger, .btn-ok { flex: 1; text-align: center; padding: 10px 8px; font-size: .82rem; }
+
+  /* 摘要列 */
+  .summary-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: .82rem;
+  }
+  .summary-bar .num { font-size: 1.2rem; }
+
+  /* 進度條 */
+  .m-progress {
+    display: block;
+    margin: 8px 0 4px;
+    height: 6px;
+    background: rgba(107,95,82,.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .m-progress-bar {
+    height: 100%;
+    background: #2c2720;
+    border-radius: 3px;
+    transition: width .3s;
+  }
+
+  /* 盤點表格 → 卡片化 */
+  .scroll-wrap { max-height: none; overflow-y: visible; }
+  .count-table thead { display: none; }
+  .count-table,
+  .count-table tbody,
+  .count-table tr,
+  .count-table td { display: block; width: 100%; }
+  .count-table tr {
+    background: var(--bg-card, #faf8f4);
+    border: 1px solid rgba(107,95,82,.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .count-table td { padding: 3px 0; border-bottom: none; }
+  /* 序號：隱藏 */
+  .count-table td:first-child { display: none; }
+  /* 產品名稱加大 */
+  .count-table td:nth-child(3) { font-size: .9rem; font-weight: 400; margin-bottom: 6px; }
+  /* 產品編號 + 帳面 + 差異 行內排列 */
+  .count-table td:nth-child(2)::before { content: '編號 '; color: #9a9188; font-size: .75rem; }
+  .count-table td:nth-child(4)::before { content: '帳面 '; color: #9a9188; font-size: .75rem; }
+  .count-table td:nth-child(6)::before { content: '差異 '; color: #9a9188; font-size: .75rem; }
+  .count-table td:nth-child(7)::before { content: '備註 '; color: #9a9188; font-size: .75rem; }
+  /* 實盤輸入加大 */
+  .count-table td:nth-child(5) { margin: 6px 0; }
+  .count-table td:nth-child(5)::before { content: '實盤 '; color: #9a9188; font-size: .75rem; }
+  .count-table .qty-input {
+    width: 100% !important;
+    padding: 10px 12px;
+    font-size: 1.1rem;
+    border-radius: 8px;
+  }
+  .count-table .rmk-input {
+    font-size: .88rem;
+    padding: 8px 10px;
+    border-radius: 8px;
+  }
+
+  /* 歷史表格 → 卡片化 */
+  .ic-list thead { display: none; }
+  .ic-list,
+  .ic-list tbody,
+  .ic-list tr,
+  .ic-list td { display: block; width: 100%; }
+  .ic-list tr {
+    background: var(--bg, #f5f0e8);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .ic-list tr:hover td { background: transparent; }
+  .ic-list td { padding: 2px 0; border-bottom: none; }
+  .ic-list td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 5em;
+    color: #9a9188;
+    font-size: .75rem;
+    margin-right: 6px;
+  }
+  /* 操作欄 */
+  .ic-list td:last-child { margin-top: 8px; }
+  .ic-list td:last-child::before { display: none; }
+
+  /* Toast 避開底部導覽 */
+  .toast { bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 10px); right: 14px; left: 14px; text-align: center; }
+}
 </style>
 {% endblock %}
 
@@ -198,6 +322,7 @@
       </div>
       <div class="card-body" style="padding:10px 16px">
         <div class="summary-bar" id="summaryBar"></div>
+        <div class="m-progress" id="mProgress"><div class="m-progress-bar" id="mProgressBar"></div></div>
         <div class="scroll-wrap">
           <table class="count-table">
             <thead>
@@ -397,7 +522,7 @@ async function openCount(countId) {
 function onQtyChange(el) {
   const id = el.dataset.id;
   const row = el.closest('tr');
-  const bookQty = parseInt(row.children[3].textContent);
+  const bookQty = parseInt(row.children[3].textContent) || parseInt(row.querySelector('td:nth-child(4)')?.textContent) || 0;
   const actual = el.value !== '' ? parseInt(el.value) : null;
   const diffEl = document.getElementById('diff-' + id);
   if (actual == null) {
@@ -408,6 +533,11 @@ function onQtyChange(el) {
     diffEl.textContent = d > 0 ? '+' + d : d;
     diffEl.className = d > 0 ? 'diff-pos' : d < 0 ? 'diff-neg' : 'diff-zero';
   }
+  // 更新手機版進度條
+  const allQty = document.querySelectorAll('.qty-input');
+  const filled = Array.from(allQty).filter(q => q.value !== '').length;
+  const bar = document.getElementById('mProgressBar');
+  if (bar && allQty.length) bar.style.width = Math.round(filled / allQty.length * 100) + '%';
 }
 
 function updateSummary(items) {
@@ -422,6 +552,9 @@ function updateSummary(items) {
     <div style="color:#3d7a3d">盤盈 <span class="num">${gain}</span></div>
     <div style="color:#8b3a3a">盤虧 <span class="num">${loss}</span></div>
   `;
+  // 手機版進度條
+  const bar = document.getElementById('mProgressBar');
+  if (bar) bar.style.width = total ? Math.round(filled / total * 100) + '%' : '0%';
 }
 
 // ─── 暫存 ────────────────────────
@@ -564,13 +697,13 @@ async function loadHistory() {
   }
   tbody.innerHTML = counts.map(c => `
     <tr>
-      <td style="font-weight:400">${esc(c.count_no)}</td>
-      <td>${esc(c.warehouse)}</td>
-      <td><span class="badge ${c.status}">${statusLabel[c.status] || c.status}</span></td>
-      <td>${esc(c.created_by || '')}</td>
-      <td style="font-size:.78rem;color:#9a9188">${(c.created_at||'').slice(0,16).replace('T',' ')}</td>
-      <td style="font-size:.78rem;color:#9a9188">${c.submitted_at ? c.submitted_at.slice(0,16).replace('T',' ') : '—'}</td>
-      <td>${esc(c.reviewed_by || '—')}</td>
+      <td data-label="單號" style="font-weight:400">${esc(c.count_no)}</td>
+      <td data-label="倉庫">${esc(c.warehouse)}</td>
+      <td data-label="狀態"><span class="badge ${c.status}">${statusLabel[c.status] || c.status}</span></td>
+      <td data-label="建立者">${esc(c.created_by || '')}</td>
+      <td data-label="建立時間" style="font-size:.78rem;color:#9a9188">${(c.created_at||'').slice(0,16).replace('T',' ')}</td>
+      <td data-label="送出時間" style="font-size:.78rem;color:#9a9188">${c.submitted_at ? c.submitted_at.slice(0,16).replace('T',' ') : '—'}</td>
+      <td data-label="審核者">${esc(c.reviewed_by || '—')}</td>
       <td style="display:flex;gap:6px">
         <button class="btn-sec" style="padding:5px 14px;font-size:.76rem" onclick="openCount(${c.id})">開啟</button>
         ${c.status === 'drafting' ? `<button class="btn-danger" style="padding:5px 12px;font-size:.76rem" onclick="deleteCount(${c.id},'${esc(c.count_no)}')">刪除</button>` : ''}

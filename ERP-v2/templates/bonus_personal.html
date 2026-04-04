@@ -18,25 +18,27 @@
 .field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
 .f-input, .f-select {
   padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
-  font-size:.84rem; font-family:'Noto Serif TC',serif; font-weight:300;
+  font-size:.84rem; font-family:var(--font-serif); font-weight:300;
   color:#2c2720; background:#f5f0e8; outline:none;
 }
 .f-input:focus { border-color:#6b5f52; }
 .f-select:focus { border-color:#6b5f52; }
+/* 開始日期(奇)暖米色，結束日期(偶)維持淺色 */
+#fStart { background: #f5f0e8; }
 
 /* 快速月份按鈕 */
 .month-pills { display:flex; gap:6px; flex-wrap:wrap; }
 .month-pill {
   padding:5px 12px; border-radius:20px; font-size:.76rem; cursor:pointer;
   border:1px solid rgba(107,95,82,.2); color:#6b5f52; background:none;
-  font-family:'Noto Serif TC',serif;
+  font-family:var(--font-serif);
 }
 .month-pill.active { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
 
 .query-btn {
   padding:9px 20px; background:#2c2720; color:#f5f0e8;
   border:none; border-radius:8px; font-size:.82rem;
-  font-family:'Noto Serif TC',serif; cursor:pointer;
+  font-family:var(--font-serif); cursor:pointer;
 }
 .query-btn:disabled { opacity:.5; }
 
@@ -46,7 +48,7 @@
   padding:18px 24px; display:flex; gap:32px; flex-wrap:wrap;
 }
 .total-item .n {
-  font-family:'Cormorant Garamond',serif; font-size:2.2rem;
+  font-family:var(--font-en); font-size:2.2rem;
   font-weight:300; color:#2c2720; letter-spacing:.04em;
 }
 .total-item .l { font-size:.72rem; color:#9a9188; text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }

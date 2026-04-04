@@ -1,0 +1,674 @@
+{% extends "base.html" %}
+{% block title %}電腦檢測 — COSH ERP{% endblock %}
+{% block page_title %}電腦故障診斷{% endblock %}
+
+{% block styles %}
+<style>
+.fd-layout { display: flex; flex-direction: column; gap: 18px; max-width: none; }
+
+/* ═══ ① AI 對話診斷 ═══ */
+.fd-ai-section {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 24px;
+}
+.fd-ai-title {
+  font-size: .78rem; color: var(--text-sub); letter-spacing: .1em;
+  margin-bottom: 12px; font-weight: 300;
+}
+.fd-ai-input-row {
+  display: flex; gap: 10px; align-items: flex-end;
+}
+.fd-ai-input {
+  flex: 1; padding: 12px 16px; border: 1px solid var(--border-mid);
+  border-radius: 10px; font-size: .84rem; font-family: var(--font-serif);
+  font-weight: 300; background: var(--bg); color: var(--text); outline: none;
+  resize: none; min-height: 46px; max-height: 120px;
+}
+.fd-ai-input::placeholder { font-weight: 200; color: var(--text-sub); }
+.fd-ai-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(250,191,19,.10); }
+.fd-ai-send {
+  padding: 12px 22px; border: none; border-radius: 10px;
+  background: var(--text); color: var(--bg); font-size: .84rem;
+  font-family: var(--font-serif); cursor: pointer; white-space: nowrap;
+  min-height: 46px; letter-spacing: .04em; transition: background .2s;
+}
+.fd-ai-send:hover { background: var(--accent); }
+.fd-ai-send:disabled { opacity: .5; cursor: default; }
+
+/* 對話記錄 */
+.fd-chat-log {
+  margin-top: 14px; display: flex; flex-direction: column; gap: 10px;
+  max-height: 500px; overflow-y: auto;
+}
+.fd-msg {
+  padding: 12px 16px; border-radius: 12px;
+  font-size: .84rem; line-height: 1.7; font-weight: 300;
+  white-space: pre-wrap; word-break: break-word;
+}
+.fd-msg-user {
+  background: rgba(107,95,82,.08); color: var(--text);
+  align-self: flex-end; max-width: 80%; border-bottom-right-radius: 4px;
+}
+.fd-msg-ai {
+  background: var(--bg); color: var(--text);
+  align-self: flex-start; max-width: 90%; border-bottom-left-radius: 4px;
+}
+.fd-msg-loading {
+  background: var(--bg); color: var(--text-sub); font-style: italic;
+  align-self: flex-start;
+}
+
+/* 匹配情境卡片 */
+.fd-matched {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+}
+.fd-match-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 14px; cursor: pointer;
+  font-size: .78rem; font-weight: 300; transition: border-color .2s;
+}
+.fd-match-card:hover { border-color: var(--accent); }
+.fd-match-sev {
+  display: inline-block; padding: 1px 6px; border-radius: 999px;
+  font-size: .68rem; margin-right: 4px;
+}
+.fd-sev-high { background: rgba(185,64,64,.12); color: #b94040; }
+.fd-sev-mid  { background: rgba(250,191,19,.15); color: #8a6800; }
+.fd-sev-low  { background: rgba(46,125,70,.12); color: #2e7d46; }
+
+/* ═══ ② 故障樹瀏覽 ═══ */
+.fd-tree-section {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  overflow: hidden;
+}
+.fd-tree-header {
+  padding: 14px 24px; font-size: .78rem; color: var(--text-sub);
+  letter-spacing: .1em; font-weight: 300;
+  border-bottom: 1px solid var(--border);
+}
+.fd-tree-body { display: flex; min-height: 400px; }
+
+/* 左側群組 */
+.fd-groups {
+  width: 240px; flex-shrink: 0; border-right: 1px solid var(--border);
+  overflow-y: auto; max-height: 600px;
+}
+.fd-group-item {
+  padding: 10px 18px; font-size: .82rem; color: var(--text);
+  cursor: pointer; border-bottom: 1px solid rgba(107,95,82,.06);
+  font-weight: 300; display: flex; justify-content: space-between; align-items: center;
+  transition: background .15s;
+}
+.fd-group-item:hover { background: rgba(107,95,82,.04); }
+.fd-group-item.active { background: var(--bg); font-weight: 400; }
+.fd-group-cnt {
+  font-size: .7rem; color: var(--text-sub); background: rgba(107,95,82,.08);
+  padding: 1px 7px; border-radius: 999px; font-family: var(--font-en);
+}
+
+/* 右側情境 */
+.fd-scenarios {
+  flex: 1; overflow-y: auto; max-height: 600px; padding: 10px 0;
+}
+.fd-scenario-item {
+  padding: 10px 20px; cursor: pointer;
+  border-bottom: 1px solid rgba(107,95,82,.06);
+  transition: background .15s;
+}
+.fd-scenario-item:hover { background: rgba(107,95,82,.03); }
+.fd-scenario-title {
+  font-size: .84rem; color: var(--text); font-weight: 300;
+  display: flex; align-items: center; gap: 6px;
+}
+.fd-scenario-detail {
+  display: none; margin-top: 10px; padding: 12px 16px;
+  background: var(--bg); border-radius: 10px; font-size: .8rem; line-height: 1.7;
+}
+.fd-scenario-detail.open { display: block; }
+.fd-detail-label {
+  font-size: .72rem; color: var(--text-sub); letter-spacing: .08em;
+  margin-top: 8px; margin-bottom: 2px;
+}
+.fd-detail-label:first-child { margin-top: 0; }
+.fd-detail-list {
+  margin: 0; padding-left: 18px; color: var(--text); font-weight: 300;
+}
+.fd-detail-list li { margin-bottom: 2px; }
+.fd-use-btn {
+  margin-top: 10px; padding: 6px 14px; border: 1px solid var(--border-mid);
+  border-radius: 8px; background: none; color: var(--text); font-size: .78rem;
+  font-family: var(--font-serif); cursor: pointer;
+}
+.fd-use-btn:hover { background: rgba(107,95,82,.06); }
+
+.fd-tree-empty {
+  padding: 40px 20px; text-align: center; color: var(--text-sub);
+  font-size: .84rem; font-weight: 300;
+}
+
+/* 搜尋列 */
+.fd-search-bar {
+  padding: 10px 18px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.fd-search-input {
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border-mid);
+  border-radius: 8px; font-size: .84rem; font-family: var(--font-serif);
+  font-weight: 300; background: var(--bg); color: var(--text); outline: none;
+}
+.fd-search-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(250,191,19,.10); }
+.fd-search-btn {
+  padding: 8px 16px; border: none; border-radius: 8px;
+  background: var(--text); color: var(--bg); font-size: .82rem;
+  font-family: var(--font-serif); cursor: pointer; transition: background .2s;
+}
+.fd-search-btn:hover { background: var(--accent); }
+
+/* ═══ ③ 檢測結論單 ═══ */
+.fd-report-section {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 24px;
+}
+.fd-report-title {
+  font-size: .78rem; color: var(--text-sub); letter-spacing: .1em;
+  margin-bottom: 14px; font-weight: 300;
+}
+.fd-report-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px;
+}
+.fd-report-field label {
+  display: block; font-size: .72rem; color: var(--text-sub);
+  letter-spacing: .06em; margin-bottom: 2px;
+}
+.fd-report-field input,
+.fd-report-field textarea {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border-mid);
+  border-radius: 8px; font-size: .84rem; font-family: var(--font-serif);
+  font-weight: 300; background: var(--bg); color: var(--text); outline: none;
+  box-sizing: border-box;
+}
+.fd-report-field textarea { min-height: 80px; resize: vertical; }
+.fd-report-field input:focus,
+.fd-report-field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(250,191,19,.10); }
+
+/* 客戶搜尋 autocomplete */
+.fd-cust-wrap { position: relative; }
+.fd-cust-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+  background: #fff; border: 1px solid rgba(107,95,82,.2); border-radius: 10px;
+  margin-top: 4px; max-height: 220px; overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(44,39,32,.1); display: none;
+}
+.fd-cust-item { padding: 10px 14px; cursor: pointer; font-size: .84rem; color: var(--text); }
+.fd-cust-item:hover { background: var(--bg); }
+
+#rptReportNo   { background: #f5f0e8; }          /* 奇數1 — 暖米 */
+#rptCustomer   { background: var(--bg-card); }    /* 偶數2 — 淺色 */
+#rptTech       { background: #f5f0e8; }          /* 奇數3 */
+#rptScenario   { background: var(--bg-card); }    /* 偶數4 */
+#rptSteps      { background: #f5f0e8; }          /* 奇數5 */
+#rptSuggestion { background: var(--bg-card); }    /* 偶數6 */
+
+.fd-report-actions {
+  margin-top: 14px; display: flex; gap: 10px;
+}
+.fd-btn-print {
+  padding: 10px 22px; border: none; border-radius: 10px;
+  background: var(--text); color: var(--bg); font-size: .84rem;
+  font-family: var(--font-serif); cursor: pointer; letter-spacing: .04em;
+  transition: background .2s;
+}
+.fd-btn-print:hover { background: var(--accent); }
+.fd-btn-clear {
+  padding: 10px 22px; border: 1px solid var(--border-mid); border-radius: 10px;
+  background: none; color: var(--text-sub); font-size: .84rem;
+  font-family: var(--font-serif); cursor: pointer;
+}
+
+/* Toast */
+.fd-toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  padding: 10px 24px; border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); z-index: 9999;
+  opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.fd-toast.show { opacity: 1; }
+.fd-toast.success { background: #2e7d46; color: #fff; }
+
+/* （列印使用獨立信紙模板 print_repair_report.html） */
+
+/* ═══ 手機版 ═══ */
+@media (max-width: 767px) {
+  .fd-layout { gap: 12px; }
+  .fd-ai-section, .fd-report-section { padding: 14px 14px; }
+  .fd-ai-input-row { flex-direction: column; }
+  .fd-ai-send { width: 100%; min-height: 44px; }
+  .fd-tree-body { flex-direction: column; }
+  .fd-groups {
+    width: 100%; max-height: 200px; border-right: none;
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+  }
+  .fd-group-item {
+    white-space: nowrap; padding: 8px 14px; font-size: .78rem;
+    border-bottom: none; border-right: 1px solid rgba(107,95,82,.06);
+    flex-shrink: 0;
+  }
+  .fd-scenarios { max-height: none; }
+  .fd-report-grid { grid-template-columns: 1fr; }
+  .fd-chat-log { max-height: 350px; }
+  .fd-matched { flex-direction: column; }
+  .fd-toast { top: auto; bottom: 72px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fd-layout">
+
+  <!-- ═══ ① AI 對話診斷 ═══ -->
+  <div class="fd-ai-section">
+    <div class="fd-ai-title">AI 故障診斷</div>
+    <div class="fd-ai-input-row">
+      <textarea class="fd-ai-input" id="aiInput"
+        placeholder="描述客人的電腦問題，例如：「電腦開機風扇轉一下就停了」…"
+        rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend()}"></textarea>
+      <button class="fd-ai-send" id="aiSendBtn" onclick="aiSend()">診斷</button>
+    </div>
+    <div class="fd-chat-log" id="chatLog"></div>
+    <div class="fd-matched" id="matchedCards"></div>
+  </div>
+
+  <!-- ═══ ② 故障樹瀏覽 ═══ -->
+  <div class="fd-tree-section">
+    <div class="fd-tree-header">故障情境知識庫（218 個情境 · 31 群組）</div>
+    <div class="fd-search-bar">
+      <input class="fd-search-input" id="treeSearch" placeholder="搜尋情境…"
+        onkeydown="if(event.key==='Enter')treeDoSearch()">
+      <button class="fd-search-btn" onclick="treeDoSearch()">搜尋</button>
+    </div>
+    <div class="fd-tree-body">
+      <div class="fd-groups" id="groupList"></div>
+      <div class="fd-scenarios" id="scenarioList">
+        <div class="fd-tree-empty">← 選擇群組瀏覽情境</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ③ 檢測結論單 ═══ -->
+  <div class="fd-report-section">
+    <div class="fd-report-title">檢測結論單</div>
+    <div class="fd-report-grid">
+      <div class="fd-report-field">
+        <label>檢測單號</label>
+        <input type="text" id="rptReportNo" readonly placeholder="自動產生…">
+      </div>
+      <div class="fd-report-field fd-cust-wrap" id="rptCustWrap">
+        <label>客戶姓名 / 手機</label>
+        <input type="text" id="rptCustomer" placeholder="輸入姓名或手機搜尋…"
+               autocomplete="off" oninput="rptSearchCust()" onfocus="rptSearchCust()">
+        <div class="fd-cust-list" id="rptCustList"></div>
+        <input type="hidden" id="rptCustomerId">
+      </div>
+      <div class="fd-report-field">
+        <label>檢測人員</label>
+        <input type="text" id="rptTech" readonly placeholder="自動帶入…">
+      </div>
+      <div class="fd-report-field">
+        <label>故障情境</label>
+        <input type="text" id="rptScenario" readonly placeholder="從上方帶入…">
+      </div>
+      <div class="fd-report-field" style="grid-column: 1 / -1;">
+        <label>排查步驟</label>
+        <textarea id="rptSteps" readonly placeholder="從上方帶入…"></textarea>
+      </div>
+      <div class="fd-report-field" style="grid-column: 1 / -1;">
+        <label>處置建議</label>
+        <textarea id="rptSuggestion" readonly placeholder="從上方帶入…"></textarea>
+      </div>
+    </div>
+    <div class="fd-report-actions">
+      <button class="fd-btn-print" onclick="printReport()">列印結論單</button>
+      <button class="fd-btn-clear" onclick="clearReport()">清除</button>
+    </div>
+  </div>
+
+</div>
+<div class="fd-toast" id="fdToast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let _fdHistory = [];
+let _allGroups = [];
+let _activeGroup = null;
+let _custTimer = null;
+
+function onAppReady(user) {
+  currentUser = user;
+  loadGroups();
+  // 自動帶入檢測人員
+  if (user && user.name) {
+    document.getElementById('rptTech').value = user.name;
+  }
+  // 自動產生檢測單號
+  _loadReportNo();
+}
+
+/* ── 工具函式 ── */
+function _esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _sevClass(s) {
+  if (s === '高') return 'fd-sev-high';
+  if (s === '中') return 'fd-sev-mid';
+  return 'fd-sev-low';
+}
+function toast(msg) {
+  const el = document.getElementById('fdToast');
+  el.textContent = msg;
+  el.className = 'fd-toast show success';
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ═══ ① AI 對話 ═══ */
+async function aiSend() {
+  const input = document.getElementById('aiInput');
+  const desc = input.value.trim();
+  if (!desc) return;
+
+  const btn = document.getElementById('aiSendBtn');
+  btn.disabled = true;
+  input.value = '';
+
+  // 顯示用戶訊息
+  appendMsg('user', desc);
+  appendMsg('loading', '診斷中，請稍候…');
+
+  _fdHistory.push({ role: 'user', content: desc });
+
+  try {
+    const res = await fetch('/api/fault/ai-diagnose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc, history: _fdHistory.slice(-10) }),
+    });
+    const json = await res.json();
+    removeLoading();
+
+    if (!json.success) {
+      appendMsg('ai', '⚠ ' + (json.message || '診斷失敗'));
+    } else {
+      appendMsg('ai', json.reply);
+      _fdHistory.push({ role: 'assistant', content: json.reply });
+      renderMatched(json.matched || []);
+    }
+  } catch (e) {
+    removeLoading();
+    appendMsg('ai', '⚠ 連線失敗：' + e.message);
+  }
+  btn.disabled = false;
+  input.focus();
+}
+
+function appendMsg(role, text) {
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  if (role === 'user') {
+    div.className = 'fd-msg fd-msg-user';
+    div.textContent = text;
+  } else if (role === 'loading') {
+    div.className = 'fd-msg fd-msg-loading';
+    div.id = '_aiLoading';
+    div.textContent = text;
+  } else {
+    div.className = 'fd-msg fd-msg-ai';
+    div.textContent = text;
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function removeLoading() {
+  const el = document.getElementById('_aiLoading');
+  if (el) el.remove();
+}
+
+function renderMatched(matched) {
+  const wrap = document.getElementById('matchedCards');
+  if (!matched.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = matched.map(m =>
+    `<div class="fd-match-card" onclick="loadScenarioToReport(${m.id})">
+       <span class="fd-match-sev ${_sevClass(m.severity)}">${_esc(m.severity)}</span>
+       ${_esc(m.title)}
+     </div>`
+  ).join('');
+}
+
+/* ═══ ② 故障樹 ═══ */
+async function loadGroups() {
+  try {
+    const res = await fetch('/api/fault/groups');
+    const json = await res.json();
+    if (!json.success) return;
+    _allGroups = json.groups || [];
+    renderGroups(_allGroups);
+  } catch (e) { console.error(e); }
+}
+
+function renderGroups(groups) {
+  const wrap = document.getElementById('groupList');
+  wrap.innerHTML = groups.map(g =>
+    `<div class="fd-group-item${_activeGroup === g.group_key ? ' active' : ''}"
+          onclick="selectGroup('${_esc(g.group_key)}')">
+       <span>${_esc(g.label)}</span>
+       <span class="fd-group-cnt">${g.count}</span>
+     </div>`
+  ).join('');
+}
+
+async function selectGroup(gk) {
+  _activeGroup = gk;
+  renderGroups(_allGroups);
+  const wrap = document.getElementById('scenarioList');
+  wrap.innerHTML = '<div class="fd-tree-empty">載入中…</div>';
+
+  try {
+    const res = await fetch('/api/fault/scenarios?group_key=' + encodeURIComponent(gk));
+    const json = await res.json();
+    if (!json.success) { wrap.innerHTML = '<div class="fd-tree-empty">載入失敗</div>'; return; }
+    renderScenarios(json.scenarios || []);
+  } catch (e) {
+    wrap.innerHTML = '<div class="fd-tree-empty">載入失敗</div>';
+  }
+}
+
+function renderScenarios(items) {
+  const wrap = document.getElementById('scenarioList');
+  if (!items.length) {
+    wrap.innerHTML = '<div class="fd-tree-empty">此群組沒有情境</div>';
+    return;
+  }
+  wrap.innerHTML = items.map(s => `
+    <div class="fd-scenario-item" onclick="toggleDetail(this)">
+      <div class="fd-scenario-title">
+        <span class="fd-match-sev ${_sevClass(s.severity)}">${_esc(s.severity)}</span>
+        ${_esc(s.title)}
+      </div>
+      <div class="fd-scenario-detail" data-id="${s.id}">
+        <div class="fd-detail-label">排查步驟</div>
+        <ol class="fd-detail-list">${(s.steps||[]).map(x=>'<li>'+_esc(x)+'</li>').join('')}</ol>
+        <div class="fd-detail-label">可能原因</div>
+        <ul class="fd-detail-list">${(s.causes||[]).map(x=>'<li>'+_esc(x)+'</li>').join('')}</ul>
+        <div class="fd-detail-label">檢測方式</div>
+        <ul class="fd-detail-list">${(s.tests||[]).map(x=>'<li>'+_esc(x)+'</li>').join('')}</ul>
+        <div class="fd-detail-label">處置建議</div>
+        <ul class="fd-detail-list">${(s.fix||[]).map(x=>'<li>'+_esc(x)+'</li>').join('')}</ul>
+        <button class="fd-use-btn" onclick="event.stopPropagation();fillReport(${s.id}, this)">帶入結論單</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleDetail(el) {
+  const d = el.querySelector('.fd-scenario-detail');
+  if (d) d.classList.toggle('open');
+}
+
+/* 搜尋 */
+async function treeDoSearch() {
+  const q = document.getElementById('treeSearch').value.trim();
+  if (!q) { loadGroups(); return; }
+  const wrap = document.getElementById('scenarioList');
+  wrap.innerHTML = '<div class="fd-tree-empty">搜尋中…</div>';
+  _activeGroup = null;
+  renderGroups(_allGroups);
+
+  try {
+    const res = await fetch('/api/fault/search?q=' + encodeURIComponent(q));
+    const json = await res.json();
+    if (!json.success) { wrap.innerHTML = '<div class="fd-tree-empty">搜尋失敗</div>'; return; }
+    const results = json.results || [];
+    if (!results.length) {
+      wrap.innerHTML = '<div class="fd-tree-empty">找不到相關情境</div>';
+      return;
+    }
+    // 搜尋結果需載入完整資料
+    const fullItems = [];
+    for (const r of results) {
+      const d = await fetch('/api/fault/scenario/' + r.id);
+      const dj = await d.json();
+      if (dj.success) fullItems.push(dj.scenario);
+    }
+    renderScenarios(fullItems);
+  } catch (e) {
+    wrap.innerHTML = '<div class="fd-tree-empty">搜尋失敗</div>';
+  }
+}
+
+/* ═══ 檢測單號 ═══ */
+async function _loadReportNo() {
+  try {
+    const res = await fetch('/api/fault/next-no');
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.report_no) {
+        document.getElementById('rptReportNo').value = json.report_no;
+        return;
+      }
+    }
+  } catch (e) { /* fallback below */ }
+  // 客戶端 fallback：RPT-YYYYMMDD-001
+  const now = new Date();
+  const ds = String(now.getFullYear()) +
+    String(now.getMonth()+1).padStart(2,'0') +
+    String(now.getDate()).padStart(2,'0');
+  const hms = String(now.getHours()).padStart(2,'0') +
+    String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('rptReportNo').value = 'RPT-' + ds + '-' + hms;
+}
+
+/* ═══ 客戶即時搜尋 ═══ */
+function rptSearchCust() {
+  const q = document.getElementById('rptCustomer').value.trim();
+  const isNum = /^\d+$/.test(q);
+  if ((!isNum && q.length < 2) || (isNum && q.length < 3)) { _closeCustList(); return; }
+  clearTimeout(_custTimer);
+  _custTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/customers/search?q=' + encodeURIComponent(q));
+      const data = await res.json();
+      const list = data.customers || data.data || data || [];
+      if (!list.length) { _closeCustList(); return; }
+      const el = document.getElementById('rptCustList');
+      el.style.display = 'block';
+      el.innerHTML = list.map(c => {
+        const name = c.short_name || c.full_name || c.customer_id;
+        const mob = [c.mobile, c.phone1].find(p => p && /^09/.test(p)) || c.mobile || c.phone1 || '';
+        const sub = [c.customer_id, mob].filter(Boolean).join(' · ');
+        return `<div class="fd-cust-item" onclick="rptSelectCust('${_esc((c.customer_id||'').replace(/'/g,"\\'"))}','${_esc(name.replace(/'/g,"\\'"))}')">
+          <span style="font-weight:400">${_esc(name)}</span>
+          <span style="font-size:.75rem;color:var(--text-sub);margin-left:8px">${_esc(sub)}</span>
+        </div>`;
+      }).join('');
+    } catch (e) { _closeCustList(); }
+  }, 200);
+}
+function rptSelectCust(id, name) {
+  document.getElementById('rptCustomerId').value = id;
+  document.getElementById('rptCustomer').value = name;
+  _closeCustList();
+}
+function _closeCustList() {
+  document.getElementById('rptCustList').style.display = 'none';
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#rptCustWrap')) _closeCustList();
+});
+
+/* ═══ ③ 結論單 ═══ */
+async function loadScenarioToReport(id) {
+  try {
+    const res = await fetch('/api/fault/scenario/' + id);
+    const json = await res.json();
+    if (!json.success) return;
+    const s = json.scenario;
+    _fillReportData(s);
+  } catch (e) { console.error(e); }
+}
+
+function fillReport(id, btnEl) {
+  const detailEl = btnEl.closest('.fd-scenario-detail');
+  loadScenarioToReport(parseInt(detailEl.dataset.id));
+  toast('已帶入結論單');
+}
+
+function _fillReportData(s) {
+  document.getElementById('rptScenario').value =
+    (s.group_label ? s.group_label + ' — ' : '') + s.title + '（' + s.severity + '）';
+  document.getElementById('rptSteps').value =
+    (s.steps || []).map((x, i) => (i + 1) + '. ' + x).join('\n');
+  document.getElementById('rptSuggestion').value =
+    (s.fix || []).map((x, i) => (i + 1) + '. ' + x).join('\n');
+  // 滾動到結論單
+  document.querySelector('.fd-report-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function printReport() {
+  const reportNo  = document.getElementById('rptReportNo').value.trim();
+  const customer  = document.getElementById('rptCustomer').value.trim();
+  const custId    = document.getElementById('rptCustomerId').value.trim();
+  const scenario  = document.getElementById('rptScenario').value.trim();
+  const steps     = document.getElementById('rptSteps').value.trim();
+  const fix       = document.getElementById('rptSuggestion').value.trim();
+  const tech      = document.getElementById('rptTech').value.trim();
+  if (!scenario) { toast('請先帶入故障情境'); return; }
+  // 儲存檢測報告
+  try {
+    await fetch('/api/fault/save-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        report_no: reportNo, customer_id: custId, customer_name: customer,
+        technician: tech, scenario, steps, suggestion: fix
+      })
+    });
+  } catch (e) { console.error(e); }
+  const params = new URLSearchParams({
+    report_no: reportNo, customer, scenario, steps, fix, tech
+  });
+  window.open('/print/repair-report?' + params.toString(), '_blank');
+}
+
+function clearReport() {
+  document.getElementById('rptCustomer').value = '';
+  document.getElementById('rptCustomerId').value = '';
+  document.getElementById('rptScenario').value = '';
+  document.getElementById('rptSteps').value = '';
+  document.getElementById('rptSuggestion').value = '';
+  // 重新產生單號
+  _loadReportNo();
+}
+</script>
+{% endblock %}

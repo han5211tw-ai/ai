@@ -19,8 +19,8 @@
   padding: 9px 14px;
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px;
-  font-size: .86rem;
-  font-family: 'Noto Serif TC', serif;
+  font-size: .84rem;
+  font-family: var(--font-serif);
   font-weight: 300;
   color: #2c2720;
   background: #f5f0e8;
@@ -32,7 +32,7 @@
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px;
   font-size: .82rem;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   color: #2c2720;
   background: #f5f0e8;
 }
@@ -40,7 +40,7 @@
   padding: 9px 20px;
   background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 10px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  font-size: .82rem; font-family: var(--font-serif);
   letter-spacing: .06em; cursor: pointer;
 }
 .info-badge {
@@ -67,7 +67,7 @@
 .wh-card:hover { border-left-color: #6b5f52; }
 .wh-name { font-size: .8rem; color: #6b5f52; letter-spacing: .04em; margin-bottom: 8px; }
 .wh-count {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 1.5rem; font-weight: 300; color: #2c2720;
 }
 .wh-lbl { font-size: .68rem; color: #9a9188; margin-top: 2px; }
@@ -88,7 +88,7 @@
 .page-btn {
   padding: 5px 14px; border: 1px solid rgba(107,95,82,.2);
   border-radius: 6px; background: none; font-size: .78rem;
-  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+  color: #6b5f52; cursor: pointer; font-family: var(--font-serif);
 }
 .page-btn:disabled { opacity: .4; cursor: default; }
 
@@ -100,7 +100,7 @@
 }
 .inv-table td { padding: 10px 14px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
 .inv-table tr:last-child td { border-bottom: none; }
-.num { font-family: 'Cormorant Garamond', serif; font-size: .9rem; }
+.num { font-family: var(--font-en); font-size: .9rem; }
 .prod-code { font-size: .75rem; color: #9a9188; display: block; }
 .qty-hi { color: #4a7c59; font-weight: 400; }
 .qty-lo { color: #a0763a; }
@@ -113,6 +113,74 @@
 }
 @keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 #tableWrap { overflow-x: auto; }
+
+/* ── 手機版 ──────────────────────────── */
+@media (max-width: 767px) {
+  .inv-layout { gap: 12px; }
+
+  /* 搜尋列：固定頂端 */
+  .ctrl-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+  .search-input { min-width: 0; width: 100%; font-size: 16px; padding: 11px 14px; }
+  .ctrl-bar .wh-sel { width: 100%; font-size: .84rem; }
+  .search-btn { width: 100%; padding: 11px 0; font-size: .88rem; text-align: center; }
+  .info-badge { align-self: center; }
+
+  /* 倉庫卡片：橫向捲動 */
+  .wh-cards {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 10px;
+    padding-bottom: 4px;
+  }
+  .wh-card { min-width: 120px; flex-shrink: 0; padding: 12px 14px; border-radius: 12px; }
+  .wh-count { font-size: 1.3rem; }
+
+  /* 表格卡片化 */
+  .card { border-radius: 12px; }
+  .card-head { padding: 10px 14px; flex-direction: column; gap: 8px; align-items: stretch; }
+  .page-btns { justify-content: space-between; }
+  .page-btn { flex: 1; text-align: center; padding: 8px 10px; font-size: .82rem; }
+
+  .inv-table thead { display: none; }
+  .inv-table,
+  .inv-table tbody,
+  .inv-table tr,
+  .inv-table td { display: block; width: 100%; }
+  .inv-table tr {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(107,95,82,.1);
+    position: relative;
+  }
+  .inv-table tr:last-child { border-bottom: none; margin-bottom: 0; }
+  .inv-table td { padding: 2px 0; border-bottom: none; }
+  .inv-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 5.5em;
+    color: var(--text-sub, #9a9188);
+    font-size: .75rem;
+    margin-right: 6px;
+  }
+  /* 產品名（第1欄）加大 */
+  .inv-table td:first-child {
+    font-size: .9rem;
+    font-weight: 400;
+    padding-bottom: 4px;
+  }
+  .inv-table td:first-child::before { display: none; }
+  /* 隱藏倉庫類型欄（手機不需要） */
+  .inv-table td:nth-child(3) { display: none; }
+}
 </style>
 {% endblock %}
 
@@ -253,16 +321,16 @@ function renderTable(rows) {
   rows.forEach(r => {
     const qtyClass = r.stock_quantity >= 5 ? 'qty-hi' : r.stock_quantity <= 1 ? 'qty-lo' : '';
     html += `<tr>
-      <td>
+      <td data-label="產品">
         <span class="prod-code">${r.product_id}</span>
         ${r.item_spec || '—'}
       </td>
-      <td>${r.warehouse}</td>
-      <td>${r.wh_type || '—'}</td>
-      <td class="num ${qtyClass}">${r.stock_quantity}</td>
-      <td>${r.unit || '—'}</td>
-      <td class="num">${r.unit_cost ? fmt(r.unit_cost) : '—'}</td>
-      <td class="num">${r.total_cost ? fmt(r.total_cost) : '—'}</td>
+      <td data-label="倉庫">${r.warehouse}</td>
+      <td data-label="類型">${r.wh_type || '—'}</td>
+      <td data-label="數量" class="num ${qtyClass}">${r.stock_quantity}</td>
+      <td data-label="單位">${r.unit || '—'}</td>
+      <td data-label="成本" class="num">${r.unit_cost ? fmt(r.unit_cost) : '—'}</td>
+      <td data-label="總額" class="num">${r.total_cost ? fmt(r.total_cost) : '—'}</td>
     </tr>`;
   });
   html += '</tbody></table>';

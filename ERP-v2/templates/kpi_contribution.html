@@ -4,7 +4,7 @@
 
 {% block styles %}
 <style>
-.contrib-layout { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+.contrib-layout { display: flex; flex-direction: column; gap: 20px; max-width: none; }
 
 /* ── 說明欄 ── */
 .info-card {
@@ -31,10 +31,31 @@
 .ctrl-bar label { font-size: .8rem; color: #9a9188; margin-right: 4px; }
 .ctrl-select {
   padding: 8px 14px; border: 1px solid rgba(107,95,82,.22);
-  border-radius: 10px; font-size: .86rem;
-  font-family: 'Noto Serif TC', serif; background: #f5f0e8; color: #2c2720; outline: none;
+  border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); background: #f5f0e8; color: #2c2720; outline: none;
 }
 .ctrl-select:focus { border-color: #6b5f52; }
+
+/* ── Tab 切換 ── */
+.tab-bar {
+  display: flex; gap: 0; border-bottom: 2px solid rgba(107,95,82,.1);
+}
+.tab-btn {
+  padding: 10px 24px; background: none; border: none; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; font-size: .84rem; font-family: var(--font-serif);
+  color: var(--text-sub); cursor: pointer; letter-spacing: .04em;
+  transition: color .2s, border-color .2s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--text); border-bottom-color: var(--brand); font-weight: 600; }
+.tab-btn .badge {
+  display: inline-block; min-width: 18px; padding: 1px 6px;
+  border-radius: 999px; font-size: .68rem; font-family: var(--font-en);
+  background: rgba(185,64,64,.12); color: #b94040; margin-left: 6px;
+  vertical-align: middle; text-align: center; line-height: 1.4;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 
 /* ── 提交表單 ── */
 .submit-card {
@@ -53,8 +74,8 @@
 .form-input, .form-select, .form-textarea {
   padding: 10px 14px;
   border: 1px solid rgba(107,95,82,.22);
-  border-radius: 10px; font-size: .86rem;
-  font-family: 'Noto Serif TC', serif; font-weight: 300;
+  border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
@@ -77,7 +98,7 @@
 .submit-btn {
   padding: 10px 26px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px;
-  font-size: .82rem; font-family: 'Noto Serif TC', serif;
+  font-size: .82rem; font-family: var(--font-serif);
   letter-spacing: .06em; cursor: pointer; align-self: flex-start;
 }
 .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -103,7 +124,7 @@
   width: 26px; height: 26px; line-height: 26px;
   border-radius: 50%; background: rgba(107,95,82,.1);
   text-align: center; font-size: .78rem; flex-shrink: 0;
-  color: #6b5f52; font-family: 'Cormorant Garamond', serif;
+  color: #6b5f52; font-family: var(--font-en);
 }
 .item-body { flex: 1; min-width: 0; }
 .item-desc { font-size: .86rem; color: #2c2720; margin-bottom: 4px; }
@@ -116,13 +137,13 @@
 .st-approved { background: rgba(46,125,70,.12); color: #2e7d46; }
 .st-rejected { background: rgba(185,64,64,.1); color: #b94040; }
 .item-score {
-  font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: #2e7d46;
+  font-family: var(--font-en); font-size: 1rem; color: #2e7d46;
   flex-shrink: 0; text-align: right; min-width: 44px;
 }
 .del-btn {
   background: none; border: none; cursor: pointer;
   color: #c09090; font-size: .8rem; padding: 4px 8px;
-  border-radius: 8px; font-family: 'Noto Serif TC', serif;
+  border-radius: 8px; font-family: var(--font-serif);
 }
 .del-btn:hover { color: #b94040; background: rgba(185,64,64,.07); }
 .evidence-thumb {
@@ -139,8 +160,42 @@
   font-size: .82rem; color: #6b5f52;
 }
 .score-total {
-  font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; color: #2c2720;
+  font-family: var(--font-en); font-size: 1.1rem; color: #2c2720;
 }
+
+/* ── 審核區 ── */
+.review-item {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(107,95,82,.06);
+}
+.review-item:last-child { border-bottom: none; }
+.review-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.review-staff-name {
+  font-size: .88rem; font-weight: 600; color: var(--text);
+}
+.review-staff-info {
+  font-size: .74rem; color: var(--text-sub);
+}
+.review-desc {
+  font-size: .84rem; color: var(--text); margin-bottom: 8px; line-height: 1.7;
+}
+.review-actions {
+  display: flex; gap: 8px; align-items: center;
+}
+.btn-approve {
+  padding: 6px 18px; border: none; border-radius: 8px;
+  background: #2e7d46; color: #fff; font-size: .8rem;
+  font-family: var(--font-serif); cursor: pointer; letter-spacing: .04em;
+}
+.btn-approve:hover { background: #256b3a; }
+.btn-reject {
+  padding: 6px 18px; border: 1px solid rgba(185,64,64,.3); border-radius: 8px;
+  background: none; color: #b94040; font-size: .8rem;
+  font-family: var(--font-serif); cursor: pointer; letter-spacing: .04em;
+}
+.btn-reject:hover { background: rgba(185,64,64,.06); }
 </style>
 {% endblock %}
 
@@ -166,11 +221,11 @@
   <div class="ctrl-bar">
     <div>
       <label>年度</label>
-      <select class="ctrl-select" id="selYear" onchange="loadMyItems()"></select>
+      <select class="ctrl-select" id="selYear" onchange="onPeriodChange()"></select>
     </div>
     <div>
       <label>季度</label>
-      <select class="ctrl-select" id="selQuarter" onchange="loadMyItems()">
+      <select class="ctrl-select" id="selQuarter" onchange="onPeriodChange()">
         <option value="1">Q1（1–3月）</option>
         <option value="2">Q2（4–6月）</option>
         <option value="3">Q3（7–9月）</option>
@@ -180,49 +235,68 @@
     <span id="itemCountBadge" style="font-size:.78rem;color:#9a9188;"></span>
   </div>
 
-  <!-- 提交表單 -->
-  <div class="submit-card" id="submitCard">
-    <div class="submit-card-title">新增貢獻項目</div>
-    <div class="submit-form">
-      <div class="form-row">
-        <label>貢獻類別 <span style="color:#b94040">*</span></label>
-        <select class="form-select" id="fCategory">
-          <option value="">── 請選擇 ──</option>
-          <optgroup label="✦ 團隊合作類（有助於達到滿分）">
-            <option value="指導新人或分享專業技巧">指導新人或分享專業技巧</option>
-            <option value="跨分店/部門支援">跨分店/部門支援（主管指派或經主管同意）</option>
-            <option value="SOP改善提案">SOP改善提案被採納</option>
-            <option value="客戶轉介給同事">客戶轉介給同事</option>
-          </optgroup>
-          <optgroup label="一般貢獻">
-            <option value="服務品質提升">服務品質提升</option>
-            <option value="業績突破">業績突破</option>
-            <option value="客戶開發">客戶開發</option>
-            <option value="流程改善">流程改善</option>
-            <option value="其他">其他</option>
-          </optgroup>
-        </select>
-      </div>
-      <div class="form-row">
-        <label>貢獻說明 <span style="color:#b94040">*</span>（具體描述做了什麼、結果為何）</label>
-        <textarea class="form-textarea" id="fDescription" placeholder="例：協助潭子店處理電腦重灌，完成 3 台，節省客戶等待時間約 2 小時…"></textarea>
-      </div>
-      <div class="form-row">
-        <label>佐證照片／紀錄（選填，建議附上）</label>
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-          <div id="uploadHint">📎 點擊或拖曳上傳圖片（JPG / PNG / PDF）</div>
-          <img id="uploadPreview" class="upload-preview" style="display:none">
+  <!-- Tab 切換（僅主管/老闆可見審核 Tab） -->
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="myPanel" onclick="switchTab('myPanel')">我的填報</button>
+    <button class="tab-btn" data-tab="reviewPanel" id="reviewTab" onclick="switchTab('reviewPanel')" style="display:none">
+      待審核 <span class="badge" id="reviewBadge" style="display:none">0</span>
+    </button>
+  </div>
+
+  <!-- ▸ 我的填報 -->
+  <div class="tab-panel active" id="myPanel">
+    <!-- 提交表單 -->
+    <div class="submit-card" id="submitCard" style="margin-bottom:20px;">
+      <div class="submit-card-title">新增貢獻項目</div>
+      <div class="submit-form">
+        <div class="form-row">
+          <label>貢獻類別 <span style="color:#b94040">*</span></label>
+          <select class="form-select" id="fCategory">
+            <option value="">── 請選擇 ──</option>
+            <optgroup label="✦ 團隊合作類（有助於達到滿分）">
+              <option value="指導新人或分享專業技巧">指導新人或分享專業技巧</option>
+              <option value="跨分店/部門支援">跨分店/部門支援（主管指派或經主管同意）</option>
+              <option value="SOP改善提案">SOP改善提案被採納</option>
+              <option value="客戶轉介給同事">客戶轉介給同事</option>
+            </optgroup>
+            <optgroup label="一般貢獻">
+              <option value="服務品質提升">服務品質提升</option>
+              <option value="業績突破">業績突破</option>
+              <option value="客戶開發">客戶開發</option>
+              <option value="流程改善">流程改善</option>
+              <option value="其他">其他</option>
+            </optgroup>
+          </select>
         </div>
-        <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" onchange="handleFileSelect(this)">
+        <div class="form-row">
+          <label>貢獻說明 <span style="color:#b94040">*</span>（具體描述做了什麼、結果為何）</label>
+          <textarea class="form-textarea" id="fDescription" placeholder="例：協助潭子店處理電腦重灌，完成 3 台，節省客戶等待時間約 2 小時…"></textarea>
+        </div>
+        <div class="form-row">
+          <label>佐證照片／紀錄（選填，建議附上）</label>
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div id="uploadHint">📎 點擊或拖曳上傳圖片（JPG / PNG / PDF）</div>
+            <img id="uploadPreview" class="upload-preview" style="display:none">
+          </div>
+          <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" onchange="handleFileSelect(this)">
+        </div>
+        <button class="submit-btn" id="submitBtn" onclick="submitItem()">提交</button>
       </div>
-      <button class="submit-btn" id="submitBtn" onclick="submitItem()">提交</button>
+    </div>
+
+    <!-- 已提交清單 -->
+    <div class="list-card">
+      <div class="list-card-title">本季已提交項目</div>
+      <div id="itemList"><div style="padding:24px; text-align:center; color:#b8b0a8; font-size:.84rem">載入中…</div></div>
     </div>
   </div>
 
-  <!-- 已提交清單 -->
-  <div class="list-card">
-    <div class="list-card-title">本季已提交項目</div>
-    <div id="itemList"><div style="padding:24px; text-align:center; color:#b8b0a8; font-size:.84rem">載入中…</div></div>
+  <!-- ▸ 待審核（主管/老闆） -->
+  <div class="tab-panel" id="reviewPanel">
+    <div class="list-card">
+      <div class="list-card-title">下屬待審核項目</div>
+      <div id="reviewList"><div style="padding:24px; text-align:center; color:#b8b0a8; font-size:.84rem">載入中…</div></div>
+    </div>
   </div>
 
 </div>
@@ -253,7 +327,38 @@ function onAppReady(user) {
   // 預設當季
   const q = Math.ceil((new Date().getMonth() + 1) / 3);
   document.getElementById('selQuarter').value = q;
-  loadMyItems();
+
+  // 老闆：只顯示審核 Tab，隱藏我的填報
+  // 主管：兩個 Tab 都顯示
+  const role = user.role || '';
+  if (role === 'boss') {
+    document.getElementById('reviewTab').style.display = '';
+    // 隱藏「我的填報」Tab，直接切到審核
+    document.querySelector('[data-tab="myPanel"]').style.display = 'none';
+    switchTab('reviewPanel');
+  } else if (role === 'manager') {
+    document.getElementById('reviewTab').style.display = '';
+  }
+
+  onPeriodChange();
+}
+
+function onPeriodChange() {
+  const role = currentUser ? (currentUser.role || '') : '';
+  if (role !== 'boss') {
+    loadMyItems();
+  }
+  if (role === 'boss' || role === 'manager') {
+    loadReviewItems();
+  }
+}
+
+/* ── Tab 切換 ── */
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+  document.getElementById(tabId).classList.add('active');
 }
 
 /* ── 載入本人本季項目 ── */
@@ -273,7 +378,7 @@ async function loadMyItems() {
   renderItems(items);
 }
 
-/* ── 渲染清單 ── */
+/* ── 渲染自己的清單 ── */
 function renderItems(items) {
   const container = document.getElementById('itemList');
   if (!items.length) {
@@ -339,6 +444,88 @@ function renderItems(items) {
   container.innerHTML = html;
 }
 
+/* ── 載入待審核項目（主管/老闆） ── */
+async function loadReviewItems() {
+  const year    = document.getElementById('selYear').value;
+  const quarter = document.getElementById('selQuarter').value;
+  const res  = await fetch(`/api/kpi/contributions/review-list?reviewer=${encodeURIComponent(currentUser.name)}&year=${year}&quarter=${quarter}`);
+  const json = await res.json();
+  const items = json.items || [];
+
+  // 更新 badge
+  const badge = document.getElementById('reviewBadge');
+  if (items.length > 0) {
+    badge.textContent = items.length;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  renderReviewItems(items);
+}
+
+/* ── 渲染待審核清單 ── */
+function renderReviewItems(items) {
+  const container = document.getElementById('reviewList');
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-list">目前沒有待審核的項目</div>';
+    return;
+  }
+
+  let html = '';
+  items.forEach(item => {
+    const thumbHtml = item.evidence_url
+      ? `<img src="${esc(item.evidence_url)}" class="evidence-thumb"
+             onclick="openImg('${esc(item.evidence_url)}')" alt="佐證"
+             style="margin-bottom:8px;">`
+      : '';
+    const storeInfo = item.store ? `${esc(item.store)}` : '';
+    const deptInfo  = item.department ? `${esc(item.department)}` : '';
+    const titleInfo = item.staff_title ? `${esc(item.staff_title)}` : '';
+    const infoArr = [titleInfo, deptInfo, storeInfo].filter(Boolean);
+
+    html += `<div class="review-item">
+      <div class="review-header">
+        <span class="review-staff-name">${esc(item.staff_name)}</span>
+        <span class="review-staff-info">${infoArr.join(' · ')}</span>
+        <span class="status-tag st-pending">待審核</span>
+        <span style="font-size:.74rem;color:var(--text-sub)">${(item.created_at||'').substring(0,10)}</span>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        ${thumbHtml}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.78rem;color:var(--text-sub);margin-bottom:4px;">${esc(item.category)}</div>
+          <div class="review-desc">${esc(item.description)}</div>
+        </div>
+      </div>
+      <div class="review-actions">
+        <button class="btn-approve" onclick="reviewAction(${item.id},'approve')">核准</button>
+        <button class="btn-reject" onclick="reviewAction(${item.id},'reject')">不通過</button>
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+/* ── 審核動作 ── */
+async function reviewAction(id, action) {
+  const label = action === 'approve' ? '核准' : '不通過';
+  if (!confirm(`確定要「${label}」此貢獻項目？`)) return;
+
+  const res  = await fetch('/api/kpi/contribution/review', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id, action, reviewer: currentUser.name }),
+  });
+  const json = await res.json();
+  if (json.success) {
+    loadReviewItems();
+    loadMyItems();  // 若審核的是自己部門的人，分數可能變動
+  } else {
+    alert('審核失敗：' + (json.message || ''));
+  }
+}
+
 /* ── 上傳照片 ── */
 async function handleFileSelect(input) {
   const file = input.files[0];
@@ -355,7 +542,7 @@ async function handleFileSelect(input) {
   const json = await res.json();
 
   if (json.success) {
-    uploadedUrl = json.data.url;
+    uploadedUrl = json.url || (json.data && json.data.url) || '';
     zone.classList.add('has-file');
     hint.textContent = '✓ ' + file.name;
     if (file.type.startsWith('image/')) {

@@ -24,7 +24,7 @@
 .filter-pill {
   padding: 6px 14px; border-radius: 20px; font-size: .78rem; cursor: pointer;
   border: 1px solid rgba(107,95,82,.2); color: #6b5f52; background: none;
-  font-family: 'Noto Serif TC', serif; transition: all .12s;
+  font-family: var(--font-serif); transition: all .12s;
 }
 .filter-pill.active { background: #2c2720; color: #f5f0e8; border-color: #2c2720; }
 
@@ -47,7 +47,7 @@
 .edit-btn {
   padding: 4px 12px; border: 1px solid rgba(107,95,82,.25); border-radius: 6px;
   background: none; font-size: .75rem; color: #6b5f52; cursor: pointer;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
 }
 .edit-btn:hover { background: #f5f0e8; }
 
@@ -68,21 +68,23 @@
 .f-input, .f-select {
   width: 100%; padding: 8px 11px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
-  font-size: .84rem; font-family: 'Noto Serif TC', serif; font-weight: 300;
+  font-size: .84rem; font-family: var(--font-serif); font-weight: 300;
   color: #2c2720; background: #f5f0e8; box-sizing: border-box; outline: none;
   margin-bottom: 12px;
 }
 .f-input:focus, .f-select:focus { border-color: #6b5f52; }
+/* 門市(偶數欄)淺色 */
+#eStore { background: var(--bg-card, #faf8f4); }
 .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
 .save-btn {
   padding: 9px 20px; background: #2c2720; color: #f5f0e8;
   border: none; border-radius: 8px; font-size: .82rem;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .cancel-btn {
   padding: 9px 16px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
   background: none; color: #6b5f52; font-size: .82rem;
-  font-family: 'Noto Serif TC', serif; cursor: pointer;
+  font-family: var(--font-serif); cursor: pointer;
 }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .msg-ok  { font-size: .8rem; color: #4a7c59; }

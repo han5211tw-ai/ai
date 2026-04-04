@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}系統健康 — COSH ERP{% endblock %}
+{% block page_title %}系統健康檢查{% endblock %}
+
+{% block styles %}
+<style>
+/* ── 佈局 ── */
+.health-layout { display:flex; flex-direction:column; gap:18px; max-width:none; }
+
+/* ── 整體狀態橫幅 ── */
+.overall-banner {
+  display:flex; align-items:center; gap:16px;
+  padding:18px 24px; border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--bg-card);
+}
+.overall-dot {
+  width:18px; height:18px; border-radius:50%; flex-shrink:0;
+  box-shadow:0 0 8px currentColor;
+}
+.overall-label { font-size:.82rem; color:var(--text-sub); letter-spacing:.06em; }
+.overall-text  { font-size:1.05rem; color:var(--text); font-weight:400; }
+.overall-time  { margin-left:auto; font-size:.74rem; color:var(--text-light); white-space:nowrap; }
+
+/* ── 狀態卡片 ── */
+.cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+.health-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+  overflow:hidden; transition:box-shadow .2s;
+}
+.health-card:hover { box-shadow:var(--shadow); }
+.card-header {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 18px; border-bottom:1px solid rgba(107,95,82,.06);
+}
+.card-icon { font-size:1.1rem; }
+.card-label { font-size:.72rem; color:var(--text-sub); letter-spacing:.12em; flex:1; }
+.status-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 10px; border-radius:20px; font-size:.7rem; letter-spacing:.04em;
+}
+.status-badge .dot { width:7px; height:7px; border-radius:50%; }
+
+/* 顏色 */
+.st-green  .dot { background:#4caf50; }
+.st-green        { background:rgba(76,175,80,.08); color:#2e7d32; }
+.st-yellow .dot  { background:#ff9800; }
+.st-yellow       { background:rgba(255,152,0,.08); color:#e65100; }
+.st-red    .dot  { background:#ef5350; }
+.st-red          { background:rgba(239,83,80,.08); color:#c62828; }
+
+.dot-green  { color:#4caf50; }
+.dot-yellow { color:#ff9800; }
+.dot-red    { color:#ef5350; }
+
+.card-body { padding:14px 18px; }
+.metric-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:5px 0; font-size:.8rem; color:var(--text);
+}
+.metric-row + .metric-row { border-top:1px solid rgba(107,95,82,.05); }
+.metric-label { color:var(--text-sub); }
+.metric-value { font-weight:400; font-family:var(--font-mono); font-size:.78rem; }
+
+/* 進度條 */
+.bar-track {
+  width:80px; height:6px; background:rgba(107,95,82,.08); border-radius:3px;
+  overflow:hidden; display:inline-block; vertical-align:middle; margin-left:8px;
+}
+.bar-fill { height:100%; border-radius:3px; transition:width .4s; }
+.bar-green  { background:#4caf50; }
+.bar-yellow { background:#ff9800; }
+.bar-red    { background:#ef5350; }
+
+/* ── 匯入明細 ── */
+.import-table { width:100%; font-size:.78rem; border-collapse:collapse; }
+.import-table th { text-align:left; padding:6px 8px; color:var(--text-sub); font-weight:300; font-size:.7rem; letter-spacing:.06em; border-bottom:1px solid var(--border); }
+.import-table td { padding:6px 8px; }
+.import-table tr + tr td { border-top:1px solid rgba(107,95,82,.04); }
+
+/* ── 重新檢查按鈕 ── */
+.btn-refresh {
+  padding:8px 20px; border:1px solid var(--border-mid); border-radius:8px;
+  background:var(--bg-card); color:var(--text); font-size:.8rem;
+  font-family:var(--font-serif); cursor:pointer; transition:border-color .2s;
+}
+.btn-refresh:hover { border-color:var(--accent); }
+.btn-refresh:disabled { opacity:.5; cursor:wait; }
+
+/* ── 載入中 ── */
+.loading-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:.88rem; }
+
+@media(max-width:640px){
+  .overall-banner { flex-wrap:wrap; gap:10px; }
+  .overall-time { margin-left:0; width:100%; }
+  .cards-grid { grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="health-layout" id="healthRoot">
+  <div class="loading-msg" id="loadingMsg">檢查中…</div>
+</div>
+
+<script>
+const STATUS_LABEL = { green:'正常', yellow:'提醒', red:'異常' };
+const STATUS_CLASS = { green:'st-green', yellow:'st-yellow', red:'st-red' };
+const DOT_CLASS    = { green:'dot-green', yellow:'dot-yellow', red:'dot-red' };
+
+function badge(status){
+  const s = status || 'red';
+  return `<span class="status-badge ${STATUS_CLASS[s]}"><span class="dot"></span>${STATUS_LABEL[s]}</span>`;
+}
+
+function barHTML(pct, thresholds){
+  const cls = pct>90?'bar-red':pct>80?'bar-yellow':'bar-green';
+  return `<span class="metric-value">${pct}%</span>
+          <span class="bar-track"><span class="bar-fill ${cls}" style="width:${pct}%"></span></span>`;
+}
+
+function fmtUptime(sec){
+  if(!sec) return '—';
+  const d=Math.floor(sec/86400), h=Math.floor(sec%86400/3600), m=Math.floor(sec%3600/60);
+  return (d?d+'天':'')+(h?h+'時':'')+(m?m+'分':'');
+}
+
+function fmtSize(mb){
+  if(mb>=1024) return (mb/1024).toFixed(1)+' GB';
+  return mb+' MB';
+}
+
+function importRow(label, chk){
+  if(!chk) return '';
+  const st = chk.status==='ok'?'green':chk.status==='error'?'red':'yellow';
+  const cnt = chk.count ?? '—';
+  const msg = chk.status==='non_workday'?'非工作日':chk.status==='ok'?'已匯入':'缺少資料';
+  return `<tr>
+    <td>${label}</td>
+    <td>${badge(st)}</td>
+    <td style="text-align:right;font-family:var(--font-mono)">${cnt}</td>
+    <td style="color:var(--text-sub)">${msg}</td>
+  </tr>`;
+}
+
+function render(d){
+  const root = document.getElementById('healthRoot');
+  const t = d.check_time || '';
+
+  root.innerHTML = `
+  <!-- 整體狀態 -->
+  <div class="overall-banner">
+    <span class="overall-dot ${DOT_CLASS[d.overall_status]}" style="color:${d.overall_status==='green'?'#4caf50':d.overall_status==='yellow'?'#ff9800':'#ef5350'}"></span>
+    <div>
+      <div class="overall-label">整體狀態</div>
+      <div class="overall-text">${STATUS_LABEL[d.overall_status] || '未知'}</div>
+    </div>
+    <span class="overall-time">檢查時間　${t}</span>
+  </div>
+
+  <!-- 卡片 -->
+  <div class="cards-grid">
+
+    <!-- 系統 -->
+    <div class="health-card">
+      <div class="card-header">
+        <span class="card-icon">◈</span>
+        <span class="card-label">系統資源</span>
+        ${badge(d.system?.status)}
+      </div>
+      <div class="card-body">
+        <div class="metric-row"><span class="metric-label">記憶體</span>${barHTML(d.system?.memory_percent||0)}</div>
+        <div class="metric-row"><span class="metric-label">磁碟</span>${barHTML(d.system?.disk_percent||0)}</div>
+        <div class="metric-row"><span class="metric-label">已開機</span><span class="metric-value">${fmtUptime(d.system?.uptime_seconds)}</span></div>
+        ${d.system?.error?'<div class="metric-row"><span class="metric-label">備註</span><span class="metric-value" style="color:#e65100">'+d.system.error+'</span></div>':''}
+      </div>
+    </div>
+
+    <!-- 資料庫 -->
+    <div class="health-card">
+      <div class="card-header">
+        <span class="card-icon">◈</span>
+        <span class="card-label">資料庫</span>
+        ${badge(d.database?.status)}
+      </div>
+      <div class="card-body">
+        <div class="metric-row"><span class="metric-label">連線</span><span class="metric-value">${d.database?.connection_ok?'正常':'失敗'}</span></div>
+        <div class="metric-row"><span class="metric-label">Journal</span><span class="metric-value">${d.database?.journal_mode||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">資料庫大小</span><span class="metric-value">${fmtSize(d.database?.db_size_mb||0)}</span></div>
+        <div class="metric-row"><span class="metric-label">WAL 大小</span><span class="metric-value">${fmtSize(d.database?.wal_size_mb||0)}</span></div>
+        ${d.database?.error?'<div class="metric-row"><span class="metric-label">錯誤</span><span class="metric-value" style="color:#c62828">'+d.database.error+'</span></div>':''}
+      </div>
+    </div>
+
+    <!-- 資料新鮮度 -->
+    <div class="health-card">
+      <div class="card-header">
+        <span class="card-icon">◈</span>
+        <span class="card-label">資料新鮮度</span>
+        ${badge(d.data_freshness?.status)}
+      </div>
+      <div class="card-body">
+        <div class="metric-row"><span class="metric-label">今日</span><span class="metric-value">${d.data_freshness?.weekday_name||''} ${d.today||''}</span></div>
+        <div class="metric-row"><span class="metric-label">預期資料日期</span><span class="metric-value">${d.expected_date||'—'}</span></div>
+        ${Object.entries(d.data_freshness?.checks||{}).map(([k,v])=>`
+        <div class="metric-row">
+          <span class="metric-label">${k}</span>
+          <span class="metric-value">${v.latest||'無'} ${v.status==='ok'?'✓':v.status==='non_workday'?'(略)':'✗'}</span>
+        </div>`).join('')}
+        <div class="metric-row"><span class="metric-label">庫存盤點</span><span class="metric-value">${d.data_freshness?.latest_inventory||'—'}</span></div>
+      </div>
+    </div>
+
+    <!-- 匯入狀態 -->
+    <div class="health-card">
+      <div class="card-header">
+        <span class="card-icon">◈</span>
+        <span class="card-label">昨日匯入筆數</span>
+        ${badge(d.import_status?.status)}
+      </div>
+      <div class="card-body" style="padding:8px 12px">
+        <table class="import-table">
+          <thead><tr><th>類型</th><th>狀態</th><th style="text-align:right">筆數</th><th>說明</th></tr></thead>
+          <tbody>
+            ${importRow('銷貨', d.import_status?.checks?.sales)}
+            ${importRow('進貨', d.import_status?.checks?.purchase)}
+            ${importRow('客戶', d.import_status?.checks?.customer)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /.cards-grid -->
+
+  <div style="text-align:right">
+    <button class="btn-refresh" onclick="loadHealth()" id="btnRefresh">重新檢查</button>
+  </div>
+  `;
+}
+
+async function loadHealth(){
+  const btn = document.getElementById('btnRefresh');
+  if(btn){ btn.disabled=true; btn.textContent='檢查中…'; }
+  try{
+    const res = await fetch('/api/health');
+    const json = await res.json();
+    render(json);
+  }catch(e){
+    document.getElementById('healthRoot').innerHTML =
+      '<div class="loading-msg" style="color:#c62828">無法連線至伺服器：'+e.message+'</div>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadHealth);
+</script>
+{% endblock %}

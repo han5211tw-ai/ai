@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}待處理需求 — COSH ERP{% endblock %}
+{% block page_title %}待處理需求{% endblock %}
+
+{% block styles %}
+<style>
+.pn-layout { display: flex; flex-direction: column; gap: 16px; max-width: none; }
+
+/* ── 篩選列 ── */
+.pn-filter {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.pn-filter label { font-size: .8rem; color: var(--text-sub); }
+.pn-filter-select {
+  padding: 8px 14px; border: 1px solid rgba(107,95,82,.22);
+  border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); background: var(--bg); color: var(--text);
+  outline: none;
+}
+.pn-filter-select:focus { border-color: #6b5f52; }
+
+/* ── 統計 ── */
+.pn-stats {
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+.pn-stat {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px; flex: 1; min-width: 90px;
+  text-align: center;
+}
+.pn-stat-val {
+  font-family: var(--font-en); font-size: 1.3rem; color: var(--text);
+  font-weight: 600;
+}
+.pn-stat-label {
+  font-size: .72rem; color: var(--text-sub); margin-top: 2px;
+  letter-spacing: .06em;
+}
+
+/* ── 卡片 ── */
+.pn-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.pn-card-header {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+}
+.pn-product-name {
+  font-size: .9rem; color: var(--text); font-weight: 600; flex: 1;
+  line-height: 1.4;
+}
+.pn-qty {
+  font-family: var(--font-en); font-size: 1rem; color: var(--text);
+  background: rgba(107,95,82,.08); padding: 2px 10px;
+  border-radius: 8px; white-space: nowrap; flex-shrink: 0;
+}
+.pn-meta {
+  font-size: .76rem; color: var(--text-sub);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.pn-type-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .7rem; letter-spacing: .04em;
+}
+.pn-type-purchase { background: rgba(250,191,19,.12); color: #8a6800; }
+.pn-type-transfer { background: rgba(80,110,155,.1); color: #3a5a8a; }
+
+.pn-status {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .7rem;
+}
+.pn-s-pending    { background: rgba(250,191,19,.15); color: #8a6800; }
+.pn-s-purchased  { background: rgba(46,125,70,.12); color: #2e7d46; }
+.pn-s-transferred { background: rgba(80,110,155,.12); color: #3a5a8a; }
+
+.pn-purpose {
+  font-size: .76rem; color: var(--text-sub);
+}
+.pn-remark {
+  font-size: .76rem; color: var(--text-sub); font-style: italic;
+}
+
+/* ── 到貨按鈕 ── */
+.pn-actions {
+  padding-top: 6px;
+  border-top: 1px solid rgba(107,95,82,.06);
+}
+.pn-btn-arrive {
+  width: 100%; padding: 10px 0; border: none; border-radius: 10px;
+  background: #2e7d46; color: #fff; font-size: .84rem;
+  font-family: var(--font-serif); cursor: pointer;
+  min-height: 44px; letter-spacing: .04em;
+}
+.pn-btn-arrive:hover { background: #256b3a; }
+
+.pn-empty {
+  text-align: center; padding: 40px 20px; color: var(--text-sub);
+  font-size: .86rem;
+}
+
+/* ── Toast ── */
+.pn-toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  padding: 10px 24px; border-radius: 10px; font-size: .84rem;
+  font-family: var(--font-serif); z-index: 9999;
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+.pn-toast.show { opacity: 1; }
+.pn-toast.success { background: #2e7d46; color: #fff; }
+.pn-toast.error { background: #b94040; color: #fff; }
+
+/* ── 手機版 ── */
+@media (max-width: 767px) {
+  .pn-layout { gap: 10px; }
+  .pn-filter { padding: 10px 12px; gap: 10px; }
+  .pn-filter-select { padding: 8px 10px; min-height: 40px; }
+  .pn-stats { gap: 8px; }
+  .pn-stat { padding: 10px 8px; min-width: 0; border-radius: 10px; }
+  .pn-stat-val { font-size: 1.1rem; }
+  .pn-card { padding: 14px 14px; border-radius: 12px; gap: 6px; }
+  .pn-product-name { font-size: .86rem; }
+  .pn-btn-arrive { min-height: 46px; font-size: .86rem; border-radius: 10px; }
+  .pn-toast { top: auto; bottom: 72px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pn-layout">
+  <div class="pn-filter">
+    <div>
+      <label>類型</label>
+      <select class="pn-filter-select" id="filterType" onchange="renderFiltered()">
+        <option value="all">全部</option>
+        <option value="請購">請購</option>
+        <option value="調撥">調撥</option>
+      </select>
+    </div>
+    <div>
+      <label>顯示</label>
+      <select class="pn-filter-select" id="filterScope" onchange="renderFiltered()">
+        <option value="mine">我的部門</option>
+        <option value="all">全部</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="pn-stats">
+    <div class="pn-stat">
+      <div class="pn-stat-val" id="statTotal">—</div>
+      <div class="pn-stat-label">總筆數</div>
+    </div>
+    <div class="pn-stat">
+      <div class="pn-stat-val" id="statPending">—</div>
+      <div class="pn-stat-label">待處理</div>
+    </div>
+    <div class="pn-stat">
+      <div class="pn-stat-val" id="statReady">—</div>
+      <div class="pn-stat-label">可收貨</div>
+    </div>
+  </div>
+
+  <div id="cardList"><div class="pn-empty">載入中…</div></div>
+</div>
+
+<div class="pn-toast" id="pnToast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentUser = null;
+let allItems = [];
+
+function onAppReady(user) {
+  currentUser = user;
+  loadNeeds();
+}
+
+async function loadNeeds() {
+  try {
+    const res  = await fetch('/api/needs/latest');
+    const json = await res.json();
+    allItems = (json.items || []).filter(i =>
+      ['待處理','已採購','已調撥'].includes(i.status)
+    );
+    renderFiltered();
+  } catch (e) {
+    document.getElementById('cardList').innerHTML =
+      `<div class="pn-empty">載入失敗：${esc(e.message)}</div>`;
+  }
+}
+
+function renderFiltered() {
+  const type  = document.getElementById('filterType').value;
+  const scope = document.getElementById('filterScope').value;
+  const dept  = currentUser ? (currentUser.department || '') : '';
+
+  let items = allItems;
+  if (type !== 'all') {
+    items = items.filter(i => i.request_type === type);
+  }
+  if (scope === 'mine' && dept) {
+    items = items.filter(i => i.department === dept);
+  }
+
+  // 統計
+  const pending = items.filter(i => i.status === '待處理').length;
+  const ready   = items.filter(i => i.status === '已採購' || i.status === '已調撥').length;
+  document.getElementById('statTotal').textContent   = items.length;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statReady').textContent   = ready;
+
+  renderCards(items);
+}
+
+function renderCards(items) {
+  const container = document.getElementById('cardList');
+  const dept = currentUser ? (currentUser.department || '') : '';
+
+  if (!items.length) {
+    container.innerHTML = '<div class="pn-empty">沒有符合條件的需求</div>';
+    return;
+  }
+
+  let html = '';
+  items.forEach(n => {
+    const isTransfer = n.request_type === '調撥';
+    const typeCls = isTransfer ? 'pn-type-transfer' : 'pn-type-purchase';
+    const statusCls = n.status === '已採購' ? 'pn-s-purchased'
+                    : n.status === '已調撥' ? 'pn-s-transferred' : 'pn-s-pending';
+
+    // 可收貨：已採購/已調撥 且自己部門
+    const canArrive = (n.status === '已採購' || n.status === '已調撥')
+                      && n.department === dept;
+
+    let purposeHtml = '';
+    if (n.purpose === '客戶' && n.customer_code) {
+      purposeHtml = `<div class="pn-purpose">客戶：${esc(n.customer_code)}${n.customer_name ? ' ' + esc(n.customer_name) : ''}</div>`;
+    }
+
+    const dateStr = (n.date || '').substring(5);  // MM-DD
+
+    html += `<div class="pn-card" data-id="${n.id}">
+      <div class="pn-card-header">
+        <div class="pn-product-name">${esc(n.display_name || n.item_name || '—')}</div>
+        <div class="pn-qty">× ${n.quantity || '—'}</div>
+      </div>
+      <div class="pn-meta">
+        <span class="pn-type-badge ${typeCls}">${esc(n.request_type || '請購')}</span>
+        <span class="pn-status ${statusCls}">${esc(n.status || '待處理')}</span>
+        <span>${dateStr}</span>
+        <span>${esc(n.department || '—')}</span>
+        <span>${esc(n.requester || '—')}</span>
+      </div>
+      ${purposeHtml}
+      ${n.remark ? `<div class="pn-remark">${esc(n.remark)}</div>` : ''}
+      ${canArrive ? `<div class="pn-actions">
+        <button class="pn-btn-arrive" onclick="markArrived(${n.id})">確認到貨</button>
+      </div>` : ''}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+async function markArrived(id) {
+  if (!confirm('確認標記為「已到貨」？\n\n請先確認：數量正確、品項無誤、外觀完好。\n此操作無法復原。')) return;
+  try {
+    const res = await fetch('/api/needs/arrive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, requester: currentUser.name || '' })
+    });
+    const json = await res.json();
+    if (json.success) { toast('已確認到貨', 'success'); loadNeeds(); }
+    else toast(json.message || '失敗', 'error');
+  } catch (e) { toast('操作失敗', 'error'); }
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('pnToast');
+  el.textContent = msg;
+  el.className = `pn-toast show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+{% endblock %}

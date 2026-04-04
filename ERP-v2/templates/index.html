@@ -29,7 +29,7 @@
 }
 
 .stat-value {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: 2.6rem;
   font-weight: 300;
   color: var(--text);
@@ -260,9 +260,10 @@
   padding-bottom: 24px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .stats-row { grid-template-columns: 1fr; }
   .chart-legend { display: none; }
+  .needs-card { display: none; }
 }
 .table-wrap { overflow-x: auto; }
 </style>

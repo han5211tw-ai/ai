@@ -64,6 +64,95 @@ def err(message, code=400):
 
 
 # ─────────────────────────────────────────────
+# 故障診斷知識庫：fault_groups / fault_scenarios
+# ─────────────────────────────────────────────
+def _ensure_fault_tables():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS fault_groups (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_key   TEXT UNIQUE,
+            label       TEXT,
+            icon        TEXT,
+            sort_order  INTEGER DEFAULT 0
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS fault_scenarios (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_key   TEXT,
+            title       TEXT,
+            severity    TEXT,
+            steps_json  TEXT,
+            causes_json TEXT,
+            tests_json  TEXT,
+            fix_json    TEXT,
+            keywords    TEXT,
+            created_at  DATETIME DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY (group_key) REFERENCES fault_groups(group_key)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_fault_gk ON fault_scenarios(group_key)")
+    conn.commit()
+    conn.close()
+
+_ensure_fault_tables()
+
+
+# ─────────────────────────────────────────────
+# 操作日誌：audit_log
+# ─────────────────────────────────────────────
+def _ensure_audit_log_table():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp   TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
+            operator    TEXT    NOT NULL DEFAULT '',
+            role        TEXT    NOT NULL DEFAULT '',
+            action      TEXT    NOT NULL DEFAULT '',
+            target_type TEXT    NOT NULL DEFAULT '',
+            target_id   TEXT    NOT NULL DEFAULT '',
+            description TEXT    NOT NULL DEFAULT '',
+            ip_address  TEXT    NOT NULL DEFAULT '',
+            extra_json  TEXT    NOT NULL DEFAULT ''
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(timestamp)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_op ON audit_log(operator)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_act ON audit_log(action)")
+    conn.commit()
+    conn.close()
+
+_ensure_audit_log_table()
+
+import json as _json
+
+def log_action(operator='', role='', action='', target_type='',
+               target_id='', description='', extra=None):
+    """寫入操作日誌，失敗不影響主流程"""
+    try:
+        ip = ''
+        try:
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+        except Exception:
+            pass
+        extra_str = _json.dumps(extra, ensure_ascii=False) if extra else ''
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("""
+            INSERT INTO audit_log
+              (timestamp, operator, role, action, target_type, target_id,
+               description, ip_address, extra_json)
+            VALUES (datetime('now','localtime'),?,?,?,?,?,?,?,?)
+        """, (operator, role, action, target_type, target_id,
+              description, ip, extra_str))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+# ─────────────────────────────────────────────
 # 待建檔 staging 共用邏輯
 # ─────────────────────────────────────────────
 import re as _re
@@ -191,6 +280,14 @@ def admin_bonus_report_page():
 def admin_announcement_management_page():
     return render_template('admin/announcement_management.html')
 
+@app.route('/admin/audit_log')
+def admin_audit_log_page():
+    return render_template('admin/audit_log.html')
+
+@app.route('/print/repair-report')
+def print_repair_report():
+    return render_template('print_repair_report.html')
+
 @app.route('/student-chat')
 def student_chat():
     """學生 AI 聊天室頁面（公開，無需登入）"""
@@ -210,21 +307,183 @@ def render_page(page):
 # ─────────────────────────────────────────────
 # API: 系統健康
 # ─────────────────────────────────────────────
+# 工作日規則  0=Mon … 5=Sat 6=Sun
+_WORKDAY_RULES = {
+    'purchase': [0, 1, 2, 3, 4],       # 週一~五
+    'sales':    [0, 1, 2, 3, 4, 5],    # 週一~六
+    'customer': [0, 1, 2, 3, 4],       # 週一~五
+}
+_WEEKDAY_NAMES = ['週一', '週二', '週三', '週四', '週五', '週六', '週日']
+
+
 @app.route('/api/health')
 def health_check():
-    db_ok = False
+    """綜合系統健康檢查（參照舊系統 health_check.py v2.0）"""
+    import time as _time
+    try:
+        import psutil
+        has_psutil = True
+    except ImportError:
+        has_psutil = False
+
+    now = datetime.now()
+    today_str = now.strftime('%Y-%m-%d')
+    yesterday_str = (now - timedelta(days=1)).strftime('%Y-%m-%d')
+    weekday = now.weekday()
+    weekday_name = _WEEKDAY_NAMES[weekday]
+
+    # ── 1. 系統狀態 ──
+    system = {'status': 'green', 'memory_percent': 0, 'disk_percent': 0, 'uptime_seconds': 0}
+    if has_psutil:
+        try:
+            mem = psutil.virtual_memory()
+            dsk = psutil.disk_usage('/')
+            system['memory_percent'] = round(mem.percent, 1)
+            system['disk_percent']   = round(dsk.percent, 1)
+            system['uptime_seconds'] = int(_time.time() - psutil.boot_time())
+            if mem.percent > 90 or dsk.percent > 90:
+                system['status'] = 'red'
+            elif mem.percent > 80 or dsk.percent > 80:
+                system['status'] = 'yellow'
+        except Exception as e:
+            system['status'] = 'red'
+            system['error'] = str(e)
+    else:
+        system['status'] = 'yellow'
+        system['error'] = 'psutil not installed'
+
+    # ── 2. 資料庫狀態 ──
+    database = {'status': 'green', 'connection_ok': False,
+                'journal_mode': 'unknown', 'db_size_mb': 0, 'wal_size_mb': 0}
     try:
         conn = get_db()
         conn.execute('SELECT 1')
+        database['connection_ok'] = True
+        row = conn.execute('PRAGMA journal_mode').fetchone()
+        database['journal_mode'] = row[0] if row else 'unknown'
         conn.close()
-        db_ok = True
-    except Exception:
-        pass
+        if os.path.exists(DB_PATH):
+            database['db_size_mb'] = round(os.path.getsize(DB_PATH) / (1024 * 1024), 2)
+        wal_path = DB_PATH + '-wal'
+        if os.path.exists(wal_path):
+            database['wal_size_mb'] = round(os.path.getsize(wal_path) / (1024 * 1024), 2)
+        if database['journal_mode'] != 'wal':
+            database['status'] = 'yellow'
+        if database['wal_size_mb'] > 200:
+            database['status'] = 'yellow'
+    except Exception as e:
+        database['status'] = 'red'
+        database['error'] = str(e)
+
+    # ── 3. 資料新鮮度 ──
+    data_freshness = {'status': 'green', 'weekday_name': weekday_name, 'checks': {}}
+    try:
+        conn = get_db()
+        latest = {}
+        for tbl, col, key in [
+            ('sales_history',    'date',       'sales'),
+            ('purchase_history', 'date',       'purchase'),
+            ('customers',        'updated_at', 'customer'),
+        ]:
+            row = conn.execute(f'SELECT MAX({col}) FROM {tbl}').fetchone()
+            val = row[0] if row else None
+            if val and ' ' in str(val):
+                val = str(val).split(' ')[0]
+            latest[key] = val
+
+        row = conn.execute('SELECT MAX(report_date) FROM inventory').fetchone()
+        latest['inventory'] = row[0] if row else None
+        conn.close()
+
+        has_err = False
+        has_warn = False
+        for dtype in ('sales', 'purchase', 'customer'):
+            is_wd = weekday in _WORKDAY_RULES.get(dtype, [])
+            if not is_wd:
+                data_freshness['checks'][dtype] = {
+                    'status': 'non_workday',
+                    'latest': latest.get(dtype),
+                    'message': f'{weekday_name}，{dtype}檢查已跳過（非工作日）'
+                }
+                has_warn = True
+            elif latest.get(dtype) == yesterday_str:
+                data_freshness['checks'][dtype] = {
+                    'status': 'ok',
+                    'latest': latest[dtype],
+                    'message': f'{dtype}資料正常（{latest[dtype]}）'
+                }
+            else:
+                data_freshness['checks'][dtype] = {
+                    'status': 'error',
+                    'latest': latest.get(dtype),
+                    'message': f'工作日缺少{dtype}資料，預期 {yesterday_str}'
+                }
+                has_err = True
+        data_freshness['latest_inventory'] = latest.get('inventory')
+        if has_err:
+            data_freshness['status'] = 'red'
+        elif has_warn:
+            data_freshness['status'] = 'yellow'
+    except Exception as e:
+        data_freshness['status'] = 'red'
+        data_freshness['error'] = str(e)
+
+    # ── 4. 匯入筆數 ──
+    import_status = {'status': 'green', 'checks': {}}
+    try:
+        conn = get_db()
+        counts = {}
+        for tbl, col, key in [
+            ('sales_history',    'date',                  'sales'),
+            ('purchase_history', 'date',                  'purchase'),
+            ('customers',        'DATE(updated_at)',      'customer'),
+        ]:
+            row = conn.execute(f'SELECT COUNT(*) FROM {tbl} WHERE {col} = ?', (yesterday_str,)).fetchone()
+            counts[key] = row[0] if row else 0
+        conn.close()
+
+        has_err = False
+        has_warn = False
+        for dtype in ('sales', 'purchase', 'customer'):
+            is_wd = weekday in _WORKDAY_RULES.get(dtype, [])
+            cnt = counts.get(dtype, 0)
+            if not is_wd:
+                import_status['checks'][dtype] = {'status': 'non_workday', 'count': cnt}
+                has_warn = True
+            elif cnt > 0:
+                import_status['checks'][dtype] = {'status': 'ok', 'count': cnt}
+            else:
+                import_status['checks'][dtype] = {'status': 'error', 'count': 0}
+                has_err = True
+        if has_err:
+            import_status['status'] = 'red'
+        elif has_warn:
+            import_status['status'] = 'yellow'
+    except Exception as e:
+        import_status['status'] = 'red'
+        import_status['error'] = str(e)
+
+    # ── 5. 整體狀態 ──
+    statuses = [system['status'], database['status'],
+                data_freshness['status'], import_status['status']]
+    if 'red' in statuses:
+        overall = 'red'
+    elif 'yellow' in statuses:
+        overall = 'yellow'
+    else:
+        overall = 'green'
+
     return jsonify({
-        'status': 'ok' if db_ok else 'degraded',
-        'db': db_ok,
+        'success': True,
+        'overall_status': overall,
+        'system': system,
+        'database': database,
+        'data_freshness': data_freshness,
+        'import_status': import_status,
+        'today': today_str,
+        'expected_date': yesterday_str,
+        'check_time': now.strftime('%Y-%m-%d %H:%M:%S'),
         'version': 'v2',
-        'time': datetime.now().isoformat()
     })
 
 
@@ -251,16 +510,27 @@ def auth_verify():
     conn.close()
 
     if not users:
+        log_action(operator='unknown', action='auth.fail', description='密碼錯誤')
         return err('密碼錯誤', 401)
     if len(users) > 1:
         return err('密碼重複，請聯繫管理員設定唯一密碼', 401)
 
     user = users[0]
+    # 取得 staff.role 供前端判斷權限
+    role = ''
+    if user['employee_id']:
+        conn2 = get_db()
+        sr = conn2.execute('SELECT role FROM staff WHERE staff_id=?', (user['employee_id'],)).fetchone()
+        if sr: role = sr['role'] or ''
+        conn2.close()
+    log_action(operator=user['name'], role=user['title'] or '',
+               action='auth.login', description=f'{user["name"]} 登入系統')
     return ok(user={
         'name':        user['name'],
         'title':       user['title'],
         'department':  user['department'] or '',
         'employee_id': user['employee_id'] or '',
+        'role':        role,
     })
 
 
@@ -946,6 +1216,9 @@ def arrive_need():
             (now, now, need_id)
         )
         conn.commit()
+        log_action(action='needs.arrive', target_type='needs',
+                   target_id=str(need_id),
+                   description=f'確認需求 #{need_id} 到貨')
         return ok()
     except Exception as e:
         return err(str(e), 500)
@@ -1140,6 +1413,9 @@ def needs_batch():
         conn.commit()
         if not inserted:
             return err('無有效資料可送出（可能重複提交）')
+        log_action(operator=requester, action='needs.create',
+                   target_type='needs', description=f'提交 {len(inserted)} 筆需求',
+                   extra={'items': inserted, 'type': request_type})
         return ok(count=len(inserted), items=inserted)
     except Exception as e:
         conn.rollback()
@@ -1260,6 +1536,9 @@ def needs_cancel():
             (now_str, need_id)
         )
         conn.commit()
+        log_action(operator=requester, role=title,
+                   action='needs.cancel', target_type='needs',
+                   target_id=str(need_id), description=f'取消需求 #{need_id}')
         return ok()
     except Exception as e:
         conn.rollback()
@@ -1443,6 +1722,9 @@ def purchase_need():
                 (now, need_id)
             )
             conn.commit()
+            log_action(operator=requester, role='老闆',
+                       action='needs.purchase', target_type='needs',
+                       target_id=str(need_id), description=f'標記需求 #{need_id} 為已採購')
         return ok()
     except Exception as e:
         conn.rollback()
@@ -1466,6 +1748,9 @@ def boss_update_need_status(need_id):
         else:
             return err('不支援的狀態')
         conn.commit()
+        log_action(action='needs.cancel', target_type='needs',
+                   target_id=str(need_id),
+                   description=f'老闆取消需求 #{need_id}')
         return ok()
     except Exception as e:
         conn.rollback()
@@ -2580,6 +2865,9 @@ def transfer_need(need_id):
             (now, need_id)
         )
         conn.commit()
+        log_action(action='needs.transfer', target_type='needs',
+                   target_id=str(need_id),
+                   description=f'標記需求 #{need_id} 為已調撥')
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -2602,6 +2890,9 @@ def need_arrive(need_id):
             (now, now, need_id)
         )
         conn.commit()
+        log_action(action='needs.arrive', target_type='needs',
+                   target_id=str(need_id),
+                   description=f'確認需求 #{need_id} 到貨完成')
         return ok()
     except Exception as e:
         return err(str(e))
@@ -2618,6 +2909,9 @@ def need_complete(need_id):
             WHERE id=?
         """, (need_id,))
         conn.commit()
+        log_action(action='needs.complete', target_type='needs',
+                   target_id=str(need_id),
+                   description=f'標記需求 #{need_id} 完成')
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -3339,6 +3633,10 @@ def sales_submit():
                      due_date_str, 'unpaid', f'申辦分期{dep_note}', now_ts))
 
         conn.commit()
+        log_action(operator=salesperson, action='sales.create',
+                   target_type='sales', target_id=sales_no,
+                   description=f'新增銷貨單 {sales_no}，{len(items)} 項',
+                   extra={'customer': customer_name, 'items': len(items)})
         return jsonify({'success': True, 'invoice_no': invoice_no,
                         'sales_invoice_no': sales_no, 'item_count': len(items)})
     except Exception as e:
@@ -3357,6 +3655,9 @@ def sales_delete(invoice_no):
             "DELETE FROM sales_history WHERE invoice_no=?", (invoice_no,)
         ).rowcount
         conn.commit()
+        log_action(action='sales.delete', target_type='sales',
+                   target_id=invoice_no,
+                   description=f'刪除銷貨單 {invoice_no}，{affected} 筆')
         return jsonify({'success': True, 'deleted': affected})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -3748,9 +4049,9 @@ def student_chat_api():
             response_text = generate_demo_response(message)
             return jsonify({'success': True, 'response': response_text})
         
-        # 實際呼叫 oMLX
+        # 實際呼叫 oMLX (使用 gemma-4-e4b-it-8bit 模型)
         response = requests.post(omlx_url, json={
-            'model': 'qwen3.5-9b',
+            'model': 'gemma-4-e4b-it-8bit',
             'messages': [
                 {'role': 'system', 'content': '你是一個友善、有創意的 AI 助理，專門陪伴高中生聊天、抒發情緒、發想創意。請用輕鬆、溫暖的語氣回應。'},
                 {'role': 'user', 'content': message}
@@ -3901,6 +4202,9 @@ def customer_create():
             data.get('created_by') or '',
         ))
         conn.commit()
+        log_action(operator=data.get('created_by', ''),
+                   action='customer.create', target_type='customer',
+                   target_id=cid, description=f'新增客戶 {name}（{cid}）')
         return ok({'customer_id': cid, 'message': f'客戶 {name}（{cid}）建檔成功'})
     except Exception as e:
         return err(str(e), 500)
@@ -3937,6 +4241,87 @@ def customer_update():
         if conn.execute("SELECT changes()").fetchone()[0] == 0:
             return err('找不到此客戶')
         return ok({'message': '資料更新成功'})
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/customer/smart-suggest')
+def customer_smart_suggest():
+    """智慧銷售建議：常買商品、上次購買、可能感興趣"""
+    cid = (request.args.get('customer_id') or '').strip()
+    if not cid:
+        return err('缺少 customer_id')
+    conn = get_db()
+    try:
+        # ① 常買商品（最近 180 天購買次數最多的前 5 項）
+        frequent = conn.execute(
+            "SELECT product_code, product_name, COUNT(*) as times, MAX(date) as last_buy "
+            "FROM sales_history WHERE customer_id=? AND date >= date('now','-180 days') "
+            "GROUP BY product_code ORDER BY times DESC LIMIT 5",
+            (cid,)
+        ).fetchall()
+        frequent_list = [dict(r) for r in frequent]
+
+        # ② 上次購買（最近 5 筆銷貨明細）
+        recent = conn.execute(
+            "SELECT date, product_code, product_name, quantity, price "
+            "FROM sales_history WHERE customer_id=? ORDER BY date DESC, id DESC LIMIT 5",
+            (cid,)
+        ).fetchall()
+        recent_list = [dict(r) for r in recent]
+
+        # ③ 可能感興趣（同付款方式或同業務員的其他客戶近 90 天購買，但此客戶從未買過的前 3 項）
+        # 先取此客戶的付款方式和常用業務員
+        cust_info = conn.execute(
+            "SELECT payment_type FROM customers WHERE customer_id=?", (cid,)
+        ).fetchone()
+        pay_type = cust_info['payment_type'] if cust_info else ''
+        top_sp = conn.execute(
+            "SELECT salesperson FROM sales_history WHERE customer_id=? "
+            "GROUP BY salesperson ORDER BY COUNT(*) DESC LIMIT 1",
+            (cid,)
+        ).fetchone()
+        sp = top_sp['salesperson'] if top_sp else ''
+
+        # 此客戶買過的產品
+        bought = conn.execute(
+            "SELECT DISTINCT product_code FROM sales_history WHERE customer_id=?", (cid,)
+        ).fetchall()
+        bought_set = set(r['product_code'] for r in bought)
+
+        interest_list = []
+        if pay_type or sp:
+            # 同付款方式或同業務員的其他客戶近 90 天購買
+            conds, params = [], []
+            if pay_type:
+                conds.append(
+                    "sh.customer_id IN (SELECT customer_id FROM customers WHERE payment_type=? AND customer_id!=?)"
+                )
+                params.extend([pay_type, cid])
+            if sp:
+                conds.append("(sh.salesperson=? AND sh.customer_id!=?)")
+                params.extend([sp, cid])
+            where = ' OR '.join(conds)
+            rows = conn.execute(
+                f"SELECT sh.product_code, sh.product_name, COUNT(*) as pop "
+                f"FROM sales_history sh "
+                f"WHERE ({where}) AND sh.date >= date('now','-90 days') "
+                f"GROUP BY sh.product_code ORDER BY pop DESC LIMIT 20",
+                params
+            ).fetchall()
+            for r in rows:
+                if r['product_code'] not in bought_set:
+                    interest_list.append(dict(r))
+                    if len(interest_list) >= 3:
+                        break
+
+        return ok(
+            frequent=frequent_list,
+            recent=recent_list,
+            interest=interest_list,
+        )
     except Exception as e:
         return err(str(e), 500)
     finally:
@@ -4250,6 +4635,10 @@ def sales_doc_create():
                 VALUES (?,?,?,?,?,?,?,?)
             """, (doc_no, pcode, pname, qty, price, sub, item_note, now))
         conn.commit()
+        log_action(operator=created_by, action='doc.create',
+                   target_type='sales_doc', target_id=doc_no,
+                   description=f'新增{doc_type}單據 {doc_no}',
+                   extra={'target_name': target_name, 'total': total})
         return jsonify({'success': True, 'doc_no': doc_no})
     except Exception as e:
         conn.rollback()
@@ -4451,6 +4840,8 @@ def sales_doc_delete():
         conn.execute("DELETE FROM sales_document_items WHERE doc_no=?", (doc_no,))
         conn.execute("DELETE FROM sales_documents WHERE doc_no=?", (doc_no,))
         conn.commit()
+        log_action(action='doc.delete', target_type='sales_doc',
+                   target_id=doc_no, description=f'刪除單據 {doc_no}')
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -4677,6 +5068,9 @@ def supplier_create():
             data.get('created_by') or '',
         ))
         conn.commit()
+        log_action(operator=data.get('created_by', ''),
+                   action='supplier.create', target_type='supplier',
+                   target_id=sid, description=f'新增廠商 {name}（{sid}）')
         return ok({'supplier_id': sid, 'message': f'廠商 {name}（{sid}）建檔成功'})
     except Exception as e:
         return err(str(e), 500)
@@ -4876,6 +5270,10 @@ def kpi_update():
             values
         )
         conn.commit()
+        log_action(action='kpi.update', target_type='kpi',
+                   target_id=str(row_id),
+                   description=f'更新 KPI #{row_id}',
+                   extra=updates)
         return ok({'message': '更新成功'})
     except Exception as e:
         conn.rollback()
@@ -5111,6 +5509,68 @@ def _recalc_kpi5(conn, staff_name, year, quarter):
     """, (total, staff_name, year, quarter))
 
 
+@app.route('/api/kpi/contributions/review-list')
+def kpi_contributions_review_list():
+    """取得需要審核的下屬貢獻項目
+    - 主管：看到自己部門(engineer/sales)的 pending 項目
+    - 老闆：看到主管(manager)的 pending 項目 + 所有 pending 項目（全域審核權）
+    """
+    reviewer_name = (request.args.get('reviewer') or '').strip()
+    year          = request.args.get('year', type=int)
+    quarter       = request.args.get('quarter', type=int)
+    if not reviewer_name:
+        return err('缺少審核者姓名')
+
+    conn = get_db()
+    try:
+        # 查出審核者的 role 與 department
+        me = conn.execute(
+            "SELECT role, department FROM staff WHERE name=?", (reviewer_name,)
+        ).fetchone()
+        if not me:
+            return err('查無此人')
+
+        role = me['role'] or ''
+        dept = me['department'] or ''
+
+        conds, params = [], []
+        if year:    conds.append('c.year=?');    params.append(year)
+        if quarter: conds.append('c.quarter=?'); params.append(quarter)
+        conds.append("c.status='pending'")
+        conds.append("c.staff_name != ?"); params.append(reviewer_name)  # 不含自己
+
+        if role == 'boss':
+            # 老闆看所有人的 pending
+            pass
+        elif role == 'manager':
+            # 主管看同部門下屬
+            if dept == '門市部':
+                target_roles = ('engineer',)
+            elif dept == '業務部':
+                target_roles = ('sales',)
+            else:
+                target_roles = ('engineer', 'sales')
+            ph = ','.join('?' for _ in target_roles)
+            conds.append(f"c.staff_name IN (SELECT name FROM staff WHERE role IN ({ph}))")
+            params.extend(target_roles)
+        else:
+            return ok(items=[])  # 一般員工無審核權
+
+        where = 'WHERE ' + ' AND '.join(conds) if conds else ''
+        rows = conn.execute(f"""
+            SELECT c.*, s.title as staff_title, s.department, s.store
+            FROM kpi_contributions c
+            LEFT JOIN staff s ON s.name = c.staff_name
+            {where}
+            ORDER BY c.created_at DESC
+        """, params).fetchall()
+        return ok(items=[dict(r) for r in rows])
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
 @app.route('/kpi/evidence/<path:filename>')
 def kpi_evidence_file(filename):
     """Serve KPI 佐證照片（存放在 DB 同層的 kpi_evidence/ 資料夾）"""
@@ -5120,6 +5580,21 @@ def kpi_evidence_file(filename):
 @app.route('/kpi_contribution')
 def kpi_contribution_page():
     return render_template('kpi_contribution.html')
+
+
+@app.route('/pending_purchase')
+def pending_purchase_page():
+    return render_template('pending_purchase.html')
+
+
+@app.route('/pending_transfer')
+def pending_transfer_page():
+    return render_template('pending_transfer.html')
+
+
+@app.route('/pending_needs')
+def pending_needs_page():
+    return render_template('pending_needs.html')
 
 
 @app.route('/api/kpi/contributions')
@@ -5386,6 +5861,8 @@ def finance_petty_cash_log_create():
         conn.execute("UPDATE finance_petty_cash SET balance = balance - ?, updated_at = ? WHERE store_name = '共用'",
             (amount, now))
         conn.commit()
+        log_action(operator=handler, action='finance.expense',
+                   target_type='petty_cash', description=f'零用金支出 ${amount:.0f} {category}')
         return ok()
     except Exception as e:
         conn.rollback()
@@ -5411,6 +5888,8 @@ def finance_petty_cash_refill():
         conn.execute("UPDATE finance_petty_cash SET balance = balance + ?, last_refill_at = ?, updated_at = ? WHERE store_name = '共用'",
             (amount, now, now))
         conn.commit()
+        log_action(operator=handler, action='finance.refill',
+                   target_type='petty_cash', description=f'零用金補充 ${amount:.0f}')
         return ok()
     except Exception as e:
         conn.rollback()
@@ -6653,6 +7132,957 @@ def pdf_inventory_count(count_id):
         return err(str(e)), 500
     finally:
         conn.close()
+
+
+# ─────────────────────────────────────────────
+# AI 幫手（本地 oMLX 模型）
+# ─────────────────────────────────────────────
+import requests as _requests_lib
+_OMLX_SESSION = _requests_lib.Session()
+_OMLX_SESSION.trust_env = False          # ← 關鍵：避免 macOS 26 + Gunicorn fork crash
+
+_AI_BASE_URL = 'http://127.0.0.1:8001/v1'
+_AI_MODEL    = 'gemma-4-e4b-it-8bit'
+_AI_API_KEY  = '5211'
+
+_AI_SYSTEM_PROMPT = """你是 COSH 電腦舖 ERP 系統的 AI 助手「OpenClaw」。
+你可以查詢公司的銷貨、進貨、庫存、客戶、報價、訂單、需求、財務等資料來回答問題。
+
+回答規則：
+- 使用繁體中文
+- 回答簡潔直接，數字用千分位格式
+- 金額加上 $ 符號
+- 如果資料中沒有相關結果，誠實說「查無資料」
+- 不要編造資料
+- 你是內部系統助手，使用者都是公司員工
+"""
+
+
+# ─────────────────────────────────────────────
+# API: 操作日誌查詢（老闆限定）
+# ─────────────────────────────────────────────
+@app.route('/api/audit-log')
+def api_audit_log():
+    operator  = request.args.get('operator', '').strip()
+    action    = request.args.get('action', '').strip()
+    date_from = request.args.get('date_from', '').strip()
+    date_to   = request.args.get('date_to', '').strip()
+    page      = request.args.get('page', 1, type=int)
+    per       = request.args.get('per', 50, type=int)
+    if per > 200:
+        per = 200
+
+    conn = get_db()
+    try:
+        where, params = [], []
+        if operator:
+            where.append("operator LIKE ?")
+            params.append(f'%{operator}%')
+        if action:
+            where.append("action LIKE ?")
+            params.append(f'%{action}%')
+        if date_from:
+            where.append("timestamp >= ?")
+            params.append(date_from)
+        if date_to:
+            where.append("timestamp <= ?")
+            params.append(date_to + ' 23:59:59')
+        w = ('WHERE ' + ' AND '.join(where)) if where else ''
+
+        total = conn.execute(f"SELECT COUNT(*) FROM audit_log {w}", params).fetchone()[0]
+        rows = conn.execute(f"""
+            SELECT * FROM audit_log {w}
+            ORDER BY id DESC LIMIT ? OFFSET ?
+        """, (*params, per, (page - 1) * per)).fetchall()
+
+        return ok(logs=[dict(r) for r in rows], total=total, page=page, per=per)
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/audit-log/export')
+def api_audit_log_export():
+    """匯出操作日誌為 CSV"""
+    operator  = request.args.get('operator', '').strip()
+    action    = request.args.get('action', '').strip()
+    date_from = request.args.get('date_from', '').strip()
+    date_to   = request.args.get('date_to', '').strip()
+
+    conn = get_db()
+    try:
+        where, params = [], []
+        if operator:
+            where.append("operator LIKE ?")
+            params.append(f'%{operator}%')
+        if action:
+            where.append("action LIKE ?")
+            params.append(f'%{action}%')
+        if date_from:
+            where.append("timestamp >= ?")
+            params.append(date_from)
+        if date_to:
+            where.append("timestamp <= ?")
+            params.append(date_to + ' 23:59:59')
+        w = ('WHERE ' + ' AND '.join(where)) if where else ''
+
+        rows = conn.execute(f"""
+            SELECT timestamp, operator, role, action, target_type,
+                   target_id, description, ip_address
+            FROM audit_log {w}
+            ORDER BY id DESC LIMIT 5000
+        """, params).fetchall()
+
+        import io, csv
+        si = io.StringIO()
+        si.write('\ufeff')  # BOM for Excel
+        writer = csv.writer(si)
+        writer.writerow(['時間', '操作者', '角色', '動作', '對象類型',
+                         '對象ID', '描述', 'IP'])
+        for r in rows:
+            writer.writerow([r['timestamp'], r['operator'], r['role'],
+                             r['action'], r['target_type'], r['target_id'],
+                             r['description'], r['ip_address']])
+        output = si.getvalue()
+        return app.response_class(
+            output,
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=audit_log.csv'}
+        )
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# API: 電腦故障診斷
+# ─────────────────────────────────────────────
+@app.route('/fault_diagnose')
+def fault_diagnose_page():
+    return render_template('fault_diagnose.html')
+
+
+@app.route('/api/fault/next-no')
+def fault_next_no():
+    """自動產生檢測單號：RPT-YYYYMMDD-NNN"""
+    date_str = request.args.get('date', '').strip().replace('-', '')
+    if not date_str:
+        date_str = datetime.now().strftime('%Y%m%d')
+    prefix = f'RPT-{date_str}-'
+    conn = get_db()
+    try:
+        conn.execute("""CREATE TABLE IF NOT EXISTS fault_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_no TEXT UNIQUE,
+            report_date TEXT,
+            customer_id TEXT,
+            customer_name TEXT,
+            technician TEXT,
+            scenario TEXT,
+            steps TEXT,
+            suggestion TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )""")
+        row = conn.execute(
+            "SELECT report_no FROM fault_reports WHERE report_no LIKE ? ORDER BY report_no DESC LIMIT 1",
+            (prefix + '%',)
+        ).fetchone()
+        if row and row['report_no']:
+            try:
+                last_seq = int(row['report_no'].rsplit('-', 1)[-1])
+            except ValueError:
+                last_seq = 0
+            next_seq = last_seq + 1
+        else:
+            next_seq = 1
+        report_no = f'{prefix}{next_seq:03d}'
+        return ok(report_no=report_no)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/save-report', methods=['POST'])
+def fault_save_report():
+    """儲存檢測結論單"""
+    d = request.get_json(force=True)
+    report_no = d.get('report_no', '').strip()
+    if not report_no:
+        return jsonify({'success': False, 'message': '缺少檢測單號'}), 400
+    conn = get_db()
+    try:
+        conn.execute("""CREATE TABLE IF NOT EXISTS fault_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_no TEXT UNIQUE,
+            report_date TEXT,
+            customer_id TEXT,
+            customer_name TEXT,
+            technician TEXT,
+            scenario TEXT,
+            steps TEXT,
+            suggestion TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )""")
+        conn.execute(
+            """INSERT OR REPLACE INTO fault_reports
+               (report_no, report_date, customer_id, customer_name, technician, scenario, steps, suggestion)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (report_no, d.get('report_date', datetime.now().strftime('%Y-%m-%d')),
+             d.get('customer_id', ''), d.get('customer_name', ''),
+             d.get('technician', ''), d.get('scenario', ''),
+             d.get('steps', ''), d.get('suggestion', ''))
+        )
+        conn.commit()
+        return ok(report_no=report_no)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/groups')
+def fault_groups_list():
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT group_key, label, icon, sort_order FROM fault_groups ORDER BY sort_order"
+        ).fetchall()
+        groups = [dict(r) for r in rows]
+        # 附加每群組情境數
+        for g in groups:
+            cnt = conn.execute(
+                "SELECT COUNT(*) FROM fault_scenarios WHERE group_key=?",
+                (g['group_key'],)
+            ).fetchone()[0]
+            g['count'] = cnt
+        return ok(groups=groups)
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/scenarios')
+def fault_scenarios_list():
+    gk = request.args.get('group_key', '').strip()
+    if not gk:
+        return err('缺少 group_key')
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT id, group_key, title, severity, steps_json, causes_json, tests_json, fix_json "
+            "FROM fault_scenarios WHERE group_key=? ORDER BY id",
+            (gk,)
+        ).fetchall()
+        items = []
+        for r in rows:
+            items.append({
+                'id': r['id'], 'group_key': r['group_key'],
+                'title': r['title'], 'severity': r['severity'],
+                'steps': _json.loads(r['steps_json'] or '[]'),
+                'causes': _json.loads(r['causes_json'] or '[]'),
+                'tests': _json.loads(r['tests_json'] or '[]'),
+                'fix': _json.loads(r['fix_json'] or '[]'),
+            })
+        return ok(scenarios=items)
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/scenario/<int:sid>')
+def fault_scenario_detail(sid):
+    conn = get_db()
+    try:
+        r = conn.execute(
+            "SELECT fs.*, fg.label as group_label FROM fault_scenarios fs "
+            "LEFT JOIN fault_groups fg ON fg.group_key=fs.group_key "
+            "WHERE fs.id=?", (sid,)
+        ).fetchone()
+        if not r:
+            return err('找不到此情境', 404)
+        item = {
+            'id': r['id'], 'group_key': r['group_key'],
+            'group_label': r['group_label'] or '',
+            'title': r['title'], 'severity': r['severity'],
+            'steps': _json.loads(r['steps_json'] or '[]'),
+            'causes': _json.loads(r['causes_json'] or '[]'),
+            'tests': _json.loads(r['tests_json'] or '[]'),
+            'fix': _json.loads(r['fix_json'] or '[]'),
+        }
+        return ok(scenario=item)
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/search')
+def fault_search():
+    q = request.args.get('q', '').strip()
+    if not q:
+        return err('缺少搜尋關鍵字')
+    conn = get_db()
+    try:
+        like = f'%{q}%'
+        rows = conn.execute(
+            "SELECT fs.id, fs.group_key, fs.title, fs.severity, fg.label as group_label "
+            "FROM fault_scenarios fs "
+            "LEFT JOIN fault_groups fg ON fg.group_key=fs.group_key "
+            "WHERE fs.title LIKE ? OR fs.keywords LIKE ? "
+            "ORDER BY fs.id LIMIT 20",
+            (like, like)
+        ).fetchall()
+        return ok(results=[dict(r) for r in rows])
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/ai-diagnose', methods=['POST'])
+def fault_ai_diagnose():
+    """AI 故障診斷：搜尋最相關情境 → 注入 system prompt → 轉發 oMLX"""
+    data = request.get_json() or {}
+    description = (data.get('description') or '').strip()
+    history = data.get('history', [])
+    if not description:
+        return err('請描述故障問題')
+
+    conn = get_db()
+    try:
+        # 搜尋最相關的 3 個情境（用 LIKE 多關鍵字匹配）
+        words = [w for w in description.replace('，', ' ').replace('、', ' ').split() if len(w) >= 2]
+        if not words:
+            words = [description]
+
+        scored = {}
+        for w in words:
+            like = f'%{w}%'
+            rows = conn.execute(
+                "SELECT id, group_key, title, severity, steps_json, causes_json, tests_json, fix_json, keywords "
+                "FROM fault_scenarios WHERE title LIKE ? OR keywords LIKE ? LIMIT 30",
+                (like, like)
+            ).fetchall()
+            for r in rows:
+                rid = r['id']
+                if rid not in scored:
+                    scored[rid] = {'row': r, 'score': 0}
+                scored[rid]['score'] += 1
+
+        # 排序取 top 3
+        top = sorted(scored.values(), key=lambda x: -x['score'])[:3]
+
+        # fallback：如果沒搜到，取高嚴重度的前 3
+        if not top:
+            fallback = conn.execute(
+                "SELECT id, group_key, title, severity, steps_json, causes_json, tests_json, fix_json, keywords "
+                "FROM fault_scenarios WHERE severity='高' ORDER BY RANDOM() LIMIT 3"
+            ).fetchall()
+            top = [{'row': r, 'score': 0} for r in fallback]
+
+        # 組裝參考情境文本
+        ref_scenarios = []
+        matched_ids = []
+        for t in top:
+            r = t['row']
+            matched_ids.append(r['id'])
+            steps = _json.loads(r['steps_json'] or '[]')
+            causes = _json.loads(r['causes_json'] or '[]')
+            tests = _json.loads(r['tests_json'] or '[]')
+            fix = _json.loads(r['fix_json'] or '[]')
+            ref_scenarios.append(
+                f"【{r['title']}】（嚴重度：{r['severity']}）\n"
+                f"排查步驟：{'→'.join(steps)}\n"
+                f"可能原因：{'、'.join(causes)}\n"
+                f"檢測方式：{'、'.join(tests)}\n"
+                f"處置建議：{'、'.join(fix)}"
+            )
+
+        ref_text = '\n\n'.join(ref_scenarios)
+
+        system_prompt = f"""你是 COSH 電腦舖的資深電腦維修工程師 AI 助手。
+客人描述了一個電腦故障問題，請根據以下參考情境知識庫進行診斷。
+
+回答規則：
+- 使用繁體中文
+- 先判斷最可能的故障情境
+- 列出建議的排查步驟（由簡到繁）
+- 說明最可能的原因
+- 給出處置建議
+- 如果需要更多資訊，請提出具體問題
+- 回答簡潔實用，避免冗長
+
+=== 參考故障情境 ===
+{ref_text}
+=== 參考結束 ==="""
+
+        # 組裝對話歷史
+        messages = [{'role': 'system', 'content': system_prompt}]
+        for h in history[-10:]:
+            if h.get('role') in ('user', 'assistant'):
+                messages.append({'role': h['role'], 'content': h.get('content', '')})
+        messages.append({'role': 'user', 'content': description})
+
+        # 呼叫 oMLX
+        resp = _OMLX_SESSION.post(
+            f'{_AI_BASE_URL}/chat/completions',
+            headers={'Authorization': f'Bearer {_AI_API_KEY}'},
+            json={'model': _AI_MODEL, 'messages': messages, 'temperature': 0.4, 'max_tokens': 1024},
+            timeout=120
+        )
+        resp.raise_for_status()
+        ai_reply = resp.json()['choices'][0]['message']['content']
+
+        # 回傳 AI 回覆 + 匹配情境摘要
+        matched_summaries = []
+        for t in top:
+            r = t['row']
+            matched_summaries.append({
+                'id': r['id'],
+                'title': r['title'],
+                'severity': r['severity'],
+                'group_key': r['group_key'],
+            })
+
+        return ok(reply=ai_reply, matched=matched_summaries)
+    except _requests_lib.exceptions.ConnectionError:
+        return jsonify({'success': False, 'message': '無法連線到 AI 模型，請確認 oMLX 是否已啟動（Port 8001）'}), 503
+    except _requests_lib.exceptions.Timeout:
+        return jsonify({'success': False, 'message': 'AI 模型回應逾時，請稍後再試'}), 504
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+# ── AI 意圖分類 ─────────────────────────────────
+# 每個意圖定義：(intent_key, keywords_list)
+# _ai_classify_intent 回傳命中的 intent 清單（可多個）
+_AI_INTENT_MAP = [
+    ('sales',       ['銷貨', '銷售', '業績', '營收', '賣', '營業額', '達成率']),
+    ('purchase',    ['進貨', '採購', '進價', '供應商', '廠商']),
+    ('inventory',   ['庫存', '存貨', '數量', '還有多少', '有沒有貨']),
+    ('customer',    ['客戶', '客人', '會員', '顧客']),
+    ('document',    ['報價', '訂單', '訂購', '單據']),
+    ('needs',       ['需求', '採購需求', '調撥']),
+    ('finance',     ['財務', '零用金', '應收', '應付', '帳款', '毛利', '利潤']),
+    ('roster',      ['班表', '上班', '值班', '排班', '輪班']),
+    ('supervision', ['督導', '評分', '巡查', '督察', '門市評分']),
+    ('bonus',       ['獎金', 'bonus', '業績獎']),
+    ('count',       ['盤點', '差異', '庫存異常', '盤差']),
+    ('product_search', ['查', '找', '搜尋', '哪裡有']),
+    ('service',     ['外勤', '服務紀錄', '維修', '到府']),
+]
+
+# 員工名冊（啟動時從 DB 載入一次，fallback 為空）
+try:
+    _conn_tmp = sqlite3.connect(f'file:{DB_PATH}?mode=ro', uri=True)
+    _conn_tmp.row_factory = sqlite3.Row
+    _STAFF_NAMES = [r['name'] for r in _conn_tmp.execute("SELECT name FROM staff WHERE is_active=1").fetchall()]
+    _conn_tmp.close()
+except Exception:
+    _STAFF_NAMES = []
+
+
+def _ai_classify_intent(message):
+    """分析使用者訊息，回傳意圖清單 + 提及的人名（可空）"""
+    msg = message.lower()
+    intents = []
+    for key, keywords in _AI_INTENT_MAP:
+        if any(k in msg for k in keywords):
+            intents.append(key)
+
+    # 偵測人名
+    person = None
+    for name in _STAFF_NAMES:
+        if name in message:
+            person = name
+            break
+
+    # 人名觸發額外意圖（個人業績 + 服務紀錄 + 獎金）
+    if person:
+        for extra in ['sales', 'service', 'bonus']:
+            if extra not in intents:
+                intents.append(extra)
+
+    # 時間詞觸發班表 + 銷貨（「今天怎樣」→ 班表 + 今日銷貨）
+    if any(k in msg for k in ['今天', '今日', '昨天']):
+        for extra in ['roster', 'sales']:
+            if extra not in intents:
+                intents.append(extra)
+
+    return intents, person
+
+
+# ── AI 各意圖查詢函式 ───────────────────────────
+def _aiq_sales(conn, now, today, person=None):
+    parts = []
+    month_start = now.strftime('%Y-%m-01')
+    if person:
+        r = conn.execute(
+            'SELECT COUNT(*) c, COALESCE(SUM(amount),0) total, COALESCE(SUM(profit),0) profit '
+            'FROM sales_history WHERE salesperson=? AND date>=? AND date<=?',
+            (person, month_start, today)
+        ).fetchone()
+        parts.append(f"【{person} 本月銷貨】{r['c']} 筆，合計 ${r['total']:,.0f}，毛利 ${r['profit']:,.0f}")
+    else:
+        r = conn.execute(
+            'SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM sales_history WHERE date=?', (today,)
+        ).fetchone()
+        parts.append(f"【今日銷貨】{today}：{r['c']} 筆，合計 ${r['total']:,.0f}")
+        r2 = conn.execute(
+            'SELECT COUNT(*) c, COALESCE(SUM(amount),0) total, COALESCE(SUM(profit),0) profit '
+            'FROM sales_history WHERE date>=? AND date<=?', (month_start, today)
+        ).fetchone()
+        parts.append(f"【本月銷貨】{month_start}～{today}：{r2['c']} 筆，合計 ${r2['total']:,.0f}，毛利 ${r2['profit']:,.0f}")
+        rows = conn.execute(
+            'SELECT warehouse, COUNT(*) c, SUM(amount) total FROM sales_history '
+            'WHERE date>=? AND date<=? GROUP BY warehouse ORDER BY total DESC',
+            (month_start, today)
+        ).fetchall()
+        if rows:
+            lines = '、'.join(f"{r['warehouse'] or '未指定'} ${r['total']:,.0f}({r['c']}筆)" for r in rows)
+            parts.append(f"【本月門市分佈】{lines}")
+    return parts
+
+
+def _aiq_purchase(conn, now, today, person=None):
+    month_start = now.strftime('%Y-%m-01')
+    r = conn.execute(
+        'SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM purchase_history WHERE date>=? AND date<=?',
+        (month_start, today)
+    ).fetchone()
+    return [f"【本月進貨】{month_start}～{today}：{r['c']} 筆，合計 ${r['total']:,.0f}"]
+
+
+def _aiq_inventory(conn, now, today, person=None):
+    parts = []
+    r = conn.execute('SELECT COUNT(*) c, SUM(stock_quantity) total_qty FROM inventory').fetchone()
+    parts.append(f"【庫存概況】共 {r['c']} 項商品，總數量 {r['total_qty']:,.0f}")
+    rows = conn.execute(
+        'SELECT warehouse, COUNT(*) c, SUM(stock_quantity) qty FROM inventory GROUP BY warehouse ORDER BY qty DESC'
+    ).fetchall()
+    if rows:
+        lines = '、'.join(f"{r['warehouse']} {r['qty']:,.0f}件({r['c']}品項)" for r in rows)
+        parts.append(f"【倉庫分佈】{lines}")
+    return parts
+
+
+def _aiq_customer(conn, now, today, person=None):
+    r = conn.execute('SELECT COUNT(*) c FROM customers').fetchone()
+    r2 = conn.execute("SELECT COUNT(*) c FROM customers WHERE payment_type='M'").fetchone()
+    return [f"【客戶總數】{r['c']} 位", f"【月結客戶】{r2['c']} 位"]
+
+
+def _aiq_document(conn, now, today, person=None):
+    parts = []
+    for dtype, label in [('quote', '報價單'), ('order', '訂購單')]:
+        r = conn.execute(
+            'SELECT COUNT(*) c FROM sales_documents WHERE doc_type=? AND status != ?', (dtype, 'deleted')
+        ).fetchone()
+        parts.append(f"【{label}】共 {r['c']} 張（不含已刪除）")
+    pending = conn.execute(
+        "SELECT COUNT(*) c FROM sales_documents WHERE doc_type='order' AND status='confirmed'"
+    ).fetchone()
+    parts.append(f"【待出貨訂單】{pending['c']} 張")
+    return parts
+
+
+def _aiq_needs(conn, now, today, person=None):
+    rows = conn.execute("SELECT status, COUNT(*) c FROM needs GROUP BY status").fetchall()
+    lines = '、'.join(f"{r['status']}:{r['c']}筆" for r in rows)
+    return [f"【需求狀態】{lines}"]
+
+
+def _aiq_finance(conn, now, today, person=None):
+    parts = []
+    try:
+        pc = conn.execute('SELECT balance, monthly_limit FROM finance_petty_cash LIMIT 1').fetchone()
+        if pc:
+            parts.append(f"【零用金】餘額 ${pc['balance']:,.0f} / 月額度 ${pc['monthly_limit']:,.0f}")
+    except Exception:
+        pass
+    try:
+        ar = conn.execute(
+            "SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM finance_receivables WHERE status='pending'"
+        ).fetchone()
+        parts.append(f"【應收帳款（未收）】{ar['c']} 筆，合計 ${ar['total']:,.0f}")
+    except Exception:
+        pass
+    try:
+        ap = conn.execute(
+            "SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM finance_payables WHERE status='pending'"
+        ).fetchone()
+        parts.append(f"【應付帳款（未付）】{ap['c']} 筆，合計 ${ap['total']:,.0f}")
+    except Exception:
+        pass
+    return parts
+
+
+def _aiq_roster(conn, now, today, person=None):
+    if person:
+        rows = conn.execute(
+            'SELECT date, location, shift_code FROM staff_roster WHERE staff_name=? AND date>=? ORDER BY date LIMIT 7',
+            (person, today)
+        ).fetchall()
+        if rows:
+            lines = '、'.join(f"{r['date'][-5:]} {r['location']} {r['shift_code']}" for r in rows)
+            return [f"【{person} 近期班表】{lines}"]
+        return [f"【{person} 班表】近期無排班資料"]
+    rows = conn.execute(
+        'SELECT staff_name, location, shift_code FROM staff_roster WHERE date=? ORDER BY location, staff_name',
+        (today,)
+    ).fetchall()
+    if rows:
+        by_loc = {}
+        for r in rows:
+            by_loc.setdefault(r['location'], []).append(f"{r['staff_name']}({r['shift_code']})")
+        lines = '、'.join(f"{loc}：{'／'.join(names)}" for loc, names in by_loc.items())
+        return [f"【今日班表 {today}】{lines}"]
+    return [f"【今日班表 {today}】尚無排班資料"]
+
+
+def _aiq_supervision(conn, now, today, person=None):
+    rows = conn.execute(
+        'SELECT date, store_name, employee_name, total_score, percentage '
+        'FROM supervision_scores ORDER BY date DESC LIMIT 15'
+    ).fetchall()
+    if not rows:
+        return ["【督導評分】尚無評分紀錄"]
+    dates_seen = []
+    for r in rows:
+        if r['date'] not in dates_seen:
+            dates_seen.append(r['date'])
+        if len(dates_seen) >= 3:
+            break
+    recent = [r for r in rows if r['date'] in dates_seen]
+    lines = '\n'.join(
+        f"  {r['date']} {r['store_name']} {r['employee_name']}：{r['total_score']}分（{r['percentage']}%）"
+        for r in recent
+    )
+    store_avg = {}
+    for r in recent:
+        store_avg.setdefault(r['store_name'], []).append(float(r['percentage'] or 0))
+    avg_lines = '、'.join(f"{s} 平均 {sum(v)/len(v):.0f}%" for s, v in store_avg.items())
+    return [f"【最近督導評分】\n{lines}\n【各門市平均】{avg_lines}"]
+
+
+def _aiq_bonus(conn, now, today, person=None):
+    month_start = now.strftime('%Y-%m-01')
+    if person:
+        rows = conn.execute(
+            "SELECT product_name, bonus_amount FROM bonus_results "
+            "WHERE salesperson_name=? AND status='confirmed' AND period_start>=? "
+            "ORDER BY bonus_amount DESC LIMIT 10",
+            (person, month_start)
+        ).fetchall()
+        if rows:
+            total = sum(r['bonus_amount'] for r in rows)
+            lines = '、'.join(f"{r['product_name']} ${r['bonus_amount']:,.0f}" for r in rows)
+            return [f"【{person} 本月獎金】合計 ${total:,.0f}（{len(rows)}筆）：{lines}"]
+        return [f"【{person} 本月獎金】尚無已確認獎金"]
+    rows = conn.execute(
+        "SELECT salesperson_name, SUM(bonus_amount) total_bonus, COUNT(*) cnt "
+        "FROM bonus_results WHERE status='confirmed' AND period_start>=? "
+        "GROUP BY salesperson_name ORDER BY total_bonus DESC LIMIT 10",
+        (month_start,)
+    ).fetchall()
+    if rows:
+        lines = '、'.join(f"{r['salesperson_name']} ${r['total_bonus']:,.0f}({r['cnt']}筆)" for r in rows)
+        return [f"【本月已確認獎金】{lines}"]
+    return ["【本月獎金】尚無已確認的獎金紀錄"]
+
+
+def _aiq_count(conn, now, today, person=None):
+    latest = conn.execute(
+        "SELECT id, count_no, warehouse, status, created_at FROM inventory_count ORDER BY created_at DESC LIMIT 1"
+    ).fetchone()
+    if not latest:
+        return ["【盤點】尚無盤點紀錄"]
+    items = conn.execute(
+        "SELECT product_name, book_qty, actual_qty, (actual_qty - book_qty) AS diff "
+        "FROM inventory_count_items WHERE count_id=? AND actual_qty IS NOT NULL "
+        "ORDER BY ABS(actual_qty - book_qty) DESC LIMIT 5",
+        (latest['id'],)
+    ).fetchall()
+    header = f"【最近盤點】{latest['count_no']}（{latest['warehouse']}，{latest['status']}，{latest['created_at'][:10]}）"
+    if items:
+        lines = '\n'.join(
+            f"  {r['product_name']}：帳面{r['book_qty']} 實盤{r['actual_qty']} 差異{r['diff']:+d}" for r in items
+        )
+        return [f"{header}\n【差異前五名】\n{lines}"]
+    return [f"{header}\n尚無盤點明細或無差異"]
+
+
+def _aiq_product_search(conn, now, today, person=None, message=''):
+    import re
+    cleaned = re.sub(r'(查|找|搜尋|哪裡有|產品|庫存|還有|多少|幾個|嗎|？|?|的|有沒有|在|哪)', '', message).strip()
+    if len(cleaned) < 2:
+        return []
+    rows = conn.execute(
+        'SELECT item_spec, warehouse, stock_quantity FROM inventory WHERE item_spec LIKE ? LIMIT 10',
+        (f'%{cleaned}%',)
+    ).fetchall()
+    if rows:
+        lines = '\n'.join(f"  {r['item_spec']} | {r['warehouse']} | 數量 {r['stock_quantity']}" for r in rows)
+        return [f"【搜尋「{cleaned}」庫存結果】\n{lines}"]
+    return []
+
+
+def _aiq_service(conn, now, today, person=None):
+    month_start = now.strftime('%Y-%m-01')
+    if person:
+        rows = conn.execute(
+            'SELECT date, customer_name, service_type, service_item FROM service_records '
+            'WHERE salesperson=? AND date>=? ORDER BY date DESC LIMIT 10',
+            (person, month_start)
+        ).fetchall()
+        if rows:
+            lines = '\n'.join(f"  {r['date'][-5:]} {r['customer_name'] or '—'} {r['service_type']} {r['service_item'] or ''}" for r in rows)
+            return [f"【{person} 本月外勤服務】{len(rows)}筆\n{lines}"]
+        return [f"【{person} 本月外勤服務】無紀錄"]
+    r = conn.execute(
+        'SELECT COUNT(*) c FROM service_records WHERE date>=?', (month_start,)
+    ).fetchone()
+    return [f"【本月外勤服務】共 {r['c']} 筆"]
+
+
+# 意圖 → 查詢函式對應
+_AI_QUERY_MAP = {
+    'sales':          _aiq_sales,
+    'purchase':       _aiq_purchase,
+    'inventory':      _aiq_inventory,
+    'customer':       _aiq_customer,
+    'document':       _aiq_document,
+    'needs':          _aiq_needs,
+    'finance':        _aiq_finance,
+    'roster':         _aiq_roster,
+    'supervision':    _aiq_supervision,
+    'bonus':          _aiq_bonus,
+    'count':          _aiq_count,
+    'product_search': _aiq_product_search,
+    'service':        _aiq_service,
+}
+
+
+def _ai_gather_context(message):
+    """根據使用者問題自動分類意圖，查詢相關 ERP 資料，組成上下文"""
+    ctx_parts = []
+    conn = get_db()
+    now = datetime.now()
+    today = now.strftime('%Y-%m-%d')
+    try:
+        intents, person = _ai_classify_intent(message)
+
+        for intent in intents:
+            fn = _AI_QUERY_MAP.get(intent)
+            if not fn:
+                continue
+            try:
+                if intent == 'product_search':
+                    parts = fn(conn, now, today, person=person, message=message)
+                else:
+                    parts = fn(conn, now, today, person=person)
+                ctx_parts.extend(parts)
+            except Exception as e:
+                ctx_parts.append(f"（{intent} 查詢錯誤：{e}）")
+
+        # 通用 fallback：沒有任何意圖命中時給今日摘要
+        if not ctx_parts:
+            r = conn.execute(
+                'SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM sales_history WHERE date=?', (today,)
+            ).fetchone()
+            ctx_parts.append(f"【今日銷貨】{today}：{r['c']} 筆，合計 ${r['total']:,.0f}")
+            r2 = conn.execute(
+                "SELECT COUNT(*) c FROM needs WHERE status IN ('pending','approved')"
+            ).fetchone()
+            ctx_parts.append(f"【待處理需求】{r2['c']} 筆")
+
+    except Exception as e:
+        ctx_parts.append(f"（資料查詢時發生錯誤：{e}）")
+    finally:
+        conn.close()
+
+    return '\n'.join(ctx_parts)
+
+
+@app.route('/api/ai/daily-summary', methods=['GET'])
+def ai_daily_summary():
+    """登入後今日摘要 — 純資料庫查詢，不走 AI 模型，依角色回傳不同內容"""
+    user_name = request.args.get('name', '')
+    user_title = request.args.get('title', '')
+    dept = request.args.get('department', '')
+    conn = get_db()
+    now = datetime.now()
+    today = now.strftime('%Y-%m-%d')
+    month_start = now.strftime('%Y-%m-01')
+    year, month = now.year, now.month
+    lines = []
+
+    try:
+        is_boss = user_title == '老闆'
+        is_accountant = user_title == '會計'
+
+        if is_boss or is_accountant:
+            # ── 老闆／會計版 ──
+            # 1) 待處理需求筆數
+            r = conn.execute(
+                "SELECT COUNT(*) c FROM needs WHERE status='待處理'"
+            ).fetchone()
+            lines.append(f"📋 待處理需求：{r['c']} 筆")
+
+            # 2) 各部門本月達成率
+            rows = conn.execute(
+                "SELECT subject_name, COALESCE(achievement_rate,0) rate "
+                "FROM performance_metrics WHERE category='部門' AND year=? AND month=? AND period_type='monthly' "
+                "ORDER BY rate DESC",
+                (year, month)
+            ).fetchall()
+            if rows:
+                dept_lines = '、'.join(f"{r['subject_name']} {r['rate']:.0f}%" for r in rows)
+                lines.append(f"📊 本月部門達成率：{dept_lines}")
+
+            # 3) 本週到期應收帳款
+            from datetime import timedelta
+            week_end = (now + timedelta(days=(6 - now.weekday()))).strftime('%Y-%m-%d')
+            try:
+                ar = conn.execute(
+                    "SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM finance_receivables "
+                    "WHERE status='pending' AND due_date>=? AND due_date<=?",
+                    (today, week_end)
+                ).fetchone()
+                lines.append(f"💰 本週到期應收：{ar['c']} 筆，${ar['total']:,.0f}")
+            except Exception:
+                pass
+
+            # 4) 今日各門市值班人員
+            roster = conn.execute(
+                'SELECT staff_name, location, shift_code FROM staff_roster WHERE date=? ORDER BY location',
+                (today,)
+            ).fetchall()
+            if roster:
+                by_loc = {}
+                for r in roster:
+                    by_loc.setdefault(r['location'], []).append(f"{r['staff_name']}({r['shift_code']})")
+                roster_lines = '、'.join(f"{loc}：{'／'.join(names)}" for loc, names in by_loc.items())
+                lines.append(f"👥 今日值班：{roster_lines}")
+            else:
+                lines.append("👥 今日值班：尚無排班資料")
+
+        else:
+            # ── 員工版 ──
+            # 1) 個人本月業績與達成率
+            pm = conn.execute(
+                "SELECT COALESCE(revenue_amount,0) rev, COALESCE(target_amount,0) tgt, COALESCE(achievement_rate,0) rate "
+                "FROM performance_metrics WHERE category='個人' AND subject_name=? AND year=? AND month=? AND period_type='monthly'",
+                (user_name, year, month)
+            ).fetchone()
+            if pm and pm['tgt'] > 0:
+                lines.append(f"📊 本月業績：${pm['rev']:,.0f} / 目標 ${pm['tgt']:,.0f}（達成率 {pm['rate']:.0f}%）")
+            else:
+                # 直接從銷貨計算
+                sr = conn.execute(
+                    'SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM sales_history WHERE salesperson=? AND date>=? AND date<=?',
+                    (user_name, month_start, today)
+                ).fetchone()
+                lines.append(f"📊 本月業績：${sr['total']:,.0f}（{sr['c']} 筆）")
+
+            # 2) 本人待處理需求
+            nr = conn.execute(
+                "SELECT COUNT(*) c FROM needs WHERE requester=? AND status IN ('待處理','已採購','已調撥')",
+                (user_name,)
+            ).fetchone()
+            lines.append(f"📋 我的待處理需求：{nr['c']} 筆")
+
+            # 3) 今日班表
+            sr = conn.execute(
+                'SELECT location, shift_code FROM staff_roster WHERE staff_name=? AND date=?',
+                (user_name, today)
+            ).fetchone()
+            if sr:
+                lines.append(f"🗓️ 今日班表：{sr['location']} {sr['shift_code']}")
+            else:
+                lines.append("🗓️ 今日班表：無排班")
+
+    except Exception as e:
+        lines.append(f"（摘要產生錯誤：{e}）")
+    finally:
+        conn.close()
+
+    greeting = '早安' if now.hour < 12 else ('午安' if now.hour < 18 else '晚安')
+    display_name = user_name or '同事'
+    header = f"{greeting}，{display_name}！以下是今日摘要："
+    summary = header + '\n' + '\n'.join(lines)
+    return ok(summary=summary)
+
+
+@app.route('/api/ai/chat', methods=['POST'])
+def ai_chat():
+    """AI 幫手 — 串接本地 oMLX 模型，自動附帶 ERP 資料上下文
+       使用 raw socket 避免 macOS + Python 3.14 trust_env crash
+    """
+    data = request.get_json() or {}
+    message = (data.get('message') or '').strip()
+    if not message:
+        return err('請輸入訊息')
+
+    # === 階段 1：測試 ERP 資料查詢 ===
+    try:
+        erp_context = _ai_gather_context(message)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'[階段1] 資料查詢失敗：{e}'}), 500
+
+    # === 階段 2：組裝 prompt ===
+    try:
+        history = data.get('history') or []
+        messages = [{'role': 'system', 'content': _AI_SYSTEM_PROMPT}]
+        if erp_context:
+            messages.append({
+                'role': 'system',
+                'content': f'以下是即時資料（{today_str()}）：\n\n{erp_context}'
+            })
+        for h in history[-20:]:
+            if h.get('role') in ('user', 'assistant'):
+                messages.append({'role': h['role'], 'content': h['content']})
+        messages.append({'role': 'user', 'content': message})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'[階段2] prompt 組裝失敗：{e}'}), 500
+
+    # === 階段 3：呼叫本地模型（用 requests.Session + trust_env=False） ===
+    try:
+        payload = {
+            'model': _AI_MODEL,
+            'messages': messages,
+            'stream': False,
+            'max_tokens': 1024,
+            'temperature': 0.5,
+        }
+        resp = _OMLX_SESSION.post(
+            f'{_AI_BASE_URL}/chat/completions',
+            json=payload,
+            headers={
+                'Authorization': f'Bearer {_AI_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        body = resp.json()
+        ai_text = body['choices'][0]['message']['content']
+        return ok(response=ai_text, context_used=bool(erp_context))
+    except _requests_lib.exceptions.ConnectionError:
+        return jsonify({'success': False, 'message': '無法連線到 AI 模型，請確認 oMLX 是否已啟動（Port 8001）'}), 503
+    except _requests_lib.exceptions.Timeout:
+        return jsonify({'success': False, 'message': 'AI 模型回應逾時，請稍後再試'}), 504
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'AI 處理錯誤：{str(e)}'}), 500
+
+
+def today_str():
+    return datetime.now().strftime('%Y-%m-%d')
 
 
 # ─────────────────────────────────────────────

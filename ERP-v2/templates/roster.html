@@ -21,7 +21,7 @@
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 8px;
   font-size: .82rem;
-  font-family: 'Noto Serif TC', serif;
+  font-family: var(--font-serif);
   font-weight: 300;
   color: #2c2720;
   background: #f5f0e8;
@@ -29,7 +29,7 @@
 .loc-pills { display: flex; border: 1px solid rgba(107,95,82,.2); border-radius: 8px; overflow: hidden; }
 .loc-btn {
   padding: 6px 14px; font-size: .8rem; background: none; border: none;
-  color: #6b5f52; cursor: pointer; font-family: 'Noto Serif TC', serif;
+  color: #6b5f52; cursor: pointer; font-family: var(--font-serif);
   font-weight: 300; letter-spacing: .04em;
 }
 .loc-btn + .loc-btn { border-left: 1px solid rgba(107,95,82,.2); }
@@ -70,7 +70,7 @@
 .cal-cell.today { background: rgba(250,191,19,.05); }
 
 .day-num {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-en);
   font-size: .85rem;
   color: #9a9188;
   margin-bottom: 5px;
@@ -115,6 +115,81 @@
 .legend { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: .75rem; }
 .leg-item { display: flex; align-items: center; gap: 4px; }
 .leg-badge { padding: 2px 7px; border-radius: 3px; font-size: .7rem; }
+
+/* ── 手機版列表容器（桌機隱藏） ── */
+.mobile-roster-list { display: none; }
+
+/* ── 手機版 ──────────────────────────── */
+@media (max-width: 767px) {
+  .roster-layout { gap: 12px; }
+
+  /* 控制列堆疊 */
+  .ctrl-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+  .ctrl-sep { display: none; }
+  .ctrl-label { font-size: .82rem; }
+  .ctl-sel { width: 100%; font-size: .84rem; padding: 9px 12px; }
+  .loc-pills { flex-wrap: wrap; }
+  .loc-btn { padding: 7px 12px; font-size: .82rem; }
+  .legend { justify-content: center; gap: 6px; margin-top: 4px; }
+
+  /* 隱藏月曆格子，顯示列表 */
+  .cal-card { display: none; }
+  .mobile-roster-list { display: block; }
+
+  /* 列表日卡片 */
+  .mr-day {
+    background: #fff;
+    border: 1px solid rgba(107,95,82,.12);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .mr-day.mr-today {
+    border-color: rgba(250,191,19,.4);
+    background: rgba(250,191,19,.04);
+  }
+  .mr-day.mr-sunday { border-left: 3px solid #c07070; }
+  .mr-day.mr-saturday { border-left: 3px solid #7090c0; }
+  .mr-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .mr-date {
+    font-family: var(--font-en);
+    font-size: 1rem;
+    font-weight: 300;
+    color: var(--text, #2c2720);
+  }
+  .mr-today .mr-date { color: #b8893a; font-weight: 400; }
+  .mr-dow {
+    font-size: .78rem;
+    color: var(--text-sub, #9a9188);
+  }
+  .mr-shifts { display: flex; flex-direction: column; gap: 4px; }
+  .mr-shift {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: var(--bg, #f5f0e8);
+    border-radius: 8px;
+    font-size: .84rem;
+  }
+  .mr-shift-name { color: var(--text, #2c2720); }
+  .mr-no-shift {
+    font-size: .82rem;
+    color: var(--text-sub, #9a9188);
+    padding: 4px 0;
+  }
+}
 </style>
 {% endblock %}
 
@@ -142,10 +217,13 @@
     </div>
   </div>
 
-  <!-- 月曆 -->
+  <!-- 月曆（桌機） -->
   <div class="cal-card" id="calCard">
     <div style="padding:30px;color:#9a9188;font-size:.85rem">載入中…</div>
   </div>
+
+  <!-- 列表（手機） -->
+  <div class="mobile-roster-list" id="mobileRosterList"></div>
 </div>
 {% endblock %}
 
@@ -204,6 +282,7 @@ async function load() {
   });
 
   renderCalendar(data.roster, rYear, rMonth);
+  renderMobileList(data.roster, rYear, rMonth);
 }
 
 /* ── 月曆渲染 ── */
@@ -247,6 +326,70 @@ function renderCalendar(roster, year, month) {
   }
   html += `</div>`;
   document.getElementById('calCard').innerHTML = html;
+}
+
+/* ── 手機版列表渲染（今天優先） ── */
+function renderMobileList(roster, year, month) {
+  const wrap = document.getElementById('mobileRosterList');
+  if (!wrap) return;
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // 建立日期陣列
+  const days = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    days.push({ day: d, dateStr, dow: new Date(year, month-1, d).getDay() });
+  }
+
+  // 今天優先排序：當月才做，今天排最前，之後日期升序，之前日期接在最後
+  const isCurrentMonth = (year === today.getFullYear() && month === today.getMonth()+1);
+  if (isCurrentMonth) {
+    const todayDay = today.getDate();
+    const future = days.filter(d => d.day >= todayDay);
+    const past   = days.filter(d => d.day < todayDay);
+    days.length = 0;
+    days.push(...future, ...past);
+  }
+
+  let html = '';
+  days.forEach(({day, dateStr, dow}) => {
+    const isToday = dateStr === todayStr;
+    let cls = 'mr-day';
+    if (isToday) cls += ' mr-today';
+    if (dow === 0) cls += ' mr-sunday';
+    if (dow === 6) cls += ' mr-saturday';
+
+    const entries = roster[dateStr] || [];
+    let shifts = '';
+    if (entries.length) {
+      shifts = '<div class="mr-shifts">' + entries.map(e => {
+        const scCls = 'sc-' + (e.shift_code || '');
+        return `<div class="mr-shift">
+          <span class="mr-shift-name">${e.staff_name}</span>
+          <span class="shift-code ${scCls}">${e.shift_code || '-'}</span>
+        </div>`;
+      }).join('') + '</div>';
+    } else {
+      shifts = '<div class="mr-no-shift">無排班</div>';
+    }
+
+    html += `<div class="${cls}" ${isToday ? 'id="mrToday"' : ''}>
+      <div class="mr-day-head">
+        <span class="mr-date">${month}/${day}${isToday ? ' 今天' : ''}</span>
+        <span class="mr-dow">${DOW[dow]}</span>
+      </div>
+      ${shifts}
+    </div>`;
+  });
+  wrap.innerHTML = html;
+
+  // 捲動到今天
+  if (isCurrentMonth) {
+    const el = document.getElementById('mrToday');
+    if (el) setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'start'}), 100);
+  }
 }
 
 initSelectors();
