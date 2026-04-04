@@ -454,7 +454,7 @@ def generate_report():
     # Q2 剩餘天數計算 (到 6/30)
     from datetime import timedelta
     q2_end = date(2026, 6, 30)
-    remaining_days = (q2_end - today).days
+    remaining_days = (q2_end - today.date()).days
     message += f"Q2 剛開始，還有 {remaining_days} 天，大家一起加油！業務部表現也很穩，全公司 {company_rate:.1f}% 達成率，季度達標很有希望 💪"
     
     message += "\n\n---\n\n💡 科技新鮮事（3則）\n"
