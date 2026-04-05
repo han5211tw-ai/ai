@@ -499,6 +499,14 @@ def send_to_telegram(message):
 def main():
     """主程式：生成晨報並發送到 Telegram"""
     print(f"🌅 生成晨報中... {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 防重複執行檢查：如果今天已經發送過，則跳過
+    last_used = get_last_used_items()
+    today_str = date.today().isoformat()
+    if last_used.get("date") == today_str:
+        print(f"⚠️ 今天的晨報已經發送過了（{today_str}），跳過重複執行")
+        return None
+    
     report = generate_report()
     
     # 將 Markdown 格式轉換為 HTML（Telegram 支援的格式）
@@ -509,7 +517,10 @@ def main():
     # 直接發送純文字，避免格式問題
     success = send_to_telegram(report)
     
-    if not success:
+    if success:
+        # 只有在成功發送後才記錄，防止重複發送
+        print("✅ 晨報發送成功，記錄執行狀態")
+    else:
         print("⚠️ 發送失敗，請手動檢查")
     
     return report
