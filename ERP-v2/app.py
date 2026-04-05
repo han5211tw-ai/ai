@@ -8,7 +8,7 @@ import sqlite3
 import json
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, render_template, jsonify, request, abort, send_from_directory, send_file
+from flask import Flask, render_template, jsonify, request, abort, send_from_directory, send_file, redirect
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -770,7 +770,8 @@ def admin_audit_log_page():
 
 @app.route('/print/repair-report')
 def print_repair_report():
-    return render_template('print_repair_report.html')
+    """已整合至維修工單，重導向"""
+    return redirect('/repair_order')
 
 @app.route('/student-chat')
 def student_chat():
@@ -7946,7 +7947,8 @@ def api_audit_log_export():
 # ─────────────────────────────────────────────
 @app.route('/fault_diagnose')
 def fault_diagnose_page():
-    return render_template('fault_diagnose.html')
+    """已整合至維修工單步驟 2，重導向"""
+    return redirect('/repair_order')
 
 @app.route('/followup')
 def followup_page():
@@ -8797,6 +8799,38 @@ def repair_update():
             log_action(operator=operator, action='repair.update',
                        description=f'更新工單 {order_no}')
         return ok(msg='更新成功')
+    except Exception as e:
+        conn.rollback()
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/delete', methods=['GET', 'POST'])
+def repair_delete():
+    """刪除維修工單（老闆限定）"""
+    if request.method == 'POST':
+        data = request.get_json(force=True)
+    else:
+        data = request.args
+    order_no = (data.get('order_no') or '').strip()
+    operator = (data.get('operator') or '').strip()
+    role = (data.get('role') or '').strip()
+    if not order_no:
+        return err('缺少 order_no')
+    if role not in ('老闆', 'boss'):
+        return err('僅老闆可刪除工單', 403)
+    conn = get_db()
+    try:
+        ro = conn.execute("SELECT order_no, customer_name FROM repair_orders WHERE order_no=?", (order_no,)).fetchone()
+        if not ro:
+            return err('工單不存在')
+        conn.execute("DELETE FROM repair_order_items WHERE order_no=?", (order_no,))
+        conn.execute("DELETE FROM repair_orders WHERE order_no=?", (order_no,))
+        conn.commit()
+        log_action(operator=operator, action='repair.delete',
+                   description=f'刪除工單 {order_no}（{ro["customer_name"]}）')
+        return ok(msg='已刪除')
     except Exception as e:
         conn.rollback()
         return err(str(e), 500)

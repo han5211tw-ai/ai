@@ -1238,7 +1238,7 @@ function onAppReady(user) {
   addRow(); addRow(); addRow();
   loadList();
 
-  // ── 從維修工單帶入 ──
+  // ── 從維修作業帶入 ──
   const roParam = new URLSearchParams(location.search).get('repair_order');
   if (roParam) _loadRepairOrder(roParam);
 }
@@ -1253,7 +1253,7 @@ function openRepairPicker() {
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:16px;width:90%;max-width:520px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(44,39,32,.18);">
         <div style="padding:14px 20px;border-bottom:1px solid rgba(107,95,82,.1);display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:.82rem;font-weight:600;color:var(--text);">選擇維修工單</span>
+          <span style="font-size:.82rem;font-weight:600;color:var(--text);">選擇維修單</span>
           <span style="cursor:pointer;font-size:1.1rem;color:var(--text-sub);" onclick="document.getElementById('repairPickerOverlay').style.display='none'">✕</span>
         </div>
         <div style="padding:12px 20px;">

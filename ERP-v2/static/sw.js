@@ -1,5 +1,5 @@
 // COSH ERP Service Worker
-const CACHE_NAME = 'cosh-erp-v3.2';
+const CACHE_NAME = 'cosh-erp-v3.3';
 const STATIC_ASSETS = [
   '/static/css/main.css?v=20260405',
 ];
@@ -7,13 +7,16 @@ const STATIC_ASSETS = [
 // ── 推播通知 ──────────────────────────────────
 self.addEventListener('push', function(e) {
   const data = e.data ? e.data.json() : {};
-  self.registration.showNotification(data.title || 'ERP 通知', {
-    body: data.body || '',
-    icon: '/static/icons/icon-192x192.png',
-    badge: '/static/icons/favicon-48x48.png',
-    data: { url: data.url || '/' },
-    actions: data.actions || []
-  });
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'ERP 通知', {
+      body: data.body || '',
+      icon: '/static/icons/icon-192x192.png',
+      badge: '/static/icons/favicon-48x48.png',
+      data: { url: data.url || '/' },
+      actions: data.actions || [],
+      silent: false
+    })
+  );
 });
 
 self.addEventListener('notificationclick', function(e) {

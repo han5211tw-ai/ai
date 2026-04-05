@@ -310,9 +310,7 @@ const MENU_GROUPS = [
   },
   {
     id: 'repair', title: '維修檢測', items: [
-      { id: 'repair-order', icon: '·', label: '維修工單', route: '/repair_order', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
-      { id: 'fault',     icon: '·', label: '故障檢測', route: '/fault_diagnose', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
-      { id: 'fault-kb',  icon: '·', label: '維修知識庫', route: '/fault_kb', roles: ['老闆', '業務部主管', '門市部主管'] },
+      { id: 'repair-order', icon: '·', label: '維修作業', route: '/repair_order', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
     ]
   },
   {
@@ -385,8 +383,9 @@ const MENU_GROUPS = [
       { id: 'announcement', icon: '·', label: '系統公告',   route: '/admin/announcement_management', roles: ['老闆'] },
       { id: 'targets',      icon: '·', label: '業績目標',   route: '/target_input',                  roles: ['老闆'] },
       { id: 'staff-mgmt',   icon: '·', label: '員工管理',   route: '/staff_management',              roles: ['老闆'] },
+      { id: 'fault-kb',     icon: '·', label: '維修知識庫', route: '/fault_kb',                      roles: ['老闆', '門市部主管'] },
       { id: 'sys-health',   icon: '·', label: '系統健康',   route: '/admin/health',                  roles: ['老闆'] },
-      { id: 'audit-log',   icon: '·', label: '操作日誌',   route: '/admin/audit_log',               roles: ['老闆'] },
+      { id: 'audit-log',    icon: '·', label: '操作日誌',   route: '/admin/audit_log',               roles: ['老闆'] },
     ]
   },
 ];
@@ -807,7 +806,6 @@ const _MOBILE_ROUTES = new Set([
   '/supervision_score',
   '/pending_purchase',
   '/pending_transfer',
-  '/fault_diagnose',
 ]);
 
 function renderMoreMenu(userRole) {

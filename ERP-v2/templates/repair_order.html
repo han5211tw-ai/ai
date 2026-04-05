@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}維修工單 — COSH ERP{% endblock %}
-{% block page_title %}維修工單{% endblock %}
+{% block title %}維修作業 — COSH ERP{% endblock %}
+{% block page_title %}維修作業{% endblock %}
 
 {% block styles %}
 <style>
@@ -15,6 +15,14 @@
 .card-head {
   padding: 12px 20px; border-bottom: 1px solid var(--border);
   display: flex; justify-content: space-between; align-items: center;
+}
+#detailView .card {
+  overflow: visible;
+}
+#detailView .card-head {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg-card);
+  border-radius: 16px 16px 0 0;
 }
 .card-title { font-size: .72rem; color: var(--text-sub); letter-spacing: .12em; text-transform: uppercase; }
 .card-body { padding: 20px 22px; }
@@ -260,6 +268,114 @@
 .sf-step.done { background: rgba(61,122,61,.10); color: #2e6b2e; border-color: rgba(61,122,61,.2); }
 .sf-arrow { color: var(--text-sub); font-size: .7rem; }
 
+/* ── AI 診斷面板（Step 2 嵌入） ── */
+.fd-panel {
+  margin-top: 14px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.fd-panel-toggle {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; background: var(--bg); cursor: pointer;
+  font-size: .82rem; font-weight: 300; color: var(--text);
+  font-family: var(--font-serif); border: none; width: 100%; text-align: left;
+  transition: background .15s;
+}
+.fd-panel-toggle:hover { background: var(--bg-alt); }
+.fd-panel-toggle .fd-arrow { font-size: .7rem; color: var(--text-sub); transition: transform .2s; }
+.fd-panel-toggle.open .fd-arrow { transform: rotate(180deg); }
+.fd-panel-body { display: none; padding: 14px 16px; border-top: 1px solid var(--border); }
+.fd-panel-body.open { display: block; }
+
+/* AI 對話 */
+.fd-ai-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.fd-ai-input {
+  flex: 1; padding: 10px 14px; border: 1px solid var(--border-mid);
+  border-radius: 8px; font-size: .84rem; font-family: var(--font-serif);
+  font-weight: 300; background: var(--bg); color: var(--text); outline: none;
+  resize: none; min-height: 42px; max-height: 100px;
+}
+.fd-ai-input::placeholder { font-weight: 200; color: var(--text-sub); }
+.fd-ai-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(250,191,19,.10); }
+.fd-ai-send {
+  padding: 10px 18px; border: none; border-radius: 8px;
+  background: var(--text); color: var(--bg); font-size: .82rem;
+  font-family: var(--font-serif); cursor: pointer; white-space: nowrap;
+  min-height: 42px; transition: background .2s;
+}
+.fd-ai-send:hover { background: var(--accent); }
+.fd-ai-send:disabled { opacity: .5; cursor: default; }
+.fd-chat-log {
+  margin-top: 10px; display: flex; flex-direction: column; gap: 8px;
+  max-height: 320px; overflow-y: auto;
+}
+.fd-msg {
+  padding: 10px 14px; border-radius: 10px;
+  font-size: .82rem; line-height: 1.7; font-weight: 300;
+  white-space: pre-wrap; word-break: break-word;
+}
+.fd-msg-user { background: rgba(107,95,82,.08); color: var(--text); align-self: flex-end; max-width: 80%; border-bottom-right-radius: 4px; }
+.fd-msg-ai { background: var(--bg); color: var(--text); align-self: flex-start; max-width: 90%; border-bottom-left-radius: 4px; }
+.fd-msg-loading { background: var(--bg); color: var(--text-sub); font-style: italic; align-self: flex-start; }
+.fd-matched { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.fd-match-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  font-size: .76rem; font-weight: 300; transition: border-color .2s;
+}
+.fd-match-card:hover { border-color: var(--accent); }
+.fd-match-sev { display: inline-block; padding: 1px 5px; border-radius: 999px; font-size: .66rem; margin-right: 3px; }
+.fd-sev-high { background: rgba(185,64,64,.12); color: #b94040; }
+.fd-sev-mid  { background: rgba(250,191,19,.15); color: #8a6800; }
+.fd-sev-low  { background: rgba(46,125,70,.12); color: #2e7d46; }
+
+/* 故障樹瀏覽 */
+.fd-tree-body { display: flex; min-height: 300px; border-top: 1px solid var(--border); }
+.fd-groups {
+  width: 200px; flex-shrink: 0; border-right: 1px solid var(--border);
+  overflow-y: auto; max-height: 400px;
+}
+.fd-group-item {
+  padding: 8px 14px; font-size: .8rem; color: var(--text);
+  cursor: pointer; border-bottom: 1px solid rgba(107,95,82,.06);
+  font-weight: 300; display: flex; justify-content: space-between; align-items: center;
+  transition: background .15s;
+}
+.fd-group-item:hover { background: rgba(107,95,82,.04); }
+.fd-group-item.active { background: var(--bg); font-weight: 400; }
+.fd-group-cnt {
+  font-size: .68rem; color: var(--text-sub); background: rgba(107,95,82,.08);
+  padding: 1px 6px; border-radius: 999px; font-family: var(--font-en);
+}
+.fd-scenarios { flex: 1; overflow-y: auto; max-height: 400px; padding: 6px 0; }
+.fd-scenario-item { padding: 8px 16px; cursor: pointer; border-bottom: 1px solid rgba(107,95,82,.06); transition: background .15s; }
+.fd-scenario-item:hover { background: rgba(107,95,82,.03); }
+.fd-scenario-title { font-size: .82rem; color: var(--text); font-weight: 300; display: flex; align-items: center; gap: 5px; }
+.fd-scenario-detail { display: none; margin-top: 8px; padding: 10px 14px; background: var(--bg); border-radius: 8px; font-size: .78rem; line-height: 1.7; }
+.fd-scenario-detail.open { display: block; }
+.fd-detail-label { font-size: .7rem; color: var(--text-sub); letter-spacing: .08em; margin-top: 6px; margin-bottom: 2px; }
+.fd-detail-label:first-child { margin-top: 0; }
+.fd-detail-list { margin: 0; padding-left: 16px; color: var(--text); font-weight: 300; }
+.fd-detail-list li { margin-bottom: 2px; }
+.fd-use-btn {
+  margin-top: 8px; padding: 5px 12px; border: 1px solid var(--border-mid);
+  border-radius: 8px; background: none; color: var(--text); font-size: .76rem;
+  font-family: var(--font-serif); cursor: pointer;
+}
+.fd-use-btn:hover { background: rgba(107,95,82,.06); }
+.fd-tree-empty { padding: 30px 16px; text-align: center; color: var(--text-sub); font-size: .82rem; font-weight: 300; }
+.fd-search-bar { padding: 8px 14px; display: flex; gap: 6px; }
+.fd-search-input {
+  flex: 1; padding: 7px 10px; border: 1px solid var(--border-mid);
+  border-radius: 8px; font-size: .82rem; font-family: var(--font-serif);
+  font-weight: 300; background: var(--bg); color: var(--text); outline: none;
+}
+.fd-search-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(250,191,19,.10); }
+.fd-search-btn {
+  padding: 7px 14px; border: none; border-radius: 8px;
+  background: var(--text); color: var(--bg); font-size: .8rem;
+  font-family: var(--font-serif); cursor: pointer; transition: background .2s;
+}
+.fd-search-btn:hover { background: var(--accent); }
+
 /* ── 手機版 ── */
 @media (max-width: 767px) {
   .card-body { padding: 14px 16px; }
@@ -273,6 +389,26 @@
   .parts-table { font-size: .78rem; }
   .step-header { padding: 10px 14px; }
   .step-body { padding: 14px 16px; }
+  /* AI 診斷面板手機版 */
+  .fd-ai-input-row { flex-direction: column; gap: 6px; }
+  .fd-ai-input { min-height: 46px; font-size: .84rem; }
+  .fd-ai-send { width: 100%; min-height: 44px; }
+  .fd-chat-log { max-height: 240px; }
+  .fd-tree-body { flex-direction: column; }
+  .fd-groups {
+    width: 100%; max-height: none; border-right: none;
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .fd-groups::-webkit-scrollbar { display: none; }
+  .fd-group-item {
+    white-space: nowrap; padding: 8px 14px; font-size: .78rem;
+    border-bottom: none; border-right: 1px solid rgba(107,95,82,.06);
+    flex-shrink: 0; min-height: 42px; display: flex; align-items: center; gap: 4px;
+  }
+  .fd-scenarios { max-height: none; }
+  .fd-use-btn { width: 100%; min-height: 42px; text-align: center; }
 }
 </style>
 {% endblock %}
@@ -443,7 +579,7 @@ function showCreateForm() {
   currentOrder = null;
   document.getElementById('listView').style.display = 'none';
   document.getElementById('detailView').style.display = 'block';
-  document.getElementById('detailTitle').textContent = '新建維修工單';
+  document.getElementById('detailTitle').textContent = '新建維修作業';
 
   // 清空所有欄位
   ['editCustomerId','editCustomerName','editPhone','editDeviceType',
@@ -469,9 +605,10 @@ function showCreateForm() {
   renderPhraseChips('diagnosis', 'diagnosisChips');
   renderPhraseChips('repair_note', 'noteChips');
 
-  // 新建時隱藏列印按鈕
+  // 新建時隱藏列印 / 刪除按鈕
   document.getElementById('step1PrintBar').style.display = 'none';
   document.getElementById('btnPrintWorkorder').style.display = 'none';
+  document.getElementById('btnDeleteOrder').style.display = 'none';
 
   genPreviewOrderNo();
 }
@@ -734,6 +871,10 @@ async function openOrder(orderNo) {
     const woBtn = document.getElementById('btnPrintWorkorder');
     woBtn.style.display = (curStep >= 4 || o.status === '維修中' || o.status === '待取件' || o.status === '已結案') ? '' : 'none';
 
+    // 老闆 → 顯示刪除按鈕
+    const delBtn = document.getElementById('btnDeleteOrder');
+    delBtn.style.display = (window._user && (window._user.role === 'boss' || window._user.title === '老闆')) ? '' : 'none';
+
     renderPhraseChips('symptom', 'symptomChips');
     renderPhraseChips('diagnosis', 'diagnosisChips');
     renderPhraseChips('repair_note', 'noteChips');
@@ -918,6 +1059,32 @@ function selectCustomer(id, name, phone) {
   document.getElementById('custDropdown').style.display = 'none';
 }
 
+/* ═══ 刪除工單（老闆限定） ═══ */
+async function deleteOrder() {
+  if (!currentOrder) return;
+  if (!confirm('確定要刪除工單 ' + currentOrder.order_no + '？此操作無法復原。')) return;
+  try {
+    const res = await fetch('/api/repair/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_no: currentOrder.order_no,
+        operator: window._user?.name || '',
+        role: window._user?.role || ''
+      })
+    });
+    const txt = await res.text();
+    let d;
+    try { d = JSON.parse(txt); } catch { alert('伺服器回傳異常：' + txt.substring(0, 200)); return; }
+    if (d.success) {
+      backToList();
+      loadList();
+    } else {
+      alert(d.message || '刪除失敗');
+    }
+  } catch (e) { alert('連線失敗：' + e.message); }
+}
+
 /* ═══ 返回列表 ═══ */
 function backToList() {
   document.getElementById('detailView').style.display = 'none';
@@ -971,6 +1138,241 @@ function onSearch() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => loadList(), 350);
 }
+
+/* ═══════════════════════════════════════════════════
+   故障診斷輔助（嵌入 Step 2）
+   ═══════════════════════════════════════════════════ */
+let _fdHistory = [];
+let _allGroups = [];
+let _activeGroup = null;
+let _fdGroupsLoaded = false;
+
+function _fdEsc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _sevClass(s) {
+  if (s === '高') return 'fd-sev-high';
+  if (s === '中') return 'fd-sev-mid';
+  return 'fd-sev-low';
+}
+
+/* 面板展開/收合 */
+function toggleFdPanel(panelId) {
+  const panel = document.getElementById(panelId);
+  const toggle = panel.querySelector('.fd-panel-toggle');
+  const body = panel.querySelector('.fd-panel-body');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
+  // 首次展開故障樹時載入群組
+  if (panelId === 'fdTreePanel' && !isOpen && !_fdGroupsLoaded) {
+    _fdGroupsLoaded = true;
+    loadGroups();
+  }
+}
+
+/* ── AI 對話 ── */
+async function fdAiSend() {
+  const input = document.getElementById('fdAiInput');
+  const desc = input.value.trim();
+  if (!desc) return;
+  const btn = document.getElementById('fdAiSendBtn');
+  btn.disabled = true;
+  input.value = '';
+  fdAppendMsg('user', desc);
+  fdAppendMsg('loading', '診斷中，請稍候…');
+  _fdHistory.push({ role: 'user', content: desc });
+  try {
+    const res = await fetch('/api/fault/ai-diagnose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc, history: _fdHistory.slice(-10) }),
+    });
+    const json = await res.json();
+    fdRemoveLoading();
+    if (!json.success) {
+      fdAppendMsg('ai', '⚠ ' + (json.message || '診斷失敗'));
+    } else {
+      fdAppendMsg('ai', json.reply);
+      _fdHistory.push({ role: 'assistant', content: json.reply });
+      renderMatched(json.matched || []);
+    }
+  } catch (e) {
+    fdRemoveLoading();
+    fdAppendMsg('ai', '⚠ 連線失敗：' + e.message);
+  }
+  btn.disabled = false;
+  input.focus();
+}
+
+function fdAppendMsg(role, text) {
+  const log = document.getElementById('fdChatLog');
+  const div = document.createElement('div');
+  if (role === 'user') {
+    div.className = 'fd-msg fd-msg-user';
+    div.textContent = text;
+  } else if (role === 'loading') {
+    div.className = 'fd-msg fd-msg-loading';
+    div.id = '_fdAiLoading';
+    div.textContent = text;
+  } else {
+    div.className = 'fd-msg fd-msg-ai';
+    div.textContent = text;
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function fdRemoveLoading() {
+  const el = document.getElementById('_fdAiLoading');
+  if (el) el.remove();
+}
+
+function renderMatched(matched) {
+  const wrap = document.getElementById('matchedCards');
+  if (!matched.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = matched.map(m =>
+    `<div class="fd-match-card" onclick="loadScenarioToDiag(${m.id})">
+       <span class="fd-match-sev ${_sevClass(m.severity)}">${_fdEsc(m.severity)}</span>
+       ${_fdEsc(m.title)}
+     </div>`
+  ).join('');
+}
+
+/* 將 AI 最新回覆填入檢測結果 */
+function fdFillDiagnosis() {
+  const msgs = document.querySelectorAll('#fdChatLog .fd-msg-ai');
+  if (!msgs.length) return;
+  const last = msgs[msgs.length - 1].textContent;
+  const el = document.getElementById('editDiagnosis');
+  if (el.value && !el.value.endsWith('\n')) el.value += '\n';
+  el.value += last;
+}
+
+/* 從情境卡片帶入檢測結果 */
+async function loadScenarioToDiag(id) {
+  try {
+    const res = await fetch('/api/fault/scenario/' + id);
+    const json = await res.json();
+    if (!json.success) return;
+    const s = json.scenario;
+    const lines = [];
+    lines.push('【' + (s.group_label || '') + '】' + s.title + '（' + s.severity + '）');
+    if (s.steps && s.steps.length) {
+      lines.push('排查步驟：');
+      s.steps.forEach((x, i) => lines.push('  ' + (i+1) + '. ' + x));
+    }
+    if (s.fix && s.fix.length) {
+      lines.push('處置建議：');
+      s.fix.forEach((x, i) => lines.push('  ' + (i+1) + '. ' + x));
+    }
+    const el = document.getElementById('editDiagnosis');
+    if (el.value && !el.value.endsWith('\n')) el.value += '\n';
+    el.value += lines.join('\n');
+  } catch (e) { console.error(e); }
+}
+
+/* ── 故障樹 ── */
+async function loadGroups() {
+  try {
+    const res = await fetch('/api/fault/groups');
+    const json = await res.json();
+    if (!json.success) return;
+    _allGroups = json.groups || [];
+    renderGroups(_allGroups);
+  } catch (e) { console.error(e); }
+}
+
+function renderGroups(groups) {
+  const wrap = document.getElementById('groupList');
+  if (!wrap) return;
+  wrap.innerHTML = groups.map(g =>
+    `<div class="fd-group-item${_activeGroup === g.group_key ? ' active' : ''}"
+          onclick="selectGroup('${_fdEsc(g.group_key)}')">
+       <span>${_fdEsc(g.label)}</span>
+       <span class="fd-group-cnt">${g.count}</span>
+     </div>`
+  ).join('');
+}
+
+async function selectGroup(gk) {
+  _activeGroup = gk;
+  renderGroups(_allGroups);
+  const wrap = document.getElementById('scenarioList');
+  wrap.innerHTML = '<div class="fd-tree-empty">載入中…</div>';
+  try {
+    const res = await fetch('/api/fault/scenarios?group_key=' + encodeURIComponent(gk));
+    const json = await res.json();
+    if (!json.success) { wrap.innerHTML = '<div class="fd-tree-empty">載入失敗</div>'; return; }
+    renderScenarios(json.scenarios || []);
+  } catch (e) {
+    wrap.innerHTML = '<div class="fd-tree-empty">載入失敗</div>';
+  }
+}
+
+function renderScenarios(items) {
+  const wrap = document.getElementById('scenarioList');
+  if (!items.length) {
+    wrap.innerHTML = '<div class="fd-tree-empty">此群組沒有情境</div>';
+    return;
+  }
+  wrap.innerHTML = items.map(s => `
+    <div class="fd-scenario-item" onclick="toggleScenarioDetail(this)">
+      <div class="fd-scenario-title">
+        <span class="fd-match-sev ${_sevClass(s.severity)}">${_fdEsc(s.severity)}</span>
+        ${_fdEsc(s.title)}
+      </div>
+      <div class="fd-scenario-detail" data-id="${s.id}">
+        <div class="fd-detail-label">排查步驟</div>
+        <ol class="fd-detail-list">${(s.steps||[]).map(x=>'<li>'+_fdEsc(x)+'</li>').join('')}</ol>
+        <div class="fd-detail-label">可能原因</div>
+        <ul class="fd-detail-list">${(s.causes||[]).map(x=>'<li>'+_fdEsc(x)+'</li>').join('')}</ul>
+        <div class="fd-detail-label">檢測方式</div>
+        <ul class="fd-detail-list">${(s.tests||[]).map(x=>'<li>'+_fdEsc(x)+'</li>').join('')}</ul>
+        <div class="fd-detail-label">處置建議</div>
+        <ul class="fd-detail-list">${(s.fix||[]).map(x=>'<li>'+_fdEsc(x)+'</li>').join('')}</ul>
+        <button class="fd-use-btn" onclick="event.stopPropagation();fillFromScenario(${s.id}, this)">填入檢測結果</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleScenarioDetail(el) {
+  const d = el.querySelector('.fd-scenario-detail');
+  if (d) d.classList.toggle('open');
+}
+
+function fillFromScenario(id, btnEl) {
+  loadScenarioToDiag(id);
+}
+
+async function treeDoSearch() {
+  const q = document.getElementById('treeSearch').value.trim();
+  if (!q) { if (_allGroups.length) renderGroups(_allGroups); else loadGroups(); return; }
+  const wrap = document.getElementById('scenarioList');
+  wrap.innerHTML = '<div class="fd-tree-empty">搜尋中…</div>';
+  _activeGroup = null;
+  renderGroups(_allGroups);
+  try {
+    const res = await fetch('/api/fault/search?q=' + encodeURIComponent(q));
+    const json = await res.json();
+    if (!json.success) { wrap.innerHTML = '<div class="fd-tree-empty">搜尋失敗</div>'; return; }
+    const results = json.results || [];
+    if (!results.length) {
+      wrap.innerHTML = '<div class="fd-tree-empty">找不到相關情境</div>';
+      return;
+    }
+    const fullItems = [];
+    for (const r of results) {
+      const d = await fetch('/api/fault/scenario/' + r.id);
+      const dj = await d.json();
+      if (dj.success) fullItems.push(dj.scenario);
+    }
+    renderScenarios(fullItems);
+  } catch (e) {
+    wrap.innerHTML = '<div class="fd-tree-empty">搜尋失敗</div>';
+  }
+}
 </script>
 {% endblock %}
 
@@ -981,7 +1383,7 @@ function onSearch() {
   <div id="listView">
     <div class="card">
       <div class="card-head">
-        <span class="card-title">維修工單</span>
+        <span class="card-title">維修作業</span>
         <button class="btn-primary" onclick="showCreateForm()">新建工單</button>
       </div>
       <div class="card-body">
@@ -1011,10 +1413,11 @@ function onSearch() {
   <div id="detailView" style="display:none;">
     <div class="card">
       <div class="card-head">
-        <span class="card-title" id="detailTitle">新建維修工單</span>
+        <span class="card-title" id="detailTitle">新建維修作業</span>
         <div style="display:flex; gap:8px; align-items:center;">
           <button class="btn-secondary" onclick="if(currentOrder) printReceipt(currentOrder.order_no)" title="列印收件單">收件單</button>
           <button class="btn-secondary" id="btnPrintWorkorder" onclick="if(currentOrder) printWorkorder(currentOrder.order_no)" style="display:none;" title="列印維修單">維修單</button>
+          <button class="btn-danger" id="btnDeleteOrder" onclick="deleteOrder()" style="display:none;" title="刪除此工單">刪除</button>
           <button class="btn-secondary" onclick="backToList()">返回列表</button>
         </div>
       </div>
@@ -1131,9 +1534,52 @@ function onSearch() {
           <div class="step-body">
             <div>
               <div class="field-label">檢測結果</div>
-              <textarea class="f-textarea" id="editDiagnosis" placeholder="技術人員的檢測結果" rows="3"></textarea>
+              <textarea class="f-textarea" id="editDiagnosis" placeholder="技術人員的檢測結果（可使用下方 AI 診斷輔助）" rows="3"></textarea>
               <div class="phrase-chips" id="diagnosisChips"></div>
             </div>
+
+            <!-- AI 診斷輔助面板 -->
+            <div class="fd-panel" id="fdAiPanel">
+              <button class="fd-panel-toggle" onclick="toggleFdPanel('fdAiPanel')">
+                <span>✦ AI 診斷輔助</span>
+                <span class="fd-arrow">▼</span>
+              </button>
+              <div class="fd-panel-body" id="fdAiPanelBody">
+                <div class="fd-ai-input-row">
+                  <textarea class="fd-ai-input" id="fdAiInput"
+                    placeholder="描述客人的電腦問題，例如：「電腦開機風扇轉一下就停了」…"
+                    rows="1"></textarea>
+                  <button class="fd-ai-send" id="fdAiSendBtn" onclick="fdAiSend()">診斷</button>
+                </div>
+                <div class="fd-chat-log" id="fdChatLog"></div>
+                <div class="fd-matched" id="matchedCards"></div>
+                <div style="margin-top:8px; text-align:right;">
+                  <button class="fd-use-btn" onclick="fdFillDiagnosis()" style="font-size:.78rem;">↑ 將最新回覆填入檢測結果</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 故障知識庫瀏覽面板 -->
+            <div class="fd-panel" id="fdTreePanel">
+              <button class="fd-panel-toggle" onclick="toggleFdPanel('fdTreePanel')">
+                <span>📖 故障知識庫瀏覽</span>
+                <span class="fd-arrow">▼</span>
+              </button>
+              <div class="fd-panel-body" id="fdTreePanelBody" style="padding:0;">
+                <div class="fd-search-bar">
+                  <input class="fd-search-input" id="treeSearch" placeholder="搜尋情境…"
+                    onkeydown="if(event.key==='Enter')treeDoSearch()">
+                  <button class="fd-search-btn" onclick="treeDoSearch()">搜尋</button>
+                </div>
+                <div class="fd-tree-body">
+                  <div class="fd-groups" id="groupList"></div>
+                  <div class="fd-scenarios" id="scenarioList">
+                    <div class="fd-tree-empty">← 選擇群組瀏覽情境</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="step-confirm-bar">
               <button class="btn-primary" onclick="confirmStep2()">確認檢測結果</button>
               <button class="btn-secondary" onclick="cancelRepair()" style="color:#8b3a3a;border-color:rgba(139,58,58,.2);">無法維修，結案</button>
