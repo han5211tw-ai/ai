@@ -368,14 +368,7 @@ def generate_report():
     # 記錄這次使用的索引
     save_used_items(quote_index, [])
     
-    # 整理班表
-    on_duty = []
-    on_leave = []
-    for location, name, shift in roster:
-        if shift == '休':
-            on_leave.append((location, name, shift))
-        else:
-            on_duty.append((location, name, shift))
+    # 班表已移除（依需求精簡晨報內容）
     
     # 計算達成率
     company_rate = calculate_rate(dept_actuals.get('公司總計', 0), targets.get('公司', 0))
@@ -397,23 +390,6 @@ def generate_report():
 
 ---
 
-👥 今天誰在崗位上
-"""
-    
-    # 在崗人員
-    for location, name, shift in on_duty:
-        message += f"\n• {location}｜{name}｜{shift}班 {get_shift_emoji(shift)}"
-    
-    # 休假人員
-    for location, name, shift in on_leave:
-        message += f"\n• {location}｜{name}｜休假 {get_shift_emoji(shift)}"
-    
-    message += f"\n\n今天有 {len(on_leave)} 位夥伴休假，在崗的大家辛苦啦！有什麼需要支援的記得互相 cover 喔～"
-    
-    message += f"""
-
----
-
 📊 Q2 第二季業績快報（統計至昨日）
 
 公司整體
@@ -430,32 +406,13 @@ def generate_report():
 目標：{format_money(targets.get('業務部', 0))}
 達成：{format_money(dept_actuals.get('業務部', 0))}
 達成率：{dept_biz_rate:.1f}% 📈
-
-豐原門市
-目標：{format_money(targets.get('豐原門市', 0))}
-達成：{format_money(store_actuals.get('豐原門市', 0))}
-達成率：{fengyuan_rate:.1f}% {'🔥 已超標！' if fengyuan_rate >= 100 else ''}
-
-大雅門市
-目標：{format_money(targets.get('大雅門市', 0))}
-達成：{format_money(store_actuals.get('大雅門市', 0))}
-達成率：{daya_rate:.1f}% {'💨' if daya_rate < 70 else ''}
-
-潭子門市
-目標：{format_money(targets.get('潭子門市', 0))}
-達成：{format_money(store_actuals.get('潭子門市', 0))}
-達成率：{tanzi_rate:.1f}% {'💨' if tanzi_rate < 70 else ''}
 """
-    
-    # 業績總結
-    if fengyuan_rate >= 100:
-        message += f"\n🎉 豐原門市已經超標達成 {fengyuan_rate:.0f}%！"
     
     # Q2 剩餘天數計算 (到 6/30)
     from datetime import timedelta
     q2_end = date(2026, 6, 30)
     remaining_days = (q2_end - today.date()).days
-    message += f"Q2 剛開始，還有 {remaining_days} 天，大家一起加油！業務部表現也很穩，全公司 {company_rate:.1f}% 達成率，季度達標很有希望 💪"
+    message += f"\nQ2 還有 {remaining_days} 天，大家一起加油！全公司 {company_rate:.1f}% 達成率 💪"
     
     message += "\n\n---\n\n💡 科技新鮮事（3則）\n"
     
