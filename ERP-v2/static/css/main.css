@@ -113,6 +113,23 @@ button, input, select, textarea {
   margin-top: 6px;
 }
 
+.form-group.pw-field { position: relative; }
+.pw-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  margin-top: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  opacity: .45;
+  user-select: none;
+  -webkit-user-select: none;
+  line-height: 1;
+  transition: opacity .2s;
+}
+.pw-toggle:hover { opacity: .75; }
+.pw-toggle.active { opacity: .85; }
+
 .login-error {
   font-size: 0.875rem;
   color: #8b4a4a;
@@ -364,7 +381,7 @@ button, input, select, textarea {
 }
 
 .top-bar {
-  height: 56px;
+  height: 38px;
   padding: 0 max(24px, calc((100% - 1160px) / 2));
   display: flex;
   align-items: center;
@@ -494,7 +511,7 @@ select {
   background: var(--text);
   color: var(--bg);
   border: none;
-  border-radius: 999px;
+  border-radius: 8px;
   font-family: var(--font-serif);
   font-size: 0.9rem;
   font-weight: 300;
@@ -520,7 +537,7 @@ select {
   background: transparent;
   color: var(--text-sub);
   border: 1px solid var(--border-mid);
-  border-radius: 999px;
+  border-radius: 8px;
   font-family: var(--font-serif);
   font-size: 0.9rem;
   font-weight: 300;
@@ -542,7 +559,7 @@ select {
   background: transparent;
   color: #8b5555;
   border: 1px solid rgba(139, 85, 85, 0.25);
-  border-radius: 999px;
+  border-radius: 8px;
   font-family: var(--font-serif);
   font-size: 0.9rem;
   font-weight: 300;
@@ -728,17 +745,17 @@ td {
 /* ── 底部導覽列（手機版） ─────────────────────────── */
 .bottom-nav {
   display: none;                       /* 桌機隱藏 */
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 9010;
+  background: var(--bg-card, #faf8f4);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 12px rgba(44,39,32,.06);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .bottom-nav-bar {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  z-index: 9010;
   height: 56px;
-  background: var(--bg-card, #faf8f4);
-  border-top: 1px solid var(--border);
   display: flex; align-items: stretch;
-  box-shadow: 0 -2px 12px rgba(44,39,32,.06);
-  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .bnav-item {
@@ -832,12 +849,9 @@ td {
     padding: 16px 14px calc(16px + 56px + env(safe-area-inset-bottom, 0));
   }
 
-  /* 頂部列簡化 */
+  /* 手機版隱藏頂部標題列 */
   .top-bar {
-    padding: 10px 14px;
-  }
-  .page-title {
-    font-size: .92rem;
+    display: none;
   }
 
   .grid-2, .grid-3, .grid-4 {

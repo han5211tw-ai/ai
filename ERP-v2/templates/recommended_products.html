@@ -8,16 +8,16 @@
 
 .card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
 .card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+.card-title { font-size:.72rem; color:var(--text-sub); letter-spacing:.12em; flex:1; }
 
 /* 分類 tabs */
 .cat-tabs { display:flex; gap:8px; padding:14px 20px; flex-wrap:wrap; border-bottom:1px solid rgba(107,95,82,.06); }
 .cat-tab {
   padding:6px 16px; border-radius:20px; font-size:.78rem; cursor:pointer;
-  border:1px solid rgba(107,95,82,.2); color:#6b5f52; background:none;
+  border:1px solid rgba(107,95,82,.2); color:var(--accent); background:none;
   font-family:var(--font-serif);
 }
-.cat-tab.active { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
+.cat-tab.active { background:var(--text); color:var(--bg); border-color:var(--text); }
 
 /* 商品列表（卡片式） */
 .prod-grid {
@@ -29,41 +29,41 @@
   display:flex; flex-direction:column; gap:8px; background:#faf7f2;
   transition:border-color .2s;
 }
-.prod-card.selected { border-color:#FABF13; background:#fffae8; }
-.prod-card-name { font-size:.9rem; color:#2c2720; font-weight:400; }
-.prod-card-code { font-size:.72rem; color:#9a9188; }
-.prod-card-desc { font-size:.78rem; color:#6b5f52; }
+.prod-card.selected { border-color:var(--brand); background:#fffae8; }
+.prod-card-name { font-size:.9rem; color:var(--text); font-weight:400; }
+.prod-card-code { font-size:.72rem; color:var(--text-sub); }
+.prod-card-desc { font-size:.78rem; color:var(--accent); }
 .prod-card-qty-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
-.qty-label { font-size:.74rem; color:#9a9188; }
+.qty-label { font-size:.74rem; color:var(--text-sub); }
 
 /* 數量輸入 */
 .qty-input {
   width:60px; padding:5px 8px; border:1px solid rgba(107,95,82,.25);
   border-radius:6px; font-size:.84rem; text-align:center;
-  font-family:var(--font-serif); color:#2c2720; background:#fff;
+  font-family:var(--font-serif); color:var(--text); background:#fff;
   outline:none;
 }
-.qty-input:focus { border-color:#FABF13; }
-.qty-suggest { font-size:.72rem; color:#9a9188; margin-left:2px; }
+.qty-input:focus { border-color:var(--brand); }
+.qty-suggest { font-size:.72rem; color:var(--text-sub); margin-left:2px; }
 
 .select-toggle {
   margin-top:auto; padding:6px 12px; border-radius:8px; font-size:.78rem;
-  border:1px solid rgba(107,95,82,.22); cursor:pointer; background:none; color:#6b5f52;
+  border:1px solid rgba(107,95,82,.22); cursor:pointer; background:none; color:var(--accent);
   font-family:var(--font-serif); text-align:center;
 }
-.select-toggle.on { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
+.select-toggle.on { background:var(--text); color:var(--bg); border-color:var(--text); }
 
 /* 已選清單 */
 .cart-section { padding:0 20px 16px; }
-.cart-title { font-size:.78rem; color:#9a9188; letter-spacing:.06em; padding:10px 0 8px; border-bottom:1px solid rgba(107,95,82,.06); margin-bottom:10px; }
+.cart-title { font-size:.78rem; color:var(--text-sub); letter-spacing:.06em; padding:10px 0 8px; border-bottom:1px solid rgba(107,95,82,.06); margin-bottom:10px; }
 .cart-item {
   display:flex; align-items:center; gap:10px; padding:7px 0;
   border-bottom:1px solid rgba(107,95,82,.04); font-size:.84rem;
 }
 .cart-item:last-child { border-bottom:none; }
-.cart-item-name { flex:1; color:#2c2720; }
-.cart-item-qty { width:50px; text-align:center; font-family:var(--font-en); font-size:1.1rem; color:#2c2720; }
-.cart-item-unit { font-size:.74rem; color:#9a9188; }
+.cart-item-name { flex:1; color:var(--text); }
+.cart-item-qty { width:50px; text-align:center; font-family:var(--font-en); font-size:1.1rem; color:var(--text); }
+.cart-item-unit { font-size:.74rem; color:var(--text-sub); }
 .cart-remove { color:#8b3a3a; font-size:.74rem; cursor:pointer; background:none; border:none; padding:2px 6px; }
 
 /* 備註與送出 */
@@ -74,19 +74,14 @@
 .f-input {
   padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
   font-size:.84rem; font-family:var(--font-serif); font-weight:300;
-  color:#2c2720; background:#f5f0e8; outline:none; flex:1;
+  color:var(--text); background:var(--bg); outline:none; flex:1;
 }
-.f-input:focus { border-color:#6b5f52; }
-.submit-btn {
-  padding:9px 22px; background:#2c2720; color:#f5f0e8;
-  border:none; border-radius:8px; font-size:.84rem;
-  font-family:var(--font-serif); cursor:pointer; white-space:nowrap;
-}
-.submit-btn:disabled { opacity:.5; cursor:default; }
+.f-input:focus { border-color:var(--accent); }
+/* .submit-btn - use btn-primary from main.css */
 
 .msg-ok  { font-size:.8rem; color:#4a7c59; }
 .msg-err { font-size:.8rem; color:#8b3a3a; }
-.empty-msg { text-align:center; color:#9a9188; padding:24px; font-size:.84rem; }
+.empty-msg { text-align:center; color:var(--text-sub); padding:24px; font-size:.84rem; }
 </style>
 {% endblock %}
 
@@ -125,7 +120,7 @@
         <div style="font-size:.74rem;color:#9a9188;margin-bottom:4px">備註說明（選填）</div>
         <input class="f-input" id="submitNote" placeholder="例：急件、指定倉庫…">
       </div>
-      <button class="submit-btn" id="submitBtn" onclick="submitNeeds()">送出備貨需求</button>
+      <button class="btn-primary" id="submitBtn" onclick="submitNeeds()">送出備貨需求</button>
     </div>
   </div>
 
@@ -248,7 +243,7 @@ function renderCartUI() {
 
   document.getElementById('cartItems').innerHTML = items.map(([id, entry]) => `
     <div class="cart-item">
-      <span class="cart-item-name">${entry.prod.item_name}${entry.prod.product_code ? ` <span style="color:#9a9188;font-size:.76rem">${entry.prod.product_code}</span>` : ''}</span>
+      <span class="cart-item-name">${entry.prod.item_name}${entry.prod.product_code ? ` <span style="color:var(--text-sub);font-size:.76rem">${entry.prod.product_code}</span>` : ''}</span>
       <span class="cart-item-qty">${entry.qty}</span>
       <span class="cart-item-unit">件</span>
       <button class="cart-remove" onclick="removeFromCart(${id})">✕</button>

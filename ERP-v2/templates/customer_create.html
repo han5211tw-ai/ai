@@ -21,7 +21,7 @@
   font-family: var(--font-en);
   font-size: 1rem;
   letter-spacing: .12em;
-  color: #9a9188;
+  color: var(--text-sub);
   text-transform: uppercase;
   margin-bottom: 18px;
   padding-bottom: 12px;
@@ -44,7 +44,7 @@
 .cc-field.full { flex: 0 0 100%; }
 .cc-field label {
   font-size: .85rem;
-  color: #9a9188;
+  color: var(--text-sub);
   letter-spacing: .04em;
 }
 .cc-field label span.req { color: #c0392b; margin-left: 2px; }
@@ -57,8 +57,8 @@
   font-size: 16px;
   font-family: var(--font-serif);
   font-weight: 300;
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
   width: 100%;
   box-sizing: border-box;
   transition: border-color .2s, box-shadow .2s;
@@ -66,13 +66,13 @@
 .cc-field input:focus,
 .cc-field select:focus {
   outline: none;
-  border-color: #FABF13;
+  border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(250,191,19,.12);
   background: #fff;
 }
 .cc-field input[readonly] {
   background: #ede9e0;
-  color: #6b5f52;
+  color: var(--accent);
 }
 
 /* ID 預覽區 */
@@ -84,7 +84,7 @@
 .id-preview input { flex: 1; }
 .id-badge {
   font-size: .78rem;
-  color: #9a9188;
+  color: var(--text-sub);
   white-space: nowrap;
   padding: 6px 10px;
   background: rgba(107,95,82,.06);
@@ -97,7 +97,7 @@
   align-items: center;
   gap: 8px;
   font-size: .85rem;
-  color: #9a9188;
+  color: var(--text-sub);
   cursor: pointer;
   margin-top: 2px;
 }
@@ -110,8 +110,8 @@
 /* 送出按鈕 */
 .btn-submit {
   padding: 10px 26px;
-  background: #2c2720;
-  color: #f5f0e8;
+  background: var(--text);
+  color: var(--bg);
   border: none;
   border-radius: 8px;
   font-size: .82rem;
@@ -134,28 +134,28 @@
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px;
   font-size: .9rem;
-  background: #f5f0e8;
+  background: var(--bg);
   font-family: var(--font-serif);
   outline: none;
 }
-.search-bar input:focus { border-color: #6b5f52; }
+.search-bar input:focus { border-color: var(--accent); }
 .btn-search {
   padding: 9px 18px;
-  background: #f5f0e8;
+  background: var(--bg);
   border: 1px solid rgba(107,95,82,.3);
   border-radius: 10px;
   font-size: .85rem;
   cursor: pointer;
-  color: #6b5f52;
+  color: var(--accent);
   font-family: var(--font-serif);
   white-space: nowrap;
 }
-.btn-search:hover { background: #ede9e0; }
+.btn-search:hover { background: var(--bg-alt); }
 
 .dup-result {
   margin-top: 10px;
   font-size: .85rem;
-  color: #9a9188;
+  color: var(--text-sub);
 }
 .dup-row {
   display: flex;
@@ -167,9 +167,9 @@
   margin-top: 6px;
   align-items: center;
 }
-.dup-row .dup-id { color: #6b5f52; font-size: .82rem; white-space: nowrap; }
+.dup-row .dup-id { color: var(--accent); font-size: .82rem; white-space: nowrap; }
 .dup-row .dup-name { flex: 1; font-weight: 500; }
-.dup-row .dup-mobile { color: #9a9188; font-size: .82rem; }
+.dup-row .dup-mobile { color: var(--text-sub); font-size: .82rem; }
 
 /* toast */
 .toast {
@@ -375,7 +375,7 @@ async function searchDup() {
         <span class="dup-id">${escHtml(c.customer_id)}</span>
         <span class="dup-name">${escHtml(c.short_name)}</span>
         <span class="dup-mobile">${escHtml(c.mobile || c.phone1 || '')}</span>
-        <span style="font-size:.78rem;color:#9a9188">${escHtml(c.company_address || '')}</span>
+        <span style="font-size:.78rem;color:var(--text-sub)">${escHtml(c.company_address || '')}</span>
       </div>`).join('');
 }
 

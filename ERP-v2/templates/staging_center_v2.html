@@ -8,54 +8,54 @@
 
 .card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
 .card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+.card-title { font-size:.72rem; color:var(--text-sub); letter-spacing:.12em; flex:1; }
 
 /* Tab 切換 */
 .tab-bar { display:flex; gap:0; border-bottom:1px solid rgba(107,95,82,.1); }
 .tab-btn {
-  padding:11px 22px; font-size:.8rem; color:#9a9188;
+  padding:11px 22px; font-size:.8rem; color:var(--text-sub);
   border:none; background:none; cursor:pointer;
   font-family:var(--font-serif); letter-spacing:.04em;
   border-bottom:2px solid transparent; margin-bottom:-1px;
   transition:color .2s;
 }
-.tab-btn.active { color:#2c2720; border-bottom-color:#2c2720; }
+.tab-btn.active { color:var(--text); border-bottom-color:var(--text); }
 .tab-btn .badge {
   display:inline-block; background:#e8d5a3; color:#6b4f00;
   border-radius:20px; padding:1px 7px; font-size:.66rem; margin-left:5px;
 }
-.tab-btn.active .badge { background:#2c2720; color:#f5f0e8; }
+.tab-btn.active .badge { background:var(--text); color:var(--bg); }
 
 /* 篩選列 */
 .filter-bar {
   display:flex; gap:10px; align-items:flex-end; padding:12px 20px;
   border-bottom:1px solid rgba(107,95,82,.06); flex-wrap:wrap;
 }
-.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+.field-label { font-size:.74rem; color:var(--text-sub); letter-spacing:.04em; margin-bottom:4px; }
 .f-input, .f-select {
   padding:7px 11px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
   font-size:.83rem; font-family:var(--font-serif); font-weight:300;
-  color:#2c2720; background:#f5f0e8; outline:none;
+  color:var(--text); background:var(--bg); outline:none;
 }
-.f-input:focus { border-color:#6b5f52; }
-.f-select:focus { border-color:#6b5f52; }
+.f-input:focus { border-color:var(--accent); }
+.f-select:focus { border-color:var(--accent); }
 /* 篩選列奇偶交替 */
 #fSrStatus { background: var(--bg-card, #faf8f4); }
 
 /* 統計列 */
 .stat-row { display:flex; gap:10px; padding:10px 20px; flex-wrap:wrap; border-bottom:1px solid rgba(107,95,82,.06); }
-.stat-chip { background:#faf7f2; border-radius:8px; padding:8px 14px; font-size:.78rem; color:#6b5f52; }
-.stat-chip strong { color:#2c2720; font-size:.9rem; }
+.stat-chip { background:#faf7f2; border-radius:8px; padding:8px 14px; font-size:.78rem; color:var(--accent); }
+.stat-chip strong { color:var(--text); font-size:.9rem; }
 
 /* 表格 */
 .sc-table { width:100%; border-collapse:collapse; font-size:.82rem; }
 .sc-table th {
-  text-align:left; padding:9px 12px; font-weight:300; color:#9a9188;
+  text-align:left; padding:9px 12px; font-weight:300; color:var(--text-sub);
   font-size:.7rem; letter-spacing:.06em; background:#faf7f2;
   border-bottom:1px solid rgba(107,95,82,.1);
 }
 .sc-table td {
-  padding:9px 12px; color:#2c2720;
+  padding:9px 12px; color:var(--text);
   border-bottom:1px solid rgba(107,95,82,.05); vertical-align:top;
 }
 .sc-table tr:last-child td { border-bottom:none; }
@@ -80,18 +80,18 @@
 /* 操作按鈕 */
 .action-btn {
   padding:3px 10px; border-radius:5px; font-size:.74rem;
-  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
+  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:var(--accent);
   font-family:var(--font-serif); white-space:nowrap;
 }
 .action-btn.resolve { border-color:rgba(61,122,61,.3); color:#3d7a3d; }
 .action-btn.resolve:hover { background:#e8f4e8; }
-.action-btn:hover { background:#f5f0e8; }
+.action-btn:hover { background:var(--bg); }
 
 /* 內容摺疊 */
-.code-text { font-size:.74rem; color:#6b5f52; font-family:var(--font-mono); word-break:break-all; max-width:160px; }
-.sub-text   { font-size:.74rem; color:#9a9188; }
+.code-text { font-size:.74rem; color:var(--accent); font-family:var(--font-mono); word-break:break-all; max-width:160px; }
+.sub-text   { font-size:.74rem; color:var(--text-sub); }
 
-.empty-msg { text-align:center; color:#9a9188; padding:32px; font-size:.84rem; }
+.empty-msg { text-align:center; color:var(--text-sub); padding:32px; font-size:.84rem; }
 .msg-ok  { font-size:.8rem; color:#4a7c59; }
 .msg-err { font-size:.8rem; color:#8b3a3a; }
 
@@ -107,11 +107,11 @@
 }
 .match-box h3 { margin:0 0 14px; font-size:.95rem; font-weight:400; }
 .match-field { margin-bottom:12px; }
-.match-field label { display:block; font-size:.76rem; color:#9a9188; margin-bottom:4px; }
+.match-field label { display:block; font-size:.76rem; color:var(--text-sub); margin-bottom:4px; }
 .match-field input, .match-field select {
   width:100%; padding:8px 10px; border:1px solid rgba(107,95,82,.22);
   border-radius:8px; font-size:.84rem; font-family:var(--font-serif);
-  color:#2c2720; background:#f5f0e8; box-sizing:border-box;
+  color:var(--text); background:var(--bg); box-sizing:border-box;
 }
 .match-field .search-result {
   max-height:160px; overflow-y:auto; border:1px solid rgba(107,95,82,.12);
@@ -121,16 +121,16 @@
   padding:8px 12px; cursor:pointer; font-size:.82rem;
   border-bottom:1px solid rgba(107,95,82,.06);
 }
-.match-field .sr-item:hover { background:#f5f0e8; }
+.match-field .sr-item:hover { background:var(--bg); }
 .match-field .sr-item.selected { background:#e8f4e8; }
-.match-field .sr-item .sr-sub { font-size:.72rem; color:#9a9188; }
+.match-field .sr-item .sr-sub { font-size:.72rem; color:var(--text-sub); }
 .match-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 .match-actions button {
   padding:8px 16px; border-radius:8px; font-size:.82rem;
   font-family:var(--font-serif); cursor:pointer;
 }
-.btn-match-cancel { border:1px solid rgba(107,95,82,.3); background:none; color:#6b5f52; }
-.btn-match-save { border:none; background:#2c2720; color:#f5f0e8; }
+.btn-match-cancel { border:1px solid rgba(107,95,82,.3); background:none; color:var(--accent); }
+.btn-match-save { border:none; background:var(--text); color:var(--bg); }
 .btn-match-new { border:1px solid rgba(61,122,61,.3); background:none; color:#3d7a3d; }
 </style>
 {% endblock %}
@@ -236,7 +236,7 @@
     <input type="hidden" id="matchType">
     <div class="match-field">
       <label>原始輸入</label>
-      <input type="text" id="matchRawInput" readonly style="background:#eee9e0;color:#9a9188">
+      <input type="text" id="matchRawInput" readonly style="background:#eee9e0;color:var(--text-sub)">
     </div>
     <div class="match-field">
       <label>搜尋現有資料配對</label>
@@ -315,8 +315,8 @@ async function loadStagingRecords() {
         <div class="code-text">${r.raw_mobile || '—'}</div>
       </td>
       <td style="white-space:nowrap">${r.requester || '—'}</td>
-      <td style="white-space:nowrap;font-size:.78rem;color:#6b5f52">${r.department || '—'}</td>
-      <td style="white-space:nowrap;font-size:.76rem;color:#9a9188">${(r.created_at||'').slice(0,10)}</td>
+      <td style="white-space:nowrap;font-size:.78rem;color:var(--accent)">${r.department || '—'}</td>
+      <td style="white-space:nowrap;font-size:.76rem;color:var(--text-sub)">${(r.created_at||'').slice(0,10)}</td>
       <td>
         <span class="status-chip status-${r.status}">
           ${r.status === 'pending' ? '待處理' : '已完成'}
@@ -450,7 +450,7 @@ async function doMatchSearch() {
     let list;
     if (type === 'customer') {
       list = json.data || json || [];
-      if (!list.length) { el.innerHTML = '<div style="padding:10px;color:#9a9188;font-size:.82rem">查無結果</div>'; el.style.display = 'block'; return; }
+      if (!list.length) { el.innerHTML = '<div style="padding:10px;color:var(--text-sub);font-size:.82rem">查無結果</div>'; el.style.display = 'block'; return; }
       el.innerHTML = list.map(c => {
         const mob = c.mobile || c.phone1 || '';
         return `<div class="sr-item" onclick="pickMatch('${c.customer_id}','${escHtml(c.short_name || '')}')">
@@ -460,7 +460,7 @@ async function doMatchSearch() {
       }).join('');
     } else {
       list = Array.isArray(json) ? json : (json.data || []);
-      if (!list.length) { el.innerHTML = '<div style="padding:10px;color:#9a9188;font-size:.82rem">查無結果</div>'; el.style.display = 'block'; return; }
+      if (!list.length) { el.innerHTML = '<div style="padding:10px;color:var(--text-sub);font-size:.82rem">查無結果</div>'; el.style.display = 'block'; return; }
       el.innerHTML = list.map(p => `<div class="sr-item" onclick="pickMatch('${p.product_code || ''}','${escHtml(p.product_name || p.item_spec || '')}')">
         <div>${p.product_name || p.item_spec || ''}</div>
         <div class="sr-sub">${p.product_code || ''}</div>

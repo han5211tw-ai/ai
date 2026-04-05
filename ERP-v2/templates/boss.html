@@ -31,7 +31,7 @@
   font-family: var(--font-en);
   font-size: 2.5rem;
   font-weight: 300;
-  color: #2c2720;
+  color: var(--text);
   line-height: 1.1;
   margin: 8px 0 4px;
   letter-spacing: .03em;
@@ -59,7 +59,7 @@
   font-family: var(--font-en);
   font-size: 1.1rem;
   font-weight: 300;
-  color: #2c2720;
+  color: var(--text);
   letter-spacing: .06em;
   display: flex;
   align-items: center;
@@ -72,7 +72,7 @@
   font-size: .78rem;
   font-family: var(--font-serif);
   background: rgba(107,95,82,.1);
-  color: #6b5f52;
+  color: var(--accent);
 }
 .count-badge.has-items { background: rgba(184,137,58,.15); color: #b8893a; }
 
@@ -82,7 +82,7 @@
   border-radius: 6px;
   padding: 5px 12px;
   font-size: .76rem;
-  color: #6b5f52;
+  color: var(--accent);
   cursor: pointer;
   white-space: nowrap;
   transition: background .15s;
@@ -102,35 +102,35 @@
   padding: 8px 8px;
   font-weight: 400;
   font-size: .72rem;
-  color: #9a9188;
+  color: var(--text-sub);
   letter-spacing: .06em;
-  border-bottom: 1px solid rgba(107,95,82,.15);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .b-table td {
   padding: 8px 8px;
   border-bottom: 1px solid rgba(107,95,82,.07);
   vertical-align: middle;
-  color: #2c2720;
+  color: var(--text);
 }
 .b-table tr:last-child td { border-bottom: none; }
 .b-table tr:hover td { background: rgba(245,240,232,.5); }
 
-.cell-no { color: #9a9188; font-size: .8rem; text-align: center; }
-.cell-date { white-space: nowrap; color: #9a9188; font-size: .82rem; }
+.cell-no { color: var(--text-sub); font-size: .8rem; text-align: center; }
+.cell-date { white-space: nowrap; color: var(--text-sub); font-size: .82rem; }
 
 .cell-code {
   font-family: var(--font-mono);
   font-size: .82rem;
-  color: #6b5f52;
+  color: var(--accent);
   white-space: nowrap;
 }
 .cell-code.temp { color: #a85c5c; }
 
-.product-name { font-weight: 400; color: #2c2720; line-height: 1.4; }
+.product-name { font-weight: 400; color: var(--text); line-height: 1.4; }
 .last-purchase {
   font-size: .76rem;
-  color: #9a9188;
+  color: var(--text-sub);
   margin-top: 3px;
   line-height: 1.5;
 }
@@ -138,7 +138,7 @@
 .lp-price { color: #b8893a; }
 .lp-none { font-style: italic; }
 
-.cell-qty { text-align: center; font-weight: 400; color: #2c2720; }
+.cell-qty { text-align: center; font-weight: 400; color: var(--text); }
 
 .type-badge {
   display: inline-block;
@@ -150,8 +150,8 @@
   white-space: nowrap;
 }
 
-.cell-purpose-main { color: #2c2720; }
-.cell-purpose-cust { font-size: .76rem; color: #9a9188; margin-top: 2px; }
+.cell-purpose-main { color: var(--text); }
+.cell-purpose-cust { font-size: .76rem; color: var(--text-sub); margin-top: 2px; }
 .temp-cust { color: #a85c5c; }
 
 .s-badge {
@@ -162,7 +162,7 @@
   white-space: nowrap;
 }
 .s-pending  { background: rgba(184,137,58,.12); color: #b8893a; }
-.s-purchased { background: rgba(107,95,82,.1); color: #6b5f52; }
+.s-purchased { background: rgba(107,95,82,.1); color: var(--accent); }
 .s-done     { background: rgba(107,138,92,.12); color: #6b8a5c; }
 .s-cancelled { background: rgba(168,92,92,.1); color: #a85c5c; }
 
@@ -172,17 +172,17 @@
   flex: 1;
   min-width: 90px;
   padding: 5px 7px;
-  border: 1px solid rgba(107,95,82,.15);
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: .82rem;
   font-family: var(--font-serif);
   font-weight: 300;
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
   outline: none;
   box-sizing: border-box;
 }
-.notes-input:focus { border-color: #6b5f52; }
+.notes-input:focus { border-color: var(--accent); }
 .btn-save-note {
   padding: 5px 12px;
   background: none;
@@ -190,7 +190,7 @@
   border-radius: 6px;
   font-size: .76rem;
   font-family: var(--font-serif);
-  color: #6b5f52;
+  color: var(--accent);
   cursor: pointer;
   white-space: nowrap;
   transition: background .15s;
@@ -213,7 +213,7 @@
 .btn-purchased {
   padding: 5px 12px;
   background: none;
-  color: #2c2720;
+  color: var(--text);
   border: 1px solid rgba(44,39,32,.35);
   border-radius: 6px;
   font-size: .76rem;
@@ -239,7 +239,7 @@
 .empty-hint {
   text-align: center;
   padding: 40px 0;
-  color: #9a9188;
+  color: var(--text-sub);
   font-size: .88rem;
 }
 
@@ -300,7 +300,7 @@
   padding: 8px 8px;
   border-bottom: 1px solid rgba(184,100,50,.07);
   vertical-align: middle;
-  color: #2c2720;
+  color: var(--text);
 }
 .anomaly-table tr:last-child td { border-bottom: none; }
 .anomaly-table tr:hover td { background: rgba(255,235,218,.4); }
@@ -334,6 +334,20 @@
 .toast-msg.show { opacity: 1; }
 .toast-msg.success { background: #5a7a4a; }
 .toast-msg.error   { background: #8a4a4a; }
+
+/* ── 回訪總覽 ── */
+.fu-mini-stats {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(100px,1fr));
+  gap: 10px; margin-bottom: 12px;
+}
+.fu-mini-card { text-align:center; padding:10px 8px; background:var(--bg); border-radius:8px; }
+.fu-mini-num { font-family:var(--font-en); font-size:1.3rem; font-weight:300; }
+.fu-mini-label { font-size:.72rem; color:var(--text-sub); margin-top:2px; }
+.fu-mini-num.red { color:#c0392b; }
+.fu-mini-num.orange { color:#e67e22; }
+.fu-mini-num.green { color:#27ae60; }
+.fu-staff-row { font-size:.82rem; padding:6px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+.fu-staff-row:last-child { border-bottom:none; }
 </style>
 {% endblock %}
 
@@ -372,6 +386,18 @@
     <div class="table-scroll">
       <div id="anomalyWrap"><div class="empty-hint">載入中…</div></div>
     </div>
+  </div>
+
+  <!-- ── 客戶回訪總覽 ── -->
+  <div class="b-card" id="followupCard">
+    <div class="b-card-header">
+      <div class="b-card-title">
+        客戶回訪總覽
+        <span class="count-badge" id="fuBadge">載入中</span>
+      </div>
+      <a href="/followup" style="font-size:.78rem;color:var(--text-sub);letter-spacing:.04em;">查看全部 →</a>
+    </div>
+    <div id="fuStatsWrap"><div class="empty-hint">載入中…</div></div>
   </div>
 
   <!-- ── 待請購清單 ── -->
@@ -420,6 +446,7 @@ function onAppReady(user) {
 
   loadAnomalies();
   loadNeeds();
+  loadFollowupStats();
 }
 
 // ────────────────────────────────────
@@ -606,7 +633,7 @@ function renderTable(needs) {
       <td class="cell-qty">${n.quantity || '—'}</td>
       <td><span class="type-badge">${esc(n.request_type || '請購')}</span></td>
       <td>${purposeHtml}</td>
-      <td style="white-space:nowrap;color:#6b5f52">${esc(n.department || '—')}</td>
+      <td style="white-space:nowrap;color:var(--accent)">${esc(n.department || '—')}</td>
       <td style="white-space:nowrap">${esc(n.requester || '—')}</td>
       <td><span class="s-badge ${sCls}">${esc(n.status || '待處理')}</span></td>
       <td>
@@ -704,6 +731,31 @@ function toast(msg, type='success') {
   el.className = `toast-msg ${type} show`;
   clearTimeout(toastT);
   toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ────────────────────────────────────
+// 客戶回訪總覽
+// ────────────────────────────────────
+async function loadFollowupStats() {
+  try {
+    const r = await fetch('/api/followup/stats');
+    const d = await r.json();
+    if (!d.success) { document.getElementById('fuStatsWrap').innerHTML='<div class="empty-hint">載入失敗</div>'; return; }
+    document.getElementById('fuBadge').textContent = d.pending + ' 待辦';
+    let html = '<div class="fu-mini-stats">';
+    html += `<div class="fu-mini-card"><div class="fu-mini-num">${d.total}</div><div class="fu-mini-label">全部</div></div>`;
+    html += `<div class="fu-mini-card"><div class="fu-mini-num orange">${d.pending}</div><div class="fu-mini-label">待回訪</div></div>`;
+    html += `<div class="fu-mini-card"><div class="fu-mini-num red">${d.overdue}</div><div class="fu-mini-label">已逾期</div></div>`;
+    html += `<div class="fu-mini-card"><div class="fu-mini-num green">${d.completed}</div><div class="fu-mini-label">已完成</div></div>`;
+    html += `<div class="fu-mini-card"><div class="fu-mini-num">${d.skipped}</div><div class="fu-mini-label">已跳過</div></div>`;
+    html += '</div>';
+    if (d.by_staff && d.by_staff.length) {
+      html += d.by_staff.map(s =>
+        `<div class="fu-staff-row"><span>${s.assigned_name||'未指派'}</span><span>待辦 ${s.pending}　逾期 <span style="color:#c0392b">${s.overdue}</span>　完成 ${s.completed}</span></div>`
+      ).join('');
+    }
+    document.getElementById('fuStatsWrap').innerHTML = html;
+  } catch(e) { document.getElementById('fuStatsWrap').innerHTML='<div class="empty-hint">載入失敗</div>'; }
 }
 </script>
 {% endblock %}

@@ -23,11 +23,11 @@
   font-family: var(--font-en);
   font-size: 1.2rem;
   font-weight: 300;
-  color: #2c2720;
+  color: var(--text);
   letter-spacing: .06em;
   flex: 1;
 }
-.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+.ctrl-label { font-size: .78rem; color: var(--text-sub); letter-spacing: .04em; }
 .year-sel, .month-sel {
   padding: 7px 12px;
   border: 1px solid rgba(107,95,82,.22);
@@ -35,8 +35,8 @@
   font-size: .82rem;
   font-family: var(--font-serif);
   font-weight: 300;
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
 }
 .print-btn {
   padding: 7px 18px;
@@ -44,7 +44,7 @@
   border-radius: 8px;
   background: none;
   font-size: .8rem;
-  color: #6b5f52;
+  color: var(--accent);
   cursor: pointer;
   font-family: var(--font-serif);
   letter-spacing: .06em;
@@ -64,7 +64,7 @@
   font-weight: 300;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: #9a9188;
+  color: var(--text-sub);
   margin-bottom: 18px;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(107,95,82,.1);
@@ -77,7 +77,7 @@
   gap: 16px;
 }
 .ov-card {
-  background: #f5f0e8;
+  background: var(--bg);
   border-radius: 12px;
   padding: 18px 20px;
   text-align: center;
@@ -86,10 +86,10 @@
   font-family: var(--font-en);
   font-size: 1.6rem;
   font-weight: 300;
-  color: #2c2720;
+  color: var(--text);
   letter-spacing: .02em;
 }
-.ov-lbl { font-size: .71rem; color: #9a9188; margin-top: 4px; letter-spacing: .05em; }
+.ov-lbl { font-size: .71rem; color: var(--text-sub); margin-top: 4px; letter-spacing: .05em; }
 
 /* ── 表格 ─────────────────────────────── */
 .rep-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
@@ -97,14 +97,14 @@
   text-align: left;
   padding: 8px 12px;
   font-weight: 300;
-  color: #9a9188;
+  color: var(--text-sub);
   letter-spacing: .06em;
   font-size: .74rem;
   border-bottom: 1px solid rgba(107,95,82,.1);
 }
 .rep-table td {
   padding: 10px 12px;
-  color: #2c2720;
+  color: var(--text);
   border-bottom: 1px solid rgba(107,95,82,.06);
 }
 .rep-table tr:last-child td { border-bottom: none; }
@@ -125,11 +125,11 @@
 /* ── 門市達成進度條 ───────────────────── */
 .store-rows { display: flex; flex-direction: column; gap: 14px; }
 .store-row { display: grid; grid-template-columns: 70px 1fr 90px 80px; align-items: center; gap: 12px; }
-.store-name { font-size: .83rem; color: #2c2720; letter-spacing: .04em; }
+.store-name { font-size: .83rem; color: var(--text); letter-spacing: .04em; }
 .ach-bar-bg { background: rgba(107,95,82,.1); border-radius: 4px; height: 8px; overflow: hidden; }
 .ach-bar-fill { height: 100%; border-radius: 4px; }
 .ach-val { font-family: var(--font-en); font-size: .9rem; text-align: right; }
-.ach-rev { font-family: var(--font-en); font-size: .82rem; color: #9a9188; text-align: right; }
+.ach-rev { font-family: var(--font-en); font-size: .82rem; color: var(--text-sub); text-align: right; }
 
 /* ── 個人排名 ─────────────────────────── */
 .rank-list { display: flex; flex-direction: column; gap: 8px; }
@@ -143,9 +143,9 @@
 }
 .rank-row:hover { background: rgba(107,95,82,.04); }
 .rank-num { width: 24px; text-align: center; font-size: .9rem; }
-.rank-name { flex: 1; color: #2c2720; }
+.rank-name { flex: 1; color: var(--text); }
 .rank-ach  { font-family: var(--font-en); font-size: .88rem; width: 64px; text-align: right; }
-.rank-rev  { font-family: var(--font-en); font-size: .88rem; color: #6b5f52; width: 120px; text-align: right; }
+.rank-rev  { font-family: var(--font-en); font-size: .88rem; color: var(--accent); width: 120px; text-align: right; }
 
 /* ── 分析區塊 ─────────────────────────── */
 .analysis-grid {
@@ -155,12 +155,12 @@
 }
 @media (max-width: 640px) { .analysis-grid { grid-template-columns: 1fr; } }
 .analysis-item {
-  background: #f5f0e8;
+  background: var(--bg);
   border-radius: 10px;
   padding: 16px 18px;
 }
-.analysis-label { font-size: .72rem; color: #9a9188; letter-spacing: .06em; margin-bottom: 6px; }
-.analysis-val { font-size: .92rem; color: #2c2720; line-height: 1.5; }
+.analysis-label { font-size: .72rem; color: var(--text-sub); letter-spacing: .06em; margin-bottom: 6px; }
+.analysis-val { font-size: .92rem; color: var(--text); line-height: 1.5; }
 
 /* skeleton */
 .skel {
@@ -207,11 +207,11 @@
     <div class="section-title">二、部門業績</div>
     <div class="chart-row">
       <div>
-        <div style="font-size:.75rem;color:#9a9188;letter-spacing:.06em;margin-bottom:10px">達成率</div>
+        <div style="font-size:.75rem;color:var(--text-sub);letter-spacing:.06em;margin-bottom:10px">達成率</div>
         <div class="chart-wrap"><canvas id="deptAchChart"></canvas></div>
       </div>
       <div>
-        <div style="font-size:.75rem;color:#9a9188;letter-spacing:.06em;margin-bottom:10px">毛利率</div>
+        <div style="font-size:.75rem;color:var(--text-sub);letter-spacing:.06em;margin-bottom:10px">毛利率</div>
         <div class="chart-wrap"><canvas id="deptMarginChart"></canvas></div>
       </div>
     </div>

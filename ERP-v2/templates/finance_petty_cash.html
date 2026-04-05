@@ -7,34 +7,32 @@
 .balance-bar { display:flex; gap:1.5rem; align-items:baseline; margin-bottom:1.8rem; flex-wrap:wrap; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1.2rem 1.5rem; }
 .balance-main { font-family:var(--font-en); font-size:2.4rem; font-weight:300; }
 .balance-main.low { color:#c0392b; }
-.balance-meta { font-size:.82rem; color:#888; }
+.balance-meta { font-size:.82rem; color:var(--text-sub); }
 .balance-actions { margin-left:auto; display:flex; gap:.6rem; }
 .section-title { font-size:1rem; font-weight:400; margin:1.5rem 0 .8rem; border-bottom:1px solid var(--border); padding-bottom:.4rem; }
 .form-row { display:flex; gap:.8rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:1rem; }
 .form-row .field { display:flex; flex-direction:column; gap:.3rem; }
-.form-row .field label { font-size:.82rem; color:#666; }
+.form-row .field label { font-size:.82rem; color:var(--text-sub); }
 .form-row .field input, .form-row .field select { padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; background:#fff; }
 .form-row .field input[type="text"] { min-width:120px; }
 .log-table { width:100%; border-collapse:collapse; font-size:.88rem; }
 .log-table th, .log-table td { padding:.5rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
-.log-table th { font-weight:400; color:#888; font-size:.8rem; }
+.log-table th { font-weight:400; color:var(--text-sub); font-size:.8rem; }
 .log-table .expense { color:#c0392b; }
 .log-table .refill { color:#27ae60; }
 .btn-sm { padding:.4rem .8rem; border:1px solid var(--border); border-radius:4px; background:var(--bg-card); cursor:pointer; font-size:.82rem; }
-.btn-sm:hover { background:#eee; }
-.btn-primary-sm { padding:.4rem .8rem; border:none; border-radius:4px; background:#2c2720; color:#fff; cursor:pointer; font-size:.82rem; }
-.btn-primary-sm:hover { background:#444; }
+.btn-sm:hover { background: rgba(107,95,82,.08); }
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:999; justify-content:center; align-items:center; }
 .modal-overlay.show { display:flex; }
 .modal-box { background:#fff; border-radius:8px; padding:1.5rem; width:90%; max-width:400px; }
 .modal-box h3 { margin:0 0 1rem; font-size:1rem; font-weight:400; }
 .modal-box .field { margin-bottom:.8rem; }
-.modal-box .field label { display:block; font-size:.82rem; color:#666; margin-bottom:.3rem; }
+.modal-box .field label { display:block; font-size:.82rem; color:var(--text-sub); margin-bottom:.3rem; }
 .modal-box .field input { width:100%; padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; box-sizing:border-box; }
 .modal-actions { display:flex; gap:.6rem; justify-content:flex-end; margin-top:1rem; }
 .filter-row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
 .filter-row select, .filter-row input { padding:.3rem .5rem; border:1px solid var(--border); border-radius:4px; font-size:.82rem; }
-.empty-msg { text-align:center; color:#999; padding:2rem; }
+.empty-msg { text-align:center; color:var(--text-sub); padding:2rem; }
 </style>
 {% endblock %}
 
@@ -73,7 +71,7 @@
     <label>說明</label>
     <input type="text" id="expDesc" placeholder="簡要說明">
   </div>
-  <button class="btn-primary-sm" onclick="submitExpense()">登記</button>
+  <button class="btn-primary" onclick="submitExpense()">登記</button>
 </div>
 
 <!-- 流水記錄 -->
@@ -100,7 +98,7 @@
     <div class="field"><label>補充金額</label><input type="number" id="refillAmount" min="1" step="1"></div>
     <div class="modal-actions">
       <button class="btn-sm" onclick="closeRefill()">取消</button>
-      <button class="btn-primary-sm" onclick="submitRefill()">確認補充</button>
+      <button class="btn-primary" onclick="submitRefill()">確認補充</button>
     </div>
   </div>
 </div>
@@ -112,7 +110,7 @@
     <div class="field"><label>初始金額</label><input type="number" id="initAmount" min="0" step="1"></div>
     <div class="modal-actions">
       <button class="btn-sm" onclick="closeInit()">取消</button>
-      <button class="btn-primary-sm" onclick="submitInit()">確認設定</button>
+      <button class="btn-primary" onclick="submitInit()">確認設定</button>
     </div>
   </div>
 </div>

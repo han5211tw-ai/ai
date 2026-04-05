@@ -75,7 +75,33 @@ const _fEn    = _cs.getPropertyValue('--font-en').trim();
 5. 交錯色用 ID selector 覆蓋，不靠 class
 6. 顏色用 CSS 變數，不寫死 hex（`#f5f0e8` 等常用色直接用對應變數）
 7. font-weight 用數值不用 `bold`
-8. 按鈕樣式用 `btn-primary` / `btn-ghost`（定義在 main.css），不自訂
+8. 按鈕樣式用 `btn-primary` / `btn-secondary` / `btn-danger`（定義在 main.css），不自訂
+9. 按鈕圓角統一 `border-radius: 8px`（方形帶圓角），禁止使用 `999px`（藥丸形）
+10. 狀態篩選 / 排序切換使用 **Segmented Control**（分組按鈕），不用膠囊標籤或底線式 Tab
+
+## Segmented Control（分組按鈕）
+
+用於狀態篩選、排序切換等場景（參考 `personal.html` 的期間 / 排序列）：
+
+```css
+.xxx-tabs {                                          /* 外框容器 */
+  display: flex;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  overflow: hidden;
+  width: fit-content;
+}
+.xxx-tab {                                           /* 各按鈕 */
+  padding: 7px 15px; font-size: .82rem; font-weight: 300;
+  font-family: var(--font-serif); letter-spacing: .04em;
+  background: none; border: none; color: var(--accent);
+  cursor: pointer; transition: background .15s;
+}
+.xxx-tab + .xxx-tab { border-left: 1px solid rgba(107,95,82,.2); }
+.xxx-tab.active { background: var(--text); color: var(--bg); }
+```
+
+禁止使用：膠囊式（`border-radius: 20px` 獨立按鈕）或底線式（`border-bottom` 指示器）做狀態篩選。
 
 ## 手機版樣式規則
 

@@ -12,9 +12,9 @@
   border: 1px solid rgba(107,95,82,.14);
   border-radius: 14px;
   padding: 16px 24px;
-  font-size: .82rem; color: #6b5f52; line-height: 1.8;
+  font-size: .82rem; color: var(--accent); line-height: 1.8;
 }
-.info-card strong { color: #2c2720; }
+.info-card strong { color: var(--text); }
 .info-rule { margin-top: 8px; padding-left: 16px; }
 .info-rule li { margin-bottom: 3px; }
 .team-cats { margin-top: 4px; padding-left: 16px; color: #3a6e4a; }
@@ -28,13 +28,13 @@
   padding: 14px 20px;
   display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
 }
-.ctrl-bar label { font-size: .8rem; color: #9a9188; margin-right: 4px; }
+.ctrl-bar label { font-size: .8rem; color: var(--text-sub); margin-right: 4px; }
 .ctrl-select {
   padding: 8px 14px; border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px; font-size: .84rem;
-  font-family: var(--font-serif); background: #f5f0e8; color: #2c2720; outline: none;
+  font-family: var(--font-serif); background: var(--bg); color: var(--text); outline: none;
 }
-.ctrl-select:focus { border-color: #6b5f52; }
+.ctrl-select:focus { border-color: var(--accent); }
 
 /* ── Tab 切換 ── */
 .tab-bar {
@@ -64,23 +64,23 @@
   border-radius: 14px; overflow: hidden;
 }
 .submit-card-title {
-  padding: 12px 20px; font-size: .72rem; color: #9a9188;
+  padding: 12px 20px; font-size: .72rem; color: var(--text-sub);
   letter-spacing: .12em; text-transform: uppercase;
   border-bottom: 1px solid rgba(107,95,82,.1);
 }
 .submit-form { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
 .form-row { display: flex; flex-direction: column; gap: 6px; }
-.form-row label { font-size: .82rem; color: #9a9188; letter-spacing: .04em; }
+.form-row label { font-size: .82rem; color: var(--text-sub); letter-spacing: .04em; }
 .form-input, .form-select, .form-textarea {
   padding: 10px 14px;
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px; font-size: .84rem;
   font-family: var(--font-serif); font-weight: 300;
-  color: #2c2720; background: #f5f0e8; outline: none;
+  color: var(--text); background: var(--bg); outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: #FABF13;
+  border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(250,191,19,.12);
   background: #fff;
 }
@@ -89,19 +89,13 @@
   border: 1.5px dashed rgba(107,95,82,.25);
   border-radius: 10px; padding: 18px;
   text-align: center; cursor: pointer;
-  font-size: .82rem; color: #9a9188;
+  font-size: .82rem; color: var(--text-sub);
   transition: border-color .15s, background .15s;
 }
-.upload-zone:hover { border-color: #6b5f52; background: #faf7f2; }
+.upload-zone:hover { border-color: var(--accent); background: #faf7f2; }
 .upload-zone.has-file { border-color: #3a6e4a; background: rgba(58,110,74,.04); color: #2e7d46; }
 .upload-preview { max-width: 100%; max-height: 140px; margin-top: 8px; border-radius: 6px; }
-.submit-btn {
-  padding: 10px 26px; background: #2c2720; color: #f5f0e8;
-  border: none; border-radius: 8px;
-  font-size: .82rem; font-family: var(--font-serif);
-  letter-spacing: .06em; cursor: pointer; align-self: flex-start;
-}
-.submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+/* .submit-btn - use btn-primary from main.css */
 
 /* ── 已提交列表 ── */
 .list-card {
@@ -110,7 +104,7 @@
   border-radius: 14px; overflow: hidden;
 }
 .list-card-title {
-  padding: 12px 20px; font-size: .72rem; color: #9a9188;
+  padding: 12px 20px; font-size: .72rem; color: var(--text-sub);
   letter-spacing: .12em; text-transform: uppercase;
   border-bottom: 1px solid rgba(107,95,82,.1);
 }
@@ -124,11 +118,11 @@
   width: 26px; height: 26px; line-height: 26px;
   border-radius: 50%; background: rgba(107,95,82,.1);
   text-align: center; font-size: .78rem; flex-shrink: 0;
-  color: #6b5f52; font-family: var(--font-en);
+  color: var(--accent); font-family: var(--font-en);
 }
 .item-body { flex: 1; min-width: 0; }
-.item-desc { font-size: .86rem; color: #2c2720; margin-bottom: 4px; }
-.item-meta { font-size: .74rem; color: #9a9188; display: flex; gap: 10px; flex-wrap: wrap; }
+.item-desc { font-size: .86rem; color: var(--text); margin-bottom: 4px; }
+.item-meta { font-size: .74rem; color: var(--text-sub); display: flex; gap: 10px; flex-wrap: wrap; }
 .status-tag {
   display: inline-block; padding: 2px 10px; border-radius: 999px;
   font-size: .72rem; letter-spacing: .04em;
@@ -157,10 +151,10 @@
   background: #faf7f2;
   border-top: 1px solid rgba(107,95,82,.1);
   display: flex; align-items: center; justify-content: space-between;
-  font-size: .82rem; color: #6b5f52;
+  font-size: .82rem; color: var(--accent);
 }
 .score-total {
-  font-family: var(--font-en); font-size: 1.1rem; color: #2c2720;
+  font-family: var(--font-en); font-size: 1.1rem; color: var(--text);
 }
 
 /* ── 審核區 ── */
@@ -232,7 +226,7 @@
         <option value="4">Q4（10–12月）</option>
       </select>
     </div>
-    <span id="itemCountBadge" style="font-size:.78rem;color:#9a9188;"></span>
+    <span id="itemCountBadge" style="font-size:.78rem;color:var(--text-sub);"></span>
   </div>
 
   <!-- Tab 切換（僅主管/老闆可見審核 Tab） -->
@@ -280,7 +274,7 @@
           </div>
           <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" onchange="handleFileSelect(this)">
         </div>
-        <button class="submit-btn" id="submitBtn" onclick="submitItem()">提交</button>
+        <button class="btn-primary" id="submitBtn" onclick="submitItem()" style="align-self: flex-start;">提交</button>
       </div>
     </div>
 
@@ -558,7 +552,7 @@ async function handleFileSelect(input) {
 /* 拖曳上傳 */
 const zone = document.getElementById('uploadZone');
 if (zone) {
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor='#6b5f52'; });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor='var(--accent)'; });
   zone.addEventListener('dragleave', () => { zone.style.borderColor=''; });
   zone.addEventListener('drop', e => {
     e.preventDefault(); zone.style.borderColor='';

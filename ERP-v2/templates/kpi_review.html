@@ -14,28 +14,28 @@
   padding: 16px 22px;
   display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
 }
-.ctrl-bar label { font-size: .8rem; color: #9a9188; letter-spacing: .04em; margin-right: 4px; }
+.ctrl-bar label { font-size: .8rem; color: var(--text-sub); letter-spacing: .04em; margin-right: 4px; }
 .ctrl-select {
   padding: 8px 14px;
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 8px;
   font-size: .88rem;
   font-family: var(--font-serif);
-  background: #f5f0e8;
-  color: #2c2720;
+  background: var(--bg);
+  color: var(--text);
   outline: none;
   cursor: pointer;
 }
-.ctrl-select:focus { border-color: #6b5f52; }
+.ctrl-select:focus { border-color: var(--accent); }
 .ctrl-btn {
   padding: 8px 20px;
-  background: #2c2720; color: #f5f0e8;
+  background: var(--text); color: var(--bg);
   border: none; border-radius: 8px;
   font-size: .82rem; font-family: var(--font-serif);
   letter-spacing: .06em; cursor: pointer;
 }
 .period-badge {
-  font-size: .78rem; color: #9a9188;
+  font-size: .78rem; color: var(--text-sub);
   background: rgba(107,95,82,.07);
   padding: 5px 12px; border-radius: 20px;
 }
@@ -53,14 +53,14 @@
   padding: 12px 8px;
   background: none; border: none;
   font-size: .83rem; font-family: var(--font-serif);
-  color: #9a9188; cursor: pointer;
+  color: var(--text-sub); cursor: pointer;
   border-right: 1px solid rgba(107,95,82,.1);
   letter-spacing: .04em;
   transition: background .15s, color .15s;
 }
 .tab-btn:last-child { border-right: none; }
 .tab-btn:hover { background: rgba(107,95,82,.04); }
-.tab-btn.active { background: #2c2720; color: #f5f0e8; }
+.tab-btn.active { background: var(--text); color: var(--bg); }
 
 /* ── 獎金彙總卡片 ── */
 .summary-grid {
@@ -74,12 +74,12 @@
   border-radius: 14px;
   padding: 14px 18px;
 }
-.sum-lbl { font-size: .7rem; color: #9a9188; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+.sum-lbl { font-size: .7rem; color: var(--text-sub); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
 .sum-val {
   font-family: var(--font-en);
-  font-size: 1.4rem; color: #2c2720; font-weight: 300;
+  font-size: 1.4rem; color: var(--text); font-weight: 300;
 }
-.sum-sub { font-size: .72rem; color: #9a9188; margin-top: 2px; }
+.sum-sub { font-size: .72rem; color: var(--text-sub); margin-top: 2px; }
 
 /* ── KPI 表格 ── */
 .kpi-card {
@@ -89,7 +89,7 @@
   overflow: hidden;
 }
 .kpi-card-title {
-  font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase;
+  font-size: .72rem; color: var(--text-sub); letter-spacing: .12em; text-transform: uppercase;
   padding: 12px 20px; border-bottom: 1px solid rgba(107,95,82,.1);
   display: flex; align-items: center; justify-content: space-between;
 }
@@ -98,12 +98,12 @@
 .kpi-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
 .kpi-table th {
   text-align: center; padding: 9px 8px;
-  font-weight: 300; color: #9a9188; font-size: .72rem; letter-spacing: .04em;
-  background: #faf7f2; white-space: nowrap;
+  font-weight: 300; color: var(--text-sub); font-size: .72rem; letter-spacing: .04em;
+  background: var(--bg-card); white-space: nowrap;
 }
 .kpi-table th:first-child { text-align: left; padding-left: 16px; }
 .kpi-table td {
-  padding: 10px 8px; color: #2c2720;
+  padding: 10px 8px; color: var(--text);
   border-top: 1px solid rgba(107,95,82,.06);
   text-align: center; white-space: nowrap;
 }
@@ -121,9 +121,9 @@
   border-radius: 50%; font-size: .78rem; text-align: center; font-weight: 500;
 }
 .rank-1 { background: #f0c040; color: #5a3a00; }
-.rank-2 { background: #c0c8d0; color: #2c2720; }
+.rank-2 { background: #c0c8d0; color: var(--text); }
 .rank-3 { background: #c88040; color: #fff; }
-.rank-other { background: rgba(107,95,82,.1); color: #6b5f52; }
+.rank-other { background: rgba(107,95,82,.1); color: var(--accent); }
 
 /* 倍率標籤 */
 .mult-tag {
@@ -132,7 +132,7 @@
   font-size: .74rem; font-family: var(--font-en);
 }
 .mult-hi  { background: rgba(46,125,70,.12); color: #2e7d46; }
-.mult-lo  { background: rgba(107,95,82,.1); color: #6b5f52; }
+.mult-lo  { background: rgba(107,95,82,.1); color: var(--accent); }
 
 /* 可編輯輸入框 */
 .score-input {
@@ -144,7 +144,7 @@
   outline: none;
 }
 .score-input:focus {
-  border-color: #FABF13;
+  border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(250,191,19,.12);
   background: #fff;
 }
@@ -156,13 +156,13 @@
   display: flex; gap: 12px; align-items: flex-start;
 }
 .contrib-review-item:last-child { border-bottom: none; }
-.contrib-name { font-weight: 500; font-size: .85rem; color: #2c2720; }
-.contrib-dept { font-size: .72rem; color: #9a9188; }
-.contrib-desc { font-size: .84rem; color: #3a3028; margin: 4px 0; }
-.contrib-meta { font-size: .74rem; color: #9a9188; display: flex; gap: 8px; flex-wrap: wrap; }
+.contrib-name { font-weight: 500; font-size: .85rem; color: var(--text); }
+.contrib-dept { font-size: .72rem; color: var(--text-sub); }
+.contrib-desc { font-size: .84rem; color: var(--text); margin: 4px 0; }
+.contrib-meta { font-size: .74rem; color: var(--text-sub); display: flex; gap: 8px; flex-wrap: wrap; }
 .cat-tag  { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .72rem; }
 .cat-team { background: rgba(58,110,74,.1); color: #2e7d46; }
-.cat-other{ background: rgba(107,95,82,.1); color: #6b5f52; }
+.cat-other{ background: rgba(107,95,82,.1); color: var(--accent); }
 .review-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; }
 .btn-approve {
   padding: 5px 12px; background: #2e7d46; color: #fff;
@@ -182,8 +182,8 @@
   cursor: pointer; flex-shrink: 0;
 }
 .group-header {
-  padding: 9px 20px; background: #faf7f2;
-  font-size: .72rem; color: #9a9188; letter-spacing: .06em;
+  padding: 9px 20px; background: var(--bg-card);
+  font-size: .72rem; color: var(--text-sub); letter-spacing: .06em;
   border-bottom: 1px solid rgba(107,95,82,.08);
 }
 /* 空白面板 */
@@ -226,7 +226,7 @@
     <button class="ctrl-btn" onclick="loadKpi()">查詢</button>
     <span class="period-badge" id="periodBadge" style="display:none"></span>
     <div id="reviewBox" style="display:none; margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <span style="font-size:.78rem; color:#6b5f52;" id="reviewStat"></span>
+      <span style="font-size:.78rem; color:var(--accent);" id="reviewStat"></span>
       <button class="ctrl-btn" id="btnAutoReview" onclick="applyReviewScore()"
         style="background:#3a6e4a; padding:8px 16px;">
         ↓ 自動帶入 Google 評論分數
@@ -238,27 +238,27 @@
   <div id="profitCard" style="display:none; background:#fff;
        border:1px solid rgba(107,95,82,.14); border-radius:14px; padding:14px 22px;">
     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-      <span style="font-size:.72rem; color:#9a9188; letter-spacing:.08em; white-space:nowrap;">季度淨利</span>
+      <span style="font-size:.72rem; color:var(--text-sub); letter-spacing:.08em; white-space:nowrap;">季度淨利</span>
       <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:.82rem; color:#6b5f52;">NT$</span>
+        <span style="font-size:.82rem; color:var(--accent);">NT$</span>
         <input id="netProfitInput" type="number" min="0" step="1000"
           style="padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
                  font-size:.9rem; font-family:var(--font-en); width:150px;
-                 background:#f5f0e8; color:#2c2720; outline:none;"
+                 background:var(--bg); color:var(--text); outline:none;"
           placeholder="0"
-          onfocus="this.style.borderColor='#6b5f52'"
+          onfocus="this.style.borderColor='var(--accent)'"
           onblur="this.style.borderColor='rgba(107,95,82,.22)'"
           oninput="updatePoolHint()"
           onkeydown="if(event.key==='Enter')saveProfit()">
       </div>
       <button onclick="saveProfit()"
-        style="padding:8px 18px; background:#2c2720; color:#f5f0e8; border:none;
+        style="padding:8px 18px; background:var(--text); color:var(--bg); border:none;
                border-radius:8px; font-size:.82rem; font-family:var(--font-serif);
                cursor:pointer; white-space:nowrap;">
         儲存
       </button>
       <span id="profitSaveNotice" style="font-size:.75rem; color:#3a6e4a; display:none;">✓ 已儲存</span>
-      <span style="font-size:.75rem; color:#9a9188;" id="poolHint"></span>
+      <span style="font-size:.75rem; color:var(--text-sub);" id="poolHint"></span>
     </div>
   </div>
 
@@ -291,7 +291,7 @@
     <div class="kpi-card">
       <div class="kpi-card-title">
         我的 KPI 成績
-        <a href="/kpi_contribution" style="font-size:.74rem; color:#6b5f52; text-decoration:none;">→ 前往填報關鍵貢獻</a>
+        <a href="/kpi_contribution" style="font-size:.74rem; color:var(--accent); text-decoration:none;">→ 前往填報關鍵貢獻</a>
       </div>
       <div id="body-personal">
         <div class="skel"></div><div class="skel" style="width:70%"></div>
@@ -322,10 +322,10 @@
   <!-- 業務 -->
   <div class="tab-panel" id="panel-business">
     <div class="kpi-card" id="service-stat-card" style="display:none; padding:14px 20px; align-items:center; gap:12px; flex-wrap:wrap;">
-      <span style="font-size:.72rem; color:#9a9188; letter-spacing:.08em;">全部門服務次數</span>
+      <span style="font-size:.72rem; color:var(--text-sub); letter-spacing:.08em;">全部門服務次數</span>
       <span id="serviceStatText" style="font-size:.82rem;"></span>
       <button id="btnAutoService" onclick="applyServiceScore()"
-        style="padding:6px 14px; background:#3a5a8a; color:#f5f0e8; border:none; border-radius:8px;
+        style="padding:6px 14px; background:#3a5a8a; color:var(--bg); border:none; border-radius:8px;
                font-size:.78rem; font-family:var(--font-serif); cursor:pointer; display:none;">
         ↓ 自動帶入服務次數分數
       </button>
@@ -344,7 +344,7 @@
     <div class="kpi-card">
       <div class="kpi-card-title">
         主管 KPI
-        <span style="font-size:.7rem; color:#9a9188; font-weight:300;">獎金 = 池 × 70% 平分 + 30% 依分數比例</span>
+        <span style="font-size:.7rem; color:var(--text-sub); font-weight:300;">獎金 = 池 × 70% 平分 + 30% 依分數比例</span>
         <span class="save-notice" id="notice-manager">✓ 已儲存</span>
       </div>
       <div id="body-manager"><div class="skel"></div></div>
@@ -368,7 +368,7 @@
       <div class="kpi-card-title">
         關鍵貢獻審核
         <a href="/kpi_contribution" target="_blank"
-           style="font-size:.74rem; color:#6b5f52; text-decoration:none;">
+           style="font-size:.74rem; color:var(--accent); text-decoration:none;">
           → 前往填報頁面
         </a>
       </div>
@@ -826,7 +826,7 @@ function renderStoreTable(container, rows, role) {
       <td class="num-cell">NT$&nbsp;${Math.round(r.bonus_amount||0).toLocaleString('zh-TW')}</td>
       ${editable ? `<td><button onclick="saveRow(${r.id},'${role}')"
            style="padding:4px 10px;border:1px solid rgba(107,95,82,.25);border-radius:6px;
-           background:#f5f0e8;font-size:.76rem;cursor:pointer;color:#6b5f52">儲存</button></td>` : ''}
+           background:var(--bg);font-size:.76rem;cursor:pointer;color:var(--accent)">儲存</button></td>` : ''}
     </tr>`;
   });
   html += '</tbody></table>';
@@ -895,7 +895,7 @@ function renderManagerTable(container, rows) {
       <td class="num-cell">NT$&nbsp;${r._bonus.toLocaleString('zh-TW')}</td>
       ${editable ? `<td><button onclick="saveRow(${r.id},'manager')"
            style="padding:4px 10px;border:1px solid rgba(107,95,82,.25);border-radius:6px;
-           background:#f5f0e8;font-size:.76rem;cursor:pointer;color:#6b5f52">儲存</button></td>` : ''}
+           background:var(--bg);font-size:.76rem;cursor:pointer;color:var(--accent)">儲存</button></td>` : ''}
     </tr>`;
   });
   html += '</tbody></table>';
@@ -939,7 +939,7 @@ function renderAccountingTable(container, rows) {
       <td class="num-cell">NT$&nbsp;${Math.round(r.bonus_amount||0).toLocaleString('zh-TW')}</td>
       ${editable ? `<td><button onclick="saveRow(${r.id},'accounting')"
            style="padding:4px 10px;border:1px solid rgba(107,95,82,.25);border-radius:6px;
-           background:#f5f0e8;font-size:.76rem;cursor:pointer;color:#6b5f52">儲存</button></td>` : ''}
+           background:var(--bg);font-size:.76rem;cursor:pointer;color:var(--accent)">儲存</button></td>` : ''}
     </tr>`;
   });
   html += '</tbody></table>';

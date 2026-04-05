@@ -14,7 +14,7 @@
   padding: 12px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
   display: flex; align-items: center; gap: 12px;
 }
-.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .12em; flex: 1; }
+.card-title { font-size: .72rem; color: var(--text-sub); letter-spacing: .12em; flex: 1; }
 
 /* 篩選 */
 .filter-bar {
@@ -23,19 +23,19 @@
 }
 .filter-pill {
   padding: 6px 14px; border-radius: 20px; font-size: .78rem; cursor: pointer;
-  border: 1px solid rgba(107,95,82,.2); color: #6b5f52; background: none;
+  border: 1px solid rgba(107,95,82,.2); color: var(--accent); background: none;
   font-family: var(--font-serif); transition: all .12s;
 }
-.filter-pill.active { background: #2c2720; color: #f5f0e8; border-color: #2c2720; }
+.filter-pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 
 /* 表格 */
 .staff-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
 .staff-table th {
   text-align: left; padding: 9px 12px;
-  font-weight: 300; color: #9a9188; font-size: .7rem; letter-spacing: .06em;
+  font-weight: 300; color: var(--text-sub); font-size: .7rem; letter-spacing: .06em;
   background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
 }
-.staff-table td { padding: 9px 12px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); vertical-align: middle; }
+.staff-table td { padding: 9px 12px; color: var(--text); border-bottom: 1px solid rgba(107,95,82,.05); vertical-align: middle; }
 .staff-table tr:last-child td { border-bottom: none; }
 
 .status-chip {
@@ -46,10 +46,10 @@
 
 .edit-btn {
   padding: 4px 12px; border: 1px solid rgba(107,95,82,.25); border-radius: 6px;
-  background: none; font-size: .75rem; color: #6b5f52; cursor: pointer;
+  background: none; font-size: .75rem; color: var(--accent); cursor: pointer;
   font-family: var(--font-serif);
 }
-.edit-btn:hover { background: #f5f0e8; }
+.edit-btn:hover { background: var(--bg); }
 
 /* 模態框 */
 .modal-bg {
@@ -63,29 +63,21 @@
   width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;
   box-shadow: 0 8px 40px rgba(44,39,32,.15);
 }
-.modal-title { font-size: 1rem; color: #2c2720; margin-bottom: 20px; letter-spacing: .04em; }
-.field-label { font-size: .74rem; color: #9a9188; letter-spacing: .04em; margin-bottom: 5px; }
+.modal-title { font-size: 1rem; color: var(--text); margin-bottom: 20px; letter-spacing: .04em; }
+.field-label { font-size: .74rem; color: var(--text-sub); letter-spacing: .04em; margin-bottom: 5px; }
 .f-input, .f-select {
   width: 100%; padding: 8px 11px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
   font-size: .84rem; font-family: var(--font-serif); font-weight: 300;
-  color: #2c2720; background: #f5f0e8; box-sizing: border-box; outline: none;
+  color: var(--text); background: var(--bg); box-sizing: border-box; outline: none;
   margin-bottom: 12px;
 }
-.f-input:focus, .f-select:focus { border-color: #6b5f52; }
+.f-input:focus, .f-select:focus { border-color: var(--accent); }
 /* 門市(偶數欄)淺色 */
 #eStore { background: var(--bg-card, #faf8f4); }
 .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-.save-btn {
-  padding: 9px 20px; background: #2c2720; color: #f5f0e8;
-  border: none; border-radius: 8px; font-size: .82rem;
-  font-family: var(--font-serif); cursor: pointer;
-}
-.cancel-btn {
-  padding: 9px 16px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
-  background: none; color: #6b5f52; font-size: .82rem;
-  font-family: var(--font-serif); cursor: pointer;
-}
+/* .save-btn - use btn-primary from main.css */
+/* .cancel-btn - use btn-secondary from main.css */
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .msg-ok  { font-size: .8rem; color: #4a7c59; }
 .msg-err { font-size: .8rem; color: #8b3a3a; }
@@ -121,7 +113,7 @@
           </tr>
         </thead>
         <tbody id="staffBody">
-          <tr><td colspan="9" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+          <tr><td colspan="9" style="text-align:center;color:var(--text-sub);padding:24px">載入中…</td></tr>
         </tbody>
       </table>
     </div>
@@ -138,7 +130,7 @@
     <div class="form-row">
       <div>
         <div class="field-label">姓名</div>
-        <input class="f-input" id="eNameDisplay" readonly style="color:#9a9188;background:#eee9e0">
+        <input class="f-input" id="eNameDisplay" readonly style="color:var(--text-sub);background:#eee9e0">
       </div>
       <div>
         <div class="field-label">職稱</div>
@@ -188,8 +180,8 @@
     </div>
 
     <div class="modal-btns">
-      <button class="cancel-btn" onclick="closeModal()">取消</button>
-      <button class="save-btn" onclick="saveStaff()">儲存</button>
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="saveStaff()">儲存</button>
     </div>
   </div>
 </div>
@@ -214,18 +206,18 @@ function renderTable() {
 
   const tbody = document.getElementById('staffBody');
   if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#9a9188;padding:20px">暫無資料</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-sub);padding:20px">暫無資料</td></tr>';
     return;
   }
   tbody.innerHTML = data.map(s => `
     <tr>
-      <td style="font-size:.78rem;color:#9a9188">${s.staff_id || '—'}</td>
+      <td style="font-size:.78rem;color:var(--text-sub)">${s.staff_id || '—'}</td>
       <td><strong>${s.name}</strong></td>
       <td>${s.title || '—'}</td>
       <td>${s.department || '—'}</td>
       <td>${s.store || '—'}</td>
       <td style="font-size:.8rem">${s.mobile || '—'}</td>
-      <td style="font-size:.78rem;color:#9a9188">${s.hire_date || '—'}</td>
+      <td style="font-size:.78rem;color:var(--text-sub)">${s.hire_date || '—'}</td>
       <td><span class="status-chip status-${s.is_active}">${s.is_active ? '在職' : '離職'}</span></td>
       <td><button class="edit-btn" onclick="openEdit(${JSON.stringify(s).replace(/"/g,'&quot;')})">編輯</button></td>
     </tr>`).join('');

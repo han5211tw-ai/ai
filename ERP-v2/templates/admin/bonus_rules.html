@@ -7,38 +7,34 @@
 .br-layout { display:flex; flex-direction:column; gap:20px; }
 .card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
 .card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; }
-.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+.card-title { font-size:.72rem; color:var(--text-sub); letter-spacing:.12em; flex:1; }
 .form-body { padding:20px 22px; display:flex; flex-direction:column; gap:12px; }
-.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+.field-label { font-size:.74rem; color:var(--text-sub); letter-spacing:.04em; margin-bottom:4px; }
 .f-input, .f-select {
   width:100%; padding:9px 12px;
   border:1px solid rgba(107,95,82,.22); border-radius:8px;
   font-size:.84rem; font-family:var(--font-serif); font-weight:300;
-  color:#2c2720; background:#f5f0e8; box-sizing:border-box; outline:none;
+  color:var(--text); background:var(--bg); box-sizing:border-box; outline:none;
 }
-.f-input:focus, .f-select:focus { border-color:#6b5f52; }
+.f-input:focus, .f-select:focus { border-color:var(--accent); }
 /* 奇數欄暖米色 */
 #rCode   { background: #f5f0e8; }
 #rStart  { background: #f5f0e8; }
 #rMinQty { background: #f5f0e8; }
 .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.submit-btn {
-  padding:9px 22px; background:#2c2720; color:#f5f0e8;
-  border:none; border-radius:8px; font-size:.82rem;
-  font-family:var(--font-serif); cursor:pointer; align-self:flex-start;
-}
+/* .submit-btn - use btn-primary from main.css */
 .msg-ok  { font-size:.8rem; color:#4a7c59; }
 .msg-err { font-size:.8rem; color:#8b3a3a; }
 
 /* 規則表格 */
 .rules-table { width:100%; border-collapse:collapse; font-size:.82rem; }
 .rules-table th {
-  text-align:left; padding:9px 12px; font-weight:300; color:#9a9188;
+  text-align:left; padding:9px 12px; font-weight:300; color:var(--text-sub);
   font-size:.7rem; letter-spacing:.06em; background:#faf7f2;
   border-bottom:1px solid rgba(107,95,82,.1);
 }
-.rules-table td { padding:9px 12px; color:#2c2720; border-bottom:1px solid rgba(107,95,82,.05); vertical-align:middle; }
+.rules-table td { padding:9px 12px; color:var(--text); border-bottom:1px solid rgba(107,95,82,.05); vertical-align:middle; }
 .rules-table tr:last-child td { border-bottom:none; }
 
 .active-chip { display:inline-block; padding:2px 9px; border-radius:20px; font-size:.7rem; }
@@ -49,11 +45,11 @@
 
 .action-btn {
   padding:3px 10px; border-radius:5px; font-size:.74rem;
-  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
+  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:var(--accent);
   font-family:var(--font-serif); margin-right:4px;
 }
 .action-btn.del { border-color:rgba(139,58,58,.25); color:#8b3a3a; }
-.action-btn:hover { background:#f5f0e8; }
+.action-btn:hover { background:var(--bg); }
 </style>
 {% endblock %}
 
@@ -108,7 +104,7 @@
           <input class="f-input" id="rValue" type="number" value="0" min="0" step="0.01" placeholder="金額或百分比">
         </div>
       </div>
-      <button class="submit-btn" onclick="createRule()">新增規則</button>
+      <button class="btn-primary" onclick="createRule()" style="align-self: flex-start;">新增規則</button>
     </div>
   </div>
 
@@ -133,7 +129,7 @@
           </tr>
         </thead>
         <tbody id="rulesBody">
-          <tr><td colspan="9" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+          <tr><td colspan="9" style="text-align:center;color:var(--text-sub);padding:24px">載入中…</td></tr>
         </tbody>
       </table>
     </div>
@@ -151,15 +147,15 @@ async function loadRules() {
 
   const tbody = document.getElementById('rulesBody');
   if (!rules.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#9a9188;padding:20px">暫無規則</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-sub);padding:20px">暫無規則</td></tr>';
     return;
   }
   tbody.innerHTML = rules.map(r => `
     <tr>
       <td><strong>${r.rule_name}</strong></td>
-      <td style="font-size:.78rem;color:#6b5f52">${r.product_code||'—'}</td>
+      <td style="font-size:.78rem;color:var(--accent)">${r.product_code||'—'}</td>
       <td style="font-size:.82rem">${r.product_name||'—'}</td>
-      <td style="font-size:.78rem;color:#9a9188;white-space:nowrap">${r.start_date||'—'} ～ ${r.end_date||'—'}</td>
+      <td style="font-size:.78rem;color:var(--text-sub);white-space:nowrap">${r.start_date||'—'} ～ ${r.end_date||'—'}</td>
       <td><span class="type-chip">${r.bonus_type==='fixed'?'固定金額':'百分比'}</span></td>
       <td style="text-align:right">
         ${r.bonus_type==='fixed'

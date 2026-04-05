@@ -223,16 +223,16 @@ function renderResult(data, start, end) {
     const monthTotal = items.reduce((s, r) => s + (r.bonus_amount || 0), 0);
     const rows = items.map(r => `
       <tr>
-        <td style="font-size:.78rem;color:#6b5f52">${r.sale_date || '—'}</td>
+        <td style="font-size:.78rem;color:var(--accent)">${r.sale_date || '—'}</td>
         <td>${r.rule_name || '—'}</td>
         <td>
           <div style="font-size:.84rem">${r.product_name || '—'}</div>
-          <div style="font-size:.72rem;color:#9a9188">${r.product_code || ''}</div>
+          <div style="font-size:.72rem;color:var(--text-sub)">${r.product_code || ''}</div>
         </td>
         <td class="amount-col">${r.sales_quantity || 0} 件</td>
         <td class="amount-col">${(r.sales_amount || 0).toLocaleString()}</td>
         <td class="amount-col"><strong>${(r.bonus_amount || 0).toLocaleString()}</strong></td>
-        <td style="font-size:.72rem;color:#9a9188;max-width:120px;word-break:break-all">
+        <td style="font-size:.72rem;color:var(--text-sub);max-width:120px;word-break:break-all">
           ${r.invoice_no || '—'}
         </td>
       </tr>`).join('');

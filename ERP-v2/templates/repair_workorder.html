@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>維修單 — {{ order.order_no }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 18mm 20mm 16mm 20mm;
+  }
+
+  body {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #2c2720;
+    background: #f5f0e8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 24px auto;
+    padding: 44px 42px 36px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(44,39,32,.08);
+  }
+
+  @media print {
+    body { background: #fff; }
+    .page {
+      margin: 0; padding: 0;
+      max-width: none; box-shadow: none; border-radius: 0;
+    }
+    .no-print { display: none !important; }
+  }
+
+  /* ── 表頭 ── */
+  .wo-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #2c2720;
+    margin-bottom: 18px;
+  }
+  .wo-header-left {}
+  .shop-name {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .15em;
+  }
+  .shop-sub {
+    font-size: 11px;
+    color: #9a9188;
+    letter-spacing: .06em;
+    margin-top: 2px;
+  }
+  .wo-header-right {
+    text-align: right;
+  }
+  .wo-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: .2em;
+    margin-bottom: 6px;
+  }
+  .wo-no {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c2720;
+    letter-spacing: .06em;
+  }
+  .wo-date {
+    font-size: 11px;
+    color: #9a9188;
+    margin-top: 2px;
+  }
+
+  /* ── 區段標題 ── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9a9188;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 10px 0 4px;
+    border-bottom: 1px solid rgba(107,95,82,.12);
+    margin-bottom: 8px;
+    margin-top: 14px;
+  }
+
+  /* ── 資訊表格 ── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 24px;
+  }
+  .info-row {
+    display: flex; gap: 8px;
+    padding: 4px 0;
+  }
+  .info-label {
+    font-size: 11px; color: #9a9188;
+    min-width: 60px; flex-shrink: 0;
+    letter-spacing: .04em;
+  }
+  .info-value {
+    font-size: 13px; font-weight: 300;
+  }
+  .info-full {
+    grid-column: 1 / -1;
+  }
+
+  /* ── 描述區塊 ── */
+  .desc-box {
+    padding: 10px 14px;
+    background: #faf8f4;
+    border: 1px solid rgba(107,95,82,.1);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 300;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    min-height: 36px;
+    margin-bottom: 6px;
+  }
+
+  /* ── 零件報價表 ── */
+  .quote-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+  .quote-table th {
+    font-size: 11px; color: #9a9188;
+    letter-spacing: .06em; font-weight: 400;
+    text-align: left; padding: 6px 8px;
+    border-bottom: 1px solid rgba(107,95,82,.2);
+  }
+  .quote-table th.r { text-align: right; }
+  .quote-table td {
+    font-size: 12.5px; font-weight: 300;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(107,95,82,.06);
+  }
+  .quote-table td.r { text-align: right; }
+  .quote-table tr:last-child td { border-bottom: none; }
+
+  /* ── 費用摘要 ── */
+  .fee-box {
+    display: flex; justify-content: flex-end; gap: 24px;
+    padding: 10px 8px; margin-top: 6px;
+    border-top: 1px solid rgba(107,95,82,.15);
+  }
+  .fee-label {
+    font-size: 12px; color: #9a9188; font-weight: 300;
+  }
+  .fee-val {
+    font-size: 13px; font-weight: 600; color: #2c2720;
+  }
+  .fee-total {
+    font-size: 15px; font-weight: 700;
+  }
+
+  /* ── 確認簽名 ── */
+  .confirm-section {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(107,95,82,.15);
+  }
+  .confirm-note {
+    font-size: 11.5px; color: #6b5f52; font-weight: 300;
+    line-height: 1.7; margin-bottom: 16px;
+  }
+  .sig-row {
+    display: flex; justify-content: space-between; gap: 24px;
+  }
+  .sig-item { flex: 1; }
+  .sig-label {
+    font-size: 11px; color: #9a9188; letter-spacing: .06em; margin-bottom: 4px;
+  }
+  .sig-line {
+    border-bottom: 1px solid rgba(107,95,82,.25);
+    height: 30px;
+  }
+  .sig-prefill {
+    font-size: 13px; font-weight: 300;
+    border-bottom: 1px solid rgba(107,95,82,.25);
+    padding-bottom: 4px; min-height: 30px;
+  }
+
+  /* ── 頁尾 ── */
+  .wo-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(107,95,82,.15);
+    font-size: 10.5px;
+    color: #b8b0a6;
+    line-height: 1.6;
+  }
+
+  /* ── 列印按鈕 ── */
+  .print-bar {
+    text-align: center;
+    margin: 18px auto 0;
+    max-width: 680px;
+  }
+  .print-btn {
+    padding: 8px 28px;
+    border: 1px solid rgba(107,95,82,.25);
+    border-radius: 8px;
+    background: #2c2720;
+    color: #fff;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 13px;
+    font-weight: 300;
+    cursor: pointer;
+    letter-spacing: .08em;
+    transition: background .2s, opacity .2s;
+  }
+  .print-btn:hover { opacity: .85; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- 表頭 -->
+  <div class="wo-header">
+    <div class="wo-header-left">
+      <div class="shop-name">{{ store_name }}</div>
+      {% if store_addr %}<div class="shop-sub">{{ store_addr }}</div>{% endif %}
+      {% if store_phone %}<div class="shop-sub">{{ store_phone }}</div>{% endif %}
+    </div>
+    <div class="wo-header-right">
+      <div class="wo-title">維 修 單</div>
+      <div class="wo-no">{{ order.order_no }}</div>
+      <div class="wo-date">{{ order.created_at or today }}</div>
+    </div>
+  </div>
+
+  <!-- 客戶資訊 -->
+  <div class="section-title">客戶資訊</div>
+  <div class="info-grid">
+    <div class="info-row">
+      <span class="info-label">客戶名稱</span>
+      <span class="info-value">{{ order.customer_name or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">聯絡電話</span>
+      <span class="info-value">{{ order.phone or '—' }}</span>
+    </div>
+  </div>
+
+  <!-- 設備資訊 -->
+  <div class="section-title">設備資訊</div>
+  <div class="info-grid">
+    <div class="info-row">
+      <span class="info-label">設備類型</span>
+      <span class="info-value">{{ order.device_type or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">品牌</span>
+      <span class="info-value">{{ order.brand or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">型號</span>
+      <span class="info-value">{{ order.model or '—' }}</span>
+    </div>
+    {% if order.serial_no %}
+    <div class="info-row">
+      <span class="info-label">序號</span>
+      <span class="info-value">{{ order.serial_no }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 故障描述 -->
+  <div class="section-title">故障描述</div>
+  <div class="desc-box">{{ order.symptom or '' }}</div>
+
+  <!-- 檢測診斷 -->
+  <div class="section-title">檢測診斷</div>
+  <div class="desc-box">{{ order.diagnosis or '' }}</div>
+
+  <!-- 維修報價明細 -->
+  <div class="section-title">維修報價明細</div>
+  {% if items %}
+  <table class="quote-table">
+    <thead>
+      <tr>
+        <th style="width:35%">品名</th>
+        <th style="width:20%">產品編號</th>
+        <th class="r" style="width:10%">數量</th>
+        <th class="r" style="width:15%">單價</th>
+        <th class="r" style="width:20%">小計</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.product_name or '—' }}</td>
+        <td>{{ item.product_code or '' }}</td>
+        <td class="r">{{ item.quantity }}</td>
+        <td class="r">{{ '{:,}'.format(item.price) }}</td>
+        <td class="r">{{ '{:,}'.format(item.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="font-size:12px; color:#9a9188; font-weight:300; padding:8px 0;">（無零件費用）</div>
+  {% endif %}
+
+  <div class="fee-box">
+    <div>
+      <span class="fee-label">零件合計</span>
+      <span class="fee-val" style="margin-left:8px;">{{ '{:,}'.format(order.parts_total or 0) }}</span>
+    </div>
+    <div>
+      <span class="fee-label">工資</span>
+      <span class="fee-val" style="margin-left:8px;">{{ '{:,}'.format(order.labor_fee or 0) }}</span>
+    </div>
+    <div>
+      <span class="fee-label">總計</span>
+      <span class="fee-val fee-total" style="margin-left:8px;">NT$ {{ '{:,}'.format(order.total_amount or 0) }}</span>
+    </div>
+  </div>
+
+  <!-- 注意事項 -->
+  <div style="padding:10px 14px;background:#fff8e6;border:1px solid rgba(200,170,80,.15);border-radius:8px;font-size:11px;font-weight:300;color:#6b5f52;line-height:1.8;margin-top:16px;">
+    <strong style="font-weight:600;letter-spacing:.04em;">注意事項：</strong><br>
+    1. 本單經客戶簽名確認後，本店將依報價內容進行維修作業。<br>
+    2. 維修過程中如發現額外問題需增加費用，將另行通知確認。<br>
+    3. 維修完成後以電話通知取件，請於通知日起 30 日內取件，逾期不負保管責任。<br>
+    4. 維修保固期限為完修日起 30 日（人為損壞或自行拆修不在保固範圍內）。<br>
+    5. 資料備份為客戶自行負責，本店不負資料遺失之責。
+  </div>
+
+  <!-- 確認簽章 -->
+  <div class="confirm-section">
+    <div class="confirm-note">
+      本人已閱讀上述注意事項，並確認同意以上維修報價內容，同意進行維修。
+    </div>
+    <div class="sig-row">
+      <div class="sig-item">
+        <div class="sig-label">客戶簽名確認</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-item">
+        <div class="sig-label">技術人員</div>
+        <div class="sig-prefill">{{ order.technician or '' }}</div>
+      </div>
+      <div class="sig-item">
+        <div class="sig-label">日期</div>
+        <div class="sig-prefill">{{ today }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頁尾 -->
+  <div class="wo-footer">
+    感謝您的信任與支持
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+<div class="print-bar no-print">
+  <button class="print-btn" onclick="window.print()">列 印</button>
+  <button class="print-btn" onclick="savePDF()" style="margin-left:8px;background:#6b5f52;">存為 PDF</button>
+</div>
+<script>
+function savePDF(){
+  var el = document.querySelector('.page');
+  var opt = {
+    margin:       [18, 20, 16, 20],
+    filename:     '維修單_{{ order.order_no }}.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+</script>
+
+</body>
+</html>

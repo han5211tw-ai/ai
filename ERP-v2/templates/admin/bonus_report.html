@@ -7,24 +7,24 @@
 .bp-layout { display:flex; flex-direction:column; gap:20px; }
 .card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
 .card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; }
-.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+.card-title { font-size:.72rem; color:var(--text-sub); letter-spacing:.12em; flex:1; }
 
 /* 計算控制列 */
 .calc-bar {
   display:flex; gap:12px; align-items:flex-end; padding:16px 20px;
   border-bottom:1px solid rgba(107,95,82,.08); flex-wrap:wrap;
 }
-.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+.field-label { font-size:.74rem; color:var(--text-sub); letter-spacing:.04em; margin-bottom:4px; }
 .f-input {
   padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
   font-size:.84rem; font-family:var(--font-serif); font-weight:300;
-  color:#2c2720; background:#f5f0e8; outline:none;
+  color:var(--text); background:var(--bg); outline:none;
 }
-.f-input:focus { border-color:#6b5f52; }
+.f-input:focus { border-color:var(--accent); }
 /* 開始日期(奇)暖米色 */
 #cStart { background: #f5f0e8; }
 .calc-btn {
-  padding:9px 20px; background:#2c2720; color:#f5f0e8;
+  padding:9px 20px; background:var(--text); color:var(--bg);
   border:none; border-radius:8px; font-size:.82rem;
   font-family:var(--font-serif); cursor:pointer;
 }
@@ -38,17 +38,17 @@
   border-bottom:1px solid rgba(107,95,82,.06);
 }
 .sum-chip { background:#faf7f2; border-radius:10px; padding:10px 16px; }
-.sum-chip .n { font-size:1.2rem; color:#2c2720; }
-.sum-chip .l { font-size:.72rem; color:#9a9188; margin-top:2px; }
+.sum-chip .n { font-size:1.2rem; color:var(--text); }
+.sum-chip .l { font-size:.72rem; color:var(--text-sub); margin-top:2px; }
 
 /* 結果表格 */
 .result-table { width:100%; border-collapse:collapse; font-size:.83rem; }
 .result-table th {
-  text-align:left; padding:9px 12px; font-weight:300; color:#9a9188;
+  text-align:left; padding:9px 12px; font-weight:300; color:var(--text-sub);
   font-size:.7rem; letter-spacing:.06em; background:#faf7f2;
   border-bottom:1px solid rgba(107,95,82,.1);
 }
-.result-table td { padding:9px 12px; color:#2c2720; border-bottom:1px solid rgba(107,95,82,.05); }
+.result-table td { padding:9px 12px; color:var(--text); border-bottom:1px solid rgba(107,95,82,.05); }
 .result-table tr:last-child td { border-bottom:none; }
 .result-table .amount { text-align:right; }
 
@@ -57,9 +57,9 @@
   background:#faf7f2; border-radius:10px; padding:12px 16px;
   display:flex; justify-content:space-between; align-items:center; margin:0 20px 10px;
 }
-.person-name { font-size:.92rem; color:#2c2720; }
-.person-total { font-size:1.1rem; color:#2c2720; font-weight:300; }
-.person-label { font-size:.72rem; color:#9a9188; }
+.person-name { font-size:.92rem; color:var(--text); }
+.person-total { font-size:1.1rem; color:var(--text); font-weight:300; }
+.person-label { font-size:.72rem; color:var(--text-sub); }
 </style>
 {% endblock %}
 
@@ -173,7 +173,7 @@ async function calculate() {
           <div class="person-label">獎金合計</div>
         </div>
         <div>
-          <div class="person-total">${total.toLocaleString()} <span style="font-size:.78rem;color:#9a9188">元</span></div>
+          <div class="person-total">${total.toLocaleString()} <span style="font-size:.78rem;color:var(--text-sub)">元</span></div>
         </div>
       </div>`).join('');
 
@@ -187,12 +187,12 @@ async function calculate() {
       <td>${r.rule_name}</td>
       <td>
         <div style="font-size:.84rem">${r.product_name}</div>
-        <div style="font-size:.72rem;color:#9a9188">${r.product_code}</div>
+        <div style="font-size:.72rem;color:var(--text-sub)">${r.product_code}</div>
       </td>
       <td class="amount">${r.sales_quantity} 件</td>
       <td class="amount">${(r.sales_amount||0).toLocaleString()}</td>
       <td class="amount"><strong>${(r.bonus_amount||0).toLocaleString()}</strong></td>
-      <td style="font-size:.74rem;color:#9a9188;max-width:160px;word-break:break-all">${r.invoice_nos||'—'}</td>
+      <td style="font-size:.74rem;color:var(--text-sub);max-width:160px;word-break:break-all">${r.invoice_nos||'—'}</td>
     </tr>`).join('');
   document.getElementById('detailCard').style.display = '';
 }

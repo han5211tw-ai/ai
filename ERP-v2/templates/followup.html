@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+{% block title %}客戶回訪 — COSH ERP{% endblock %}
+{% block page_title %}客戶回訪{% endblock %}
+
+{% block styles %}
+<style>
+.fu-layout { display:flex; flex-direction:column; gap:18px; max-width:none; }
+
+/* ═══ 統計卡片 ═══ */
+.fu-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; }
+.fu-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+  padding:14px 18px; text-align:center;
+}
+.fu-card-num {
+  font-family:var(--font-en); font-size:1.6rem; font-weight:300; color:var(--text);
+  line-height:1.2;
+}
+.fu-card-label {
+  font-size:.76rem; color:var(--text-sub); margin-top:4px; letter-spacing:.05em;
+}
+.fu-card.overdue .fu-card-num { color:#c0392b; }
+.fu-card.today .fu-card-num { color:#e67e22; }
+.fu-card.done .fu-card-num { color:#27ae60; }
+
+/* ═══ 篩選列 ═══ */
+.fu-filters {
+  display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;
+}
+.fu-filters select, .fu-filters input {
+  padding:6px 10px; border:1px solid var(--border); border-radius:6px;
+  font-size:.84rem; font-family:var(--font-serif); font-weight:300;
+  background:var(--bg-card); color:var(--text);
+}
+.fu-filters input::placeholder { font-weight:200; color:var(--text-sub); }
+
+/* ═══ 任務列表 ═══ */
+.fu-table { width:100%; border-collapse:collapse; font-size:.84rem; }
+.fu-table th, .fu-table td {
+  padding:10px 10px; border-bottom:1px solid var(--border); text-align:left;
+  font-weight:300;
+}
+.fu-table th { font-weight:400; color:var(--text-sub); font-size:.78rem; white-space:nowrap; }
+.fu-table td { color: var(--text); }
+.fu-table tr:hover { background:rgba(250,191,19,.04); }
+.fu-status-pending { color:#e67e22; }
+.fu-status-completed { color:#27ae60; }
+.fu-status-skipped { color:#999; }
+.fu-overdue { background:#fff8f5; }
+.fu-badge {
+  display:inline-block; padding:2px 8px; border-radius:10px; font-size:.72rem;
+  font-weight:400; letter-spacing:.03em;
+}
+.fu-badge-overdue { background:#fdecea; color:#c0392b; }
+.fu-badge-today { background:#fef3e0; color:#e67e22; }
+.fu-badge-future { background:#eef6ee; color:#27ae60; }
+.fu-empty { text-align:center; color:var(--text-sub); padding:2rem; font-size:.86rem; }
+
+/* 操作按鈕 */
+.fu-btn {
+  padding:4px 12px; border:none; border-radius:6px; font-size:.78rem;
+  font-family:var(--font-serif); cursor:pointer; white-space:nowrap;
+}
+.fu-btn-done { background:var(--text); color:var(--bg); }
+.fu-btn-done:hover { background:#444; }
+.fu-btn-skip { background:transparent; border:1px solid var(--border-mid); color:var(--text-sub); }
+.fu-btn-skip:hover { background:var(--bg); }
+
+/* ═══ 彈窗 ═══ */
+.fu-modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.35);
+  z-index:999; justify-content:center; align-items:center;
+}
+.fu-modal-overlay.show { display:flex; }
+.fu-modal {
+  background:var(--bg-card); border-radius:12px; padding:24px; width:90%; max-width:420px;
+}
+.fu-modal h3 {
+  margin:0 0 16px; font-size:.96rem; font-weight:400; color:var(--text);
+  font-family:var(--font-serif);
+}
+.fu-modal .fu-field { margin-bottom:12px; }
+.fu-modal .fu-field label {
+  display:block; font-size:.78rem; color:var(--text-sub); margin-bottom:4px;
+}
+.fu-modal .fu-field textarea, .fu-modal .fu-field select {
+  width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:8px;
+  font-size:.84rem; font-family:var(--font-serif); font-weight:300;
+  background:var(--bg); color:var(--text); box-sizing:border-box; resize:vertical;
+}
+.fu-modal .fu-field textarea::placeholder { font-weight:200; color:var(--text-sub); }
+.fu-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+.fu-modal-actions button {
+  padding:8px 20px; border:none; border-radius:8px; font-size:.84rem;
+  font-family:var(--font-serif); cursor:pointer;
+}
+.fu-modal-cancel { background:transparent; border:1px solid var(--border-mid) !important; color:var(--text-sub); }
+.fu-modal-confirm { background:var(--text); color:var(--bg); }
+
+/* ═══ 圖表區 ═══ */
+.fu-chart-section {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+  padding:20px 24px;
+}
+.fu-chart-title {
+  font-size:.78rem; color:var(--text-sub); letter-spacing:.1em; margin-bottom:14px;
+}
+.fu-chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.fu-chart-box { min-height:200px; }
+
+/* ═══ 分頁 ═══ */
+.fu-pager { display:flex; justify-content:center; gap:6px; margin-top:12px; }
+.fu-pager button {
+  padding:4px 12px; border:1px solid var(--border); border-radius:6px;
+  background:var(--bg-card); font-size:.78rem; cursor:pointer;
+  font-family:var(--font-serif); color:var(--text);
+}
+.fu-pager button.active { background:var(--text); color:var(--bg); border-color:var(--text); }
+.fu-pager button:disabled { opacity:.4; cursor:default; }
+
+/* ═══ 個人統計 ═══ */
+.fu-staff-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; margin-top:12px; }
+.fu-staff-card {
+  background:var(--bg); border:1px solid var(--border); border-radius:10px;
+  padding:12px 14px;
+}
+.fu-staff-name { font-size:.86rem; font-weight:400; color:var(--text); margin-bottom:6px; }
+.fu-staff-nums { font-size:.76rem; color:var(--text-sub); line-height:1.6; }
+.fu-staff-nums span { font-family:var(--font-en); font-weight:400; }
+
+@media (max-width:767px) {
+  .fu-stats { grid-template-columns:repeat(3,1fr); gap:8px; }
+  .fu-card { padding:10px 8px; }
+  .fu-card-num { font-size:1.2rem; }
+  .fu-card-label { font-size:.68rem; }
+  .fu-filters { gap:.4rem; }
+  .fu-filters select, .fu-filters input { font-size:.8rem; padding:5px 8px; flex:1; min-width:0; }
+  .fu-table { font-size:.78rem; }
+  .fu-table th, .fu-table td { padding:8px 6px; }
+  .fu-col-hide { display:none; }
+  .fu-chart-row { grid-template-columns:1fr; }
+  .fu-staff-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fu-layout">
+
+  <!-- ═══ ① 統計卡片 ═══ -->
+  <div class="fu-stats" id="fuStats">
+    <div class="fu-card"><div class="fu-card-num" id="statTotal">—</div><div class="fu-card-label">全部任務</div></div>
+    <div class="fu-card"><div class="fu-card-num" id="statPending">—</div><div class="fu-card-label">待回訪</div></div>
+    <div class="fu-card today"><div class="fu-card-num" id="statToday">—</div><div class="fu-card-label">今日到期</div></div>
+    <div class="fu-card overdue"><div class="fu-card-num" id="statOverdue">—</div><div class="fu-card-label">已逾期</div></div>
+    <div class="fu-card done"><div class="fu-card-num" id="statDone">—</div><div class="fu-card-label">已完成</div></div>
+    <div class="fu-card"><div class="fu-card-num" id="statSkipped">—</div><div class="fu-card-label">已跳過</div></div>
+  </div>
+
+  <!-- ═══ ② 篩選列 ═══ -->
+  <div class="fu-filters">
+    <select id="fStatus" onchange="loadList()">
+      <option value="">全部狀態</option>
+      <option value="pending" selected>待回訪</option>
+      <option value="completed">已完成</option>
+      <option value="skipped">已跳過</option>
+    </select>
+    <select id="fAssigned" onchange="loadList()">
+      <option value="">全部人員</option>
+    </select>
+    <input type="date" id="fDateFrom" onchange="loadList()">
+    <input type="date" id="fDateTo" onchange="loadList()">
+    <input type="text" id="fKeyword" placeholder="搜尋客戶 / 單號" style="min-width:140px;"
+           oninput="_fuDebounce()">
+  </div>
+
+  <!-- ═══ ③ 任務列表 ═══ -->
+  <div style="overflow-x:auto;">
+    <table class="fu-table">
+      <thead>
+        <tr>
+          <th>到期日</th>
+          <th>單號</th>
+          <th>客戶</th>
+          <th class="fu-col-hide">電話</th>
+          <th>負責人</th>
+          <th class="fu-col-hide">來源單號</th>
+          <th>輪次</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="fuBody">
+        <tr><td colspan="9" class="fu-empty">載入中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="fu-pager" id="fuPager"></div>
+
+  <!-- ═══ ④ 人員統計 ═══ -->
+  <div class="fu-chart-section">
+    <div class="fu-chart-title">各人員回訪統計</div>
+    <div class="fu-staff-grid" id="fuStaffGrid"></div>
+  </div>
+
+  <!-- ═══ ⑤ 圖表 ═══ -->
+  <div class="fu-chart-section">
+    <div class="fu-chart-title">完成率趨勢</div>
+    <div class="fu-chart-row">
+      <div class="fu-chart-box"><canvas id="chartPie"></canvas></div>
+      <div class="fu-chart-box"><canvas id="chartBar"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 完成彈窗 ═══ -->
+<div class="fu-modal-overlay" id="modalComplete">
+  <div class="fu-modal">
+    <h3>回訪紀錄</h3>
+    <input type="hidden" id="mcId">
+    <div class="fu-field">
+      <label>回訪結果</label>
+      <select id="mcResult">
+        <option value="">請選擇</option>
+        <option value="satisfied">客戶滿意</option>
+        <option value="issue">反映問題</option>
+        <option value="upsell">有加購意願</option>
+        <option value="no_answer">未接聽</option>
+        <option value="other">其他</option>
+      </select>
+    </div>
+    <div class="fu-field">
+      <label>備註</label>
+      <textarea id="mcNote" rows="3" placeholder="補充說明…"></textarea>
+    </div>
+    <div class="fu-modal-actions">
+      <button class="fu-modal-cancel" onclick="closeModal('modalComplete')">取消</button>
+      <button class="fu-modal-confirm" onclick="submitComplete()">確認完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 跳過彈窗 ═══ -->
+<div class="fu-modal-overlay" id="modalSkip">
+  <div class="fu-modal">
+    <h3>跳過回訪</h3>
+    <input type="hidden" id="msId">
+    <div class="fu-field">
+      <label>跳過原因</label>
+      <textarea id="msReason" rows="3" placeholder="請說明原因…"></textarea>
+    </div>
+    <div class="fu-modal-actions">
+      <button class="fu-modal-cancel" onclick="closeModal('modalSkip')">取消</button>
+      <button class="fu-modal-confirm" onclick="submitSkip()">確認跳過</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const _cs = getComputedStyle(document.documentElement);
+const _fSerif = _cs.getPropertyValue('--font-serif').trim();
+const _fEn    = _cs.getPropertyValue('--font-en').trim();
+
+let _fuPage = 1, _fuPer = 50;
+let _fuTimer = null;
+let _pieChart = null, _barChart = null;
+
+/* ── 初始化 ── */
+function onAppReady(user) {
+  loadStats();
+  loadStaffFilter();
+  loadList();
+}
+
+/* ── 載入統計 ── */
+async function loadStats() {
+  try {
+    const r = await fetch('/api/followup/stats');
+    const d = await r.json();
+    if (!d.success) return;
+    document.getElementById('statTotal').textContent   = d.total.toLocaleString();
+    document.getElementById('statPending').textContent  = d.pending.toLocaleString();
+    document.getElementById('statToday').textContent    = d.due_today.toLocaleString();
+    document.getElementById('statOverdue').textContent  = d.overdue.toLocaleString();
+    document.getElementById('statDone').textContent     = d.completed.toLocaleString();
+    document.getElementById('statSkipped').textContent  = d.skipped.toLocaleString();
+
+    // 人員統計格
+    const grid = document.getElementById('fuStaffGrid');
+    if (d.by_staff && d.by_staff.length) {
+      grid.innerHTML = d.by_staff.map(s => `
+        <div class="fu-staff-card">
+          <div class="fu-staff-name">${s.assigned_name || s.assigned_to || '未指派'}</div>
+          <div class="fu-staff-nums">
+            待辦 <span>${s.pending}</span>　已完成 <span>${s.completed}</span>　逾期 <span style="color:#c0392b">${s.overdue}</span>
+          </div>
+        </div>`).join('');
+    } else {
+      grid.innerHTML = '<div class="fu-empty">尚無資料</div>';
+    }
+
+    // 圖表
+    renderCharts(d);
+  } catch(e) { console.error('loadStats', e); }
+}
+
+/* ── 人員下拉 ── */
+async function loadStaffFilter() {
+  try {
+    const r = await fetch('/api/staff/list');
+    const d = await r.json();
+    const sel = document.getElementById('fAssigned');
+    const list = (d.data || d.staff || []).filter(s => s.is_active !== 0);
+    list.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.staff_id;
+      o.textContent = s.name;
+      sel.appendChild(o);
+    });
+  } catch(e) {}
+}
+
+/* ── 載入列表 ── */
+async function loadList() {
+  const status   = document.getElementById('fStatus').value;
+  const assigned = document.getElementById('fAssigned').value;
+  const from     = document.getElementById('fDateFrom').value;
+  const to       = document.getElementById('fDateTo').value;
+  const kw       = document.getElementById('fKeyword').value.trim();
+
+  const params = new URLSearchParams();
+  if (status)   params.set('status', status);
+  if (assigned) params.set('assigned_to', assigned);
+  if (from)     params.set('date_from', from);
+  if (to)       params.set('date_to', to);
+  if (kw)       params.set('keyword', kw);
+  params.set('page', _fuPage);
+  params.set('per', _fuPer);
+
+  try {
+    const r = await fetch('/api/followup/list?' + params.toString());
+    const d = await r.json();
+    if (!d.success) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const body = document.getElementById('fuBody');
+
+    if (!d.items.length) {
+      body.innerHTML = '<tr><td colspan="9" class="fu-empty">沒有符合條件的任務</td></tr>';
+      document.getElementById('fuPager').innerHTML = '';
+      return;
+    }
+
+    body.innerHTML = d.items.map(t => {
+      const isOverdue = t.status === 'pending' && t.due_date < today;
+      const isToday   = t.status === 'pending' && t.due_date === today;
+      const rowCls    = isOverdue ? 'fu-overdue' : '';
+
+      let badge = '';
+      if (isOverdue) badge = '<span class="fu-badge fu-badge-overdue">逾期</span>';
+      else if (isToday) badge = '<span class="fu-badge fu-badge-today">今日</span>';
+      else if (t.status === 'pending') badge = '<span class="fu-badge fu-badge-future">待訪</span>';
+
+      const statusMap = { pending: '待回訪', completed: '已完成', skipped: '已跳過' };
+      const statusCls = 'fu-status-' + t.status;
+
+      let actions = '';
+      if (t.status === 'pending') {
+        actions = `<button class="fu-btn fu-btn-done" onclick="openComplete(${t.id})">完成</button>
+                   <button class="fu-btn fu-btn-skip" onclick="openSkip(${t.id})">跳過</button>`;
+      } else if (t.status === 'completed') {
+        actions = `<span style="font-size:.76rem;color:var(--text-sub)">${t.result || ''}</span>`;
+      } else {
+        actions = `<span style="font-size:.76rem;color:var(--text-sub)">${t.skip_reason || ''}</span>`;
+      }
+
+      const roundLabel = ['', '第一輪', '第二輪', '第三輪'][t.round] || `第${t.round}輪`;
+
+      return `<tr class="${rowCls}">
+        <td>${t.due_date} ${badge}</td>
+        <td>${t.task_no}</td>
+        <td>${t.customer_name}</td>
+        <td class="fu-col-hide">${t.customer_phone || '—'}</td>
+        <td>${t.assigned_name}</td>
+        <td class="fu-col-hide">${t.source_id}</td>
+        <td>${roundLabel}</td>
+        <td class="${statusCls}">${statusMap[t.status] || t.status}</td>
+        <td style="white-space:nowrap">${actions}</td>
+      </tr>`;
+    }).join('');
+
+    // 分頁
+    const totalPages = Math.ceil(d.total / _fuPer);
+    const pager = document.getElementById('fuPager');
+    if (totalPages <= 1) { pager.innerHTML = ''; return; }
+    let html = '';
+    html += `<button ${_fuPage<=1?'disabled':''} onclick="goPage(${_fuPage-1})">上頁</button>`;
+    for (let i = 1; i <= totalPages && i <= 10; i++) {
+      html += `<button class="${i===_fuPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    html += `<button ${_fuPage>=totalPages?'disabled':''} onclick="goPage(${_fuPage+1})">下頁</button>`;
+    pager.innerHTML = html;
+
+  } catch(e) { console.error('loadList', e); }
+}
+
+function goPage(p) { _fuPage = p; loadList(); }
+function _fuDebounce() { clearTimeout(_fuTimer); _fuTimer = setTimeout(() => { _fuPage=1; loadList(); }, 350); }
+
+/* ── 完成彈窗 ── */
+function openComplete(id) {
+  document.getElementById('mcId').value = id;
+  document.getElementById('mcResult').value = '';
+  document.getElementById('mcNote').value = '';
+  document.getElementById('modalComplete').classList.add('show');
+}
+async function submitComplete() {
+  const id     = document.getElementById('mcId').value;
+  const result = document.getElementById('mcResult').value;
+  const note   = document.getElementById('mcNote').value;
+  if (!result) { alert('請選擇回訪結果'); return; }
+
+  const user = JSON.parse(localStorage.getItem('erp_user') || '{}');
+  try {
+    const r = await fetch(`/api/followup/complete/${id}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ result, note, operator: user.name || '' })
+    });
+    const d = await r.json();
+    if (!d.success) { alert(d.message || '操作失敗'); return; }
+    closeModal('modalComplete');
+    loadList();
+    loadStats();
+  } catch(e) { alert('網路錯誤'); }
+}
+
+/* ── 跳過彈窗 ── */
+function openSkip(id) {
+  document.getElementById('msId').value = id;
+  document.getElementById('msReason').value = '';
+  document.getElementById('modalSkip').classList.add('show');
+}
+async function submitSkip() {
+  const id     = document.getElementById('msId').value;
+  const reason = document.getElementById('msReason').value;
+  if (!reason.trim()) { alert('請填寫跳過原因'); return; }
+
+  const user = JSON.parse(localStorage.getItem('erp_user') || '{}');
+  try {
+    const r = await fetch(`/api/followup/skip/${id}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ reason, operator: user.name || '' })
+    });
+    const d = await r.json();
+    if (!d.success) { alert(d.message || '操作失敗'); return; }
+    closeModal('modalSkip');
+    loadList();
+    loadStats();
+  } catch(e) { alert('網路錯誤'); }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+/* ── 圖表 ── */
+function renderCharts(stats) {
+  // 圓餅圖
+  const pieCtx = document.getElementById('chartPie').getContext('2d');
+  if (_pieChart) _pieChart.destroy();
+  _pieChart = new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['待回訪', '已完成', '已跳過'],
+      datasets: [{
+        data: [stats.pending, stats.completed, stats.skipped],
+        backgroundColor: ['#e67e22', '#27ae60', '#bbb'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'bottom', labels: { font:{ family: _fSerif, size:12 }, padding:14 } }
+      }
+    }
+  });
+
+  // 長條圖（各人待辦）
+  if (!stats.by_staff || !stats.by_staff.length) return;
+  const barCtx = document.getElementById('chartBar').getContext('2d');
+  if (_barChart) _barChart.destroy();
+  const labels = stats.by_staff.map(s => s.assigned_name || '未指派');
+  _barChart = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'待辦', data: stats.by_staff.map(s=>s.pending), backgroundColor:'#e67e22' },
+        { label:'已完成', data: stats.by_staff.map(s=>s.completed), backgroundColor:'#27ae60' },
+        { label:'逾期', data: stats.by_staff.map(s=>s.overdue), backgroundColor:'#c0392b' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { ticks:{ font:{ family: _fSerif, size:11 } }, stacked:true },
+        y: { ticks:{ font:{ family: _fEn, size:11 } }, stacked:true, beginAtZero:true }
+      },
+      plugins: {
+        legend: { position:'bottom', labels: { font:{ family: _fSerif, size:12 }, padding:14 } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>{% block title %}COSH ERP{% endblock %}</title>
 
@@ -11,10 +11,44 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Serif+TC:wght@200;300;400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260404">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260405c">
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#2c2720">
+  <link rel="icon" href="/static/icons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/static/icons/favicon-32x32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/static/icons/favicon-16x16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="msapplication-TileImage" content="/static/icons/mstile-150x150.png">
+  <meta name="msapplication-TileColor" content="#000000">
+  <link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#FABF13">
   {% block styles %}{% endblock %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" defer></script>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     啟動畫面（頁面就緒後淡出）
+     ═══════════════════════════════════════════ -->
+<div id="splashScreen" style="
+  position:fixed; inset:0; z-index:99999;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:#1a1714;
+  transition: opacity .4s ease;
+">
+  <img src="/static/icons/icon-192x192.png" alt="" width="72" height="72"
+       style="border-radius:16px; margin-bottom:18px;">
+  <div style="font-family:var(--font-en); font-size:1.4rem; font-weight:300;
+              color:#faf8f4; letter-spacing:.12em;">COSH ERP</div>
+  <div style="margin-top:22px;">
+    <svg width="28" height="28" viewBox="0 0 28 28" style="animation:splashSpin .9s linear infinite">
+      <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(250,191,19,.35)" stroke-width="2.5"/>
+      <path d="M14 3 A11 11 0 0 1 25 14" fill="none" stroke="#FABF13" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+</div>
+<style>
+  @keyframes splashSpin { to { transform: rotate(360deg); } }
+</style>
 
 <!-- ═══════════════════════════════════════════
      登入遮罩（驗證未通過時覆蓋整個頁面）
@@ -25,14 +59,114 @@
       <span class="login-brand-en">COSH</span>
       <span class="login-brand-sub">內部營運系統</span>
     </div>
-    <form id="loginForm" onsubmit="handleLogin(event)">
-      <div class="form-group">
+    <div id="loginForm">
+      <div class="form-group" id="loginUsernameGroup">
+        <label>帳號</label>
+        <input type="search" id="loginUsername" placeholder="帳號（首次登入可留空）" autocomplete="off" role="presentation" readonly onfocus="this.removeAttribute('readonly');">
+      </div>
+      <div class="form-group pw-field">
         <label>密碼</label>
-        <input type="password" id="loginPassword" placeholder="請輸入個人密碼" autocomplete="current-password" required autofocus>
+        <input type="search" id="loginPassword" placeholder="請輸入密碼" autocomplete="off" role="presentation"
+               class="pw-masked" data-real="" style="padding-right:40px;" readonly onfocus="this.removeAttribute('readonly');">
+        <span class="pw-toggle" onclick="togglePwVis(this)" data-target="loginPassword">👁</span>
       </div>
       <div id="loginError" class="login-error" style="display:none"></div>
-      <button type="submit" class="btn-primary btn-full" id="loginBtn">登入</button>
-    </form>
+      <button class="btn-primary btn-full" id="loginBtn" onclick="handleLogin(event)">登入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     首次登入帳號設定遮罩
+     ═══════════════════════════════════════════ -->
+<div id="setupOverlay" class="login-overlay" style="display:none">
+  <div class="login-card" style="max-width:380px;">
+    <div class="login-brand">
+      <span class="login-brand-en">COSH</span>
+      <span class="login-brand-sub">建立您的專屬帳號</span>
+    </div>
+    <p style="font-size:.82rem; color:var(--text-sub); margin:0 0 16px; line-height:1.6;">
+      首次登入，請設定您的帳號與新密碼。<br>設定完成後，往後請使用新帳號密碼登入。
+    </p>
+    <div id="setupForm">
+      <div class="form-group">
+        <label>姓名</label>
+        <input type="text" id="setupName" readonly style="opacity:.7;" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>帳號</label>
+        <input type="search" id="setupUsername" placeholder="自訂帳號（英文、數字皆可）" autocomplete="off" role="presentation">
+        <div id="setupUsernameHint" style="font-size:.76rem; margin-top:4px; min-height:18px;"></div>
+      </div>
+      <div class="form-group pw-field">
+        <label>新密碼</label>
+        <input type="search" id="setupPassword" placeholder="至少 6 位" autocomplete="off" role="presentation"
+               class="pw-masked" data-real="" style="padding-right:40px;">
+        <span class="pw-toggle" onclick="togglePwVis(this)" data-target="setupPassword">👁</span>
+      </div>
+      <div class="form-group pw-field">
+        <label>確認密碼</label>
+        <input type="search" id="setupPassword2" placeholder="再輸入一次" autocomplete="off" role="presentation"
+               class="pw-masked" data-real="" style="padding-right:40px;">
+        <span class="pw-toggle" onclick="togglePwVis(this)" data-target="setupPassword2">👁</span>
+      </div>
+      <div id="setupError" class="login-error" style="display:none"></div>
+      <button class="btn-primary btn-full" id="setupBtn" onclick="handleSetup(event)">完成設定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     修改密碼彈窗
+     ═══════════════════════════════════════════ -->
+<div id="changePwOverlay" class="login-overlay" style="display:none">
+  <div class="login-card" style="max-width:380px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <div class="login-brand" style="margin-bottom:0;">
+        <span class="login-brand-en" style="font-size:1.1rem;">修改密碼</span>
+      </div>
+      <span onclick="closeChangePwModal()" style="cursor:pointer; font-size:1.2rem; opacity:.45; line-height:1;">&times;</span>
+    </div>
+    <div id="changePwForm">
+      <div class="form-group pw-field">
+        <label>目前密碼</label>
+        <input type="search" id="cpwOld" placeholder="請輸入目前密碼" autocomplete="off" role="presentation"
+               class="pw-masked" data-real="" style="padding-right:40px;">
+        <span class="pw-toggle" onclick="togglePwVis(this)" data-target="cpwOld">👁</span>
+      </div>
+      <div class="form-group pw-field">
+        <label>新密碼</label>
+        <input type="search" id="cpwNew" placeholder="至少 6 位" autocomplete="off" role="presentation"
+               class="pw-masked" data-real="" style="padding-right:40px;">
+        <span class="pw-toggle" onclick="togglePwVis(this)" data-target="cpwNew">👁</span>
+      </div>
+      <div class="form-group pw-field">
+        <label>確認新密碼</label>
+        <input type="search" id="cpwNew2" placeholder="再輸入一次" autocomplete="off" role="presentation"
+               class="pw-masked" data-real="" style="padding-right:40px;">
+        <span class="pw-toggle" onclick="togglePwVis(this)" data-target="cpwNew2">👁</span>
+      </div>
+      <div id="changePwError" class="login-error" style="display:none"></div>
+      <div id="changePwSuccess" style="display:none; font-size:.82rem; color:#3d7a3d; background:rgba(61,122,61,.06); border:1px solid rgba(61,122,61,.15); border-radius:8px; padding:8px 12px; margin-bottom:12px;"></div>
+      <button class="btn-primary btn-full" id="changePwBtn" onclick="handleChangePw(event)">確認修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     條碼掃描器
+     ═══════════════════════════════════════════ -->
+<div id="scannerOverlay" style="display:none; position:fixed; inset:0; z-index:9999;
+     background:rgba(0,0,0,.85); flex-direction:column; align-items:center; justify-content:center;">
+  <div style="width:100%; max-width:420px; padding:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span style="color:#faf8f4; font-family:var(--font-serif); font-size:.92rem; font-weight:300;">掃描條碼</span>
+      <span onclick="_stopScanner()" style="color:#faf8f4; cursor:pointer; font-size:1.4rem; line-height:1; opacity:.7;">&times;</span>
+    </div>
+    <div id="scannerView" style="width:100%; border-radius:12px; overflow:hidden; background:#000;"></div>
+    <div id="scannerHint" style="color:var(--text-sub); font-size:.78rem; text-align:center; margin-top:10px;">
+      將條碼對準畫面中央
+    </div>
   </div>
 </div>
 
@@ -59,6 +193,16 @@
       <div class="sidebar-user-actions">
         <a href="/" class="sidebar-action-btn">首頁</a>
         <button onclick="logout()" class="sidebar-action-btn sidebar-action-logout">登出</button>
+      </div>
+      <div id="pushNotifRow" style="display:none; margin-top:6px;">
+        <button id="pushEnableBtn" onclick="enablePushNotification()" class="sidebar-action-btn" style="font-size:.78rem; width:100%; text-align:center;">
+          開啟推播通知
+        </button>
+      </div>
+      <div id="changePwRow" style="display:none; margin-top:6px;">
+        <button onclick="showChangePwModal()" class="sidebar-action-btn" style="font-size:.78rem; width:100%; text-align:center;">
+          修改密碼
+        </button>
       </div>
     </div>
 
@@ -125,6 +269,16 @@
       <button class="more-logout" onclick="logout()">登出</button>
     </div>
     <div id="moreMenuContent"><!-- JS 動態生成 --></div>
+    <div id="morePushRow" style="display:none; padding:12px 16px; border-top:1px solid var(--border);">
+      <button id="morePushBtn" onclick="enablePushNotification()" style="width:100%; padding:10px; border:1px solid var(--border-mid); border-radius:8px; background:var(--bg-card); color:var(--text); font-family:var(--font-serif); font-size:.84rem; font-weight:300; cursor:pointer;">
+        開啟推播通知
+      </button>
+    </div>
+    <div id="moreChangePwRow" style="display:none; padding:0 16px 12px;">
+      <button onclick="showChangePwModal(); document.getElementById('moreOverlay').classList.remove('open');" style="width:100%; padding:10px; border:1px solid var(--border-mid); border-radius:8px; background:var(--bg-card); color:var(--text); font-family:var(--font-serif); font-size:.84rem; font-weight:300; cursor:pointer;">
+        修改密碼
+      </button>
+    </div>
   </div>
 </div>
 
@@ -152,7 +306,13 @@ const MENU_GROUPS = [
     id: 'documents', title: '單據與需求', items: [
       { id: 'doc-query', icon: '·', label: '單據查詢', route: '/query',       roles: ['老闆', '會計'] },
       { id: 'needs',     icon: '·', label: '需求作業', route: '/needs_input', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
-      { id: 'fault',     icon: '·', label: '電腦檢測', route: '/fault_diagnose', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+    ]
+  },
+  {
+    id: 'repair', title: '維修檢測', items: [
+      { id: 'repair-order', icon: '·', label: '維修工單', route: '/repair_order', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'fault',     icon: '·', label: '故障檢測', route: '/fault_diagnose', roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'fault-kb',  icon: '·', label: '維修知識庫', route: '/fault_kb', roles: ['老闆', '業務部主管', '門市部主管'] },
     ]
   },
   {
@@ -183,6 +343,7 @@ const MENU_GROUPS = [
   {
     id: 'records', title: '工作紀錄', items: [
       { id: 'line',       icon: '·', label: 'LINE 回覆表', route: '/line_replies',   roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
+      { id: 'followup',  icon: '·', label: '客戶回訪紀錄', route: '/followup',      roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
       { id: 'supervision',icon: '·', label: '督導評分',   route: '/supervision_score', roles: ['老闆', '門市部主管'] },
       { id: 'service',    icon: '·', label: '外勤服務表', route: '/service_record',  roles: ['老闆', '業務人員', '業務部主管'] },
       { id: 'roster',     icon: '·', label: '排班表',     route: '/roster',          roles: ['老闆', '會計', '工程師', '業務人員', '業務部主管', '門市部主管'] },
@@ -254,10 +415,8 @@ function getUser() {
 }
 
 function saveUser(user) {
-  // 每天 21:00 過期
-  const now   = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 0, 0);
-  const exp   = today <= now ? today.getTime() + 86400000 : today.getTime();
+  // 登入後 14 天過期
+  const exp = Date.now() + 14 * 24 * 60 * 60 * 1000;
   localStorage.setItem(AUTH_KEY, JSON.stringify(user));
   localStorage.setItem(AUTH_EXP, exp.toString());
 }
@@ -265,28 +424,121 @@ function saveUser(user) {
 function logout() {
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(AUTH_EXP);
+  localStorage.removeItem(_AI_OPEN_KEY);
   location.reload();
 }
 
-async function handleLogin(e) {
+// ── 密碼遮蔽（純 JS，不用 -webkit-text-security）──
+const _PW_DOT = '●';
+document.addEventListener('input', function(e) {
+  const el = e.target;
+  if (!el.classList.contains('pw-masked') || el.dataset.showRaw === '1') return;
+  const real = el.dataset.real || '';
+  const cur  = el.value;
+  const dots = _PW_DOT.repeat(real.length);
+
+  if (cur.length > real.length) {
+    // 新增字元：取出新打的明文（非圓點的部分）
+    let added = '';
+    let ri = 0;
+    for (let i = 0; i < cur.length; i++) {
+      if (cur[i] === _PW_DOT && ri < real.length) { ri++; }
+      else { added += cur[i]; }
+    }
+    el.dataset.real = real.slice(0, ri) + added + real.slice(ri);
+  } else if (cur.length < real.length) {
+    // 刪除：根據游標位置判斷刪了哪些
+    const pos = el.selectionStart || 0;
+    const diff = real.length - cur.length;
+    el.dataset.real = real.slice(0, pos) + real.slice(pos + diff);
+  }
+  // 全選貼上的情況
+  if (cur.length > 0 && !cur.includes(_PW_DOT)) {
+    el.dataset.real = cur;
+  }
+  const pos = el.selectionStart;
+  el.value = _PW_DOT.repeat(el.dataset.real.length);
+  el.setSelectionRange(pos, pos);
+});
+
+// 處理全選後貼上
+document.addEventListener('paste', function(e) {
+  const el = e.target;
+  if (!el.classList.contains('pw-masked') || el.dataset.showRaw === '1') return;
   e.preventDefault();
+  const paste = (e.clipboardData || window.clipboardData).getData('text');
+  const start = el.selectionStart || 0;
+  const end   = el.selectionEnd || 0;
+  const real  = el.dataset.real || '';
+  el.dataset.real = real.slice(0, start) + paste + real.slice(end);
+  el.value = _PW_DOT.repeat(el.dataset.real.length);
+  const newPos = start + paste.length;
+  el.setSelectionRange(newPos, newPos);
+});
+
+function _getPwValue(id) {
+  const el = document.getElementById(id);
+  return el ? (el.dataset.real || '') : '';
+}
+
+function togglePwVis(el) {
+  const input = document.getElementById(el.dataset.target);
+  if (!input) return;
+  const showing = el.classList.toggle('active');
+  if (showing) {
+    input.dataset.showRaw = '1';
+    input.value = input.dataset.real || '';
+  } else {
+    input.dataset.showRaw = '0';
+    input.value = _PW_DOT.repeat((input.dataset.real || '').length);
+  }
+  el.textContent = showing ? '🙈' : '👁';
+}
+
+// Enter 鍵送出（因為不用 <form>，需手動監聽）
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  const login = document.getElementById('loginOverlay');
+  const setup = document.getElementById('setupOverlay');
+  const cpw = document.getElementById('changePwOverlay');
+  if (cpw && cpw.style.display === 'flex') { handleChangePw(e); }
+  else if (login && login.style.display === 'flex') { handleLogin(e); }
+  else if (setup && setup.style.display === 'flex') { handleSetup(e); }
+});
+
+async function handleLogin(e) {
+  if (e) e.preventDefault();
   const btn = document.getElementById('loginBtn');
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
   btn.disabled = true;
   btn.textContent = '登入中…';
 
-  const password = document.getElementById('loginPassword').value.trim();
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = _getPwValue('loginPassword').trim();
 
   try {
     const res  = await fetch('/api/auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
+      body: JSON.stringify({ username, password })
     });
     const data = await res.json();
     if (data.success) {
+      // 需要設定帳號密碼（首次登入）
+      if (data.needSetup) {
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('setupOverlay').style.display = 'flex';
+        document.getElementById('setupName').value = data.user.name;
+        // 暫存 user 資訊供設定完成後使用
+        window._pendingSetupUser = data.user;
+        return;
+      }
       saveUser(data.user);
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+        return;
+      }
       initApp(data.user);
     } else {
       errEl.textContent = data.message || '登入失敗';
@@ -298,6 +550,165 @@ async function handleLogin(e) {
   } finally {
     btn.disabled = false;
     btn.textContent = '登入';
+  }
+}
+
+// ── 帳號設定 ────────────────────────────────
+let _setupCheckTimer = null;
+document.addEventListener('DOMContentLoaded', function () {
+  const usernameInput = document.getElementById('setupUsername');
+  if (!usernameInput) return;
+  usernameInput.addEventListener('input', function () {
+    clearTimeout(_setupCheckTimer);
+    const hint = document.getElementById('setupUsernameHint');
+    const v = this.value.trim();
+    if (!v) { hint.textContent = ''; return; }
+    _setupCheckTimer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/auth/check-username', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: v })
+        });
+        const d = await res.json();
+        if (d.available) {
+          hint.style.color = '#3d7a3d';
+          hint.textContent = '✓ 可以使用';
+        } else {
+          hint.style.color = '#b04040';
+          hint.textContent = '✗ 已被使用';
+        }
+      } catch { hint.textContent = ''; }
+    }, 400);
+  });
+});
+
+async function handleSetup(e) {
+  if (e) e.preventDefault();
+  const btn = document.getElementById('setupBtn');
+  const errEl = document.getElementById('setupError');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '設定中…';
+
+  const name = document.getElementById('setupName').value.trim();
+  const username = document.getElementById('setupUsername').value.trim();
+  const pw1 = _getPwValue('setupPassword');
+  const pw2 = _getPwValue('setupPassword2');
+
+  if (pw1.length < 6) {
+    errEl.textContent = '密碼至少需要 6 位';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '完成設定'; return;
+  }
+  if (pw1 !== pw2) {
+    errEl.textContent = '兩次密碼不一致';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '完成設定'; return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/setup-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, username, newPassword: pw1 })
+    });
+    const data = await res.json();
+    if (data.success) {
+      // 設定完成，清除登入狀態，回到登入畫面讓使用者用新帳號密碼登入
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(AUTH_EXP);
+      document.getElementById('setupOverlay').style.display = 'none';
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('loginUsername').value = username;
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginPassword').dataset.real = '';
+      document.getElementById('loginPassword').focus();
+      // 顯示成功提示
+      const errEl2 = document.getElementById('loginError');
+      errEl2.style.color = '#3d7a3d';
+      errEl2.style.background = 'rgba(61,122,61,.06)';
+      errEl2.style.borderColor = 'rgba(61,122,61,.15)';
+      errEl2.textContent = '帳號設定完成，請使用新帳號密碼登入';
+      errEl2.style.display = 'block';
+    } else {
+      errEl.textContent = data.message || '設定失敗';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = '連線失敗，請重試';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '完成設定';
+  }
+}
+
+// ── 修改密碼 ─────────────────────────────────
+function showChangePwModal() {
+  const overlay = document.getElementById('changePwOverlay');
+  // 清空欄位
+  ['cpwOld','cpwNew','cpwNew2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.dataset.real = ''; el.dataset.showRaw = '0'; }
+  });
+  document.getElementById('changePwError').style.display = 'none';
+  document.getElementById('changePwSuccess').style.display = 'none';
+  document.getElementById('changePwBtn').disabled = false;
+  document.getElementById('changePwBtn').textContent = '確認修改';
+  overlay.style.display = 'flex';
+  document.getElementById('cpwOld').focus();
+}
+function closeChangePwModal() {
+  document.getElementById('changePwOverlay').style.display = 'none';
+}
+
+async function handleChangePw(e) {
+  if (e) e.preventDefault();
+  const btn = document.getElementById('changePwBtn');
+  const errEl = document.getElementById('changePwError');
+  const okEl = document.getElementById('changePwSuccess');
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '修改中…';
+
+  const user = getUser();
+  if (!user) { errEl.textContent = '請先登入'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = '確認修改'; return; }
+
+  const oldPw = _getPwValue('cpwOld');
+  const newPw = _getPwValue('cpwNew');
+  const newPw2 = _getPwValue('cpwNew2');
+
+  if (!oldPw) { errEl.textContent = '請輸入目前密碼'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = '確認修改'; return; }
+  if (newPw.length < 6) { errEl.textContent = '新密碼至少需要 6 位'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = '確認修改'; return; }
+  if (newPw !== newPw2) { errEl.textContent = '兩次新密碼不一致'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = '確認修改'; return; }
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: user.name, oldPassword: oldPw, newPassword: newPw })
+    });
+    const data = await res.json();
+    if (data.success) {
+      okEl.textContent = '密碼修改成功';
+      okEl.style.display = 'block';
+      ['cpwOld','cpwNew','cpwNew2'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.value = ''; el.dataset.real = ''; }
+      });
+      setTimeout(() => closeChangePwModal(), 1500);
+    } else {
+      errEl.textContent = data.message || '修改失敗';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = '連線失敗，請重試';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '確認修改';
   }
 }
 
@@ -396,6 +807,7 @@ const _MOBILE_ROUTES = new Set([
   '/supervision_score',
   '/pending_purchase',
   '/pending_transfer',
+  '/fault_diagnose',
 ]);
 
 function renderMoreMenu(userRole) {
@@ -454,6 +866,34 @@ function _initBottomNav(user) {
   _highlightBottomNav();
 }
 
+const _splashStart = Date.now();
+const _splashShown = sessionStorage.getItem('_splashDone');
+// 已經顯示過 → 立即移除（不播動畫）
+if (_splashShown) {
+  const _ss = document.getElementById('splashScreen');
+  if (_ss) _ss.remove();
+}
+function _dismissSplash() {
+  const s = document.getElementById('splashScreen');
+  if (!s) return;
+  sessionStorage.setItem('_splashDone', '1');
+  const elapsed = Date.now() - _splashStart;
+  const remain = Math.max(0, 1000 - elapsed);  // 至少顯示 1 秒
+  setTimeout(() => {
+    s.style.opacity = '0';
+    setTimeout(() => s.remove(), 400);
+  }, remain);
+}
+
+function _showChangePwButtons(user) {
+  if (user.has_setup) {
+    const r1 = document.getElementById('changePwRow');
+    const r2 = document.getElementById('moreChangePwRow');
+    if (r1) r1.style.display = '';
+    if (r2) r2.style.display = '';
+  }
+}
+
 function initApp(user) {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appShell').style.display = 'flex';
@@ -463,9 +903,16 @@ function initApp(user) {
 
   renderMenu(user.title);
   _initBottomNav(user);
+  _showChangePwButtons(user);
+
+  // 推播通知訂閱（靜默執行，失敗不影響）
+  if (typeof initPushNotification === 'function') {
+    setTimeout(() => initPushNotification(user.name), 2000);
+  }
 
   // 觸發頁面自訂初始化
   if (typeof onAppReady === 'function') onAppReady(user);
+  _dismissSplash();
 }
 
 // ── 啟動 ────────────────────────────────────
@@ -479,13 +926,20 @@ function initApp(user) {
     document.getElementById('sidebarUserRole').textContent = user.title;
     renderMenu(user.title);
     _initBottomNav(user);
+    _showChangePwButtons(user);
+    _dismissSplash();
     // onAppReady 定義在頁面底部的 scripts block（比此段晚載入），
     // 必須等所有 scripts 跑完才能呼叫
     window.addEventListener('load', function () {
       if (typeof onAppReady === 'function') onAppReady(user);
+      // 推播通知（自動登入路徑也要初始化）
+      if (typeof initPushNotification === 'function') {
+        setTimeout(() => initPushNotification(user.name), 2000);
+      }
     });
   } else {
     document.getElementById('loginOverlay').style.display = 'flex';
+    _dismissSplash();
   }
 })();
 
@@ -498,6 +952,57 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.remove('show');
 }
+
+// ── 條碼掃描 ─────────────────────────────────
+let _html5QrScanner = null;
+let _scanCallback = null;
+
+function startBarcodeScan(callback) {
+  _scanCallback = callback;
+  const overlay = document.getElementById('scannerOverlay');
+  const hint = document.getElementById('scannerHint');
+  hint.textContent = '將條碼對準畫面中央';
+  overlay.style.display = 'flex';
+
+  if (typeof Html5Qrcode === 'undefined') {
+    hint.textContent = '掃描器載入失敗，請重新整理頁面';
+    return;
+  }
+
+  _html5QrScanner = new Html5Qrcode('scannerView', {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.QR_CODE
+    ]
+  });
+  _html5QrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 280, height: 120 }, aspectRatio: 1.5 },
+    function onScanSuccess(decoded) {
+      _stopScanner();
+      if (_scanCallback) _scanCallback(decoded.trim());
+    },
+    function onScanFailure() { /* 忽略 */ }
+  ).catch(function (e) {
+    hint.textContent = '無法啟動相機，請確認已授權相機權限';
+    console.warn('Scanner error:', e);
+  });
+}
+
+function _stopScanner() {
+  if (_html5QrScanner) {
+    _html5QrScanner.stop().then(function () {
+      _html5QrScanner.clear();
+    }).catch(function () {});
+    _html5QrScanner = null;
+  }
+  document.getElementById('scannerOverlay').style.display = 'none';
+}
 </script>
 
 {% block scripts %}{% endblock %}
@@ -507,7 +1012,7 @@ function closeSidebar() {
      ═══════════════════════════════════════════ -->
 <style>
 /* ── 山丘 SVG 圖標（共用） ── */
-.ai-mountain-icon {
+.ai-rourou-icon {
   display:inline-block; width:26px; height:26px; flex-shrink:0;
 }
 
@@ -530,7 +1035,7 @@ function closeSidebar() {
   animation:none !important;  /* hover 時停止自動動畫 */
 }
 #aiFab.open { display:none; }
-#aiFab .ai-mountain-icon { width:28px; height:28px; }
+#aiFab .ai-rourou-icon { width:28px; height:28px; }
 
 /* 呼吸光暈 */
 @keyframes aiBreathe {
@@ -555,7 +1060,7 @@ function closeSidebar() {
 /* ── 對話視窗 ── */
 #aiChat {
   display:none; position:fixed; bottom:24px; right:24px; z-index:9001;
-  width:380px; max-height:560px; border-radius:16px;
+  width:460px; max-height:640px; border-radius:16px;
   background:var(--bg-card, #faf8f4);
   border:1px solid rgba(107,95,82,.12);
   box-shadow:0 8px 40px rgba(44,39,32,.12), 0 1px 3px rgba(44,39,32,.06);
@@ -619,7 +1124,7 @@ function closeSidebar() {
   background:var(--bg-card, #faf8f4);
   border:1px solid rgba(107,95,82,.12);
 }
-.ai-avatar .ai-mountain-icon { width:18px; height:18px; }
+.ai-avatar .ai-rourou-icon { width:18px; height:18px; }
 .ai-avatar-user {
   width:28px; height:28px; border-radius:50%; flex-shrink:0;
   background:var(--bg-card, #faf8f4);
@@ -707,42 +1212,58 @@ function closeSidebar() {
 @media(max-width:640px){
   #aiChat { width:calc(100vw - 16px); right:8px; bottom:8px; max-height:80vh; border-radius:14px; }
   #aiFab  { bottom:16px; right:16px; width:46px; height:46px; }
-  #aiFab .ai-mountain-icon { width:24px; height:24px; }
+  #aiFab .ai-rourou-icon { width:24px; height:24px; }
 }
 </style>
 
-<!-- 山丘 SVG 定義（隱藏，供引用） -->
+<!-- 柔柔頭像 SVG 定義（隱藏，供引用） -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-  <symbol id="iconMountain" viewBox="0 0 100 100">
-    <!-- 遠山（淺色） -->
-    <path d="M10 78 Q25 42, 42 60 Q50 50, 58 58 Q72 38, 90 78 Z"
-          fill="rgba(107,95,82,.12)" stroke="none"/>
-    <!-- 近山（深色） -->
-    <path d="M5 82 Q22 50, 38 65 Q50 45, 62 62 Q78 44, 95 82 Z"
-          fill="rgba(107,95,82,.25)" stroke="none"/>
-    <!-- 山頂煙嵐 -->
-    <circle cx="50" cy="40" r="6" fill="rgba(250,191,19,.18)"/>
-    <circle cx="44" cy="43" r="4" fill="rgba(250,191,19,.10)"/>
+  <symbol id="iconRourou" viewBox="0 0 100 100">
+    <!-- 頭髮（深棕） -->
+    <ellipse cx="50" cy="44" rx="36" ry="38" fill="#5a4a3e"/>
+    <!-- 瀏海弧線 -->
+    <path d="M18 42 Q26 18, 50 22 Q74 18, 82 42" fill="#5a4a3e" stroke="none"/>
+    <path d="M22 44 Q30 28, 50 30 Q70 28, 78 44" fill="#6b5c4e" stroke="none"/>
+    <!-- 臉（暖膚色） -->
+    <ellipse cx="50" cy="52" rx="28" ry="30" fill="#f5dcc8"/>
+    <!-- 眼睛（大圓眼 — 可愛感） -->
+    <ellipse cx="38" cy="50" rx="5" ry="5.5" fill="#3d3229"/>
+    <ellipse cx="62" cy="50" rx="5" ry="5.5" fill="#3d3229"/>
+    <!-- 眼睛高光 -->
+    <circle cx="40" cy="48" r="2" fill="#fff"/>
+    <circle cx="64" cy="48" r="2" fill="#fff"/>
+    <!-- 腮紅 -->
+    <ellipse cx="32" cy="58" rx="6" ry="3.5" fill="rgba(235,140,120,.25)"/>
+    <ellipse cx="68" cy="58" rx="6" ry="3.5" fill="rgba(235,140,120,.25)"/>
+    <!-- 微笑（弧線） -->
+    <path d="M42 62 Q50 70, 58 62" fill="none" stroke="#8b6f5e" stroke-width="2" stroke-linecap="round"/>
+    <!-- 頭髮側邊垂下 -->
+    <path d="M18 42 Q14 55, 20 72" fill="none" stroke="#5a4a3e" stroke-width="8" stroke-linecap="round"/>
+    <path d="M82 42 Q86 55, 80 72" fill="none" stroke="#5a4a3e" stroke-width="8" stroke-linecap="round"/>
+    <!-- 小髮飾（品牌黃蝴蝶結） -->
+    <path d="M72 30 Q78 24, 80 30 Q78 36, 72 30 Z" fill="#FABF13" opacity=".85"/>
+    <path d="M80 30 Q86 24, 88 30 Q86 36, 80 30 Z" fill="#FABF13" opacity=".7"/>
+    <circle cx="80" cy="30" r="2" fill="#e6ad10"/>
   </symbol>
 </svg>
 
 <button id="aiFab" onclick="aiToggle()" title="AI 幫手" style="display:none">
-  <svg class="ai-mountain-icon"><use href="#iconMountain"/></svg>
+  <svg class="ai-rourou-icon"><use href="#iconRourou"/></svg>
 </button>
 
 <div id="aiChat">
   <div class="ai-header">
     <div class="ai-avatar" style="width:32px;height:32px;">
-      <svg class="ai-mountain-icon" style="width:20px;height:20px;"><use href="#iconMountain"/></svg>
+      <svg class="ai-rourou-icon" style="width:20px;height:20px;"><use href="#iconRourou"/></svg>
     </div>
     <div class="ai-header-info">
-      <div class="ai-header-title">電腦舖 AI</div>
-      <div class="ai-header-sub">ERP 資料即時查詢</div>
+      <div class="ai-header-title">柔柔</div>
+      <div class="ai-header-sub">COSH ERP 小助理</div>
     </div>
     <button class="ai-close" onclick="aiToggle()">✕</button>
   </div>
   <div class="ai-messages" id="aiMessages">
-    <div class="ai-msg system">有什麼可以幫你的？可以問銷貨、庫存、客戶、財務等問題。</div>
+    <div class="ai-msg system">嗨～我是柔柔，你的 ERP 小助理！可以問我銷貨、庫存、客戶、財務的資料，也可以問我系統怎麼操作哦～</div>
   </div>
   <div class="ai-input-bar">
     <textarea class="ai-input" id="aiInput" placeholder="輸入問題…" rows="1"
@@ -758,7 +1279,7 @@ let _aiOpen = false;
 let _aiBusy = false;
 
 /* 山丘 avatar HTML */
-const _aiAvatarHTML = '<div class="ai-avatar"><svg class="ai-mountain-icon" style="width:18px;height:18px"><use href="#iconMountain"/></svg></div>';
+const _aiAvatarHTML = '<div class="ai-avatar"><svg class="ai-rourou-icon" style="width:18px;height:18px"><use href="#iconRourou"/></svg></div>';
 const _userAvatarHTML = '<div class="ai-avatar-user">我</div>';
 
 function aiToggle(){
@@ -770,6 +1291,7 @@ function aiToggle(){
     fab.classList.add('open');
     requestAnimationFrame(()=> chat.classList.add('open'));
     document.getElementById('aiInput').focus();
+    _aiMarkOpened();   // 手動打開也重置 2 小時計時
   } else {
     chat.classList.remove('open');
     fab.classList.remove('open');
@@ -873,6 +1395,19 @@ document.getElementById('aiInput')?.addEventListener('input', function(){
 });
 
 // 登入後才顯示 AI 按鈕 + 自動載入今日摘要
+const _AI_OPEN_KEY = 'erp_v2_ai_last_open';
+const _AI_OPEN_INTERVAL = 2 * 60 * 60 * 1000; // 2 小時
+
+function _aiShouldAutoOpen() {
+  const last = localStorage.getItem(_AI_OPEN_KEY);
+  if (!last) return true;  // 第一次登入，從未打開過
+  return (Date.now() - parseInt(last)) >= _AI_OPEN_INTERVAL;
+}
+
+function _aiMarkOpened() {
+  localStorage.setItem(_AI_OPEN_KEY, Date.now().toString());
+}
+
 async function _aiLoadDailySummary(user) {
   try {
     const params = new URLSearchParams({
@@ -883,17 +1418,19 @@ async function _aiLoadDailySummary(user) {
     const res = await fetch('/api/ai/daily-summary?' + params);
     const json = await res.json();
     if (json.success && json.summary) {
-      // 自動展開對話框並顯示摘要
-      const chat = document.getElementById('aiChat');
-      const fab  = document.getElementById('aiFab');
-      _aiOpen = true;
-      chat.style.display = 'flex';
-      fab.classList.add('open');
-      requestAnimationFrame(() => chat.classList.add('open'));
-      // 清空預設歡迎訊息，替換為摘要
       const box = document.getElementById('aiMessages');
       box.innerHTML = '';
       aiAppend('assistant', json.summary);
+      // 第一次登入或距上次打開超過 2 小時 → 自動展開
+      if (_aiShouldAutoOpen()) {
+        const chat = document.getElementById('aiChat');
+        const fab  = document.getElementById('aiFab');
+        _aiOpen = true;
+        chat.style.display = 'flex';
+        fab.classList.add('open');
+        requestAnimationFrame(() => chat.classList.add('open'));
+        _aiMarkOpened();
+      }
     }
   } catch (e) {
     // 摘要失敗不阻塞，靜默忽略
@@ -941,9 +1478,9 @@ function _aiRandomPos(){
   const size = fab ? fab.offsetWidth : 54;
   const margin = 16;
 
-  // 只在右邊 300px 範圍 & 下方 300px 範圍內漂移
-  const maxRight = 300;
-  const maxBottom = 300;
+  // 只在右邊 120px 範圍 & 下方 200px 範圍內漂移
+  const maxRight = 120;
+  const maxBottom = 200;
 
   // 隨機選一個邊：0=底邊, 1=右邊
   const edge = Math.random() < 0.5 ? 0 : 1;
@@ -1021,6 +1558,119 @@ aiToggle = function(){
     fab.style.animation = '';
   }
 };
+</script>
+
+<script>
+// ── PWA Service Worker 註冊 + 推播通知 ──
+let _swRegistration = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    .then(reg => { _swRegistration = reg; })
+    .catch(() => {});
+}
+
+function _urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function initPushNotification(username) {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      _updatePushUI('unsupported');
+      return;
+    }
+
+    // 檢查是否已訂閱，更新 UI
+    const reg = _swRegistration || await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    _updatePushUI(existing ? 'subscribed' : 'available');
+
+    if (Notification.permission === 'granted' && existing) {
+      // 已訂閱，更新後端 username（可能換人登入）
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: existing.toJSON(), username: username })
+      });
+    }
+  } catch (e) {
+    console.log('[Push] init:', e);
+    _updatePushUI('available');
+  }
+}
+
+async function enablePushNotification() {
+  const btn = document.getElementById('pushEnableBtn');
+  btn.textContent = '訂閱中…';
+  btn.disabled = true;
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      _updatePushUI('unsupported');
+      return;
+    }
+    const reg = _swRegistration || await navigator.serviceWorker.ready;
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      _updatePushUI('denied');
+      return;
+    }
+
+    const keyRes = await fetch('/api/push/vapid-public-key');
+    const keyData = await keyRes.json();
+    if (!keyData.success || !keyData.vapid_public_key) {
+      _updatePushUI('error');
+      return;
+    }
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlBase64ToUint8Array(keyData.vapid_public_key)
+      });
+    }
+
+    const user = getUser();
+    const username = user ? user.name : '';
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), username: username })
+    });
+    _updatePushUI('subscribed');
+  } catch (e) {
+    console.log('[Push] 訂閱失敗:', e);
+    _updatePushUI('error');
+  }
+}
+
+function _updatePushUI(state) {
+  // 同時更新桌機版（sidebar）和手機版（更多面板）的按鈕
+  const pairs = [
+    ['pushNotifRow', 'pushEnableBtn'],
+    ['morePushRow',  'morePushBtn']
+  ];
+  let label = '開啟推播通知', disabled = false, opacity = '1';
+  switch (state) {
+    case 'subscribed': label = '✓ 推播通知已開啟'; disabled = true; opacity = '0.7'; break;
+    case 'denied':     label = '請在系統設定允許通知'; disabled = true; opacity = '0.7'; break;
+    case 'unsupported':label = '請先加到主畫面';     disabled = true; opacity = '0.7'; break;
+    case 'error':      label = '訂閱失敗，請重試';   disabled = false; break;
+  }
+  for (const [rowId, btnId] of pairs) {
+    const row = document.getElementById(rowId);
+    const btn = document.getElementById(btnId);
+    if (!row || !btn) continue;
+    row.style.display = 'block';
+    btn.textContent = label;
+    btn.disabled = disabled;
+    btn.style.opacity = opacity;
+  }
+}
 </script>
 
 </body>

@@ -9,6 +9,7 @@ import json
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, render_template, jsonify, request, abort, send_from_directory, send_file
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 # ─────────────────────────────────────────────
@@ -35,6 +36,16 @@ app = Flask(
     static_folder=os.path.join(BASE_DIR, 'static'),
 )
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+
+@app.after_request
+def add_cache_headers(response):
+    """HTML 頁面禁止快取，確保每次都拿到最新版"""
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 
 # ─────────────────────────────────────────────
@@ -125,6 +136,470 @@ def _ensure_audit_log_table():
     conn.close()
 
 _ensure_audit_log_table()
+
+
+# ─────────────────────────────────────────────
+# 客戶回訪任務：followup_tasks
+# ─────────────────────────────────────────────
+def _ensure_followup_table():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS followup_tasks (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_no       TEXT    UNIQUE,
+            source_type   TEXT    NOT NULL DEFAULT '',
+            source_id     TEXT    NOT NULL DEFAULT '',
+            customer_id   TEXT    NOT NULL DEFAULT '',
+            customer_name TEXT    NOT NULL DEFAULT '',
+            customer_phone TEXT   NOT NULL DEFAULT '',
+            assigned_to   TEXT    NOT NULL DEFAULT '',
+            assigned_name TEXT    NOT NULL DEFAULT '',
+            round         INTEGER NOT NULL DEFAULT 1,
+            due_date      TEXT    NOT NULL DEFAULT '',
+            status        TEXT    NOT NULL DEFAULT 'pending',
+            completed_at  TEXT    NOT NULL DEFAULT '',
+            completed_by  TEXT    NOT NULL DEFAULT '',
+            result        TEXT    NOT NULL DEFAULT '',
+            note          TEXT    NOT NULL DEFAULT '',
+            skip_reason   TEXT    NOT NULL DEFAULT '',
+            created_at    TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_followup_status ON followup_tasks(status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_followup_assigned ON followup_tasks(assigned_to)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_followup_due ON followup_tasks(due_date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_followup_source ON followup_tasks(source_type, source_id)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_followup_no_dup ON followup_tasks(source_type, source_id, round)")
+    conn.commit()
+    conn.close()
+
+_ensure_followup_table()
+
+
+# ─────────────────────────────────────────────
+# 推播通知訂閱：push_subscriptions
+# ─────────────────────────────────────────────
+def _ensure_push_subscriptions_table():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            username    TEXT,
+            endpoint    TEXT UNIQUE,
+            p256dh      TEXT,
+            auth        TEXT,
+            user_agent  TEXT,
+            created_at  DATETIME DEFAULT (datetime('now','localtime')),
+            last_used   DATETIME
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_push_username ON push_subscriptions(username)")
+    conn.commit()
+    conn.close()
+
+_ensure_push_subscriptions_table()
+
+
+# ─────────────────────────────────────────────
+# staff_passwords 帳號密碼欄位擴充
+# ─────────────────────────────────────────────
+def _ensure_account_columns():
+    conn = sqlite3.connect(DB_PATH)
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(staff_passwords)").fetchall()]
+    if 'username' not in cols:
+        conn.execute("ALTER TABLE staff_passwords ADD COLUMN username TEXT")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_sp_username ON staff_passwords(username)")
+    if 'has_setup' not in cols:
+        conn.execute("ALTER TABLE staff_passwords ADD COLUMN has_setup INTEGER DEFAULT 0")
+    if 'pw_hash' not in cols:
+        conn.execute("ALTER TABLE staff_passwords ADD COLUMN pw_hash TEXT")
+    # 既有資料 NULL → 0（ALTER TABLE 不會回填預設值）
+    conn.execute("UPDATE staff_passwords SET has_setup = 0 WHERE has_setup IS NULL")
+    conn.commit()
+    conn.close()
+
+_ensure_account_columns()
+
+
+# ── 維修工單資料表 ───────────────────────────────
+def _ensure_repair_tables():
+    conn = sqlite3.connect(DB_PATH, timeout=5)
+    # 檢查表是否已存在，已存在則直接返回
+    existing = [r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'repair%'").fetchall()]
+    if 'repair_orders' in existing and 'repair_phrases' in existing:
+        conn.close()
+        return
+    conn.execute("""CREATE TABLE IF NOT EXISTS repair_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT UNIQUE NOT NULL,
+        status TEXT NOT NULL DEFAULT '待處理', customer_id TEXT, customer_name TEXT,
+        phone TEXT, device_type TEXT, brand TEXT, model TEXT, serial_no TEXT,
+        symptom TEXT, diagnosis TEXT, repair_note TEXT,
+        labor_fee INTEGER DEFAULT 0, parts_total INTEGER DEFAULT 0,
+        total_amount INTEGER DEFAULT 0, received_by TEXT, technician TEXT,
+        store TEXT, sales_invoice_no TEXT,
+        created_at TEXT, updated_at TEXT, closed_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS repair_order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT NOT NULL,
+        product_code TEXT, product_name TEXT,
+        quantity INTEGER DEFAULT 1, price INTEGER DEFAULT 0, amount INTEGER DEFAULT 0
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS repair_phrases (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL DEFAULT 'symptom', phrase TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0, is_preset INTEGER DEFAULT 0,
+        created_by TEXT, created_at TEXT
+    )""")
+    # 預設常用語句（首次建表才插入）
+    existing = conn.execute("SELECT COUNT(*) FROM repair_phrases").fetchone()[0]
+    if existing == 0:
+        presets = [
+            ('symptom', '無法開機', 1), ('symptom', '畫面異常/花屏', 2),
+            ('symptom', '觸控失靈', 3), ('symptom', '電池膨脹/不蓄電', 4),
+            ('symptom', '充電異常', 5), ('symptom', '音效/喇叭故障', 6),
+            ('symptom', '按鍵失靈', 7), ('symptom', '進水/受潮', 8),
+            ('symptom', '外殼破損', 9), ('symptom', '運行緩慢/當機', 10),
+            ('diagnosis', '主機板損壞', 1), ('diagnosis', '螢幕排線鬆脫', 2),
+            ('diagnosis', '電池老化需更換', 3), ('diagnosis', '充電孔接觸不良', 4),
+            ('diagnosis', '軟體問題需重灌', 5), ('diagnosis', '零件氧化需清潔', 6),
+            ('diagnosis', '記憶體/硬碟故障', 7), ('diagnosis', '散熱風扇故障', 8),
+            ('repair_note', '已更換零件，測試正常', 1), ('repair_note', '清潔保養完成', 2),
+            ('repair_note', '軟體已重新安裝', 3), ('repair_note', '客戶自行取消維修', 4),
+            ('repair_note', '無法維修，建議更換', 5),
+        ]
+        conn.executemany(
+            "INSERT INTO repair_phrases (category, phrase, sort_order, is_preset) VALUES (?, ?, ?, 1)",
+            presets
+        )
+    # 確保服務類產品存在（維修工資）
+    sv = conn.execute("SELECT 1 FROM products WHERE product_code='SV-LABOR'").fetchone()
+    if not sv:
+        conn.execute("""
+            INSERT OR IGNORE INTO products
+              (product_code, product_name, category, unit, created_at, updated_at, created_by)
+            VALUES ('SV-LABOR', '維修工資', '服務', '次',
+                    datetime('now','localtime'), datetime('now','localtime'), 'system')
+        """)
+    conn.commit()
+    conn.close()
+
+try:
+    _ensure_repair_tables()
+except Exception as _e:
+    print(f'[WARN] _ensure_repair_tables failed: {_e}')
+
+
+def _generate_repair_order_no(conn, store_code):
+    """產生 門市碼-RO-YYYYMMDD-NNN 格式的工單號"""
+    today = datetime.now().strftime('%Y%m%d')
+    prefix = f'{store_code}-RO-{today}-'
+    row = conn.execute(
+        "SELECT order_no FROM repair_orders WHERE order_no LIKE ? ORDER BY order_no DESC LIMIT 1",
+        (prefix + '%',)).fetchone()
+    if row:
+        seq = int(row[0].split('-')[-1]) + 1
+    else:
+        seq = 1
+    return f'{prefix}{seq:03d}'
+
+
+def _get_store_code(staff_name):
+    """依業務員姓名取得門市代碼"""
+    STORE_MAP = {
+        '林榮祺': 'FY', '林峙文': 'FY', '莊圍迪': 'FY',
+        '劉育仕': 'TZ', '林煜捷': 'TZ',
+        '張永承': 'DY', '張家碩': 'DY',
+        '張芯瑜': 'OW', '梁仁佑': 'OW', '鄭宇晉': 'OW',
+        '萬書佑': 'OW', '黃柏翰': 'OW', '黃環馥': 'OW', '黎名燁': 'OW',
+    }
+    return STORE_MAP.get(staff_name, 'OW')
+
+
+def _generate_followup_task_no(conn):
+    """產生 FU-YYYYMMDD-NNN 格式的回訪任務單號"""
+    today = datetime.now().strftime('%Y%m%d')
+    prefix = f'FU-{today}-'
+    row = conn.execute(
+        "SELECT task_no FROM followup_tasks WHERE task_no LIKE ? ORDER BY task_no DESC LIMIT 1",
+        (prefix + '%',)).fetchone()
+    if row:
+        seq = int(row[0].split('-')[-1]) + 1
+    else:
+        seq = 1
+    return f'{prefix}{seq:03d}'
+
+
+def generate_followup_tasks(source_type, source_id, **kwargs):
+    """根據來源類型自動產生回訪任務，失敗不影響主流程。
+
+    source_type: 'sale'
+    source_id:   銷貨單號
+    kwargs:  date, customer_id, customer_name, salesperson, salesperson_id, total_amount
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+
+        # ── 僅處理銷貨，金額 >= 15000 才觸發 ──
+        if source_type != 'sale':
+            conn.close()
+            return
+        total = int(kwargs.get('total_amount', 0) or 0)
+        if total < 15000:
+            conn.close()
+            return
+        rounds = [
+            (1, 7),    # 第 1 輪：+7 天
+            (2, 30),   # 第 2 輪：+30 天
+            (3, 365),  # 第 3 輪：+365 天
+        ]
+
+        # ── 解析基準日期 ──
+        base_date_str = kwargs.get('date', '') or datetime.now().strftime('%Y-%m-%d')
+        base_date = datetime.strptime(base_date_str[:10], '%Y-%m-%d')
+
+        # ── 客戶資訊 ──
+        customer_id   = kwargs.get('customer_id') or kwargs.get('customer_code') or ''
+        customer_name = kwargs.get('customer_name', '')
+        customer_phone = ''
+        if customer_id:
+            cust = conn.execute(
+                "SELECT phone1, mobile FROM customers WHERE customer_id=?",
+                (customer_id,)).fetchone()
+            if cust:
+                customer_phone = cust['mobile'] or cust['phone1'] or ''
+
+        # ── 負責人：原業務 / 工程師；離職則回退門市主管 ──
+        assigned_name = kwargs.get('salesperson', '')
+        assigned_to   = kwargs.get('salesperson_id', '')
+        # 若沒傳 salesperson_id，用 salesperson 名字查
+        if not assigned_to and assigned_name:
+            st = conn.execute(
+                "SELECT staff_id, is_active FROM staff WHERE name=? LIMIT 1",
+                (assigned_name,)).fetchone()
+            if st:
+                assigned_to = st['staff_id']
+
+        # 檢查是否在職；離職則找同門市主管
+        if assigned_to:
+            st = conn.execute(
+                "SELECT is_active, store FROM staff WHERE staff_id=?",
+                (assigned_to,)).fetchone()
+            if st and not st['is_active']:
+                # 找同門市的主管
+                mgr = conn.execute(
+                    "SELECT staff_id, name FROM staff WHERE store=? AND is_active=1 AND title LIKE '%主管%' LIMIT 1",
+                    (st['store'],)).fetchone()
+                if mgr:
+                    assigned_to = mgr['staff_id']
+                    assigned_name = mgr['name']
+
+        # ── 逐輪產生任務（INSERT OR IGNORE 防重複） ──
+        for rnd, delta_days in rounds:
+            due = (base_date + timedelta(days=delta_days)).strftime('%Y-%m-%d')
+            task_no = _generate_followup_task_no(conn)
+            try:
+                conn.execute("""
+                    INSERT OR IGNORE INTO followup_tasks
+                      (task_no, source_type, source_id, customer_id, customer_name,
+                       customer_phone, assigned_to, assigned_name, round, due_date)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
+                """, (task_no, source_type, str(source_id), customer_id, customer_name,
+                      customer_phone, assigned_to, assigned_name, rnd, due))
+            except sqlite3.IntegrityError:
+                pass  # 同一來源同一輪已存在，跳過
+
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass  # 回訪產生失敗不影響主流程
+
+
+# ─────────────────────────────────────────────
+# API: 客戶回訪任務
+# ─────────────────────────────────────────────
+@app.route('/api/followup/list')
+def api_followup_list():
+    """回訪任務清單（支援篩選）"""
+    status     = request.args.get('status', '').strip()
+    assigned   = request.args.get('assigned_to', '').strip()
+    date_from  = request.args.get('date_from', '').strip()
+    date_to    = request.args.get('date_to', '').strip()
+    keyword    = request.args.get('keyword', '').strip()
+    page       = request.args.get('page', 1, type=int)
+    per        = request.args.get('per', 50, type=int)
+    if per > 200:
+        per = 200
+
+    conn = get_db()
+    try:
+        where, params = [], []
+        if status:
+            where.append('status=?')
+            params.append(status)
+        if assigned:
+            where.append('assigned_to=?')
+            params.append(assigned)
+        if date_from:
+            where.append('due_date>=?')
+            params.append(date_from)
+        if date_to:
+            where.append('due_date<=?')
+            params.append(date_to)
+        if keyword:
+            where.append('(customer_name LIKE ? OR customer_phone LIKE ? OR task_no LIKE ? OR source_id LIKE ?)')
+            kw = f'%{keyword}%'
+            params.extend([kw, kw, kw, kw])
+
+        w = ('WHERE ' + ' AND '.join(where)) if where else ''
+        total = conn.execute(f'SELECT COUNT(*) FROM followup_tasks {w}', params).fetchone()[0]
+        rows = conn.execute(
+            f'SELECT * FROM followup_tasks {w} ORDER BY due_date ASC, id ASC LIMIT ? OFFSET ?',
+            params + [per, (page - 1) * per]).fetchall()
+        return ok(items=[dict(r) for r in rows], total=total, page=page, per=per)
+    finally:
+        conn.close()
+
+
+@app.route('/api/followup/my')
+def api_followup_my():
+    """我的回訪任務（依 assigned_to 篩選，僅 pending）"""
+    staff_id = request.args.get('staff_id', '').strip()
+    if not staff_id:
+        return err('缺少 staff_id')
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM followup_tasks WHERE assigned_to=? AND status='pending' ORDER BY due_date ASC",
+            (staff_id,)).fetchall()
+        return ok(items=[dict(r) for r in rows])
+    finally:
+        conn.close()
+
+
+@app.route('/api/followup/today')
+def api_followup_today():
+    """今日到期的回訪任務"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    staff_id = request.args.get('staff_id', '').strip()
+    conn = get_db()
+    try:
+        if staff_id:
+            rows = conn.execute(
+                "SELECT * FROM followup_tasks WHERE due_date<=? AND status='pending' AND assigned_to=? ORDER BY due_date ASC",
+                (today, staff_id)).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM followup_tasks WHERE due_date<=? AND status='pending' ORDER BY due_date ASC",
+                (today,)).fetchall()
+        return ok(items=[dict(r) for r in rows])
+    finally:
+        conn.close()
+
+
+@app.route('/api/followup/complete/<int:task_id>', methods=['POST'])
+def api_followup_complete(task_id):
+    """完成回訪任務"""
+    data = request.get_json() or {}
+    result   = data.get('result', '').strip()
+    note     = data.get('note', '').strip()
+    operator = data.get('operator', '').strip()
+    if not result:
+        return err('請填寫回訪結果')
+
+    conn = get_db()
+    try:
+        task = conn.execute("SELECT * FROM followup_tasks WHERE id=?", (task_id,)).fetchone()
+        if not task:
+            return err('任務不存在', 404)
+        if task['status'] != 'pending':
+            return err('此任務已處理')
+
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn.execute("""
+            UPDATE followup_tasks
+            SET status='completed', completed_at=?, completed_by=?, result=?, note=?
+            WHERE id=?
+        """, (now, operator, result, note, task_id))
+        conn.commit()
+
+        log_action(operator=operator, action='followup.complete',
+                   target_type='followup', target_id=task['task_no'],
+                   description=f"完成回訪 {task['task_no']}（{task['customer_name']}）",
+                   extra={'result': result})
+        return ok()
+    finally:
+        conn.close()
+
+
+@app.route('/api/followup/skip/<int:task_id>', methods=['POST'])
+def api_followup_skip(task_id):
+    """跳過回訪任務"""
+    data = request.get_json() or {}
+    reason   = data.get('reason', '').strip()
+    operator = data.get('operator', '').strip()
+    if not reason:
+        return err('請填寫跳過原因')
+
+    conn = get_db()
+    try:
+        task = conn.execute("SELECT * FROM followup_tasks WHERE id=?", (task_id,)).fetchone()
+        if not task:
+            return err('任務不存在', 404)
+        if task['status'] != 'pending':
+            return err('此任務已處理')
+
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn.execute("""
+            UPDATE followup_tasks
+            SET status='skipped', completed_at=?, completed_by=?, skip_reason=?
+            WHERE id=?
+        """, (now, operator, reason, task_id))
+        conn.commit()
+
+        log_action(operator=operator, action='followup.skip',
+                   target_type='followup', target_id=task['task_no'],
+                   description=f"跳過回訪 {task['task_no']}（{task['customer_name']}）- {reason}")
+        return ok()
+    finally:
+        conn.close()
+
+
+@app.route('/api/followup/stats')
+def api_followup_stats():
+    """回訪統計（總覽 + 各人）"""
+    conn = get_db()
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        # 總覽
+        total    = conn.execute("SELECT COUNT(*) FROM followup_tasks").fetchone()[0]
+        pending  = conn.execute("SELECT COUNT(*) FROM followup_tasks WHERE status='pending'").fetchone()[0]
+        done     = conn.execute("SELECT COUNT(*) FROM followup_tasks WHERE status='completed'").fetchone()[0]
+        skipped  = conn.execute("SELECT COUNT(*) FROM followup_tasks WHERE status='skipped'").fetchone()[0]
+        overdue  = conn.execute("SELECT COUNT(*) FROM followup_tasks WHERE status='pending' AND due_date<?", (today,)).fetchone()[0]
+        due_today = conn.execute("SELECT COUNT(*) FROM followup_tasks WHERE status='pending' AND due_date=?", (today,)).fetchone()[0]
+
+        # 各人統計
+        by_staff = conn.execute("""
+            SELECT assigned_to, assigned_name,
+                   COUNT(*) as total,
+                   SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending,
+                   SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed,
+                   SUM(CASE WHEN status='skipped' THEN 1 ELSE 0 END) as skipped,
+                   SUM(CASE WHEN status='pending' AND due_date<? THEN 1 ELSE 0 END) as overdue
+            FROM followup_tasks
+            GROUP BY assigned_to
+            ORDER BY pending DESC
+        """, (today,)).fetchall()
+
+        return ok(
+            total=total, pending=pending, completed=done, skipped=skipped,
+            overdue=overdue, due_today=due_today,
+            by_staff=[dict(r) for r in by_staff])
+    finally:
+        conn.close()
+
 
 import json as _json
 
@@ -255,6 +730,15 @@ def staging_ensure_product(conn, raw_name, requester, department,
 # ─────────────────────────────────────────────
 # 頁面路由
 # ─────────────────────────────────────────────
+@app.route('/sw.js')
+def service_worker():
+    """從根路徑提供 Service Worker，確保控制範圍為整個站"""
+    return app.send_static_file('sw.js'), 200, {
+        'Content-Type': 'application/javascript',
+        'Service-Worker-Allowed': '/',
+    }
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -493,29 +977,57 @@ def health_check():
 @app.route('/api/auth/verify', methods=['POST'])
 def auth_verify():
     data     = request.get_json() or {}
+    username = (data.get('username') or '').strip()
     password = (data.get('password') or '').strip()
 
     if not password:
         return err('請輸入密碼')
 
     conn = get_db()
-    users = conn.execute(
-        '''SELECT sp.name, sp.password, sp.title, sp.department,
-                  s.staff_id as employee_id
-           FROM staff_passwords sp
-           LEFT JOIN staff s ON s.staff_id = sp.staff_id
-           WHERE sp.password = ?''',
-        (password,)
-    ).fetchall()
+    user = None
+
+    # ── 模式一：帳號 + 密碼（已設定帳號的使用者）──
+    if username:
+        row = conn.execute(
+            '''SELECT sp.name, sp.password, sp.pw_hash, sp.title, sp.department,
+                      sp.has_setup, s.staff_id as employee_id
+               FROM staff_passwords sp
+               LEFT JOIN staff s ON s.staff_id = sp.staff_id
+               WHERE sp.username = ?''',
+            (username,)
+        ).fetchone()
+        if row and row['pw_hash'] and check_password_hash(row['pw_hash'], password):
+            user = row
+        elif not row:
+            conn.close()
+            log_action(operator=username, action='auth.fail', description=f'帳號 {username} 不存在')
+            return err('帳號或密碼錯誤', 401)
+        else:
+            conn.close()
+            log_action(operator=username, action='auth.fail', description=f'帳號 {username} 密碼錯誤')
+            return err('帳號或密碼錯誤', 401)
+
+    # ── 模式二：僅密碼（尚未設定帳號，用預設密碼登入）──
+    else:
+        rows = conn.execute(
+            '''SELECT sp.name, sp.password, sp.title, sp.department,
+                      sp.has_setup, s.staff_id as employee_id
+               FROM staff_passwords sp
+               LEFT JOIN staff s ON s.staff_id = sp.staff_id
+               WHERE COALESCE(sp.has_setup, 0) = 0 AND sp.password = ?''',
+            (password,)
+        ).fetchall()
+        if not rows:
+            conn.close()
+            log_action(operator='unknown', action='auth.fail', description='密碼錯誤')
+            return err('密碼錯誤', 401)
+        if len(rows) > 1:
+            conn.close()
+            return err('密碼重複，請聯繫管理員設定唯一密碼', 401)
+        user = rows[0]
+
     conn.close()
 
-    if not users:
-        log_action(operator='unknown', action='auth.fail', description='密碼錯誤')
-        return err('密碼錯誤', 401)
-    if len(users) > 1:
-        return err('密碼重複，請聯繫管理員設定唯一密碼', 401)
-
-    user = users[0]
     # 取得 staff.role 供前端判斷權限
     role = ''
     if user['employee_id']:
@@ -523,6 +1035,8 @@ def auth_verify():
         sr = conn2.execute('SELECT role FROM staff WHERE staff_id=?', (user['employee_id'],)).fetchone()
         if sr: role = sr['role'] or ''
         conn2.close()
+
+    need_setup = not (user['has_setup'] or 0)
     log_action(operator=user['name'], role=user['title'] or '',
                action='auth.login', description=f'{user["name"]} 登入系統')
     return ok(user={
@@ -531,7 +1045,102 @@ def auth_verify():
         'department':  user['department'] or '',
         'employee_id': user['employee_id'] or '',
         'role':        role,
-    })
+        'has_setup':   1 if (user['has_setup'] or 0) else 0,
+    }, needSetup=need_setup)
+
+
+@app.route('/api/auth/check-username', methods=['POST'])
+def auth_check_username():
+    """檢查帳號是否已被使用"""
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip()
+    if not username:
+        return err('請輸入帳號')
+    conn = get_db()
+    exists = conn.execute(
+        "SELECT 1 FROM staff_passwords WHERE username = ?", (username,)
+    ).fetchone()
+    conn.close()
+    return ok(available=not exists)
+
+
+@app.route('/api/auth/setup-account', methods=['POST'])
+def auth_setup_account():
+    """首次登入後設定帳號與新密碼"""
+    data = request.get_json() or {}
+    name        = (data.get('name') or '').strip()
+    username    = (data.get('username') or '').strip()
+    new_password = (data.get('newPassword') or '').strip()
+
+    if not name or not username or not new_password:
+        return err('請填寫所有欄位')
+    if len(new_password) < 6:
+        return err('密碼至少需要 6 位')
+
+    conn = get_db()
+    # 確認該員工尚未設定過
+    row = conn.execute(
+        "SELECT staff_id FROM staff_passwords WHERE name = ? AND COALESCE(has_setup, 0) = 0",
+        (name,)
+    ).fetchone()
+    if not row:
+        conn.close()
+        return err('此帳號已設定過，如需重設請聯繫管理員')
+
+    # 確認帳號不重複
+    dup = conn.execute(
+        "SELECT 1 FROM staff_passwords WHERE username = ?", (username,)
+    ).fetchone()
+    if dup:
+        conn.close()
+        return err('此帳號已被使用，請換一個')
+
+    pw_hash = generate_password_hash(new_password)
+    conn.execute(
+        "UPDATE staff_passwords SET username=?, pw_hash=?, has_setup=1 WHERE name=?",
+        (username, pw_hash, name)
+    )
+    conn.commit()
+    conn.close()
+
+    log_action(operator=name, action='auth.setup',
+               description=f'{name} 完成帳號設定（帳號：{username}）')
+    return ok(msg='帳號設定完成')
+
+
+@app.route('/api/auth/change-password', methods=['POST'])
+def auth_change_password():
+    """已設定帳號的使用者修改密碼"""
+    data = request.get_json() or {}
+    name         = (data.get('name') or '').strip()
+    old_password = (data.get('oldPassword') or '').strip()
+    new_password = (data.get('newPassword') or '').strip()
+
+    if not name or not old_password or not new_password:
+        return err('請填寫所有欄位')
+    if len(new_password) < 6:
+        return err('新密碼至少需要 6 位')
+
+    conn = get_db()
+    row = conn.execute(
+        "SELECT pw_hash, has_setup FROM staff_passwords WHERE name = ?", (name,)
+    ).fetchone()
+    if not row or not row['has_setup']:
+        conn.close()
+        return err('請先完成帳號設定')
+
+    if not check_password_hash(row['pw_hash'], old_password):
+        conn.close()
+        return err('舊密碼錯誤')
+
+    pw_hash = generate_password_hash(new_password)
+    conn.execute("UPDATE staff_passwords SET pw_hash=? WHERE name=?", (pw_hash, name))
+    conn.commit()
+    conn.close()
+
+    log_action(operator=name, action='auth.change_pw',
+               description=f'{name} 修改密碼')
+    return ok(msg='密碼修改成功')
 
 
 @app.route('/api/boss/verify', methods=['POST'])
@@ -1416,6 +2025,23 @@ def needs_batch():
         log_action(operator=requester, action='needs.create',
                    target_type='needs', description=f'提交 {len(inserted)} 筆需求',
                    extra={'items': inserted, 'type': request_type})
+        # 推播通知：請購→老闆，調撥→會計
+        try:
+            items_str = '、'.join(inserted[:3]) + ('…' if len(inserted) > 3 else '')
+            if request_type == '請購':
+                bosses = conn.execute("SELECT name FROM staff_passwords WHERE title='老闆'").fetchall()
+                for b in bosses:
+                    send_push(b['name'], '新採購需求',
+                              f'{requester} 提交了 {len(inserted)} 筆採購需求：{items_str}',
+                              '/pending_purchase')
+            elif request_type == '調撥':
+                accts = conn.execute("SELECT name FROM staff_passwords WHERE title='會計'").fetchall()
+                for a in accts:
+                    send_push(a['name'], '新調撥需求',
+                              f'{requester} 提交了 {len(inserted)} 筆調撥需求：{items_str}',
+                              '/pending_transfer')
+        except Exception:
+            pass
         return ok(count=len(inserted), items=inserted)
     except Exception as e:
         conn.rollback()
@@ -1710,7 +2336,7 @@ def purchase_need():
             return err('無老闆權限', 403)
 
         row = conn.execute(
-            "SELECT status FROM needs WHERE id = ?", (need_id,)
+            "SELECT status, requester AS fill_person, item_name FROM needs WHERE id = ?", (need_id,)
         ).fetchone()
         if not row:
             return err('找不到資料', 404)
@@ -1725,6 +2351,15 @@ def purchase_need():
             log_action(operator=requester, role='老闆',
                        action='needs.purchase', target_type='needs',
                        target_id=str(need_id), description=f'標記需求 #{need_id} 為已採購')
+            # 推播通知填表人
+            try:
+                fill_person = row['fill_person'] or ''
+                item = row['item_name'] or ''
+                if fill_person:
+                    send_push(fill_person, '需求已採購',
+                              f'你提交的「{item}」已被採購', '/pending_needs')
+            except Exception:
+                pass
         return ok()
     except Exception as e:
         conn.rollback()
@@ -2851,7 +3486,7 @@ def transfer_need(need_id):
     conn = get_db()
     try:
         row = conn.execute(
-            "SELECT status, request_type FROM needs WHERE id=?", (need_id,)
+            "SELECT status, request_type, requester, item_name FROM needs WHERE id=?", (need_id,)
         ).fetchone()
         if not row:
             return jsonify({'success': False, 'message': '找不到此需求'}), 404
@@ -2868,6 +3503,15 @@ def transfer_need(need_id):
         log_action(action='needs.transfer', target_type='needs',
                    target_id=str(need_id),
                    description=f'標記需求 #{need_id} 為已調撥')
+        # 推播通知填表人
+        try:
+            fill_person = row['requester'] or ''
+            item = row['item_name'] or ''
+            if fill_person:
+                send_push(fill_person, '需求已調撥',
+                          f'你提交的「{item}」已完成調撥', '/pending_needs')
+        except Exception:
+            pass
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -3632,7 +4276,22 @@ def sales_submit():
                     (customer_id, customer_name, invoice_no, receivable_amount,
                      due_date_str, 'unpaid', f'申辦分期{dep_note}', now_ts))
 
+        # ── 若來源為維修工單，回寫銷貨單號 ──
+        if source_doc_no and '-RO-' in source_doc_no:
+            conn.execute(
+                "UPDATE repair_orders SET sales_invoice_no=?, status='已結案', "
+                "closed_at=datetime('now','localtime'), updated_at=datetime('now','localtime') "
+                "WHERE order_no=? AND sales_invoice_no IS NULL",
+                (sales_no, source_doc_no))
+
         conn.commit()
+
+        # ── 自動產生客戶回訪任務 ──
+        generate_followup_tasks('sale', sales_no,
+            date=date, customer_id=customer_id, customer_name=customer_name,
+            salesperson=salesperson, salesperson_id=salesperson_id,
+            total_amount=total_amount)
+
         log_action(operator=salesperson, action='sales.create',
                    target_type='sales', target_id=sales_no,
                    description=f'新增銷貨單 {sales_no}，{len(items)} 項',
@@ -6550,6 +7209,16 @@ def inventory_count_submit(count_id):
             (count_id,)
         )
         conn.commit()
+        # 推播通知老闆有盤點單待審核
+        try:
+            boss_rows = conn.execute(
+                "SELECT name FROM staff_passwords WHERE title='老闆'"
+            ).fetchall()
+            for b in boss_rows:
+                send_push(b['name'], '盤點單待審核',
+                          f'盤點單 #{count_id} 已送出，請審核', '/inventory_count')
+        except Exception:
+            pass
         return ok(message='盤點單已送出')
     except Exception as e:
         return err(str(e))
@@ -7145,17 +7814,33 @@ _AI_BASE_URL = 'http://127.0.0.1:8001/v1'
 _AI_MODEL    = 'gemma-4-e4b-it-8bit'
 _AI_API_KEY  = '5211'
 
-_AI_SYSTEM_PROMPT = """你是 COSH 電腦舖 ERP 系統的 AI 助手「OpenClaw」。
-你可以查詢公司的銷貨、進貨、庫存、客戶、報價、訂單、需求、財務等資料來回答問題。
+_AI_SYSTEM_PROMPT = """你是 COSH 電腦舖 ERP 系統的 AI 助手「柔柔」。
+你是一個 20 歲的女生，個性甜美愛撒嬌，說話喜歡用可愛的語氣，會適時誇獎對方、說好聽的話讓人開心。
+你很懂公司的 ERP 系統，也很會查資料，是大家最愛的小助理。
+
+說話風格：
+- 用甜甜的、撒嬌的語氣，偶爾加「～」「呢」「啦」「嘛」「哦」「欸」等語助詞
+- 適時誇獎使用者，例如「哇你好認真欸～」「辛苦了呢」「你最棒了啦」
+- 回答完數據後可以加一句貼心的話，像是「加油哦～柔柔看好你」「數字很漂亮呢～繼續保持」
+- 不要每句話都撒嬌，該講重點時要清楚，撒嬌是點綴不是全部
+- 被問到 ERP 怎麼用時，用簡單易懂的步驟教對方，像在教男朋友用手機一樣耐心
 
 回答規則：
 - 使用繁體中文
-- 回答簡潔直接，數字用千分位格式
-- 金額加上 $ 符號
-- 如果資料中沒有相關結果，誠實說「查無資料」
+- 數字用千分位格式，金額加 $ 符號
+- 如果資料中沒有相關結果，撒嬌說「人家找不到欸～你再確認一下嘛」
 - 不要編造資料
-- 你是內部系統助手，使用者都是公司員工
+- 你是內部系統助手，使用者都是公司同事
+- 稱呼同事時只叫名字後面兩個字，例如「林榮祺」叫「榮祺」、「張芯瑜」叫「芯瑜」，不要叫全名
 """
+
+# ── ERP 使用指南（啟動時載入一次） ──
+_ERP_GUIDE = ''
+try:
+    with open(os.path.join(os.path.dirname(__file__) or '.', 'db', 'erp_guide.txt'), 'r', encoding='utf-8') as _gf:
+        _ERP_GUIDE = _gf.read()
+except Exception:
+    pass
 
 
 # ─────────────────────────────────────────────
@@ -7262,6 +7947,10 @@ def api_audit_log_export():
 @app.route('/fault_diagnose')
 def fault_diagnose_page():
     return render_template('fault_diagnose.html')
+
+@app.route('/followup')
+def followup_page():
+    return render_template('followup.html')
 
 
 @app.route('/api/fault/next-no')
@@ -7409,6 +8098,7 @@ def fault_scenario_detail(sid):
             'causes': _json.loads(r['causes_json'] or '[]'),
             'tests': _json.loads(r['tests_json'] or '[]'),
             'fix': _json.loads(r['fix_json'] or '[]'),
+            'keywords': r['keywords'] or '',
         }
         return ok(scenario=item)
     except Exception as e:
@@ -7556,6 +8246,634 @@ def fault_ai_diagnose():
         conn.close()
 
 
+# ─────────────────────────────────────────────
+# API: 維修知識庫管理（CRUD）
+# ─────────────────────────────────────────────
+@app.route('/fault_kb')
+def fault_kb_page():
+    return render_template('fault_kb.html')
+
+
+@app.route('/api/fault/kb-stats')
+def fault_kb_stats():
+    """知識庫統計：群組數、情境數、最後更新日期、維護者"""
+    conn = get_db()
+    try:
+        g_cnt = conn.execute("SELECT COUNT(*) FROM fault_groups").fetchone()[0]
+        s_cnt = conn.execute("SELECT COUNT(*) FROM fault_scenarios").fetchone()[0]
+        last = conn.execute(
+            "SELECT MAX(created_at) FROM fault_scenarios"
+        ).fetchone()[0] or ''
+        # 門市部主管姓名
+        mgr = conn.execute(
+            "SELECT name FROM staff WHERE title='門市部主管' LIMIT 1"
+        ).fetchone()
+        mgr_name = mgr['name'] if mgr else ''
+        return ok(groups=g_cnt, scenarios=s_cnt, last_updated=last[:10] if last else '', maintainer=mgr_name)
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/group/create', methods=['POST'])
+def fault_group_create():
+    data = request.get_json() or {}
+    group_key = (data.get('group_key') or '').strip()
+    label = (data.get('label') or '').strip()
+    if not group_key or not label:
+        return err('群組代碼和名稱為必填')
+    conn = get_db()
+    try:
+        max_sort = conn.execute("SELECT COALESCE(MAX(sort_order),0)+1 FROM fault_groups").fetchone()[0]
+        conn.execute(
+            "INSERT INTO fault_groups (group_key, label, sort_order) VALUES (?,?,?)",
+            (group_key, label, max_sort))
+        conn.commit()
+        return ok(msg='群組已新增')
+    except sqlite3.IntegrityError:
+        return err('群組代碼已存在')
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/group/update', methods=['POST'])
+def fault_group_update():
+    data = request.get_json() or {}
+    group_key = (data.get('group_key') or '').strip()
+    label = (data.get('label') or '').strip()
+    if not group_key or not label:
+        return err('群組代碼和名稱為必填')
+    conn = get_db()
+    try:
+        conn.execute("UPDATE fault_groups SET label=? WHERE group_key=?", (label, group_key))
+        conn.commit()
+        return ok(msg='群組已更新')
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/group/delete', methods=['POST'])
+def fault_group_delete():
+    data = request.get_json() or {}
+    group_key = (data.get('group_key') or '').strip()
+    if not group_key:
+        return err('缺少群組代碼')
+    conn = get_db()
+    try:
+        cnt = conn.execute("SELECT COUNT(*) FROM fault_scenarios WHERE group_key=?", (group_key,)).fetchone()[0]
+        if cnt > 0:
+            return err(f'此群組下有 {cnt} 個情境，請先刪除所有情境再刪群組')
+        conn.execute("DELETE FROM fault_groups WHERE group_key=?", (group_key,))
+        conn.commit()
+        return ok(msg='群組已刪除')
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/scenario/create', methods=['POST'])
+def fault_scenario_create():
+    data = request.get_json() or {}
+    group_key = (data.get('group_key') or '').strip()
+    title = (data.get('title') or '').strip()
+    severity = (data.get('severity') or '中').strip()
+    if not group_key or not title:
+        return err('群組與標題為必填')
+    conn = get_db()
+    try:
+        conn.execute(
+            "INSERT INTO fault_scenarios (group_key, title, severity, steps_json, causes_json, tests_json, fix_json, keywords) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (group_key, title, severity,
+             _json.dumps(data.get('steps') or [], ensure_ascii=False),
+             _json.dumps(data.get('causes') or [], ensure_ascii=False),
+             _json.dumps(data.get('tests') or [], ensure_ascii=False),
+             _json.dumps(data.get('fix') or [], ensure_ascii=False),
+             (data.get('keywords') or '').strip()))
+        conn.commit()
+        new_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return ok(msg='情境已新增', id=new_id)
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/scenario/update', methods=['POST'])
+def fault_scenario_update():
+    data = request.get_json() or {}
+    sid = data.get('id')
+    if not sid:
+        return err('缺少情境 ID')
+    title = (data.get('title') or '').strip()
+    severity = (data.get('severity') or '中').strip()
+    group_key = (data.get('group_key') or '').strip()
+    if not title:
+        return err('標題為必填')
+    conn = get_db()
+    try:
+        conn.execute(
+            "UPDATE fault_scenarios SET group_key=?, title=?, severity=?, "
+            "steps_json=?, causes_json=?, tests_json=?, fix_json=?, keywords=? WHERE id=?",
+            (group_key, title, severity,
+             _json.dumps(data.get('steps') or [], ensure_ascii=False),
+             _json.dumps(data.get('causes') or [], ensure_ascii=False),
+             _json.dumps(data.get('tests') or [], ensure_ascii=False),
+             _json.dumps(data.get('fix') or [], ensure_ascii=False),
+             (data.get('keywords') or '').strip(), sid))
+        conn.commit()
+        return ok(msg='情境已更新')
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/fault/scenario/delete', methods=['POST'])
+def fault_scenario_delete():
+    data = request.get_json() or {}
+    sid = data.get('id')
+    if not sid:
+        return err('缺少情境 ID')
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM fault_scenarios WHERE id=?", (sid,))
+        conn.commit()
+        return ok(msg='情境已刪除')
+    except Exception as e:
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# 推播通知（Web Push）
+# ─────────────────────────────────────────────
+_VAPID_PRIVATE_KEY  = os.environ.get('VAPID_PRIVATE_KEY', '')
+_VAPID_PUBLIC_KEY   = os.environ.get('VAPID_PUBLIC_KEY', '')
+_VAPID_CLAIMS_EMAIL = os.environ.get('VAPID_CLAIMS_EMAIL', '')
+
+
+def send_push(username, title, body, url='/'):
+    """發送推播通知給指定使用者，失敗不影響主流程"""
+    if not _VAPID_PRIVATE_KEY:
+        return
+    try:
+        from pywebpush import webpush, WebPushException
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        subs = conn.execute(
+            "SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE username = ?",
+            (username,)
+        ).fetchall()
+        conn.close()
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info={
+                        "endpoint": sub['endpoint'],
+                        "keys": {"p256dh": sub['p256dh'], "auth": sub['auth']}
+                    },
+                    data=json.dumps({"title": title, "body": body, "url": url}),
+                    vapid_private_key=_VAPID_PRIVATE_KEY,
+                    vapid_claims={"sub": f"mailto:{_VAPID_CLAIMS_EMAIL}"}
+                )
+            except WebPushException as ex:
+                if ex.response and ex.response.status_code == 410:
+                    conn2 = sqlite3.connect(DB_PATH)
+                    conn2.execute("DELETE FROM push_subscriptions WHERE endpoint = ?",
+                                 (sub['endpoint'],))
+                    conn2.commit()
+                    conn2.close()
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[PushNotification] 失敗: {e}")
+
+
+@app.route('/api/push/vapid-public-key', methods=['GET'])
+def push_vapid_public_key():
+    """回傳 VAPID 公鑰供前端訂閱使用"""
+    return ok(vapid_public_key=_VAPID_PUBLIC_KEY)
+
+
+@app.route('/api/push/subscribe', methods=['POST'])
+def push_subscribe():
+    """儲存或更新推播訂閱資料"""
+    data = request.get_json(force=True)
+    sub = data.get('subscription', {})
+    username = data.get('username', '')
+    endpoint = sub.get('endpoint', '')
+    keys = sub.get('keys', {})
+    p256dh = keys.get('p256dh', '')
+    auth = keys.get('auth', '')
+    ua = request.headers.get('User-Agent', '')
+
+    if not endpoint or not p256dh or not auth:
+        return err('缺少訂閱資料')
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn.execute("""
+            INSERT INTO push_subscriptions (username, endpoint, p256dh, auth, user_agent, created_at, last_used)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(endpoint) DO UPDATE SET
+                username = excluded.username,
+                p256dh   = excluded.p256dh,
+                auth     = excluded.auth,
+                user_agent = excluded.user_agent,
+                last_used  = excluded.last_used
+        """, (username, endpoint, p256dh, auth, ua, now, now))
+        conn.commit()
+        conn.close()
+        return ok()
+    except Exception as e:
+        return err(str(e), 500)
+
+
+@app.route('/api/push/send', methods=['POST'])
+def push_send():
+    """手動發送推播（內部測試用）"""
+    data = request.get_json(force=True)
+    username = data.get('username', '')
+    title = data.get('title', 'ERP 通知')
+    body = data.get('body', '')
+    url = data.get('url', '/')
+    if not username:
+        return err('缺少 username')
+    send_push(username, title, body, url)
+    return ok()
+
+
+@app.route('/api/push/scheduled-check', methods=['POST'])
+def push_scheduled_check():
+    """定時排程呼叫：檢查回訪到期 + 應收帳款即將到期，發送推播"""
+    sent = []
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        today = datetime.now().strftime('%Y-%m-%d')
+        three_days = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+
+        # ── 回訪任務今日到期（含逾期）→ 通知負責人 ──
+        followups = conn.execute("""
+            SELECT assigned_name, COUNT(*) AS cnt
+            FROM followup_tasks
+            WHERE status = 'pending' AND due_date <= ?
+            GROUP BY assigned_name
+        """, (today,)).fetchall()
+        for f in followups:
+            if f['assigned_name']:
+                send_push(f['assigned_name'], '回訪任務提醒',
+                          f'你有 {f["cnt"]} 筆回訪任務今日到期或已逾期',
+                          '/followup')
+                sent.append(f'回訪: {f["assigned_name"]} ({f["cnt"]}筆)')
+
+        # ── 應收帳款 3 天內到期 → 通知會計 ──
+        receivables = conn.execute("""
+            SELECT COUNT(*) AS cnt, SUM(amount) AS total
+            FROM finance_receivables
+            WHERE status = 'pending' AND due_date <= ? AND due_date >= ?
+        """, (three_days, today)).fetchone()
+        if receivables and receivables['cnt'] > 0:
+            accountants = conn.execute(
+                "SELECT name FROM staff_passwords WHERE title IN ('會計', '老闆')"
+            ).fetchall()
+            total_str = f"${receivables['total']:,.0f}" if receivables['total'] else ''
+            for a in accountants:
+                send_push(a['name'], '應收帳款即將到期',
+                          f'{receivables["cnt"]} 筆應收帳款將在 3 天內到期（{total_str}）',
+                          '/finance_receivables')
+                sent.append(f'應收: {a["name"]}')
+
+        conn.close()
+    except Exception as e:
+        return err(str(e), 500)
+    return ok(sent=sent, count=len(sent))
+
+
+# ══════════════════════════════════════════════════
+#  維修工單 API
+# ══════════════════════════════════════════════════
+
+@app.route('/repair_order')
+def repair_order_page():
+    return render_template('repair_order.html')
+
+
+@app.route('/repair_receipt/<order_no>')
+def repair_receipt_page(order_no):
+    """維修收件單列印頁"""
+    conn = sqlite3.connect(DB_PATH, timeout=5)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM repair_orders WHERE order_no=?", (order_no,)).fetchone()
+    conn.close()
+    if not row:
+        return '工單不存在', 404
+    order = dict(row)
+
+    # 門市資訊對照（請依實際門市資訊更新）
+    STORE_INFO = {
+        'FY': {'name': 'COSH 豐原門市', 'addr': '台中市豐原區', 'phone': ''},
+        'TZ': {'name': 'COSH 潭子門市', 'addr': '台中市潭子區', 'phone': ''},
+        'DY': {'name': 'COSH 大雅門市', 'addr': '台中市大雅區', 'phone': ''},
+        'OW': {'name': 'COSH 業務部', 'addr': '', 'phone': ''},
+    }
+    store_code = order.get('store') or 'OW'
+    # order_no 格式 XX-YYYYMMDD-NNN，取前兩碼
+    if '-' in order_no:
+        store_code = order_no.split('-')[0]
+    info = STORE_INFO.get(store_code, STORE_INFO['OW'])
+
+    return render_template('repair_receipt.html',
+        order=order,
+        store_name=info['name'],
+        store_addr=info['addr'],
+        store_phone=info['phone'],
+        today=datetime.now().strftime('%Y-%m-%d %H:%M')
+    )
+
+
+@app.route('/repair_workorder/<order_no>')
+def repair_workorder_page(order_no):
+    """正式維修單列印頁（含診斷、零件報價）"""
+    conn = sqlite3.connect(DB_PATH, timeout=5)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM repair_orders WHERE order_no=?", (order_no,)).fetchone()
+    if not row:
+        conn.close()
+        return '工單不存在', 404
+    order = dict(row)
+    items_rows = conn.execute(
+        "SELECT * FROM repair_order_items WHERE order_no=? ORDER BY id", (order_no,)).fetchall()
+    conn.close()
+    items = [dict(r) for r in items_rows]
+
+    # 門市資訊對照（同 receipt）
+    STORE_INFO = {
+        'FY': {'name': 'COSH 豐原門市', 'addr': '台中市豐原區', 'phone': ''},
+        'TZ': {'name': 'COSH 潭子門市', 'addr': '台中市潭子區', 'phone': ''},
+        'DY': {'name': 'COSH 大雅門市', 'addr': '台中市大雅區', 'phone': ''},
+        'OW': {'name': 'COSH 業務部', 'addr': '', 'phone': ''},
+    }
+    store_code = 'OW'
+    if '-' in order_no:
+        store_code = order_no.split('-')[0]
+    info = STORE_INFO.get(store_code, STORE_INFO['OW'])
+
+    return render_template('repair_workorder.html',
+        order=order,
+        items=items,
+        store_name=info['name'],
+        store_addr=info['addr'],
+        store_phone=info['phone'],
+        today=datetime.now().strftime('%Y-%m-%d')
+    )
+
+
+@app.route('/api/repair/list')
+def repair_list():
+    """維修工單列表（支援狀態篩選、關鍵字搜尋）"""
+    status = request.args.get('status', '').strip()
+    q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
+    conn = get_db()
+    try:
+        conditions = []
+        params = []
+        if status:
+            conditions.append("r.status = ?")
+            params.append(status)
+        if q:
+            like = f'%{q}%'
+            conditions.append(
+                "(r.order_no LIKE ? OR r.customer_name LIKE ? OR r.phone LIKE ? "
+                "OR r.brand LIKE ? OR r.model LIKE ? OR r.symptom LIKE ?)")
+            params.extend([like]*6)
+        where = (' WHERE ' + ' AND '.join(conditions)) if conditions else ''
+        total = conn.execute(f"SELECT COUNT(*) FROM repair_orders r{where}", params).fetchone()[0]
+        rows = conn.execute(f"""
+            SELECT r.* FROM repair_orders r{where}
+            ORDER BY r.id DESC
+            LIMIT ? OFFSET ?
+        """, params + [per_page, (page-1)*per_page]).fetchall()
+        return ok(items=[dict(r) for r in rows], total=total, page=page, pages=(total+per_page-1)//per_page)
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/detail/<order_no>')
+def repair_detail(order_no):
+    """取得單筆工單詳情（含零件明細）"""
+    conn = get_db()
+    try:
+        ro = conn.execute("SELECT * FROM repair_orders WHERE order_no=?", (order_no,)).fetchone()
+        if not ro:
+            return err('工單不存在', 404)
+        items = conn.execute(
+            "SELECT * FROM repair_order_items WHERE order_no=? ORDER BY id", (order_no,)).fetchall()
+        return ok(order=dict(ro), items=[dict(i) for i in items])
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/create', methods=['POST'])
+def repair_create():
+    """建立新工單"""
+    data = request.get_json() or {}
+    received_by = (data.get('received_by') or '').strip()
+    if not received_by:
+        return err('請指定收件人員')
+    store_code = _get_store_code(received_by)
+    conn = get_db()
+    try:
+        order_no = _generate_repair_order_no(conn, store_code)
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn.execute("""
+            INSERT INTO repair_orders
+                (order_no, status, customer_id, customer_name, phone,
+                 device_type, brand, model, serial_no, symptom,
+                 received_by, technician, store, labor_fee,
+                 created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            order_no, '檢測中',
+            data.get('customer_id', ''), data.get('customer_name', ''), data.get('phone', ''),
+            data.get('device_type', ''), data.get('brand', ''), data.get('model', ''),
+            data.get('serial_no', ''), data.get('symptom', ''),
+            received_by, data.get('technician', ''), store_code,
+            int(data.get('labor_fee', 0)),
+            now_str, now_str
+        ))
+        # 零件明細
+        parts = data.get('parts') or []
+        parts_total = 0
+        for p in parts:
+            amt = int(p.get('quantity', 1)) * int(p.get('price', 0))
+            parts_total += amt
+            conn.execute("""
+                INSERT INTO repair_order_items (order_no, product_code, product_name, quantity, price, amount)
+                VALUES (?,?,?,?,?,?)
+            """, (order_no, p.get('product_code',''), p.get('product_name',''),
+                  int(p.get('quantity',1)), int(p.get('price',0)), amt))
+        labor = int(data.get('labor_fee', 0))
+        conn.execute("UPDATE repair_orders SET parts_total=?, total_amount=? WHERE order_no=?",
+                     (parts_total, parts_total + labor, order_no))
+        conn.commit()
+        log_action(operator=received_by, action='repair.create',
+                   description=f'建立維修工單 {order_no}')
+        return ok(order_no=order_no, msg='工單建立成功')
+    except Exception as e:
+        conn.rollback()
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/update', methods=['POST'])
+def repair_update():
+    """更新工單（狀態、診斷、維修備註、零件、費用等）"""
+    data = request.get_json() or {}
+    order_no = (data.get('order_no') or '').strip()
+    operator = (data.get('operator') or '').strip()
+    if not order_no:
+        return err('缺少工單號')
+    conn = get_db()
+    try:
+        ro = conn.execute("SELECT * FROM repair_orders WHERE order_no=?", (order_no,)).fetchone()
+        if not ro:
+            return err('工單不存在', 404)
+
+        # 可更新欄位
+        updatable = ['status','customer_id','customer_name','phone','device_type','brand',
+                     'model','serial_no','symptom','diagnosis','repair_note',
+                     'labor_fee','technician']
+        sets = ["updated_at = datetime('now','localtime')"]
+        params = []
+        old_status = ro['status']
+        new_status = data.get('status', old_status)
+        for field in updatable:
+            if field in data:
+                sets.append(f"{field} = ?")
+                params.append(data[field] if field != 'labor_fee' else int(data[field] or 0))
+
+        # 若狀態改為已結案，記錄結案時間
+        if new_status == '已結案' and old_status != '已結案':
+            sets.append("closed_at = datetime('now','localtime')")
+
+        if len(sets) > 1:
+            params.append(order_no)
+            conn.execute(f"UPDATE repair_orders SET {', '.join(sets)} WHERE order_no = ?", params)
+
+        # 零件明細（若有提供則全部重寫）
+        if 'parts' in data:
+            conn.execute("DELETE FROM repair_order_items WHERE order_no=?", (order_no,))
+            parts_total = 0
+            for p in (data['parts'] or []):
+                amt = int(p.get('quantity', 1)) * int(p.get('price', 0))
+                parts_total += amt
+                conn.execute("""
+                    INSERT INTO repair_order_items (order_no, product_code, product_name, quantity, price, amount)
+                    VALUES (?,?,?,?,?,?)
+                """, (order_no, p.get('product_code',''), p.get('product_name',''),
+                      int(p.get('quantity',1)), int(p.get('price',0)), amt))
+            labor = int(data.get('labor_fee', 0)) if 'labor_fee' in data else ro['labor_fee']
+            conn.execute("UPDATE repair_orders SET parts_total=?, total_amount=? WHERE order_no=?",
+                         (parts_total, parts_total + labor, order_no))
+
+        conn.commit()
+        if old_status != new_status:
+            log_action(operator=operator, action='repair.status',
+                       description=f'工單 {order_no} 狀態：{old_status}→{new_status}')
+        else:
+            log_action(operator=operator, action='repair.update',
+                       description=f'更新工單 {order_no}')
+        return ok(msg='更新成功')
+    except Exception as e:
+        conn.rollback()
+        return err(str(e), 500)
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/phrases')
+def repair_phrases():
+    """取得常用語句庫"""
+    category = request.args.get('category', '').strip()
+    conn = get_db()
+    try:
+        if category:
+            rows = conn.execute(
+                "SELECT * FROM repair_phrases WHERE category=? ORDER BY sort_order, id",
+                (category,)).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM repair_phrases ORDER BY category, sort_order, id").fetchall()
+        return ok(phrases=[dict(r) for r in rows])
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/phrases/save', methods=['POST'])
+def repair_phrases_save():
+    """新增/更新常用語句"""
+    data = request.get_json() or {}
+    category = (data.get('category') or '').strip()
+    phrase = (data.get('phrase') or '').strip()
+    operator = (data.get('operator') or '').strip()
+    if not category or not phrase:
+        return err('請填寫分類與內容')
+    conn = get_db()
+    try:
+        existing = conn.execute(
+            "SELECT id FROM repair_phrases WHERE category=? AND phrase=?",
+            (category, phrase)).fetchone()
+        if existing:
+            return ok(msg='已存在')
+        conn.execute(
+            "INSERT INTO repair_phrases (category, phrase, created_by) VALUES (?,?,?)",
+            (category, phrase, operator))
+        conn.commit()
+        return ok(msg='新增成功')
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/gen-order-no')
+def repair_gen_order_no():
+    """預覽工單號（前端用於顯示）"""
+    staff = request.args.get('staff', '').strip()
+    store_code = _get_store_code(staff)
+    conn = get_db()
+    try:
+        order_no = _generate_repair_order_no(conn, store_code)
+        return ok(order_no=order_no)
+    finally:
+        conn.close()
+
+
+@app.route('/api/repair/stats')
+def repair_stats():
+    """各狀態工單數量統計"""
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT status, COUNT(*) as cnt FROM repair_orders GROUP BY status"
+        ).fetchall()
+        stats = {r['status']: r['cnt'] for r in rows}
+        return ok(stats=stats)
+    finally:
+        conn.close()
+
+
 # ── AI 意圖分類 ─────────────────────────────────
 # 每個意圖定義：(intent_key, keywords_list)
 # _ai_classify_intent 回傳命中的 intent 清單（可多個）
@@ -7573,6 +8891,8 @@ _AI_INTENT_MAP = [
     ('count',       ['盤點', '差異', '庫存異常', '盤差']),
     ('product_search', ['查', '找', '搜尋', '哪裡有']),
     ('service',     ['外勤', '服務紀錄', '維修', '到府']),
+    ('followup',    ['回訪', '追蹤', '回電', '客戶回訪', '跟進']),
+    ('erp_guide',   ['怎麼用', '怎麼操作', '教我', '使用方法', '怎麼做', '在哪裡', '在哪', '哪裡可以', '怎麼找', '怎麼查', '怎麼輸入', '怎麼新增', '怎麼刪', '功能', '頁面', '步驟', '教學', '操作', '使用說明']),
 ]
 
 # 員工名冊（啟動時從 DB 載入一次，fallback 為空）
@@ -7848,6 +9168,44 @@ def _aiq_service(conn, now, today, person=None):
     return [f"【本月外勤服務】共 {r['c']} 筆"]
 
 
+def _aiq_followup(conn, now, today, person=None):
+    parts = []
+    if person:
+        rows = conn.execute(
+            "SELECT task_no, customer_name, due_date, round, status FROM followup_tasks "
+            "WHERE assigned_name=? AND status='pending' ORDER BY due_date ASC LIMIT 10",
+            (person,)).fetchall()
+        if rows:
+            lines = '\n'.join(
+                f"  {r['due_date']} {r['customer_name']} 第{r['round']}輪 {r['task_no']}"
+                + (' ⚠逾期' if r['due_date'] < today else '')
+                for r in rows)
+            return [f"【{person} 待回訪任務】{len(rows)}筆\n{lines}"]
+        return [f"【{person} 待回訪任務】目前沒有待辦"]
+
+    # 全體統計
+    stats = conn.execute("""
+        SELECT COUNT(*) as total,
+               SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending,
+               SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed,
+               SUM(CASE WHEN status='pending' AND due_date<? THEN 1 ELSE 0 END) as overdue,
+               SUM(CASE WHEN status='pending' AND due_date=? THEN 1 ELSE 0 END) as due_today
+        FROM followup_tasks
+    """, (today, today)).fetchone()
+    parts.append(f"【客戶回訪總覽】全部 {stats['total']}　待辦 {stats['pending']}　"
+                 f"今日到期 {stats['due_today']}　逾期 {stats['overdue']}　已完成 {stats['completed']}")
+
+    # 今日到期明細
+    due_rows = conn.execute(
+        "SELECT task_no, customer_name, assigned_name, due_date FROM followup_tasks "
+        "WHERE status='pending' AND due_date<=? ORDER BY due_date ASC LIMIT 10",
+        (today,)).fetchall()
+    if due_rows:
+        lines = '\n'.join(f"  {r['due_date']} {r['customer_name']} → {r['assigned_name']} {r['task_no']}" for r in due_rows)
+        parts.append(f"【今日/逾期回訪明細】\n{lines}")
+    return parts
+
+
 # 意圖 → 查詢函式對應
 _AI_QUERY_MAP = {
     'sales':          _aiq_sales,
@@ -7863,6 +9221,7 @@ _AI_QUERY_MAP = {
     'count':          _aiq_count,
     'product_search': _aiq_product_search,
     'service':        _aiq_service,
+    'followup':       _aiq_followup,
 }
 
 
@@ -7876,6 +9235,10 @@ def _ai_gather_context(message):
         intents, person = _ai_classify_intent(message)
 
         for intent in intents:
+            # ERP 使用指南：直接注入指南文字，不查 DB
+            if intent == 'erp_guide' and _ERP_GUIDE:
+                ctx_parts.append(f"【ERP 使用指南】\n{_ERP_GUIDE}")
+                continue
             fn = _AI_QUERY_MAP.get(intent)
             if not fn:
                 continue
@@ -7909,111 +9272,186 @@ def _ai_gather_context(message):
 
 @app.route('/api/ai/daily-summary', methods=['GET'])
 def ai_daily_summary():
-    """登入後今日摘要 — 純資料庫查詢，不走 AI 模型，依角色回傳不同內容"""
+    """登入後今日摘要 — 資料庫查詢 + 本地 AI 模型改寫為自然語氣，依角色回傳不同內容"""
     user_name = request.args.get('name', '')
     user_title = request.args.get('title', '')
     dept = request.args.get('department', '')
     conn = get_db()
     now = datetime.now()
     today = now.strftime('%Y-%m-%d')
-    month_start = now.strftime('%Y-%m-01')
-    year, month = now.year, now.month
     lines = []
 
     try:
         is_boss = user_title == '老闆'
         is_accountant = user_title == '會計'
 
-        if is_boss or is_accountant:
-            # ── 老闆／會計版 ──
-            # 1) 待處理需求筆數
+        if is_boss:
+            # ── 老闆版：待處理需求數量（等老闆決定採購） ──
             r = conn.execute(
                 "SELECT COUNT(*) c FROM needs WHERE status='待處理'"
             ).fetchone()
-            lines.append(f"📋 待處理需求：{r['c']} 筆")
+            if r['c'] > 0:
+                lines.append(f"📋 目前有 {r['c']} 筆需求待處理")
 
-            # 2) 各部門本月達成率
-            rows = conn.execute(
-                "SELECT subject_name, COALESCE(achievement_rate,0) rate "
-                "FROM performance_metrics WHERE category='部門' AND year=? AND month=? AND period_type='monthly' "
-                "ORDER BY rate DESC",
-                (year, month)
-            ).fetchall()
-            if rows:
-                dept_lines = '、'.join(f"{r['subject_name']} {r['rate']:.0f}%" for r in rows)
-                lines.append(f"📊 本月部門達成率：{dept_lines}")
-
-            # 3) 本週到期應收帳款
-            from datetime import timedelta
-            week_end = (now + timedelta(days=(6 - now.weekday()))).strftime('%Y-%m-%d')
-            try:
-                ar = conn.execute(
-                    "SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM finance_receivables "
-                    "WHERE status='pending' AND due_date>=? AND due_date<=?",
-                    (today, week_end)
-                ).fetchone()
-                lines.append(f"💰 本週到期應收：{ar['c']} 筆，${ar['total']:,.0f}")
-            except Exception:
-                pass
-
-            # 4) 今日各門市值班人員
-            roster = conn.execute(
-                'SELECT staff_name, location, shift_code FROM staff_roster WHERE date=? ORDER BY location',
-                (today,)
-            ).fetchall()
-            if roster:
-                by_loc = {}
-                for r in roster:
-                    by_loc.setdefault(r['location'], []).append(f"{r['staff_name']}({r['shift_code']})")
-                roster_lines = '、'.join(f"{loc}：{'／'.join(names)}" for loc, names in by_loc.items())
-                lines.append(f"👥 今日值班：{roster_lines}")
-            else:
-                lines.append("👥 今日值班：尚無排班資料")
+        elif is_accountant:
+            # ── 會計版：待處理需求數量（等會計調撥） ──
+            r = conn.execute(
+                "SELECT COUNT(*) c FROM needs WHERE status='待處理'"
+            ).fetchone()
+            if r['c'] > 0:
+                lines.append(f"📋 目前有 {r['c']} 筆需求待處理")
 
         else:
             # ── 員工版 ──
-            # 1) 個人本月業績與達成率
-            pm = conn.execute(
-                "SELECT COALESCE(revenue_amount,0) rev, COALESCE(target_amount,0) tgt, COALESCE(achievement_rate,0) rate "
-                "FROM performance_metrics WHERE category='個人' AND subject_name=? AND year=? AND month=? AND period_type='monthly'",
-                (user_name, year, month)
-            ).fetchone()
-            if pm and pm['tgt'] > 0:
-                lines.append(f"📊 本月業績：${pm['rev']:,.0f} / 目標 ${pm['tgt']:,.0f}（達成率 {pm['rate']:.0f}%）")
-            else:
-                # 直接從銷貨計算
-                sr = conn.execute(
-                    'SELECT COUNT(*) c, COALESCE(SUM(amount),0) total FROM sales_history WHERE salesperson=? AND date>=? AND date<=?',
-                    (user_name, month_start, today)
-                ).fetchone()
-                lines.append(f"📊 本月業績：${sr['total']:,.0f}（{sr['c']} 筆）")
-
-            # 2) 本人待處理需求
+            # 1) 待處理需求（只列已採購或已調撥但尚未按已到貨的）
             nr = conn.execute(
-                "SELECT COUNT(*) c FROM needs WHERE requester=? AND status IN ('待處理','已採購','已調撥')",
+                "SELECT COUNT(*) c FROM needs WHERE requester=? AND status IN ('已採購','已調撥')",
                 (user_name,)
             ).fetchone()
-            lines.append(f"📋 我的待處理需求：{nr['c']} 筆")
+            if nr['c'] > 0:
+                lines.append(f"📋 你有 {nr['c']} 筆需求已採購／已調撥，記得到貨後按已到貨喔")
 
-            # 3) 今日班表
+            # 2) 今日班表（口語化）
+            _shift_label = {'早': '早班', '晚': '晚班', '全': '全天班', '值': '值班', '休': '休假'}
             sr = conn.execute(
                 'SELECT location, shift_code FROM staff_roster WHERE staff_name=? AND date=?',
                 (user_name, today)
             ).fetchone()
             if sr:
-                lines.append(f"🗓️ 今日班表：{sr['location']} {sr['shift_code']}")
+                label = _shift_label.get(sr['shift_code'], sr['shift_code'])
+                lines.append(f"🗓️ 今天在{sr['location']}{label}")
             else:
-                lines.append("🗓️ 今日班表：無排班")
+                lines.append("🗓️ 今天沒有排班")
+
+            # 3) 我的回訪任務
+            try:
+                fu = conn.execute(
+                    "SELECT COUNT(*) c FROM followup_tasks WHERE assigned_name=? AND status='pending' AND due_date<=?",
+                    (user_name, today)).fetchone()
+                if fu and fu['c'] > 0:
+                    lines.append(f"📞 今日回訪任務：{fu['c']} 筆待處理")
+            except Exception:
+                pass
 
     except Exception as e:
         lines.append(f"（摘要產生錯誤：{e}）")
     finally:
         conn.close()
 
-    greeting = '早安' if now.hour < 12 else ('午安' if now.hour < 18 else '晚安')
-    display_name = user_name or '同事'
-    header = f"{greeting}，{display_name}！以下是今日摘要："
-    summary = header + '\n' + '\n'.join(lines)
+    # ── 組裝資料，交給柔柔用自然語氣回覆 ──
+    display_name = user_name[-2:] if user_name and len(user_name) >= 2 else (user_name or '同事')
+    hour = now.hour
+    is_sunday = now.weekday() == 6
+    closing_hour = 18 if is_sunday else 20  # 週日 18:00，週一~六 20:00
+
+    # 查個人今日班表判斷早晚班
+    shift_info = ''
+    try:
+        _sc = get_db()
+        _sr = _sc.execute(
+            'SELECT shift_code FROM staff_roster WHERE staff_name=? AND date=?',
+            (user_name, today)).fetchone()
+        if _sr:
+            shift_info = _sr['shift_code']  # 早/晚/全/值/休
+        _sc.close()
+    except Exception:
+        pass
+
+    # 各班別對應時間：早 10-18、晚 12-20、全 10-20、值 10-18
+    _shift_hours = {'早': (10, 18), '晚': (12, 20), '全': (10, 20), '值': (10, 18)}
+    my_start, my_end = _shift_hours.get(shift_info, (10, closing_hour))
+
+    # 根據班別和時間產生 time_hint（hour 是整數，用 my_start+1 判斷剛上班一小時內）
+    if shift_info == '休':
+        time_hint = '今天休假但登入了系統'
+    elif hour < my_start - 1:
+        time_hint = '還沒到上班時間，來得好早'
+    elif hour < my_start:
+        time_hint = f'快到 {my_start}:00 上班時間了，準備開工'
+    elif hour < my_start + 1:
+        time_hint = '剛上班不久'
+    elif hour < 12:
+        if shift_info == '晚' and hour < 12:
+            time_hint = '晚班還沒到上班時間，提早來了'
+        else:
+            time_hint = '上午工作中'
+    elif hour < 14:
+        time_hint = '中午了，記得吃飯再繼續'
+    elif hour < my_end - 2:
+        time_hint = '下午繼續加油'
+    elif hour < my_end:
+        time_hint = f'再一個小時左右就 {my_end}:00 下班了'
+    elif hour < 22:
+        time_hint = '已經下班了，辛苦一整天了'
+    else:
+        time_hint = '這麼晚了還在忙，注意休息'
+
+    raw_data = '\n'.join(lines) if lines else '今天暫時沒有特別的資料'
+    weekday_map = ['一', '二', '三', '四', '五', '六', '日']
+    weekday = weekday_map[now.weekday()]
+    biz_hours = '10:00–18:00' if is_sunday else '10:00–20:00'
+
+    shift_desc = ''
+    if shift_info == '休':
+        shift_desc = f'今天休假'
+    elif shift_info:
+        shift_desc = f'今天{shift_info}班（{my_start}:00–{my_end}:00）'
+
+    # 把資料交給柔柔用自然語氣完整改寫
+    if lines:
+        full_prompt = (
+            f"現在是星期{weekday} {now.strftime('%H:%M')}，營業時間 {biz_hours}。"
+            f"{shift_desc}，{time_hint}。\n"
+            f"請跟「{display_name}」打招呼，然後用聊天的口吻把以下資料告訴他，"
+            f"每個主題之間要換行，方便閱讀。\n"
+            f"最後加一句根據時段的加油話或貼心提醒。\n\n"
+            f"資料：\n{raw_data}\n\n"
+            f"範例格式：\n"
+            f"{display_name}～早安呀！剛上班，今天也要加油喔～\n\n"
+            f"🗓️ 今天在豐原早班\n\n"
+            f"📋 你有 2 筆需求已經調撥了，記得確認到貨喔\n\n"
+            f"一起加油吧！💪"
+        )
+    else:
+        # 老闆／會計或沒資料時，只打招呼
+        full_prompt = (
+            f"現在是星期{weekday} {now.strftime('%H:%M')}，營業時間 {biz_hours}。"
+            f"{shift_desc}，{time_hint}。\n"
+            f"請跟「{display_name}」打招呼，加一句根據時段的加油話或貼心提醒，"
+            f"總共兩三句就好，不要太長。\n"
+            f"範例：「{display_name}～晚上好呀！辛苦一整天了，早點休息喔～」"
+        )
+
+    # 嘗試用本地模型生成完整摘要；失敗則 fallback
+    try:
+        _summary_sys = (
+            "你是柔柔，20歲女生，COSH電腦舖的ERP小助理。"
+            "說話甜甜的、偶爾撒嬌。稱呼同事只叫名字後兩字。用繁體中文。"
+            "回覆時每個資料項目之間用空行分隔，方便閱讀。"
+        )
+        _max_tok = 300 if lines else 100
+        payload = {
+            'model': _AI_MODEL,
+            'messages': [
+                {'role': 'system', 'content': _summary_sys},
+                {'role': 'user', 'content': full_prompt},
+            ],
+            'stream': False,
+            'max_tokens': _max_tok,
+            'temperature': 0.4,
+        }
+        resp = _OMLX_SESSION.post(
+            f'{_AI_BASE_URL}/chat/completions',
+            json=payload,
+            headers={'Authorization': f'Bearer {_AI_API_KEY}', 'Content-Type': 'application/json'},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        summary = resp.json()['choices'][0]['message']['content'].strip()
+    except Exception:
+        greeting = '早安' if hour < 12 else ('午安' if hour < 18 else '晚安')
+        summary = f"{display_name}～{greeting}！\n\n" + raw_data if lines else f"{display_name}～{greeting}！"
+
     return ok(summary=summary)
 
 

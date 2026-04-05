@@ -22,16 +22,16 @@
   font-size: .9rem;
   font-family: var(--font-serif);
   font-weight: 300;
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
   outline: none;
   transition: border .15s;
 }
-.search-input:focus { border-color: #6b5f52; }
+.search-input:focus { border-color: var(--accent); }
 .search-btn {
   padding: 10px 22px;
-  background: #2c2720;
-  color: #f5f0e8;
+  background: var(--text);
+  color: var(--bg);
   border: none;
   border-radius: 10px;
   font-size: .82rem;
@@ -40,7 +40,7 @@
   letter-spacing: .08em;
   cursor: pointer;
 }
-.search-hint { font-size: .75rem; color: #9a9188; letter-spacing: .04em; }
+.search-hint { font-size: .75rem; color: var(--text-sub); letter-spacing: .04em; }
 
 /* ── 結果列表 ── */
 .card {
@@ -50,27 +50,27 @@
   overflow: hidden;
 }
 .card-title {
-  font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase;
+  font-size: .72rem; color: var(--text-sub); letter-spacing: .12em; text-transform: uppercase;
   padding: 14px 20px; border-bottom: 1px solid rgba(107,95,82,.1);
 }
 .cust-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
 .cust-table th {
   text-align: left; padding: 10px 16px;
-  font-weight: 300; color: #9a9188; font-size: .74rem; letter-spacing: .06em;
+  font-weight: 300; color: var(--text-sub); font-size: .74rem; letter-spacing: .06em;
   background: #faf7f2;
 }
-.cust-table td { padding: 11px 16px; color: #2c2720; border-top: 1px solid rgba(107,95,82,.06); }
+.cust-table td { padding: 11px 16px; color: var(--text); border-top: 1px solid rgba(107,95,82,.06); }
 .cust-table tr:hover td { background: rgba(107,95,82,.03); cursor: pointer; }
-.cust-id { font-family: var(--font-en); font-size: .85rem; color: #9a9188; }
-.total-hint { font-size: .75rem; color: #9a9188; padding: 10px 16px; }
+.cust-id { font-family: var(--font-en); font-size: .85rem; color: var(--text-sub); }
+.total-hint { font-size: .75rem; color: var(--text-sub); padding: 10px 16px; }
 .pg-btn {
   padding: 3px 9px; margin: 0 2px;
   border: 1px solid rgba(107,95,82,.25); border-radius: 6px;
-  background: #f5f0e8; font-size: .78rem; cursor: pointer; color: #6b5f52;
+  background: var(--bg); font-size: .78rem; cursor: pointer; color: var(--accent);
   font-family: var(--font-serif);
 }
 .pg-btn:hover { background: #ede9e0; }
-.pg-cur { background: #2c2720 !important; color: #f5f0e8 !important; border-color: #2c2720 !important; }
+.pg-cur { background: var(--text) !important; color: var(--bg) !important; border-color: var(--text) !important; }
 
 /* ── 客戶詳情面板 ── */
 .detail-panel {
@@ -82,14 +82,14 @@
 }
 .detail-panel.open { display: block; }
 .detail-head {
-  background: #2c2720;
+  background: var(--text);
   padding: 16px 22px;
   display: flex; align-items: center; justify-content: space-between;
 }
-.detail-name { font-size: 1rem; color: #f5f0e8; letter-spacing: .06em; font-weight: 300; }
-.detail-id { font-size: .78rem; color: #9a8f7e; font-family: var(--font-en); }
+.detail-name { font-size: 1rem; color: var(--bg); letter-spacing: .06em; font-weight: 300; }
+.detail-id { font-size: .78rem; color: var(--text-sub); font-family: var(--font-en); }
 .close-btn {
-  background: none; border: 1px solid rgba(255,255,255,.2); color: #9a8f7e;
+  background: none; border: 1px solid rgba(255,255,255,.2); color: var(--text-sub);
   border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: .78rem;
 }
 
@@ -98,26 +98,26 @@
   display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px; margin-bottom: 22px;
 }
-.info-item { background: #f5f0e8; border-radius: 10px; padding: 12px 16px; }
-.info-lbl { font-size: .7rem; color: #9a9188; letter-spacing: .06em; margin-bottom: 4px; }
-.info-val { font-size: .88rem; color: #2c2720; }
+.info-item { background: var(--bg); border-radius: 10px; padding: 12px 16px; }
+.info-lbl { font-size: .7rem; color: var(--text-sub); letter-spacing: .06em; margin-bottom: 4px; }
+.info-val { font-size: .88rem; color: var(--text); }
 
 .stat-grid {
   display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 12px; margin-bottom: 20px;
 }
-.stat-box { background: #2c2720; border-radius: 10px; padding: 14px 16px; text-align: center; }
-.stat-val { font-family: var(--font-en); font-size: 1.3rem; color: #f5f0e8; font-weight: 300; }
-.stat-lbl { font-size: .68rem; color: #9a8f7e; margin-top: 3px; letter-spacing: .04em; }
+.stat-box { background: var(--text); border-radius: 10px; padding: 14px 16px; text-align: center; }
+.stat-val { font-family: var(--font-en); font-size: 1.3rem; color: var(--bg); font-weight: 300; }
+.stat-lbl { font-size: .68rem; color: var(--text-sub); margin-top: 3px; letter-spacing: .04em; }
 
-.sec-title { font-size: .72rem; color: #9a9188; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+.sec-title { font-size: .72rem; color: var(--text-sub); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
 .sales-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
 .sales-table th {
   text-align: left; padding: 8px 10px;
-  font-weight: 300; color: #9a9188; font-size: .72rem;
+  font-weight: 300; color: var(--text-sub); font-size: .72rem;
   border-bottom: 1px solid rgba(107,95,82,.1);
 }
-.sales-table td { padding: 8px 10px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.sales-table td { padding: 8px 10px; color: var(--text); border-bottom: 1px solid rgba(107,95,82,.05); }
 .sales-table tr:last-child td { border-bottom: none; }
 .num { font-family: var(--font-en); font-size: .88rem; }
 
@@ -190,7 +190,7 @@ async function doSearch(page) {
 
   if (!data.customers || data.customers.length === 0) {
     document.getElementById('resultBody').innerHTML =
-      '<div style="padding:20px;color:#9a9188;font-size:.84rem">查無資料</div>';
+      '<div style="padding:20px;color:var(--text-sub);font-size:.84rem">查無資料</div>';
     return;
   }
 
@@ -220,11 +220,11 @@ async function doSearch(page) {
 
 function renderPager(cur, total) {
   let btns = '';
-  if (cur > 1) btns += `<button onclick="doSearch(${cur-1})" class="pg-btn">‹</button>`;
+  if (cur > 1) btns += `<button onclick="doSearch(${cur-1})" class="pg-btn">上頁</button>`;
   for (let p = Math.max(1, cur-2); p <= Math.min(total, cur+2); p++) {
     btns += `<button onclick="doSearch(${p})" class="pg-btn${p===cur?' pg-cur':''}">${p}</button>`;
   }
-  if (cur < total) btns += `<button onclick="doSearch(${cur+1})" class="pg-btn">›</button>`;
+  if (cur < total) btns += `<button onclick="doSearch(${cur+1})" class="pg-btn">下頁</button>`;
   return btns;
 }
 
@@ -292,7 +292,7 @@ async function loadDetail(customerId) {
     });
     salesHtml += '</tbody></table>';
   } else {
-    salesHtml += '<div style="color:#9a9188;font-size:.82rem">暫無購買紀錄</div>';
+    salesHtml += '<div style="color:var(--text-sub);font-size:.82rem">暫無購買紀錄</div>';
   }
 
   document.getElementById('detailBody').innerHTML = info + stats + salesHtml;

@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% block title %}維修知識庫管理 — COSH ERP{% endblock %}
+{% block page_title %}維修知識庫管理{% endblock %}
+
+{% block styles %}
+<style>
+.kb-layout { display:flex; flex-direction:column; gap:18px; max-width:none; }
+
+/* 統計列 */
+.kb-stats { display:flex; gap:12px; flex-wrap:wrap; }
+.kb-stat {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
+  padding:12px 20px; font-size:.82rem; font-weight:300; color:var(--text);
+}
+.kb-stat b { font-weight:600; }
+
+/* 群組管理 */
+.kb-section {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
+  padding:20px 24px;
+}
+.kb-section-title {
+  font-size:.78rem; color:var(--text-sub); letter-spacing:.1em;
+  margin-bottom:14px; font-weight:300;
+}
+
+/* 群組列表 */
+.kb-group-list { display:flex; flex-direction:column; gap:6px; }
+.kb-group-item {
+  display:flex; align-items:center; gap:12px; padding:10px 14px;
+  border:1px solid var(--border); border-radius:8px; cursor:pointer;
+  font-size:.84rem; font-weight:300; transition:border-color .2s;
+}
+.kb-group-item:hover { border-color:var(--brand); }
+.kb-group-item.active { border-color:var(--brand); background:rgba(250,191,19,.06); }
+.kb-group-label { flex:1; }
+.kb-group-count {
+  font-size:.76rem; color:var(--text-sub); background:var(--bg);
+  padding:2px 8px; border-radius:10px;
+}
+.kb-group-actions { display:flex; gap:6px; }
+.kb-group-actions button {
+  background:none; border:1px solid var(--border); border-radius:6px;
+  padding:4px 10px; font-size:.76rem; cursor:pointer;
+  font-family:var(--font-serif); font-weight:300; color:var(--text-sub);
+  transition:border-color .2s;
+}
+.kb-group-actions button:hover { border-color:var(--text); color:var(--text); }
+
+/* 新增群組 inline */
+.kb-add-row {
+  display:flex; gap:8px; margin-top:10px;
+}
+.kb-add-row input {
+  flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:8px;
+  font-size:.84rem; font-family:var(--font-serif); font-weight:300;
+  background:var(--bg);
+}
+.kb-add-row input:focus { border-color:var(--brand); outline:none; }
+
+/* 情境列表 */
+.kb-scenario-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:12px;
+}
+.kb-scenario-header h3 {
+  font-size:.86rem; font-weight:600; color:var(--text); margin:0;
+}
+.kb-scenario-list { display:flex; flex-direction:column; gap:8px; }
+.kb-scenario-card {
+  border:1px solid var(--border); border-radius:10px; padding:14px 16px;
+  background:var(--bg); transition:border-color .2s;
+}
+.kb-scenario-card:hover { border-color:var(--border-mid); }
+.kb-sc-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.kb-sc-title { flex:1; font-size:.84rem; font-weight:600; }
+.kb-sc-severity {
+  font-size:.72rem; padding:2px 8px; border-radius:8px; font-weight:300;
+}
+.kb-sc-severity.高 { background:#f8d7da; color:#842029; }
+.kb-sc-severity.中 { background:#fff3cd; color:#664d03; }
+.kb-sc-severity.低 { background:#d1e7dd; color:#0f5132; }
+.kb-sc-detail { font-size:.8rem; font-weight:300; color:var(--text-sub); line-height:1.7; }
+.kb-sc-detail strong { font-weight:600; color:var(--text); }
+.kb-sc-actions { display:flex; gap:6px; margin-top:10px; }
+.kb-sc-actions button {
+  background:none; border:1px solid var(--border); border-radius:6px;
+  padding:5px 14px; font-size:.78rem; cursor:pointer;
+  font-family:var(--font-serif); font-weight:300; color:var(--text-sub);
+  transition:border-color .2s;
+}
+.kb-sc-actions button:hover { border-color:var(--text); color:var(--text); }
+.kb-sc-actions button.danger:hover { border-color:#c62828; color:#c62828; }
+
+/* 空狀態 */
+.kb-empty {
+  text-align:center; padding:40px 20px; color:var(--text-sub);
+  font-size:.84rem; font-weight:300;
+}
+
+/* ── Modal ── */
+.kb-modal-bg {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.35);
+  z-index:9100; align-items:center; justify-content:center;
+}
+.kb-modal-bg.show { display:flex; }
+.kb-modal {
+  background:var(--bg-card); border-radius:14px; padding:24px 28px;
+  width:560px; max-width:92vw; max-height:85vh; overflow-y:auto;
+  box-shadow:0 12px 40px rgba(0,0,0,.15);
+}
+.kb-modal h3 {
+  font-size:.88rem; font-weight:600; margin:0 0 16px 0;
+}
+.kb-modal label {
+  display:block; font-size:.78rem; font-weight:300; color:var(--text-sub);
+  margin:12px 0 4px 0;
+}
+.kb-modal label:first-of-type { margin-top:0; }
+.kb-modal input, .kb-modal select, .kb-modal textarea {
+  width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:8px;
+  font-size:.84rem; font-family:var(--font-serif); font-weight:300;
+  background:var(--bg); box-sizing:border-box;
+}
+.kb-modal input:focus, .kb-modal select:focus, .kb-modal textarea:focus {
+  border-color:var(--brand); outline:none;
+}
+.kb-modal textarea { min-height:60px; resize:vertical; }
+.kb-modal-btns {
+  display:flex; gap:8px; margin-top:18px; justify-content:flex-end;
+}
+.kb-modal-btns button {
+  padding:8px 22px; border-radius:8px; font-size:.82rem;
+  font-family:var(--font-serif); cursor:pointer; font-weight:300;
+}
+.kb-btn-cancel {
+  background:none; border:1px solid var(--border); color:var(--text);
+}
+.kb-btn-save {
+  background:var(--text); border:none; color:var(--bg); font-weight:600;
+}
+.kb-btn-save:disabled { opacity:.4; cursor:wait; }
+
+/* toast */
+.kb-toast {
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+  padding:10px 24px; border-radius:10px; font-size:.82rem; font-weight:300;
+  z-index:9200; opacity:0; transition:opacity .3s;
+}
+.kb-toast.show { opacity:1; }
+.kb-toast.success { background:#2c2720; color:#faf8f4; }
+.kb-toast.error { background:#c62828; color:#fff; }
+
+/* 手機版 */
+@media(max-width:767px){
+  .kb-layout { gap:12px; }
+  .kb-stats { flex-direction:column; gap:8px; }
+  .kb-section { padding:14px 16px; }
+  .kb-group-item { flex-wrap:wrap; }
+  .kb-add-row { flex-direction:column; }
+  .kb-modal { padding:18px 16px; }
+  .kb-sc-top { flex-wrap:wrap; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kb-layout">
+
+  <!-- 統計 -->
+  <div class="kb-stats" id="kbStats"></div>
+
+  <!-- 左右分欄：群組 + 情境 -->
+  <div style="display:flex; gap:18px;">
+
+    <!-- 左：群組列表 -->
+    <div class="kb-section" style="flex:0 0 300px;">
+      <div class="kb-section-title">故障群組</div>
+      <div class="kb-group-list" id="groupList"></div>
+      <div class="kb-add-row">
+        <input id="newGroupKey" placeholder="代碼（英文）" style="flex:0 0 100px;">
+        <input id="newGroupLabel" placeholder="群組名稱">
+        <button class="btn-primary" onclick="addGroup()" style="white-space:nowrap;">新增</button>
+      </div>
+    </div>
+
+    <!-- 右：情境列表 -->
+    <div class="kb-section" style="flex:1; min-width:0;">
+      <div class="kb-scenario-header">
+        <h3 id="scenarioTitle">← 選擇群組瀏覽情境</h3>
+        <button class="btn-primary" id="btnAddScenario" onclick="openScenarioModal()" style="display:none;">新增情境</button>
+      </div>
+      <div id="scenarioList">
+        <div class="kb-empty">請先從左側選擇一個群組</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 情境編輯 Modal -->
+<div class="kb-modal-bg" id="scenarioModal">
+  <div class="kb-modal">
+    <h3 id="modalTitle">新增情境</h3>
+    <input type="hidden" id="mScenarioId">
+    <label>所屬群組</label>
+    <select id="mGroupKey"></select>
+    <label>情境標題 *</label>
+    <input id="mTitle" placeholder="例如：開機無畫面但風扇轉">
+    <label>嚴重度</label>
+    <select id="mSeverity">
+      <option value="高">高</option>
+      <option value="中" selected>中</option>
+      <option value="低">低</option>
+    </select>
+    <label>排查步驟（每行一個）</label>
+    <textarea id="mSteps" rows="3" placeholder="檢查電源線&#10;檢查螢幕連接&#10;聽 beep 聲"></textarea>
+    <label>可能原因（每行一個）</label>
+    <textarea id="mCauses" rows="3" placeholder="記憶體鬆脫&#10;顯卡故障"></textarea>
+    <label>檢測方式（每行一個）</label>
+    <textarea id="mTests" rows="3" placeholder="交叉測試記憶體&#10;外接螢幕測試"></textarea>
+    <label>處置建議（每行一個）</label>
+    <textarea id="mFix" rows="3" placeholder="重新插拔記憶體&#10;更換顯卡"></textarea>
+    <label>搜尋關鍵字（逗號分隔）</label>
+    <input id="mKeywords" placeholder="開機,無畫面,風扇,beep">
+    <div class="kb-modal-btns">
+      <button class="kb-btn-cancel" onclick="closeScenarioModal()">取消</button>
+      <button class="kb-btn-save" id="btnSaveScenario" onclick="saveScenario()">儲存</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _kbGroups = [];
+let _kbActiveGroup = '';
+
+/* ── 載入 ── */
+async function loadGroups() {
+  const res = await fetch('/api/fault/groups');
+  const json = await res.json();
+  if (!json.success) return;
+  _kbGroups = json.groups || [];
+
+  // stats
+  const total = _kbGroups.reduce((s, g) => s + g.count, 0);
+  document.getElementById('kbStats').innerHTML =
+    `<div class="kb-stat">群組數：<b>${_kbGroups.length}</b></div>` +
+    `<div class="kb-stat">情境總數：<b>${total}</b></div>`;
+
+  // group list
+  const el = document.getElementById('groupList');
+  el.innerHTML = _kbGroups.map(g => `
+    <div class="kb-group-item ${g.group_key === _kbActiveGroup ? 'active' : ''}"
+         onclick="selectGroup('${g.group_key}')">
+      <span class="kb-group-label">${g.label}</span>
+      <span class="kb-group-count">${g.count}</span>
+      <div class="kb-group-actions" onclick="event.stopPropagation()">
+        <button onclick="editGroup('${g.group_key}','${g.label.replace(/'/g,"\\'")}')">改名</button>
+        <button onclick="deleteGroup('${g.group_key}')">刪除</button>
+      </div>
+    </div>`).join('');
+
+  // populate modal select
+  const sel = document.getElementById('mGroupKey');
+  sel.innerHTML = _kbGroups.map(g =>
+    `<option value="${g.group_key}">${g.label}</option>`).join('');
+}
+
+async function selectGroup(gk) {
+  _kbActiveGroup = gk;
+  loadGroups(); // refresh highlight
+  const grp = _kbGroups.find(g => g.group_key === gk);
+  document.getElementById('scenarioTitle').textContent = grp ? grp.label : gk;
+  document.getElementById('btnAddScenario').style.display = '';
+
+  const res = await fetch('/api/fault/scenarios?group_key=' + encodeURIComponent(gk));
+  const json = await res.json();
+  if (!json.success) return;
+  const items = json.scenarios || [];
+  const el = document.getElementById('scenarioList');
+  if (!items.length) {
+    el.innerHTML = '<div class="kb-empty">此群組尚無情境，點擊「新增情境」建立</div>';
+    return;
+  }
+  el.innerHTML = items.map(s => {
+    const steps = (s.steps || []).join(' → ') || '—';
+    const causes = (s.causes || []).join('、') || '—';
+    const tests = (s.tests || []).join('、') || '—';
+    const fix = (s.fix || []).join('、') || '—';
+    return `
+    <div class="kb-scenario-card">
+      <div class="kb-sc-top">
+        <span class="kb-sc-title">${s.title}</span>
+        <span class="kb-sc-severity ${s.severity}">${s.severity}</span>
+      </div>
+      <div class="kb-sc-detail">
+        <strong>排查步驟：</strong>${steps}<br>
+        <strong>可能原因：</strong>${causes}<br>
+        <strong>檢測方式：</strong>${tests}<br>
+        <strong>處置建議：</strong>${fix}
+      </div>
+      <div class="kb-sc-actions">
+        <button onclick="editScenario(${s.id})">編輯</button>
+        <button class="danger" onclick="deleteScenario(${s.id},'${s.title.replace(/'/g,"\\'")}')">刪除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── 群組 CRUD ── */
+async function addGroup() {
+  const key = document.getElementById('newGroupKey').value.trim();
+  const label = document.getElementById('newGroupLabel').value.trim();
+  if (!key || !label) return toast('請填寫代碼和名稱', 'error');
+  const res = await fetch('/api/fault/group/create', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ group_key: key, label: label })
+  });
+  const json = await res.json();
+  if (!json.success) return toast(json.message, 'error');
+  document.getElementById('newGroupKey').value = '';
+  document.getElementById('newGroupLabel').value = '';
+  toast('群組已新增');
+  loadGroups();
+}
+
+async function editGroup(gk, oldLabel) {
+  const newLabel = prompt('修改群組名稱：', oldLabel);
+  if (!newLabel || newLabel === oldLabel) return;
+  const res = await fetch('/api/fault/group/update', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ group_key: gk, label: newLabel })
+  });
+  const json = await res.json();
+  if (!json.success) return toast(json.message, 'error');
+  toast('群組已更新');
+  loadGroups();
+}
+
+async function deleteGroup(gk) {
+  if (!confirm('確定刪除此群組？（須先清空情境）')) return;
+  const res = await fetch('/api/fault/group/delete', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ group_key: gk })
+  });
+  const json = await res.json();
+  if (!json.success) return toast(json.message, 'error');
+  toast('群組已刪除');
+  if (_kbActiveGroup === gk) {
+    _kbActiveGroup = '';
+    document.getElementById('scenarioTitle').textContent = '← 選擇群組瀏覽情境';
+    document.getElementById('scenarioList').innerHTML = '<div class="kb-empty">請先從左側選擇一個群組</div>';
+    document.getElementById('btnAddScenario').style.display = 'none';
+  }
+  loadGroups();
+}
+
+/* ── 情境 Modal ── */
+function openScenarioModal(id) {
+  document.getElementById('mScenarioId').value = id || '';
+  document.getElementById('modalTitle').textContent = id ? '編輯情境' : '新增情境';
+  if (!id) {
+    document.getElementById('mGroupKey').value = _kbActiveGroup;
+    document.getElementById('mTitle').value = '';
+    document.getElementById('mSeverity').value = '中';
+    document.getElementById('mSteps').value = '';
+    document.getElementById('mCauses').value = '';
+    document.getElementById('mTests').value = '';
+    document.getElementById('mFix').value = '';
+    document.getElementById('mKeywords').value = '';
+  }
+  document.getElementById('scenarioModal').classList.add('show');
+}
+
+function closeScenarioModal() {
+  document.getElementById('scenarioModal').classList.remove('show');
+}
+
+async function editScenario(id) {
+  const res = await fetch('/api/fault/scenario/' + id);
+  const json = await res.json();
+  if (!json.success) return toast('載入失敗', 'error');
+  const s = json.scenario;
+  document.getElementById('mScenarioId').value = s.id;
+  document.getElementById('mGroupKey').value = s.group_key;
+  document.getElementById('mTitle').value = s.title;
+  document.getElementById('mSeverity').value = s.severity;
+  document.getElementById('mSteps').value = (s.steps || []).join('\n');
+  document.getElementById('mCauses').value = (s.causes || []).join('\n');
+  document.getElementById('mTests').value = (s.tests || []).join('\n');
+  document.getElementById('mFix').value = (s.fix || []).join('\n');
+  document.getElementById('mKeywords').value = s.keywords || '';
+  document.getElementById('modalTitle').textContent = '編輯情境';
+  document.getElementById('scenarioModal').classList.add('show');
+}
+
+function _lines(id) {
+  return document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+async function saveScenario() {
+  const id = document.getElementById('mScenarioId').value;
+  const title = document.getElementById('mTitle').value.trim();
+  if (!title) return toast('標題為必填', 'error');
+  const payload = {
+    group_key: document.getElementById('mGroupKey').value,
+    title: title,
+    severity: document.getElementById('mSeverity').value,
+    steps: _lines('mSteps'),
+    causes: _lines('mCauses'),
+    tests: _lines('mTests'),
+    fix: _lines('mFix'),
+    keywords: document.getElementById('mKeywords').value.trim(),
+  };
+  const btn = document.getElementById('btnSaveScenario');
+  btn.disabled = true;
+  const url = id ? '/api/fault/scenario/update' : '/api/fault/scenario/create';
+  if (id) payload.id = parseInt(id);
+  try {
+    const res = await fetch(url, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json.success) return toast(json.message, 'error');
+    toast(id ? '情境已更新' : '情境已新增');
+    closeScenarioModal();
+    selectGroup(payload.group_key);
+    loadGroups();
+  } catch (e) {
+    toast('儲存失敗：' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteScenario(id, title) {
+  if (!confirm(`確定刪除「${title}」？此操作無法復原。`)) return;
+  const res = await fetch('/api/fault/scenario/delete', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id: id })
+  });
+  const json = await res.json();
+  if (!json.success) return toast(json.message, 'error');
+  toast('情境已刪除');
+  selectGroup(_kbActiveGroup);
+  loadGroups();
+}
+
+/* ── Toast ── */
+function toast(msg, type) {
+  let el = document.getElementById('kbToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'kbToast';
+    el.className = 'kb-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.className = 'kb-toast show ' + (type || 'success');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+/* ── Init ── */
+function onAppReady(user) {
+  loadGroups();
+}
+</script>
+{% endblock %}

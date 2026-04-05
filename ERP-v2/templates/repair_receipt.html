@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>維修收件單 — {{ order.order_no }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 10mm 14mm 10mm 14mm;
+  }
+
+  body {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #2c2720;
+    background: #f5f0e8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .a4-page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background: #fff;
+    padding: 10mm 14mm;
+    box-shadow: 0 2px 16px rgba(44,39,32,.08);
+  }
+
+  @media print {
+    body { background: #fff; }
+    .a4-page {
+      margin: 0; padding: 0;
+      width: auto; min-height: auto;
+      box-shadow: none;
+    }
+    .no-print { display: none !important; }
+  }
+
+  /* ── 每一聯 ── */
+  .receipt-half {
+    height: 133mm;  /* A4 的一半扣掉撕線區域 */
+    overflow: hidden;
+    padding: 6mm 4mm 4mm;
+  }
+
+  /* ── 撕線 ── */
+  .tear-line {
+    border: none;
+    border-top: 2px dashed rgba(107,95,82,.35);
+    margin: 0;
+    position: relative;
+  }
+  .tear-line::before {
+    content: '✂ 沿此線撕開';
+    position: absolute;
+    top: -8px;
+    left: 20px;
+    background: #fff;
+    padding: 0 8px;
+    font-size: 10px;
+    color: #b8b0a6;
+    letter-spacing: .06em;
+  }
+
+  /* ── 聯別標記 ── */
+  .copy-tag {
+    float: right;
+    font-size: 10px;
+    color: #b8b0a6;
+    border: 1px solid rgba(107,95,82,.15);
+    padding: 1px 8px;
+    border-radius: 4px;
+    letter-spacing: .06em;
+  }
+
+  /* ── 表頭 ── */
+  .r-header {
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid #2c2720;
+    margin-bottom: 10px;
+  }
+  .shop-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .15em;
+  }
+  .shop-sub {
+    font-size: 10px;
+    color: #9a9188;
+    letter-spacing: .06em;
+  }
+  .r-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    margin-top: 6px;
+  }
+
+  /* ── 工單號（行內） ── */
+  .order-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    background: #faf8f4;
+    border: 1px dashed rgba(107,95,82,.2);
+    border-radius: 6px;
+  }
+  .order-label {
+    font-size: 10px; color: #9a9188; letter-spacing: .08em;
+  }
+  .order-value {
+    font-size: 14px; font-weight: 700; letter-spacing: .06em;
+  }
+
+  /* ── 兩欄佈局 ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
+
+  /* ── 資訊表格（緊湊） ── */
+  .info-tbl {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .info-tbl th {
+    text-align: left;
+    font-weight: 300;
+    font-size: 10px;
+    color: #9a9188;
+    padding: 3px 6px 3px 0;
+    width: 56px;
+    vertical-align: top;
+    letter-spacing: .04em;
+  }
+  .info-tbl td {
+    padding: 3px 0;
+    font-size: 12px;
+    font-weight: 300;
+  }
+
+  .sec-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #9a9188;
+    letter-spacing: .1em;
+    padding: 6px 0 3px;
+    border-bottom: 1px solid rgba(107,95,82,.1);
+    margin-bottom: 4px;
+    margin-top: 6px;
+  }
+
+  /* ── 故障描述 ── */
+  .symptom-box {
+    padding: 5px 8px;
+    background: #faf8f4;
+    border: 1px solid rgba(107,95,82,.08);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    min-height: 24px;
+    margin-bottom: 6px;
+  }
+
+  /* ── 注意事項（只在客戶聯顯示） ── */
+  .notice {
+    padding: 5px 8px;
+    background: #fff8e6;
+    border: 1px solid rgba(200,170,80,.15);
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 300;
+    color: #6b5f52;
+    line-height: 1.7;
+    margin-top: 6px;
+  }
+  .notice strong {
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: .04em;
+  }
+
+  /* ── 簽名 ── */
+  .sig-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(107,95,82,.1);
+  }
+  .sig-item { flex: 1; }
+  .sig-label {
+    font-size: 10px; color: #9a9188; letter-spacing: .04em; margin-bottom: 3px;
+  }
+  .sig-line {
+    border-bottom: 1px solid rgba(107,95,82,.25);
+    height: 22px;
+  }
+  .sig-prefill {
+    font-size: 12px; font-weight: 300;
+    border-bottom: 1px solid rgba(107,95,82,.25);
+    padding-bottom: 3px; min-height: 22px;
+  }
+
+  /* ── 頁尾 ── */
+  .r-footer {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 9.5px;
+    color: #b8b0a6;
+    letter-spacing: .04em;
+  }
+
+  /* ── 列印按鈕 ── */
+  .print-bar {
+    text-align: center;
+    margin: 18px auto 0;
+    max-width: 210mm;
+  }
+  .print-btn {
+    padding: 8px 28px;
+    border: 1px solid rgba(107,95,82,.25);
+    border-radius: 8px;
+    background: #2c2720;
+    color: #fff;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 13px;
+    font-weight: 300;
+    cursor: pointer;
+    letter-spacing: .08em;
+    transition: background .2s, opacity .2s;
+  }
+  .print-btn:hover { opacity: .85; }
+</style>
+</head>
+<body>
+
+<div class="a4-page">
+
+  <!-- ════════ 上聯：客戶聯（撕給客戶） ════════ -->
+  <div class="receipt-half">
+    <span class="copy-tag">客戶聯</span>
+
+    <div class="r-header">
+      <div class="shop-name">{{ store_name }}</div>
+      {% if store_addr %}<div class="shop-sub">{{ store_addr }}</div>{% endif %}
+      {% if store_phone %}<div class="shop-sub">{{ store_phone }}</div>{% endif %}
+      <div class="r-title">維 修 收 件 單</div>
+    </div>
+
+    <div class="order-row">
+      <span class="order-label">工單號碼</span>
+      <span class="order-value">{{ order.order_no }}</span>
+      <span class="order-label">收件日期</span>
+      <span style="font-size:12px; font-weight:300;">{{ order.created_at or today }}</span>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="sec-title">客戶資訊</div>
+        <table class="info-tbl">
+          <tr><th>客戶</th><td>{{ order.customer_name or '—' }}</td></tr>
+          <tr><th>電話</th><td>{{ order.phone or '—' }}</td></tr>
+        </table>
+      </div>
+      <div>
+        <div class="sec-title">設備資訊</div>
+        <table class="info-tbl">
+          <tr><th>類型</th><td>{{ order.device_type or '—' }}</td></tr>
+          <tr><th>品牌</th><td>{{ order.brand or '—' }}</td></tr>
+          <tr><th>型號</th><td>{{ order.model or '—' }}</td></tr>
+          {% if order.serial_no %}<tr><th>序號</th><td>{{ order.serial_no }}</td></tr>{% endif %}
+        </table>
+      </div>
+    </div>
+
+    <div class="sec-title">故障狀況</div>
+    <div class="symptom-box">{{ order.symptom or '' }}</div>
+
+    <div class="notice">
+      <strong>注意事項：</strong>
+      ① 本單為收件憑證，取件時請出示。
+      ② 檢測完成將電話通知報價，確認後始進行維修。
+      ③ 完修通知日起 30 日內取件，逾期不負保管責任。
+      ④ 資料備份為客戶自行負責。
+    </div>
+
+    <div class="r-footer">
+      收件人員：{{ order.received_by or order.technician or '' }}
+      {% if store_phone %} · {{ store_phone }}{% endif %}
+    </div>
+  </div>
+
+  <!-- ════════ 撕線 ════════ -->
+  <hr class="tear-line">
+
+  <!-- ════════ 下聯：店留聯（含客戶簽名） ════════ -->
+  <div class="receipt-half">
+    <span class="copy-tag">店留聯</span>
+
+    <div class="r-header">
+      <div class="shop-name">{{ store_name }}</div>
+      {% if store_addr %}<div class="shop-sub">{{ store_addr }}</div>{% endif %}
+      {% if store_phone %}<div class="shop-sub">{{ store_phone }}</div>{% endif %}
+      <div class="r-title">維 修 收 件 單</div>
+    </div>
+
+    <div class="order-row">
+      <span class="order-label">工單號碼</span>
+      <span class="order-value">{{ order.order_no }}</span>
+      <span class="order-label">收件日期</span>
+      <span style="font-size:12px; font-weight:300;">{{ order.created_at or today }}</span>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="sec-title">客戶資訊</div>
+        <table class="info-tbl">
+          <tr><th>客戶</th><td>{{ order.customer_name or '—' }}</td></tr>
+          <tr><th>電話</th><td>{{ order.phone or '—' }}</td></tr>
+        </table>
+      </div>
+      <div>
+        <div class="sec-title">設備資訊</div>
+        <table class="info-tbl">
+          <tr><th>類型</th><td>{{ order.device_type or '—' }}</td></tr>
+          <tr><th>品牌</th><td>{{ order.brand or '—' }}</td></tr>
+          <tr><th>型號</th><td>{{ order.model or '—' }}</td></tr>
+          {% if order.serial_no %}<tr><th>序號</th><td>{{ order.serial_no }}</td></tr>{% endif %}
+        </table>
+      </div>
+    </div>
+
+    <div class="sec-title">故障狀況</div>
+    <div class="symptom-box">{{ order.symptom or '' }}</div>
+
+    <!-- 店留聯才有簽名欄 -->
+    <div class="sig-row">
+      <div class="sig-item">
+        <div class="sig-label">客戶簽名</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-item">
+        <div class="sig-label">收件人員</div>
+        <div class="sig-prefill">{{ order.received_by or order.technician or '' }}</div>
+      </div>
+      <div class="sig-item">
+        <div class="sig-label">日期</div>
+        <div class="sig-prefill">{{ order.created_at or today }}</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+<div class="print-bar no-print">
+  <button class="print-btn" onclick="window.print()">列 印</button>
+  <button class="print-btn" onclick="savePDF()" style="margin-left:8px;background:#6b5f52;">存為 PDF</button>
+</div>
+<script>
+function savePDF(){
+  var el = document.querySelector('.a4-page');
+  var opt = {
+    margin:       [10, 14, 10, 14],
+    filename:     '收件單_{{ order.order_no }}.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+</script>
+
+</body>
+</html>

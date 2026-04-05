@@ -8,11 +8,9 @@
 .controls select, .controls input { padding:.4rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.88rem; }
 .btn-sm { padding:.4rem .8rem; border:1px solid var(--border); border-radius:4px; background:var(--bg-card); cursor:pointer; font-size:.82rem; }
 .btn-sm:hover { background:#eee; }
-.btn-primary-sm { padding:.4rem .8rem; border:none; border-radius:4px; background:#2c2720; color:#fff; cursor:pointer; font-size:.82rem; }
-.btn-primary-sm:hover { background:#444; }
 .data-table { width:100%; border-collapse:collapse; font-size:.88rem; }
 .data-table th, .data-table td { padding:.55rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
-.data-table th { font-weight:400; color:#888; font-size:.8rem; }
+.data-table th { font-weight:400; color:var(--text-sub); font-size:.8rem; }
 .status-paid { color:#27ae60; }
 .status-unpaid { color:#c0392b; }
 .overdue { background:#fff5f5; }
@@ -24,7 +22,7 @@
 .modal-box { background:#fff; border-radius:8px; padding:1.5rem; width:90%; max-width:420px; }
 .modal-box h3 { margin:0 0 1rem; font-size:1rem; font-weight:400; }
 .modal-box .field { margin-bottom:.8rem; }
-.modal-box .field label { display:block; font-size:.82rem; color:#666; margin-bottom:.3rem; }
+.modal-box .field label { display:block; font-size:.82rem; color:var(--text-sub); margin-bottom:.3rem; }
 .modal-box .field input { width:100%; padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; box-sizing:border-box; }
 .modal-actions { display:flex; gap:.6rem; justify-content:flex-end; margin-top:1rem; }
 .empty-msg { text-align:center; color:#999; padding:2rem; }
@@ -34,9 +32,9 @@
 .tab-btn {
   padding:.55rem 1.2rem; border:none; background:none; cursor:pointer;
   font-size:.88rem; font-family:var(--font-serif); font-weight:300;
-  color:#9a9188; border-bottom:2px solid transparent; margin-bottom:-2px;
+  color:var(--text-sub); border-bottom:2px solid transparent; margin-bottom:-2px;
 }
-.tab-btn.active { color:#2c2720; border-bottom-color:#FABF13; font-weight:400; }
+.tab-btn.active { color:var(--text); border-bottom-color:var(--brand); font-weight:400; }
 .tab-panel { display:none; }
 .tab-panel.active { display:block; }
 
@@ -48,12 +46,12 @@
 }
 .batch-card.overdue { border-left:3px solid #c0392b; }
 .batch-info { flex:1; min-width:200px; }
-.batch-customer { font-weight:500; font-size:.92rem; color:#2c2720; }
-.batch-meta { font-size:.8rem; color:#9a9188; margin-top:3px; }
-.batch-amount { font-family:var(--font-en); font-size:1.3rem; font-weight:300; color:#2c2720; white-space:nowrap; }
+.batch-customer { font-weight:500; font-size:.92rem; color:var(--text); }
+.batch-meta { font-size:.8rem; color:var(--text-sub); margin-top:3px; }
+.batch-amount { font-family:var(--font-en); font-size:1.3rem; font-weight:300; color:var(--text); white-space:nowrap; }
 .btn-batch-confirm {
   padding:6px 16px; border:none; border-radius:6px;
-  background:#2c2720; color:#f5f0e8; font-size:.82rem; cursor:pointer;
+  background:var(--text); color:var(--bg); font-size:.82rem; cursor:pointer;
   font-family:var(--font-serif); white-space:nowrap;
 }
 .btn-batch-confirm:hover { background:#444; }
@@ -84,7 +82,7 @@
     <select id="filterStatus" onchange="loadData()">
       <option value="">全部狀態</option><option value="unpaid" selected>未收款</option><option value="paid">已收款</option>
     </select>
-    <button class="btn-primary-sm" onclick="openAdd()">+ 新增應收</button>
+    <button class="btn-primary" onclick="openAdd()">新增應收</button>
   </div>
   <div class="summary-bar" id="summaryBar"></div>
   <table class="data-table">
@@ -105,7 +103,7 @@
     <div class="field"><label>備註</label><input id="addNote"></div>
     <div class="modal-actions">
       <button class="btn-sm" onclick="closeAdd()">取消</button>
-      <button class="btn-primary-sm" onclick="submitAdd()">新增</button>
+      <button class="btn-primary" onclick="submitAdd()">新增</button>
     </div>
   </div>
 </div>

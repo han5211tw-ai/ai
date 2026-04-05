@@ -14,21 +14,21 @@
 .f-input, .f-select {
   padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
   font-size:.84rem; font-family:var(--font-serif); font-weight:300;
-  color:#2c2720; background:#f5f0e8; outline:none;
+  color:var(--text); background:var(--bg); outline:none;
 }
-.f-input:focus { border-color:#6b5f52; }
-.f-select:focus { border-color:#6b5f52; }
+.f-input:focus { border-color:var(--accent); }
+.f-select:focus { border-color:var(--accent); }
 /* 篩選列奇偶：關鍵字(奇)暖米色、處理狀態(偶)淺色 */
-#fKeyword  { background: #f5f0e8; }
+#fKeyword  { background: var(--bg); }
 #fResolved { background: var(--bg-card, #faf8f4); }
-.field-label { font-size:.74rem; color:#9a9188; letter-spacing:.04em; margin-bottom:4px; }
+.field-label { font-size:.74rem; color:var(--text-sub); letter-spacing:.04em; margin-bottom:4px; }
 
 .add-btn {
-  padding:8px 18px; background:#2c2720; color:#f5f0e8;
+  padding:8px 18px; background:var(--text); color:var(--bg);
   border:none; border-radius:8px; font-size:.82rem;
   font-family:var(--font-serif); cursor:pointer; white-space:nowrap;
 }
-.add-btn:hover { background:#3d342c; }
+.add-btn:hover { background:var(--accent); }
 
 /* 統計列 */
 .stat-row {
@@ -37,19 +37,19 @@
 }
 .stat-chip {
   background:#faf7f2; border-radius:8px; padding:8px 14px;
-  font-size:.78rem; color:#6b5f52;
+  font-size:.78rem; color:var(--accent);
 }
-.stat-chip strong { color:#2c2720; font-size:.9rem; }
+.stat-chip strong { color:var(--text); font-size:.9rem; }
 
 /* 回覆表格 */
 .lr-table { width:100%; border-collapse:collapse; font-size:.83rem; }
 .lr-table th {
-  text-align:left; padding:9px 12px; font-weight:300; color:#9a9188;
+  text-align:left; padding:9px 12px; font-weight:300; color:var(--text-sub);
   font-size:.7rem; letter-spacing:.06em; background:#faf7f2;
   border-bottom:1px solid rgba(107,95,82,.1);
 }
 .lr-table td {
-  padding:9px 12px; color:#2c2720;
+  padding:9px 12px; color:var(--text);
   border-bottom:1px solid rgba(107,95,82,.05);
   vertical-align:top;
 }
@@ -65,20 +65,20 @@
 
 .action-btn {
   padding:3px 9px; border-radius:5px; font-size:.74rem;
-  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:#6b5f52;
+  border:1px solid rgba(107,95,82,.25); background:none; cursor:pointer; color:var(--accent);
   font-family:var(--font-serif); margin-right:4px; white-space:nowrap;
 }
 .action-btn.del { border-color:rgba(139,58,58,.25); color:#8b3a3a; }
-.action-btn:hover { background:#f5f0e8; }
+.action-btn:hover { background:var(--bg); }
 
 /* 分頁 */
 .pager { display:flex; gap:6px; justify-content:center; padding:16px; }
 .pager-btn {
   padding:5px 11px; border-radius:6px; font-size:.8rem;
-  border:1px solid rgba(107,95,82,.2); cursor:pointer; background:none; color:#6b5f52;
+  border:1px solid rgba(107,95,82,.2); cursor:pointer; background:none; color:var(--accent);
   font-family:var(--font-serif);
 }
-.pager-btn.active { background:#2c2720; color:#f5f0e8; border-color:#2c2720; }
+.pager-btn.active { background:var(--text); color:var(--bg); border-color:var(--text); }
 .pager-btn:disabled { opacity:.4; cursor:default; }
 
 /* 新增 / 編輯 Modal */
@@ -91,26 +91,26 @@
   width:min(640px,94vw); max-height:90vh; overflow-y:auto;
   box-shadow:0 8px 32px rgba(44,39,32,.18);
 }
-.modal-title { font-size:.9rem; color:#2c2720; letter-spacing:.06em; margin-bottom:20px; }
+.modal-title { font-size:.9rem; color:var(--text); letter-spacing:.06em; margin-bottom:20px; }
 .modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .modal-full { grid-column:1/-1; }
 .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
 .btn-cancel {
   padding:8px 18px; background:none; border:1px solid rgba(107,95,82,.25);
   border-radius:8px; font-size:.82rem; font-family:var(--font-serif);
-  color:#6b5f52; cursor:pointer;
+  color:var(--accent); cursor:pointer;
 }
 .f-textarea {
   width:100%; padding:8px 12px; border:1px solid rgba(107,95,82,.22); border-radius:8px;
   font-size:.84rem; font-family:var(--font-serif); font-weight:300;
-  color:#2c2720; background:#f5f0e8; outline:none; resize:vertical;
+  color:var(--text); background:var(--bg); outline:none; resize:vertical;
   min-height:72px; box-sizing:border-box;
 }
-.f-textarea:focus { border-color:#6b5f52; }
+.f-textarea:focus { border-color:var(--accent); }
 
 .card { background:#fff; border:1px solid rgba(107,95,82,.14); border-radius:16px; overflow:hidden; }
 .card-head { padding:12px 20px; border-bottom:1px solid rgba(107,95,82,.08); display:flex; align-items:center; gap:12px; }
-.card-title { font-size:.72rem; color:#9a9188; letter-spacing:.12em; flex:1; }
+.card-title { font-size:.72rem; color:var(--text-sub); letter-spacing:.12em; flex:1; }
 .msg-ok  { font-size:.8rem; color:#4a7c59; }
 .msg-err { font-size:.8rem; color:#8b3a3a; }
 </style>
@@ -170,7 +170,7 @@
           </tr>
         </thead>
         <tbody id="listBody">
-          <tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--text-sub);padding:24px">載入中…</td></tr>
         </tbody>
       </table>
     </div>
@@ -277,12 +277,12 @@ function renderStats(data) {
 function renderList(rows) {
   const tbody = document.getElementById('listBody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">無記錄</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-sub);padding:24px">無記錄</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td style="white-space:nowrap;font-size:.8rem;color:#6b5f52">
+      <td style="white-space:nowrap;font-size:.8rem;color:var(--accent)">
         ${(r.reply_datetime||'').replace('T',' ').slice(0,16)}
       </td>
       <td><strong>${r.customer_line_name||'—'}</strong></td>
@@ -306,13 +306,13 @@ function renderList(rows) {
 function renderPager(page, pages) {
   const el = document.getElementById('pagerEl');
   if (pages <= 1) { el.innerHTML = ''; return; }
-  let html = `<button class="pager-btn" onclick="loadList(${page-1})" ${page<=1?'disabled':''}>‹</button>`;
+  let html = `<button class="pager-btn" onclick="loadList(${page-1})" ${page<=1?'disabled':''}>上頁</button>`;
   const start = Math.max(1, page - 2);
   const end   = Math.min(pages, page + 2);
   for (let i = start; i <= end; i++) {
     html += `<button class="pager-btn ${i===page?'active':''}" onclick="loadList(${i})">${i}</button>`;
   }
-  html += `<button class="pager-btn" onclick="loadList(${page+1})" ${page>=pages?'disabled':''}>›</button>`;
+  html += `<button class="pager-btn" onclick="loadList(${page+1})" ${page>=pages?'disabled':''}>下頁</button>`;
   el.innerHTML = html;
 }
 

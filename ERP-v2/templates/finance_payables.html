@@ -7,12 +7,10 @@
 .controls { display:flex; gap:.8rem; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; }
 .controls select { padding:.4rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.88rem; }
 .btn-sm { padding:.4rem .8rem; border:1px solid var(--border); border-radius:4px; background:var(--bg-card); cursor:pointer; font-size:.82rem; }
-.btn-sm:hover { background:#eee; }
-.btn-primary-sm { padding:.4rem .8rem; border:none; border-radius:4px; background:#2c2720; color:#fff; cursor:pointer; font-size:.82rem; }
-.btn-primary-sm:hover { background:#444; }
+.btn-sm:hover { background: rgba(107,95,82,.08); }
 .data-table { width:100%; border-collapse:collapse; font-size:.88rem; }
 .data-table th, .data-table td { padding:.55rem .6rem; border-bottom:1px solid var(--border); text-align:left; }
-.data-table th { font-weight:400; color:#888; font-size:.8rem; }
+.data-table th { font-weight:400; color:var(--text-sub); font-size:.8rem; }
 .status-paid { color:#27ae60; }
 .status-unpaid { color:#e67e22; }
 .overdue { background:#fff8f0; }
@@ -24,7 +22,7 @@
 .modal-box { background:#fff; border-radius:8px; padding:1.5rem; width:90%; max-width:420px; }
 .modal-box h3 { margin:0 0 1rem; font-size:1rem; font-weight:400; }
 .modal-box .field { margin-bottom:.8rem; }
-.modal-box .field label { display:block; font-size:.82rem; color:#666; margin-bottom:.3rem; }
+.modal-box .field label { display:block; font-size:.82rem; color:var(--text-sub); margin-bottom:.3rem; }
 .modal-box .field input { width:100%; padding:.45rem .6rem; border:1px solid var(--border); border-radius:4px; font-size:.9rem; box-sizing:border-box; }
 .modal-actions { display:flex; gap:.6rem; justify-content:flex-end; margin-top:1rem; }
 .empty-msg { text-align:center; color:#999; padding:2rem; }
@@ -41,7 +39,7 @@
   <select id="filterStatus" onchange="loadData()">
     <option value="">全部狀態</option><option value="unpaid" selected>未付款</option><option value="paid">已付款</option>
   </select>
-  <button class="btn-primary-sm" onclick="openAdd()">+ 新增應付</button>
+  <button class="btn-primary" onclick="openAdd()">新增應付</button>
 </div>
 
 <div class="summary-bar" id="summaryBar"></div>
@@ -70,16 +68,16 @@
       </select>
     </div>
     <div class="field" id="addTaxField" style="display:none">
-      <label>稅額</label><input type="number" id="addTaxAmount" readonly style="background:#f0ede6;color:#9a9188">
+      <label>稅額</label><input type="number" id="addTaxAmount" readonly style="background:var(--bg-card);color:var(--text-sub)">
     </div>
     <div class="field" id="addTotalField" style="display:none">
-      <label>含稅金額</label><input type="number" id="addTotalWithTax" readonly style="background:#f0ede6;font-weight:500">
+      <label>含稅金額</label><input type="number" id="addTotalWithTax" readonly style="background:var(--bg-card);font-weight:500">
     </div>
     <div class="field"><label>到期日</label><input type="date" id="addDue"></div>
     <div class="field"><label>備註</label><input id="addNote"></div>
     <div class="modal-actions">
       <button class="btn-sm" onclick="closeAdd()">取消</button>
-      <button class="btn-primary-sm" onclick="submitAdd()">新增</button>
+      <button class="btn-primary" onclick="submitAdd()">新增</button>
     </div>
   </div>
 </div>

@@ -25,7 +25,7 @@
   background: rgba(107,95,82,.18);
   flex-shrink: 0;
 }
-.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+.ctrl-label { font-size: .78rem; color: var(--text-sub); letter-spacing: .04em; }
 
 .period-pills, .sort-pills {
   display: flex;
@@ -38,7 +38,7 @@
   font-size: .82rem;
   background: none;
   border: none;
-  color: #6b5f52;
+  color: var(--accent);
   cursor: pointer;
   font-family: var(--font-serif);
   font-weight: 300;
@@ -46,7 +46,7 @@
   transition: background .15s;
 }
 .pill-btn + .pill-btn { border-left: 1px solid rgba(107,95,82,.2); }
-.pill-btn.active { background: #2c2720; color: #f5f0e8; }
+.pill-btn.active { background: var(--text); color: var(--bg); }
 
 .year-sel, .month-sel {
   padding: 7px 12px;
@@ -55,8 +55,8 @@
   font-size: .82rem;
   font-family: var(--font-serif);
   font-weight: 300;
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
 }
 
 /* ── 卡片 ─────────────────────────────── */
@@ -70,7 +70,7 @@
   font-family: var(--font-en);
   font-size: 1rem;
   font-weight: 300;
-  color: #9a9188;
+  color: var(--text-sub);
   letter-spacing: .12em;
   text-transform: uppercase;
   margin-bottom: 18px;
@@ -89,9 +89,9 @@
   padding: 9px 12px;
   font-weight: 400;
   font-size: .76rem;
-  color: #9a9188;
+  color: var(--text-sub);
   letter-spacing: .06em;
-  border-bottom: 1px solid rgba(107,95,82,.15);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .p-table td {
@@ -104,8 +104,8 @@
 
 /* 排名標記 */
 .rank-medal { font-size: 1.1rem; }
-.rank-num   { font-family: var(--font-en); font-size: 1rem; color: #9a9188; }
-.rank-top   { color: #2c2720; font-weight: 400; }
+.rank-num   { font-family: var(--font-en); font-size: 1rem; color: var(--text-sub); }
+.rank-top   { color: var(--text); font-weight: 400; }
 
 /* 達成率色 */
 .ach.excellent { color: #6b8a5c; font-weight: 400; }
@@ -124,11 +124,11 @@
   margin-bottom: 18px;
 }
 .sup-item {
-  background: #f5f0e8;
+  background: var(--bg);
   border-radius: 10px;
   padding: 12px 14px;
 }
-.sup-item-label { font-size: .76rem; color: #9a9188; margin-bottom: 6px; }
+.sup-item-label { font-size: .76rem; color: var(--text-sub); margin-bottom: 6px; }
 .sup-item-body  { display: flex; align-items: center; gap: 10px; }
 .sup-track {
   flex: 1;
@@ -137,8 +137,8 @@
   border-radius: 999px;
   overflow: hidden;
 }
-.sup-fill { height: 100%; border-radius: 999px; background: #6b5f52; transition: width .5s; }
-.sup-score { font-size: .82rem; color: #2c2720; white-space: nowrap; }
+.sup-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width .5s; }
+.sup-score { font-size: .82rem; color: var(--text); white-space: nowrap; }
 
 .sup-total-bar {
   background: rgba(107,95,82,.06);
@@ -154,10 +154,10 @@
   font-family: var(--font-en);
   font-size: 2rem;
   font-weight: 300;
-  color: #2c2720;
+  color: var(--text);
   line-height: 1;
 }
-.sup-total-sub { font-size: .76rem; color: #9a9188; margin-top: 3px; }
+.sup-total-sub { font-size: .76rem; color: var(--text-sub); margin-top: 3px; }
 .sup-total-track {
   flex: 1;
   min-width: 120px;
@@ -166,7 +166,7 @@
   border-radius: 999px;
   overflow: hidden;
 }
-.sup-total-fill { height: 100%; border-radius: 999px; background: #6b5f52; transition: width .6s; }
+.sup-total-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width .6s; }
 
 /* ── 全員督導（老闆視角） ─────────────── */
 .all-sup-card {
@@ -187,7 +187,7 @@
 .all-sup-name {
   font-size: .95rem;
   font-weight: 400;
-  color: #2c2720;
+  color: var(--text);
 }
 .all-sup-pct {
   font-family: var(--font-en);
@@ -195,7 +195,7 @@
   font-weight: 300;
   line-height: 1;
 }
-.all-sup-sub { font-size: .74rem; color: #9a9188; }
+.all-sup-sub { font-size: .74rem; color: var(--text-sub); }
 .all-sup-track {
   height: 6px;
   background: rgba(107,95,82,.1);
@@ -204,7 +204,7 @@
 }
 .all-sup-fill { height: 100%; border-radius: 999px; transition: width .5s; }
 
-.empty-hint { text-align: center; padding: 28px 0; color: #9a9188; font-size: .86rem; }
+.empty-hint { text-align: center; padding: 28px 0; color: var(--text-sub); font-size: .86rem; }
 #tableWrap { overflow-x: auto; }
 </style>
 {% endblock %}
@@ -386,13 +386,13 @@ function renderTable() {
             : `<span class="rank-num">${d.rank}</span>`;
           return `<tr ${isMe ? 'style="background:rgba(250,191,19,.04)"' : ''}>
             <td style="text-align:center">${rankCell}</td>
-            <td class="${d.rank<=3?'rank-top':''}">${esc(d.name)}${isMe?' <span style="font-size:.72rem;color:#9a9188">（本人）</span>':''}</td>
-            <td style="text-align:right;color:#9a9188">${fmtN(d.target)}</td>
+            <td class="${d.rank<=3?'rank-top':''}">${esc(d.name)}${isMe?' <span style="font-size:.72rem;color:var(--text-sub)">（本人）</span>':''}</td>
+            <td style="text-align:right;color:var(--text-sub)">${fmtN(d.target)}</td>
             <td style="text-align:right;font-weight:400">${fmtN(d.total)}</td>
             <td style="text-align:right"><span class="ach ${achCls}">${ach}%</span></td>
-            <td style="text-align:right;color:#9a9188">${((d.margin_rate||0)*100).toFixed(1)}%</td>
-            <td style="text-align:right;color:#9a9188">${d.orders}</td>
-            <td style="text-align:right;color:#9a9188">${fmtN(d.avg)}</td>
+            <td style="text-align:right;color:var(--text-sub)">${((d.margin_rate||0)*100).toFixed(1)}%</td>
+            <td style="text-align:right;color:var(--text-sub)">${d.orders}</td>
+            <td style="text-align:right;color:var(--text-sub)">${fmtN(d.avg)}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -452,7 +452,7 @@ function renderChart() {
     // 本人高亮黃色邊框
     return `rgba(${r},${g},${b},0.85)`;
   });
-  const borders = data.map(d => d.name === (currentUser&&currentUser.name) ? '#FABF13' : 'transparent');
+  const borders = data.map(d => d.name === (currentUser&&currentUser.name) ? 'var(--brand)' : 'transparent');
 
   chartInst = new Chart(document.getElementById('rankChart'), {
     type: 'bar',
@@ -478,11 +478,11 @@ function renderChart() {
         x: {
           beginAtZero: true,
           grid: { color: 'rgba(107,95,82,.07)' },
-          ticks: { color: '#9a9188', font: { size: 11 }, callback: labelCb }
+          ticks: { color: 'var(--text-sub)', font: { size: 11 }, callback: labelCb }
         },
         y: {
           grid: { display: false },
-          ticks: { color: '#2c2720', font: { size: 12 } }
+          ticks: { color: 'var(--text)', font: { size: 12 } }
         }
       }
     }

@@ -22,30 +22,30 @@
   font-size: .84rem;
   font-family: var(--font-serif);
   font-weight: 300;
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
   outline: none;
 }
-.search-input:focus { border-color: #6b5f52; }
+.search-input:focus { border-color: var(--accent); }
 .wh-sel {
   padding: 9px 12px;
   border: 1px solid rgba(107,95,82,.22);
   border-radius: 10px;
   font-size: .82rem;
   font-family: var(--font-serif);
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
 }
 .search-btn {
   padding: 9px 20px;
-  background: #2c2720; color: #f5f0e8;
+  background: var(--text); color: var(--bg);
   border: none; border-radius: 10px;
   font-size: .82rem; font-family: var(--font-serif);
   letter-spacing: .06em; cursor: pointer;
 }
 .info-badge {
-  font-size: .74rem; color: #9a9188;
-  background: #f5f0e8; padding: 5px 12px; border-radius: 20px;
+  font-size: .74rem; color: var(--text-sub);
+  background: var(--bg); padding: 5px 12px; border-radius: 20px;
 }
 
 /* ── 倉庫統計卡 ── */
@@ -59,18 +59,18 @@
   border: 1px solid rgba(107,95,82,.14);
   border-radius: 14px;
   padding: 16px 18px;
-  border-left: 3px solid #9a8f84;
+  border-left: 3px solid var(--text-sub);
   cursor: pointer;
   transition: border-color .15s;
 }
-.wh-card.active { border-left-color: #2c2720; }
-.wh-card:hover { border-left-color: #6b5f52; }
-.wh-name { font-size: .8rem; color: #6b5f52; letter-spacing: .04em; margin-bottom: 8px; }
+.wh-card.active { border-left-color: var(--text); }
+.wh-card:hover { border-left-color: var(--accent); }
+.wh-name { font-size: .8rem; color: var(--accent); letter-spacing: .04em; margin-bottom: 8px; }
 .wh-count {
   font-family: var(--font-en);
-  font-size: 1.5rem; font-weight: 300; color: #2c2720;
+  font-size: 1.5rem; font-weight: 300; color: var(--text);
 }
-.wh-lbl { font-size: .68rem; color: #9a9188; margin-top: 2px; }
+.wh-lbl { font-size: .68rem; color: var(--text-sub); margin-top: 2px; }
 
 /* ── 結果表格 ── */
 .card {
@@ -83,25 +83,25 @@
   display: flex; justify-content: space-between; align-items: center;
   border-bottom: 1px solid rgba(107,95,82,.08);
 }
-.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase; }
+.card-title { font-size: .72rem; color: var(--text-sub); letter-spacing: .12em; text-transform: uppercase; }
 .page-btns { display: flex; gap: 8px; }
 .page-btn {
   padding: 5px 14px; border: 1px solid rgba(107,95,82,.2);
   border-radius: 6px; background: none; font-size: .78rem;
-  color: #6b5f52; cursor: pointer; font-family: var(--font-serif);
+  color: var(--accent); cursor: pointer; font-family: var(--font-serif);
 }
 .page-btn:disabled { opacity: .4; cursor: default; }
 
 .inv-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
 .inv-table th {
   text-align: left; padding: 9px 14px;
-  font-weight: 300; color: #9a9188; font-size: .73rem; letter-spacing: .06em;
-  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+  font-weight: 300; color: var(--text-sub); font-size: .73rem; letter-spacing: .06em;
+  background: var(--bg-card); border-bottom: 1px solid rgba(107,95,82,.1);
 }
-.inv-table td { padding: 10px 14px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.inv-table td { padding: 10px 14px; color: var(--text); border-bottom: 1px solid rgba(107,95,82,.05); }
 .inv-table tr:last-child td { border-bottom: none; }
 .num { font-family: var(--font-en); font-size: .9rem; }
-.prod-code { font-size: .75rem; color: #9a9188; display: block; }
+.prod-code { font-size: .75rem; color: var(--text-sub); display: block; }
 .qty-hi { color: #4a7c59; font-weight: 400; }
 .qty-lo { color: #a0763a; }
 
@@ -167,7 +167,7 @@
     content: attr(data-label);
     display: inline-block;
     min-width: 5.5em;
-    color: var(--text-sub, #9a9188);
+    color: var(--text-sub);
     font-size: .75rem;
     margin-right: 6px;
   }
@@ -207,7 +207,7 @@
       <span class="card-title">庫存列表</span>
       <div class="page-btns">
         <button class="page-btn" id="prevBtn" onclick="changePage(-1)" disabled>上一頁</button>
-        <span id="pageInfo" style="font-size:.75rem;color:#9a9188;align-self:center"></span>
+        <span id="pageInfo" style="font-size:.75rem;color:var(--text-sub);align-self:center"></span>
         <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一頁</button>
       </div>
     </div>
@@ -310,7 +310,7 @@ function filterWh(wh) {
 function renderTable(rows) {
   if (!rows.length) {
     document.getElementById('tableWrap').innerHTML =
-      '<div style="padding:20px;color:#9a9188;font-size:.83rem">查無庫存資料</div>';
+      '<div style="padding:20px;color:var(--text-sub);font-size:.83rem">查無庫存資料</div>';
     return;
   }
   let html = `<table class="inv-table">

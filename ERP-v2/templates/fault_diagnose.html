@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}電腦檢測 — COSH ERP{% endblock %}
-{% block page_title %}電腦故障診斷{% endblock %}
+{% block title %}故障檢測 — COSH ERP{% endblock %}
+{% block page_title %}故障檢測{% endblock %}
 
 {% block styles %}
 <style>
@@ -239,25 +239,63 @@
 
 /* ═══ 手機版 ═══ */
 @media (max-width: 767px) {
-  .fd-layout { gap: 12px; }
-  .fd-ai-section, .fd-report-section { padding: 14px 14px; }
-  .fd-ai-input-row { flex-direction: column; }
-  .fd-ai-send { width: 100%; min-height: 44px; }
+  .fd-layout { gap: 10px; }
+
+  /* ── AI 對話區 ── */
+  .fd-ai-section, .fd-report-section { padding: 14px 12px; border-radius: 12px; }
+  .fd-ai-input-row { flex-direction: column; gap: 8px; }
+  .fd-ai-input { min-height: 50px; font-size: .86rem; border-radius: 10px; }
+  .fd-ai-send { width: 100%; min-height: 46px; font-size: .86rem; border-radius: 10px; }
+  .fd-chat-log { max-height: 300px; }
+  .fd-msg { font-size: .82rem; padding: 10px 14px; border-radius: 10px; }
+  .fd-msg-user { max-width: 90%; }
+  .fd-msg-ai { max-width: 100%; }
+  .fd-matched { flex-direction: column; gap: 6px; }
+  .fd-match-card { font-size: .8rem; padding: 10px 14px; border-radius: 10px; }
+
+  /* ── 故障樹 ── */
+  .fd-tree-section { border-radius: 12px; }
+  .fd-tree-header { padding: 12px 14px; font-size: .72rem; }
+  .fd-search-bar { padding: 8px 12px; gap: 6px; }
+  .fd-search-input { padding: 10px 12px; font-size: .84rem; min-height: 44px; }
+  .fd-search-btn { padding: 10px 16px; min-height: 44px; font-size: .84rem; }
   .fd-tree-body { flex-direction: column; }
   .fd-groups {
-    width: 100%; max-height: 200px; border-right: none;
+    width: 100%; max-height: none; border-right: none;
     border-bottom: 1px solid var(--border);
     display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .fd-groups::-webkit-scrollbar { display: none; }
   .fd-group-item {
-    white-space: nowrap; padding: 8px 14px; font-size: .78rem;
+    white-space: nowrap; padding: 10px 16px; font-size: .8rem;
     border-bottom: none; border-right: 1px solid rgba(107,95,82,.06);
-    flex-shrink: 0;
+    flex-shrink: 0; min-height: 44px; display: flex; align-items: center; gap: 6px;
   }
-  .fd-scenarios { max-height: none; }
-  .fd-report-grid { grid-template-columns: 1fr; }
-  .fd-chat-log { max-height: 350px; }
-  .fd-matched { flex-direction: column; }
+  .fd-scenarios { max-height: none; padding: 6px 0; }
+  .fd-scenario-item { padding: 12px 14px; }
+  .fd-scenario-title { font-size: .84rem; }
+  .fd-scenario-detail { padding: 12px 12px; font-size: .82rem; border-radius: 10px; }
+  .fd-use-btn { width: 100%; min-height: 44px; font-size: .82rem; border-radius: 10px;
+    text-align: center; margin-top: 12px; }
+
+  /* ── 結論單 ── */
+  .fd-report-grid { grid-template-columns: 1fr; gap: 8px; }
+  .fd-report-field input,
+  .fd-report-field textarea { font-size: .86rem; padding: 12px 14px; min-height: 46px; border-radius: 10px; }
+  .fd-report-field textarea { min-height: 90px; }
+  .fd-report-actions { flex-direction: column; gap: 8px; }
+  .fd-btn-print, .fd-btn-clear {
+    width: 100%; min-height: 46px; font-size: .86rem; border-radius: 10px;
+    text-align: center;
+  }
+
+  /* ── 客戶搜尋下拉 ── */
+  .fd-cust-list { max-height: 180px; border-radius: 10px; }
+  .fd-cust-item { padding: 12px 14px; min-height: 44px; font-size: .84rem; }
+
+  /* ── Toast 移到底部導覽列上方 ── */
   .fd-toast { top: auto; bottom: 72px; }
 }
 </style>
@@ -270,18 +308,18 @@
   <div class="fd-ai-section">
     <div class="fd-ai-title">AI 故障診斷</div>
     <div class="fd-ai-input-row">
-      <textarea class="fd-ai-input" id="aiInput"
+      <textarea class="fd-ai-input" id="fdAiInput"
         placeholder="描述客人的電腦問題，例如：「電腦開機風扇轉一下就停了」…"
-        rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend()}"></textarea>
-      <button class="fd-ai-send" id="aiSendBtn" onclick="aiSend()">診斷</button>
+        rows="1"></textarea>
+      <button class="fd-ai-send" id="fdAiSendBtn" onclick="fdAiSend()">診斷</button>
     </div>
-    <div class="fd-chat-log" id="chatLog"></div>
+    <div class="fd-chat-log" id="fdChatLog"></div>
     <div class="fd-matched" id="matchedCards"></div>
   </div>
 
   <!-- ═══ ② 故障樹瀏覽 ═══ -->
   <div class="fd-tree-section">
-    <div class="fd-tree-header">故障情境知識庫（218 個情境 · 31 群組）</div>
+    <div class="fd-tree-header" id="fdTreeHeader">故障情境知識庫</div>
     <div class="fd-search-bar">
       <input class="fd-search-input" id="treeSearch" placeholder="搜尋情境…"
         onkeydown="if(event.key==='Enter')treeDoSearch()">
@@ -328,7 +366,7 @@
       </div>
     </div>
     <div class="fd-report-actions">
-      <button class="fd-btn-print" onclick="printReport()">列印結論單</button>
+      <button class="fd-btn-print" onclick="printReport()">列印檢測結果</button>
       <button class="fd-btn-clear" onclick="clearReport()">清除</button>
     </div>
   </div>
@@ -374,18 +412,18 @@ function toast(msg) {
 }
 
 /* ═══ ① AI 對話 ═══ */
-async function aiSend() {
-  const input = document.getElementById('aiInput');
+async function fdAiSend() {
+  const input = document.getElementById('fdAiInput');
   const desc = input.value.trim();
   if (!desc) return;
 
-  const btn = document.getElementById('aiSendBtn');
+  const btn = document.getElementById('fdAiSendBtn');
   btn.disabled = true;
   input.value = '';
 
   // 顯示用戶訊息
-  appendMsg('user', desc);
-  appendMsg('loading', '診斷中，請稍候…');
+  fdAppendMsg('user', desc);
+  fdAppendMsg('loading', '診斷中，請稍候…');
 
   _fdHistory.push({ role: 'user', content: desc });
 
@@ -396,32 +434,32 @@ async function aiSend() {
       body: JSON.stringify({ description: desc, history: _fdHistory.slice(-10) }),
     });
     const json = await res.json();
-    removeLoading();
+    fdRemoveLoading();
 
     if (!json.success) {
-      appendMsg('ai', '⚠ ' + (json.message || '診斷失敗'));
+      fdAppendMsg('ai', '⚠ ' + (json.message || '診斷失敗'));
     } else {
-      appendMsg('ai', json.reply);
+      fdAppendMsg('ai', json.reply);
       _fdHistory.push({ role: 'assistant', content: json.reply });
       renderMatched(json.matched || []);
     }
   } catch (e) {
-    removeLoading();
-    appendMsg('ai', '⚠ 連線失敗：' + e.message);
+    fdRemoveLoading();
+    fdAppendMsg('ai', '⚠ 連線失敗：' + e.message);
   }
   btn.disabled = false;
   input.focus();
 }
 
-function appendMsg(role, text) {
-  const log = document.getElementById('chatLog');
+function fdAppendMsg(role, text) {
+  const log = document.getElementById('fdChatLog');
   const div = document.createElement('div');
   if (role === 'user') {
     div.className = 'fd-msg fd-msg-user';
     div.textContent = text;
   } else if (role === 'loading') {
     div.className = 'fd-msg fd-msg-loading';
-    div.id = '_aiLoading';
+    div.id = '_fdAiLoading';
     div.textContent = text;
   } else {
     div.className = 'fd-msg fd-msg-ai';
@@ -430,8 +468,8 @@ function appendMsg(role, text) {
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
 }
-function removeLoading() {
-  const el = document.getElementById('_aiLoading');
+function fdRemoveLoading() {
+  const el = document.getElementById('_fdAiLoading');
   if (el) el.remove();
 }
 
@@ -455,6 +493,20 @@ async function loadGroups() {
     _allGroups = json.groups || [];
     renderGroups(_allGroups);
   } catch (e) { console.error(e); }
+  // 載入知識庫統計
+  try {
+    const r2 = await fetch('/api/fault/kb-stats');
+    const j2 = await r2.json();
+    if (j2.success) {
+      const hdr = document.getElementById('fdTreeHeader');
+      let txt = `故障情境知識庫（${j2.scenarios} 個情境 · ${j2.groups} 群組）`;
+      const extra = [];
+      if (j2.maintainer) extra.push(`由門市部主管 ${j2.maintainer} 維護`);
+      if (j2.last_updated) extra.push(`最後更新日期：${j2.last_updated}`);
+      if (extra.length) txt += `　${extra.join('，')}`;
+      hdr.textContent = txt;
+    }
+  } catch (e) { /* 統計失敗不阻塞 */ }
 }
 
 function renderGroups(groups) {

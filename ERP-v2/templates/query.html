@@ -14,12 +14,12 @@
 }
 .tab-btn {
   flex: 1; padding: 11px 0; border: none; background: none; cursor: pointer;
-  font-size: .82rem; font-family: var(--font-serif); color: #9a9188;
+  font-size: .82rem; font-family: var(--font-serif); color: var(--text-sub);
   border-right: 1px solid rgba(107,95,82,.1); transition: background .12s, color .12s;
 }
 .tab-btn:last-child { border-right: none; }
-.tab-btn.active { background: #2c2720; color: #f5f0e8; }
-.tab-btn:not(.active):hover { background: #f5f0e8; color: #2c2720; }
+.tab-btn.active { background: var(--text); color: var(--bg); }
+.tab-btn:not(.active):hover { background: var(--bg); color: var(--text); }
 
 /* 篩選列 */
 .filter-bar {
@@ -31,18 +31,18 @@
   padding: 7px 11px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
   font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
-  color: #2c2720; background: #f5f0e8; outline: none;
+  color: var(--text); background: var(--bg); outline: none;
 }
-.f-input:focus, .f-select:focus { border-color: #6b5f52; }
+.f-input:focus, .f-select:focus { border-color: var(--accent); }
 .f-wide { min-width: 180px; flex: 1; }
 .search-btn {
-  padding: 7px 18px; background: #2c2720; color: #f5f0e8;
+  padding: 7px 18px; background: var(--text); color: var(--bg);
   border: none; border-radius: 8px; font-size: .8rem;
   font-family: var(--font-serif); cursor: pointer;
 }
 .reset-btn {
   padding: 7px 12px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
-  background: none; font-size: .8rem; color: #6b5f52;
+  background: none; font-size: .8rem; color: var(--accent);
   font-family: var(--font-serif); cursor: pointer;
 }
 
@@ -55,32 +55,32 @@
   padding: 11px 18px; border-bottom: 1px solid rgba(107,95,82,.08);
   display: flex; justify-content: space-between; align-items: center;
 }
-.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .1em; }
-.result-count { font-size: .75rem; color: #9a9188; }
+.card-title { font-size: .72rem; color: var(--text-sub); letter-spacing: .1em; }
+.result-count { font-size: .75rem; color: var(--text-sub); }
 
 /* 表格 */
 .r-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
 .r-table th {
   text-align: left; padding: 8px 14px;
-  font-weight: 300; color: #9a9188; font-size: .72rem; letter-spacing: .05em;
-  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+  font-weight: 300; color: var(--text-sub); font-size: .72rem; letter-spacing: .05em;
+  background: var(--bg-card); border-bottom: 1px solid rgba(107,95,82,.1);
   white-space: nowrap;
 }
 .r-table td {
-  padding: 9px 14px; color: #2c2720;
+  padding: 9px 14px; color: var(--text);
   border-bottom: 1px solid rgba(107,95,82,.05);
 }
 .r-table tr:last-child td { border-bottom: none; }
 .r-table tr:hover td { background: rgba(245,240,232,.4); }
 .r-table .num { text-align: right; }
-.r-table .muted { color: #9a9188; font-size: .78rem; }
+.r-table .muted { color: var(--text-sub); font-size: .78rem; }
 
 /* 狀態 badge */
 .s-badge {
   display: inline-block; padding: 2px 9px; border-radius: 999px;
   font-size: .7rem; white-space: nowrap;
 }
-.tag-draft     { background: rgba(107,95,82,.1);   color: #6b5f52; }
+.tag-draft     { background: rgba(107,95,82,.1);   color: var(--accent); }
 .tag-confirmed { background: rgba(74,124,89,.12);  color: #4a7c59; }
 .tag-converted { background: rgba(184,137,58,.12); color: #b8893a; }
 .tag-cancelled { background: rgba(139,58,58,.1);   color: #8b3a3a; }
@@ -90,12 +90,12 @@
 /* 展開明細（報價/訂單） */
 .expandable { cursor: pointer; }
 .expandable:hover td { background: rgba(245,240,232,.6); }
-.detail-row td { padding: 0; background: #faf7f2; }
+.detail-row td { padding: 0; background: var(--bg-card); }
 .detail-inner { padding: 10px 18px 14px; display: none; }
 .detail-inner.open { display: block; }
 .sub-table { width: 100%; border-collapse: collapse; font-size: .78rem; margin-top: 6px; }
-.sub-table th { padding: 5px 10px; color: #9a9188; font-weight: 300; border-bottom: 1px solid rgba(107,95,82,.08); font-size: .7rem; text-align: left; }
-.sub-table td { padding: 5px 10px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.04); }
+.sub-table th { padding: 5px 10px; color: var(--text-sub); font-weight: 300; border-bottom: 1px solid rgba(107,95,82,.08); font-size: .7rem; text-align: left; }
+.sub-table td { padding: 5px 10px; color: var(--text); border-bottom: 1px solid rgba(107,95,82,.04); }
 .sub-table tr:last-child td { border-bottom: none; }
 .sub-table .num { text-align: right; }
 
@@ -103,16 +103,16 @@
 .page-bar {
   display: flex; gap: 8px; align-items: center; justify-content: center; padding: 10px 0;
 }
-.page-btn { padding: 6px 14px; border: 1px solid rgba(107,95,82,.22); border-radius: 6px; background: none; font-size: .78rem; color: #6b5f52; cursor: pointer; }
+.page-btn { padding: 6px 14px; border: 1px solid rgba(107,95,82,.22); border-radius: 6px; background: none; font-size: .78rem; color: var(--accent); cursor: pointer; }
 .page-btn:disabled { opacity: .4; cursor: default; }
-.page-info { font-size: .78rem; color: #9a9188; }
+.page-info { font-size: .78rem; color: var(--text-sub); }
 
-.empty-hint { text-align: center; color: #9a9188; padding: 36px; font-size: .84rem; }
+.empty-hint { text-align: center; color: var(--text-sub); padding: 36px; font-size: .84rem; }
 /* ── 操作按鈕 ── */
 .op-btns { display: flex; gap: 4px; }
 .q-edit-btn {
   padding: 2px 8px; border: 1px solid rgba(107,95,82,.3);
-  border-radius: 4px; background: none; font-size: .7rem; color: #6b5f52; cursor: pointer;
+  border-radius: 4px; background: none; font-size: .7rem; color: var(--accent); cursor: pointer;
 }
 .q-edit-btn:hover { background: rgba(107,95,82,.07); }
 /* ── 修改 Modal ── */
@@ -128,29 +128,29 @@
 }
 .qe-title {
   font-family: var(--font-en); font-size: 1.1rem; font-weight: 300;
-  color: #2c2720; letter-spacing: .06em; margin-bottom: 18px;
+  color: var(--text); letter-spacing: .06em; margin-bottom: 18px;
   padding-bottom: 12px; border-bottom: 1px solid rgba(107,95,82,.12);
 }
 .qe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 16px; }
 .qe-grid .full { grid-column: 1 / -1; }
 .qe-field label {
-  display: block; font-size: .72rem; color: #9a9188;
+  display: block; font-size: .72rem; color: var(--text-sub);
   letter-spacing: .06em; margin-bottom: 4px;
 }
 .qe-field input, .qe-field select {
   width: 100%; padding: 8px 10px; border: 1px solid rgba(107,95,82,.22);
   border-radius: 8px; font-size: .85rem; font-family: var(--font-serif);
-  color: #2c2720; background: #f5f0e8; box-sizing: border-box;
+  color: var(--text); background: var(--bg); box-sizing: border-box;
 }
 .qe-field input:focus, .qe-field select:focus {
-  outline: none; border-color: #FABF13; background: #fff;
+  outline: none; border-color: var(--brand); background: #fff;
 }
 .qe-footer {
   display: flex; justify-content: flex-end; gap: 10px;
   margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(107,95,82,.1);
 }
-.qe-cancel { padding: 8px 18px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px; background: none; font-size: .83rem; color: #6b5f52; cursor: pointer; }
-.qe-save   { padding: 8px 20px; background: #2c2720; color: #f5f0e8; border: none; border-radius: 8px; font-size: .83rem; font-family: var(--font-serif); cursor: pointer; }
+.qe-cancel { padding: 8px 18px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px; background: none; font-size: .83rem; color: var(--accent); cursor: pointer; }
+.qe-save   { padding: 8px 20px; background: var(--text); color: var(--bg); border: none; border-radius: 8px; font-size: .83rem; font-family: var(--font-serif); cursor: pointer; }
 .qe-save:hover { opacity: .85; }
 </style>
 {% endblock %}
@@ -178,9 +178,9 @@
       <div class="empty-hint">載入中…</div>
     </div>
     <div class="page-bar" id="pageBar" style="display:none">
-      <button class="page-btn" id="prevBtn" onclick="changePage(-1)">← 上頁</button>
+      <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上頁</button>
       <span class="page-info" id="pageInfo"></span>
-      <button class="page-btn" id="nextBtn" onclick="changePage(1)">下頁 →</button>
+      <button class="page-btn" id="nextBtn" onclick="changePage(1)">下頁</button>
     </div>
   </div>
 
@@ -487,9 +487,9 @@ async function loadDocs() {
           <td class="num">${it.qty??'—'}</td>
           <td class="num">$${fmt(it.unit_price)}</td>
           <td class="num"><strong>$${fmt(it.subtotal)}</strong></td>
-        </tr>`).join('') || '<tr><td colspan="5" style="color:#9a9188">無品項</td></tr>'}
+        </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-sub)">無品項</td></tr>'}
         </tbody></table>
-        ${d.note ? `<div style="font-size:.76rem;color:#9a9188;margin-top:8px">備注：${d.note}</div>` : ''}
+        ${d.note ? `<div style="font-size:.76rem;color:var(--text-sub);margin-top:8px">備注：${d.note}</div>` : ''}
       </div>
     </td></tr>`;
   });

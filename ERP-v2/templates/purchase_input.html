@@ -15,7 +15,7 @@
   padding: 12px 20px; border-bottom: 1px solid rgba(107,95,82,.08);
   display: flex; justify-content: space-between; align-items: center;
 }
-.card-title { font-size: .72rem; color: #9a9188; letter-spacing: .12em; text-transform: uppercase; }
+.card-title { font-size: .72rem; color: var(--text-sub); letter-spacing: .12em; text-transform: uppercase; }
 .card-body { padding: 20px 22px; }
 
 .form-grid {
@@ -24,31 +24,31 @@
   gap: 14px;
 }
 .form-full { grid-column: 1 / -1; }
-.field-label { font-size: .74rem; color: #9a9188; letter-spacing: .06em; margin-bottom: 5px; }
+.field-label { font-size: .74rem; color: var(--text-sub); letter-spacing: .06em; margin-bottom: 5px; }
 .field-label.required::after { content: ' *'; color: #8b3a3a; }
 .f-input, .f-select {
   width: 100%; padding: 9px 12px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
   font-size: .84rem; font-family: var(--font-serif); font-weight: 300;
-  color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
+  color: var(--text); background: var(--bg); outline: none; box-sizing: border-box;
   transition: border .15s;
 }
-.f-input:focus, .f-select:focus { border-color: #6b5f52; }
-.f-readonly { color: #9a9188; background: #eee9e0; }
+.f-input:focus, .f-select:focus { border-color: var(--accent); }
+.f-readonly { color: var(--text-sub); background: #eee9e0; }
 /* 奇偶交替：奇數欄暖米色、偶數欄淺色 */
-#fDate    { background: #f5f0e8; }
-#fCompany { background: var(--bg-card, #faf8f4); }
-#fOrderNo { background: #f5f0e8; color: #9a9188; }
-#fSupplier{ background: var(--bg-card, #faf8f4); }
-#fInvoice { background: #f5f0e8; }
-#fWarehouse { background: var(--bg-card, #faf8f4); }
+#fDate    { background: var(--bg); }
+#fCompany { background: var(--bg-card, var(--bg-card)); }
+#fOrderNo { background: var(--bg); color: var(--text-sub); }
+#fSupplier{ background: var(--bg-card, var(--bg-card)); }
+#fInvoice { background: var(--bg); }
+#fWarehouse { background: var(--bg-card, var(--bg-card)); }
 
 /* 產品明細表格 */
 .items-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
 .items-table th {
-  padding: 9px 10px; font-size: .7rem; font-weight: 300; color: #9a9188;
+  padding: 9px 10px; font-size: .7rem; font-weight: 300; color: var(--text-sub);
   letter-spacing: .04em; border-bottom: 1px solid rgba(107,95,82,.1);
-  background: #faf7f2; text-align: center; white-space: nowrap;
+  background: var(--bg-card); text-align: center; white-space: nowrap;
 }
 .items-table th:first-child, .items-table td:first-child { text-align: center; width: 32px; }
 .items-table td {
@@ -59,11 +59,11 @@
 
 .cell-input {
   width: 100%; padding: 5px 7px;
-  border: 1px solid rgba(107,95,82,.15); border-radius: 6px;
+  border: 1px solid var(--border); border-radius: 6px;
   font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
-  color: #2c2720; background: #f5f0e8; outline: none; box-sizing: border-box;
+  color: var(--text); background: var(--bg); outline: none; box-sizing: border-box;
 }
-.cell-input:focus { border-color: #6b5f52; }
+.cell-input:focus { border-color: var(--accent); }
 .cell-input.num { text-align: right; width: 90px; }
 .cell-input.code { width: 110px; }
 
@@ -76,28 +76,32 @@
   box-shadow: 0 4px 16px rgba(44,39,32,.12); display: none;
 }
 .prod-item { padding: 8px 12px; cursor: pointer; font-size: .82rem; }
-.prod-item:hover { background: #f5f0e8; }
-.prod-item .pid { font-size: .72rem; color: #9a9188; }
+.prod-item:hover { background: var(--bg); }
+.prod-item .pid { font-size: .72rem; color: var(--text-sub); }
+.scan-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
+  font-size: .88rem; color: var(--text-sub); background: var(--bg);
+  border: 1px solid var(--border); flex-shrink: 0;
+  transition: background .2s, color .2s;
+  user-select: none; -webkit-user-select: none;
+}
+.scan-btn:hover { background: var(--bg-alt); color: var(--text); }
 
 /* 合計列 */
 .total-bar {
   display: flex; justify-content: flex-end; align-items: center; gap: 16px;
   padding: 12px 0 0; border-top: 1px solid rgba(107,95,82,.08); margin-top: 8px;
 }
-.total-label { font-size: .78rem; color: #9a9188; }
-.total-amount { font-size: 1.1rem; color: #2c2720; font-weight: 300; letter-spacing: .04em; }
+.total-label { font-size: .78rem; color: var(--text-sub); }
+.total-amount { font-size: 1.1rem; color: var(--text); font-weight: 300; letter-spacing: .04em; }
 
 /* 按鈕 */
 .btn-row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
-.submit-btn {
-  padding: 10px 26px; background: #2c2720; color: #f5f0e8;
-  border: none; border-radius: 8px; font-size: .82rem;
-  font-family: var(--font-serif); letter-spacing: .06em; cursor: pointer;
-}
-.submit-btn:disabled { opacity: .5; cursor: default; }
+/* .submit-btn - use btn-primary from main.css */
 .add-row-btn {
   padding: 7px 16px; border: 1px dashed rgba(107,95,82,.3); border-radius: 7px;
-  background: none; font-size: .8rem; color: #6b5f52; cursor: pointer;
+  background: none; font-size: .8rem; color: var(--accent); cursor: pointer;
   font-family: var(--font-serif); transition: background .15s;
 }
 .add-row-btn:hover { background: rgba(107,95,82,.05); }
@@ -107,11 +111,7 @@
   transition: background .15s;
 }
 .del-row-btn:hover { background: rgba(139,58,58,.06); }
-.reset-btn {
-  padding: 10px 16px; border: 1px solid rgba(107,95,82,.3); border-radius: 8px;
-  background: none; font-size: .8rem; color: #6b5f52;
-  font-family: var(--font-serif); cursor: pointer;
-}
+/* .reset-btn - use btn-secondary from main.css */
 .msg-ok  { font-size: .82rem; color: #4a7c59; }
 .msg-err { font-size: .82rem; color: #8b3a3a; }
 
@@ -119,10 +119,10 @@
 .list-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
 .list-table th {
   text-align: left; padding: 9px 12px;
-  font-weight: 300; color: #9a9188; font-size: .72rem; letter-spacing: .06em;
-  background: #faf7f2; border-bottom: 1px solid rgba(107,95,82,.1);
+  font-weight: 300; color: var(--text-sub); font-size: .72rem; letter-spacing: .06em;
+  background: var(--bg-card); border-bottom: 1px solid rgba(107,95,82,.1);
 }
-.list-table td { padding: 9px 12px; color: #2c2720; border-bottom: 1px solid rgba(107,95,82,.05); }
+.list-table td { padding: 9px 12px; color: var(--text); border-bottom: 1px solid rgba(107,95,82,.05); }
 .list-table tr:last-child td { border-bottom: none; }
 .list-table .num-cell { text-align: right; }
 
@@ -134,11 +134,11 @@
   flex: 1; padding: 8px 12px;
   border: 1px solid rgba(107,95,82,.22); border-radius: 8px;
   font-size: .82rem; font-family: var(--font-serif); font-weight: 300;
-  color: #2c2720; background: #f5f0e8; outline: none; max-width: 280px;
+  color: var(--text); background: var(--bg); outline: none; max-width: 280px;
 }
-.list-search:focus { border-color: #6b5f52; }
+.list-search:focus { border-color: var(--accent); }
 .search-btn {
-  padding: 8px 16px; background: #2c2720; color: #f5f0e8;
+  padding: 8px 16px; background: var(--text); color: var(--bg);
   border: none; border-radius: 8px; font-size: .78rem;
   font-family: var(--font-serif); cursor: pointer;
 }
@@ -152,18 +152,18 @@
 }
 .page-btn {
   padding: 6px 14px; border: 1px solid rgba(107,95,82,.22); border-radius: 6px;
-  background: none; font-size: .78rem; color: #6b5f52; cursor: pointer;
+  background: none; font-size: .78rem; color: var(--accent); cursor: pointer;
 }
 .page-btn:disabled { opacity: .4; cursor: default; }
-.page-info { font-size: .78rem; color: #9a9188; }
+.page-info { font-size: .78rem; color: var(--text-sub); }
 .tag-po {
   display: inline-block; padding: 1px 7px; border-radius: 4px;
-  font-size: .72rem; background: #eee9e0; color: #6b5f52;
+  font-size: .72rem; background: #eee9e0; color: var(--accent);
   font-family: var(--font-mono); letter-spacing: .02em;
 }
 .edit-row-btn {
   padding: 3px 9px; border: 1px solid rgba(107,95,82,.3);
-  border-radius: 5px; background: none; font-size: .72rem; color: #6b5f52; cursor: pointer;
+  border-radius: 5px; background: none; font-size: .72rem; color: var(--accent); cursor: pointer;
 }
 .edit-row-btn:hover { background: rgba(107,95,82,.07); }
 /* 修改 Modal */
@@ -179,36 +179,28 @@
 }
 .edit-modal-title {
   font-family: var(--font-en); font-size: 1.15rem;
-  font-weight: 300; color: #2c2720; letter-spacing: .06em;
+  font-weight: 300; color: var(--text); letter-spacing: .06em;
   margin-bottom: 20px; padding-bottom: 12px;
   border-bottom: 1px solid rgba(107,95,82,.12);
 }
 .edit-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
 .edit-form-grid .full { grid-column: 1 / -1; }
 .edit-field label {
-  display: block; font-size: .72rem; color: #9a9188;
+  display: block; font-size: .72rem; color: var(--text-sub);
   letter-spacing: .06em; margin-bottom: 4px;
 }
 .edit-field input {
   width: 100%; padding: 8px 10px; border: 1px solid rgba(107,95,82,.22);
   border-radius: 8px; font-size: .84rem; font-family: var(--font-serif);
-  color: #2c2720; background: #f5f0e8; box-sizing: border-box;
+  color: var(--text); background: var(--bg); box-sizing: border-box;
 }
-.edit-field input:focus { outline: none; border-color: #FABF13; background: #fff; }
+.edit-field input:focus { outline: none; border-color: var(--brand); background: #fff; }
 .edit-modal-footer {
   display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
   padding-top: 14px; border-top: 1px solid rgba(107,95,82,.1);
 }
-.edit-cancel-btn {
-  padding: 8px 18px; border: 1px solid rgba(107,95,82,.3);
-  border-radius: 8px; background: none; font-size: .83rem; color: #6b5f52; cursor: pointer;
-}
-.edit-save-btn {
-  padding: 8px 20px; background: #2c2720; color: #f5f0e8;
-  border: none; border-radius: 8px; font-size: .83rem;
-  font-family: var(--font-serif); cursor: pointer;
-}
-.edit-save-btn:hover { opacity: .85; }
+/* .edit-cancel-btn - use btn-secondary from main.css */
+/* .edit-save-btn - use btn-primary from main.css */
 </style>
 {% endblock %}
 
@@ -296,15 +288,15 @@
       </div>
       <div class="total-bar" id="taxRow" style="display:none; margin-top:4px;">
         <span class="total-label">稅額 (5%)</span>
-        <span class="total-amount" id="taxAmount" style="font-size:.88rem; color:#9a9188;">0</span>
+        <span class="total-amount" id="taxAmount" style="font-size:.88rem; color:var(--text-sub);">0</span>
         <span class="total-label" style="margin-left:16px">含稅金額</span>
         <span class="total-amount" id="totalWithTax">0</span>
         <span class="total-label">元</span>
       </div>
 
       <div class="btn-row">
-        <button class="submit-btn" id="submitBtn" onclick="submitPurchase()">儲存進貨單</button>
-        <button class="reset-btn" onclick="resetForm()">清除</button>
+        <button class="btn-primary" id="submitBtn" onclick="submitPurchase()">儲存進貨單</button>
+        <button class="btn-secondary" onclick="resetForm()">清除</button>
       </div>
 
     </div>
@@ -333,14 +325,14 @@
           </tr>
         </thead>
         <tbody id="listBody">
-          <tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">載入中…</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--text-sub);padding:24px">載入中…</td></tr>
         </tbody>
       </table>
     </div>
     <div class="page-bar">
-      <button class="page-btn" id="prevBtn" onclick="changePage(-1)">← 上頁</button>
+      <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上頁</button>
       <span class="page-info" id="pageInfo">第 1 頁</span>
-      <button class="page-btn" id="nextBtn" onclick="changePage(1)">下頁 →</button>
+      <button class="page-btn" id="nextBtn" onclick="changePage(1)">下頁</button>
     </div>
   </div>
 
@@ -378,7 +370,7 @@
       </div>
       <div class="edit-field full">
         <label>進貨公司</label>
-        <select id="editPurchCompany" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.84rem;font-family:var(--font-serif);color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
+        <select id="editPurchCompany" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.84rem;font-family:var(--font-serif);color:var(--text);background:var(--bg);box-sizing:border-box;">
           <option value="電瑙舖資訊有限公司">電瑙舖資訊有限公司（27488187）</option>
           <option value="鋒鑫資訊有限公司">鋒鑫資訊有限公司（90284112）</option>
         </select>
@@ -389,7 +381,7 @@
       </div>
       <div class="edit-field full">
         <label>入庫倉庫</label>
-        <select id="editPurchWarehouse" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.84rem;font-family:var(--font-serif);color:#2c2720;background:#f5f0e8;box-sizing:border-box;">
+        <select id="editPurchWarehouse" style="width:100%;padding:8px 10px;border:1px solid rgba(107,95,82,.22);border-radius:8px;font-size:.84rem;font-family:var(--font-serif);color:var(--text);background:var(--bg);box-sizing:border-box;">
           <option value="">未指定</option>
           <option value="總公司倉庫">總公司倉庫</option>
           <option value="豐原門市">豐原門市</option>
@@ -400,8 +392,8 @@
       </div>
     </div>
     <div class="edit-modal-footer">
-      <button class="edit-cancel-btn" onclick="closePurchEditModal()">取消</button>
-      <button class="edit-save-btn" onclick="savePurchEdit()">儲存</button>
+      <button class="btn-secondary" onclick="closePurchEditModal()">取消</button>
+      <button class="btn-primary" onclick="savePurchEdit()">儲存</button>
     </div>
   </div>
 </div>
@@ -444,11 +436,12 @@ function addRow(code='', name='', qty=1, price=0) {
   const tr = document.createElement('tr');
   tr.id = `row-${n}`;
   tr.innerHTML = `
-    <td style="text-align:center;color:#9a9188;font-size:.78rem">${n}</td>
+    <td style="text-align:center;color:var(--text-sub);font-size:.78rem">${n}</td>
     <td>
-      <div class="prod-wrap">
+      <div class="prod-wrap" style="display:flex;gap:4px;align-items:center;">
         <input class="cell-input code" id="code-${n}" value="${code}"
-               placeholder="產品編號" oninput="searchProd(${n})" autocomplete="off">
+               placeholder="產品編號" oninput="searchProd(${n})" autocomplete="off" style="flex:1">
+        <span class="scan-btn" onclick="scanForRow(${n})" title="掃描條碼">⌗</span>
         <div class="prod-list" id="plist-${n}"></div>
       </div>
     </td>
@@ -458,7 +451,7 @@ function addRow(code='', name='', qty=1, price=0) {
     </td>
     <td><input class="cell-input num" id="qty-${n}"   type="number" value="${qty}"   min="1" oninput="calcRow(${n})"></td>
     <td><input class="cell-input num" id="price-${n}" type="number" value="${price}" min="0" oninput="calcRow(${n})"></td>
-    <td style="text-align:right;color:#2c2720;font-size:.84rem" id="sub-${n}">
+    <td style="text-align:right;color:var(--text);font-size:.84rem" id="sub-${n}">
       ${formatNum(qty * price)}
     </td>
     <td style="text-align:center">
@@ -545,6 +538,14 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.prod-wrap'))
     document.querySelectorAll('.prod-list').forEach(el => { el.style.display = 'none'; });
 });
+
+/* ── 條碼掃描帶入 ── */
+function scanForRow(n) {
+  startBarcodeScan(function(code) {
+    const el = document.getElementById(`code-${n}`);
+    if (el) { el.value = code; searchProd(n); }
+  });
+}
 
 /* ── 提交 ── */
 async function submitPurchase() {
@@ -653,7 +654,7 @@ async function loadList() {
   document.getElementById('nextBtn').disabled = listPage >= listTotal;
 
   if (!data.rows?.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9a9188;padding:24px">暫無紀錄</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-sub);padding:24px">暫無紀錄</td></tr>';
     return;
   }
 
@@ -671,7 +672,7 @@ async function loadList() {
       : '<td></td>';
     const companyShort = r.company ? (r.company.includes('電瑙') ? '電瑙舖' : r.company.includes('鋒鑫') ? '鋒鑫' : r.company) : '';
     return `<tr style="${isFirst ? 'border-top:1px solid rgba(107,95,82,.1)' : ''}">
-      <td style="white-space:nowrap;color:#9a9188;font-size:.8rem">${isFirst ? (r.date || '—') : ''}</td>
+      <td style="white-space:nowrap;color:var(--text-sub);font-size:.8rem">${isFirst ? (r.date || '—') : ''}</td>
       <td>${isFirst ? `<span class="tag-po">${r.order_no || '—'}</span>` : ''}</td>
       <td style="font-size:.82rem">${isFirst ? companyShort : ''}</td>
       <td style="font-size:.82rem">${isFirst ? (r.supplier_name || '—') : ''}</td>

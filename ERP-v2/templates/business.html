@@ -20,7 +20,7 @@
   flex-wrap: wrap;
 }
 .ctrl-sep { width: 1px; height: 22px; background: rgba(107,95,82,.18); flex-shrink: 0; }
-.ctrl-label { font-size: .78rem; color: #9a9188; letter-spacing: .04em; }
+.ctrl-label { font-size: .78rem; color: var(--text-sub); letter-spacing: .04em; }
 
 .period-pills {
   display: flex;
@@ -33,7 +33,7 @@
   font-size: .82rem;
   background: none;
   border: none;
-  color: #6b5f52;
+  color: var(--accent);
   cursor: pointer;
   font-family: var(--font-serif);
   font-weight: 300;
@@ -41,7 +41,7 @@
   transition: background .15s;
 }
 .pill-btn + .pill-btn { border-left: 1px solid rgba(107,95,82,.2); }
-.pill-btn.active { background: #2c2720; color: #f5f0e8; }
+.pill-btn.active { background: var(--text); color: var(--bg); }
 
 .year-sel, .month-sel {
   padding: 7px 12px;
@@ -50,8 +50,8 @@
   font-size: .82rem;
   font-family: var(--font-serif);
   font-weight: 300;
-  color: #2c2720;
-  background: #f5f0e8;
+  color: var(--text);
+  background: var(--bg);
 }
 
 /* ── 業務員卡片 ───────────────────────── */
@@ -65,14 +65,14 @@
   border: 1px solid rgba(107,95,82,.14);
   border-radius: 16px;
   padding: 22px 24px;
-  border-left: 4px solid #6b5f52;
+  border-left: 4px solid var(--accent);
 }
 .person-card:last-child { border-left-color: #b0a899; }
 .person-name {
   font-size: 1.05rem;
   font-weight: 300;
   letter-spacing: .08em;
-  color: #2c2720;
+  color: var(--text);
   margin-bottom: 16px;
 }
 .person-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -81,10 +81,10 @@
   font-family: var(--font-en);
   font-size: 1.5rem;
   font-weight: 300;
-  color: #2c2720;
+  color: var(--text);
   letter-spacing: .02em;
 }
-.pstat-lbl { font-size: .72rem; color: #9a9188; margin-top: 2px; letter-spacing: .04em; }
+.pstat-lbl { font-size: .72rem; color: var(--text-sub); margin-top: 2px; letter-spacing: .04em; }
 .ach-bar-wrap {
   margin-top: 14px;
   background: rgba(107,95,82,.1);
@@ -109,7 +109,7 @@
   font-size: .78rem;
   font-weight: 300;
   letter-spacing: .1em;
-  color: #9a9188;
+  color: var(--text-sub);
   text-transform: uppercase;
   margin-bottom: 16px;
 }
@@ -120,14 +120,14 @@
   text-align: left;
   padding: 8px 12px;
   font-weight: 300;
-  color: #9a9188;
+  color: var(--text-sub);
   letter-spacing: .06em;
   font-size: .75rem;
   border-bottom: 1px solid rgba(107,95,82,.1);
 }
 .summary-table td {
   padding: 11px 12px;
-  color: #2c2720;
+  color: var(--text);
   border-bottom: 1px solid rgba(107,95,82,.06);
 }
 .summary-table tr:last-child td { border-bottom: none; }
@@ -153,7 +153,7 @@
   margin-bottom: 18px;
 }
 .svc-card {
-  background: #f5f0e8;
+  background: var(--bg);
   border-radius: 12px;
   padding: 16px 18px;
   text-align: center;
@@ -162,9 +162,9 @@
   font-family: var(--font-en);
   font-size: 1.8rem;
   font-weight: 300;
-  color: #2c2720;
+  color: var(--text);
 }
-.svc-lbl { font-size: .72rem; color: #9a9188; margin-top: 3px; letter-spacing: .04em; }
+.svc-lbl { font-size: .72rem; color: var(--text-sub); margin-top: 3px; letter-spacing: .04em; }
 
 .per-person-row {
   display: grid;
@@ -176,7 +176,7 @@
 
 .type-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .type-row { display: flex; align-items: center; gap: 10px; font-size: .82rem; }
-.type-label { width: 64px; color: #6b5f52; flex-shrink: 0; text-align: right; font-size: .78rem; }
+.type-label { width: 64px; color: var(--accent); flex-shrink: 0; text-align: right; font-size: .78rem; }
 .type-bar-bg {
   flex: 1;
   background: rgba(107,95,82,.1);
@@ -184,8 +184,8 @@
   height: 8px;
   overflow: hidden;
 }
-.type-bar-fill { height: 100%; border-radius: 4px; background: #6b5f52; }
-.type-count { width: 28px; text-align: right; color: #9a9188; font-size: .78rem; }
+.type-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+.type-count { width: 28px; text-align: right; color: var(--text-sub); font-size: .78rem; }
 
 .trend-wrap { height: 240px; position: relative; margin-top: 16px; }
 

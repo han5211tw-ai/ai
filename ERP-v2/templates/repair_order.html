@@ -1,0 +1,1263 @@
+{% extends "base.html" %}
+{% block title %}維修工單 — COSH ERP{% endblock %}
+{% block page_title %}維修工單{% endblock %}
+
+{% block styles %}
+<style>
+.ro-layout { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── 卡片 ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+}
+.card-head {
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.card-title { font-size: .72rem; color: var(--text-sub); letter-spacing: .12em; text-transform: uppercase; }
+.card-body { padding: 20px 22px; }
+
+/* ── 狀態標籤列 ── */
+.status-tabs {
+  display: flex;
+  border: 1px solid rgba(107,95,82,.2);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 0 16px;
+  width: fit-content;
+}
+.status-tab {
+  padding: 7px 15px; font-size: .82rem; font-weight: 300;
+  font-family: var(--font-serif); cursor: pointer;
+  border: none; background: none; color: var(--accent);
+  letter-spacing: .04em;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.status-tab + .status-tab { border-left: 1px solid rgba(107,95,82,.2); }
+.status-tab.active { background: var(--text); color: var(--bg); }
+.status-tab .badge {
+  display: inline-block; min-width: 14px; text-align: center;
+  font-size: .7rem; margin-left: 2px;
+}
+.status-tab.active .badge { color: var(--bg); }
+
+/* ── 工單列表 ── */
+.ro-list { display: flex; flex-direction: column; gap: 8px; }
+.ro-card {
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 6px 16px; padding: 14px 18px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; cursor: pointer; transition: border-color .2s;
+}
+.ro-card:hover { border-color: var(--border-mid); }
+.ro-no { font-size: .82rem; font-weight: 600; color: var(--text); }
+.ro-meta { font-size: .76rem; color: var(--text-sub); }
+.ro-status-badge {
+  font-size: .72rem; padding: 3px 10px; border-radius: 12px;
+  align-self: start; font-weight: 300; white-space: nowrap;
+}
+.st-待處理   { background: rgba(250,191,19,.12); color: #8a6800; }
+.st-檢測中   { background: rgba(107,95,82,.10); color: var(--text); }
+.st-待確認   { background: rgba(250,191,19,.18); color: #6b5200; }
+.st-維修中   { background: rgba(44,39,32,.08); color: var(--text); }
+.st-待取件   { background: rgba(61,122,61,.10); color: #2e6b2e; }
+.st-已結案   { background: var(--bg-alt); color: var(--text-sub); }
+
+/* ── 表單欄位 ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+.form-full { grid-column: 1 / -1; }
+.field-label {
+  font-size: .74rem; color: var(--text-sub); letter-spacing: .06em; margin-bottom: 5px;
+}
+.f-input, .f-select, .f-textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: 8px; font-family: var(--font-serif);
+  font-size: .84rem; font-weight: 300; color: var(--text);
+  background: var(--bg-card); outline: none; transition: border-color .2s;
+}
+.f-input:focus, .f-select:focus, .f-textarea:focus { border-color: var(--brand); }
+.f-textarea { resize: vertical; min-height: 60px; }
+
+/* ── 交錯色（ID-based） ── */
+#fCustomer   { background: #f5f0e8; }
+#fPhone      { background: var(--bg-card); }
+#fDeviceType { background: #f5f0e8; }
+#fBrand      { background: var(--bg-card); }
+#fModel      { background: #f5f0e8; }
+#fSerial     { background: var(--bg-card); }
+#fTechnician { background: #f5f0e8; }
+
+/* ── 客戶搜尋下拉 ── */
+.cust-wrap { position: relative; }
+.cust-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 20;
+  background: #fff; border: 1px solid rgba(107,95,82,.2); border-radius: 8px;
+  margin-top: 2px; max-height: 180px; overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(44,39,32,.12); display: none;
+}
+.cust-item { padding: 8px 12px; cursor: pointer; font-size: .82rem; }
+.cust-item:hover { background: #f5f0e8; }
+.cust-item .cid { font-size: .72rem; color: var(--text-sub); }
+
+/* ── 常用語句 ── */
+.phrase-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+}
+.phrase-chip {
+  padding: 4px 12px; border-radius: 16px; font-size: .78rem;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text-sub); cursor: pointer; font-family: var(--font-serif);
+  font-weight: 300; transition: all .2s; white-space: nowrap;
+}
+.phrase-chip:hover { background: var(--bg-alt); color: var(--text); border-color: var(--border-mid); }
+
+/* ── 零件表 ── */
+.parts-table { width: 100%; border-collapse: collapse; }
+.parts-table th {
+  font-size: .72rem; color: var(--text-sub); letter-spacing: .06em;
+  padding: 6px 8px; border-bottom: 1px solid var(--border);
+  text-align: left; font-weight: 300;
+}
+.parts-table td { padding: 6px 8px; border-bottom: 1px solid rgba(107,95,82,.06); }
+.parts-table input {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: .82rem; font-family: var(--font-serif);
+  font-weight: 300; color: var(--text); background: var(--bg-card);
+}
+.parts-table input:focus { border-color: var(--brand); outline: none; }
+
+/* 產品搜尋（零件） */
+.prod-wrap { position: relative; }
+.prod-list {
+  position: absolute; top: 100%; left: 0; min-width: 260px; z-index: 20;
+  background: #fff; border: 1px solid rgba(107,95,82,.2); border-radius: 8px;
+  margin-top: 2px; max-height: 200px; overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(44,39,32,.12); display: none;
+}
+.prod-item { padding: 8px 12px; cursor: pointer; font-size: .82rem; }
+.prod-item:hover { background: #f5f0e8; }
+.prod-item .pid { font-size: .72rem; color: var(--text-sub); }
+.scan-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+  font-size: .84rem; color: var(--text-sub); background: var(--bg);
+  border: 1px solid var(--border); flex-shrink: 0;
+  transition: background .2s, color .2s;
+  user-select: none; -webkit-user-select: none;
+}
+.scan-btn:hover { background: var(--bg-alt); color: var(--text); }
+
+.del-btn {
+  background: none; border: none; color: #8b3a3a; cursor: pointer;
+  font-size: .78rem; font-family: var(--font-serif); font-weight: 300;
+  padding: 4px 8px; border-radius: 6px; transition: background .2s;
+}
+.del-btn:hover { background: rgba(139,58,58,.08); }
+
+.add-row-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 14px; border-radius: 8px; border: 1px dashed var(--border-mid);
+  background: transparent; color: var(--text-sub); cursor: pointer;
+  font-family: var(--font-serif); font-size: .8rem; font-weight: 300;
+  transition: all .2s; margin-top: 10px;
+}
+.add-row-btn:hover { border-color: var(--text); color: var(--text); }
+
+/* ── 費用摘要 ── */
+.fee-summary {
+  display: flex; gap: 24px; align-items: center; flex-wrap: wrap;
+  padding: 12px 0 0; border-top: 1px solid rgba(107,95,82,.08); margin-top: 12px;
+}
+.fee-item { font-size: .84rem; color: var(--text-sub); font-weight: 300; }
+.fee-item strong { color: var(--text); font-weight: 600; }
+
+/* ── 分段步驟 ── */
+.step-section {
+  border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  margin-bottom: 16px; transition: opacity .3s;
+}
+.step-section.locked {
+  opacity: .45; pointer-events: none;
+}
+.step-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 18px; background: var(--bg);
+  cursor: default;
+}
+.step-header .step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  font-size: .72rem; font-weight: 600; margin-right: 8px;
+  background: var(--text-sub); color: #fff;
+}
+.step-section.done .step-header .step-num {
+  background: #2e6b2e;
+}
+.step-section.active .step-header .step-num {
+  background: var(--text);
+}
+.step-header .step-title {
+  font-size: .82rem; font-weight: 600; color: var(--text);
+}
+.step-header .step-tag {
+  font-size: .7rem; padding: 2px 10px; border-radius: 10px; font-weight: 300;
+}
+.step-tag.tag-done { background: rgba(61,122,61,.10); color: #2e6b2e; }
+.step-tag.tag-active { background: rgba(250,191,19,.15); color: #8a6800; }
+.step-tag.tag-pending { background: var(--bg-card); color: var(--text-sub); border: 1px solid var(--border); }
+.step-body {
+  padding: 18px 20px; display: none;
+}
+.step-section.active .step-body,
+.step-section.done .step-body {
+  display: block;
+}
+.step-section.done .step-body {
+  opacity: .7;
+}
+.step-section.done .step-body .f-input,
+.step-section.done .step-body .f-select,
+.step-section.done .step-body .f-textarea {
+  pointer-events: none; background: var(--bg);
+}
+.step-confirm-bar {
+  display: flex; gap: 10px; padding-top: 14px; margin-top: 14px;
+  border-top: 1px solid rgba(107,95,82,.08);
+}
+
+/* ── 空狀態 ── */
+.empty-hint {
+  text-align: center; padding: 40px 20px;
+  font-size: .86rem; color: var(--text-sub); font-weight: 300;
+}
+
+/* ── 動作列 ── */
+.action-bar {
+  display: flex; gap: 10px; flex-wrap: wrap; padding-top: 14px;
+  border-top: 1px solid rgba(107,95,82,.08); margin-top: 14px;
+}
+
+/* ── 狀態流程（既有工單） ── */
+.status-flow {
+  display: flex; gap: 4px; align-items: center; flex-wrap: wrap;
+}
+.sf-step {
+  padding: 5px 12px; border-radius: 8px; font-size: .78rem;
+  background: var(--bg); color: var(--text-sub); font-weight: 300;
+  border: 1px solid var(--border); cursor: pointer; transition: all .2s;
+  font-family: var(--font-serif);
+}
+.sf-step:hover { border-color: var(--border-mid); }
+.sf-step.current { background: var(--text); color: #fff; border-color: var(--text); font-weight: 600; }
+.sf-step.done { background: rgba(61,122,61,.10); color: #2e6b2e; border-color: rgba(61,122,61,.2); }
+.sf-arrow { color: var(--text-sub); font-size: .7rem; }
+
+/* ── 手機版 ── */
+@media (max-width: 767px) {
+  .card-body { padding: 14px 16px; }
+  .form-grid { grid-template-columns: 1fr; gap: 10px; }
+  .status-tabs { gap: 4px; }
+  .status-tab { padding: 5px 10px; font-size: .76rem; }
+  .ro-card { grid-template-columns: 1fr; }
+  .fee-summary { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .status-flow { gap: 2px; }
+  .sf-step { padding: 4px 8px; font-size: .72rem; }
+  .parts-table { font-size: .78rem; }
+  .step-header { padding: 10px 14px; }
+  .step-body { padding: 14px 16px; }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STATUSES = ['待處理','檢測中','待確認','維修中','待取件','已結案'];
+const STEP_STATUS_MAP = {
+  '待處理': 1,   // 收件完成 → 停在 step1 done
+  '檢測中': 2,   // 檢測段
+  '待確認': 3,   // 報價段
+  '維修中': 4,   // 維修段
+  '待取件': 5,   // 完修段
+  '已結案': 6    // 結案
+};
+
+let currentFilter = '';
+let currentOrder = null;
+let phrases = { symptom: [], diagnosis: [], repair_note: [] };
+let partRowId = 0;
+let prodTimers = {};
+
+/* ═══ 頁面初始化 ═══ */
+function onAppReady(user) {
+  window._user = user;
+  loadStats();
+  loadList();
+  loadPhrases();
+}
+
+setTimeout(function() {
+  if (!window._user) {
+    try {
+      const raw = localStorage.getItem('erp_v2_user');
+      if (raw) {
+        window._user = JSON.parse(raw);
+        loadStats(); loadList(); loadPhrases();
+      }
+    } catch(e) {}
+  }
+}, 3000);
+
+/* ═══ 狀態統計 ═══ */
+async function loadStats() {
+  try {
+    const res = await fetch('/api/repair/stats');
+    const d = await res.json();
+    if (!d.success) return;
+    const stats = d.stats || {};
+    STATUSES.forEach(s => {
+      const badge = document.querySelector(`.status-tab[data-status="${s}"] .badge`);
+      if (badge) badge.textContent = stats[s] || 0;
+    });
+    const total = Object.values(stats).reduce((a,b) => a + b, 0);
+    const allBadge = document.querySelector('.status-tab[data-status=""] .badge');
+    if (allBadge) allBadge.textContent = total;
+  } catch {}
+}
+
+/* ═══ 工單列表 ═══ */
+async function loadList(page) {
+  page = page || 1;
+  const q = document.getElementById('searchInput')?.value?.trim() || '';
+  try {
+    const params = new URLSearchParams({ page, q });
+    if (currentFilter) params.set('status', currentFilter);
+    const res = await fetch('/api/repair/list?' + params);
+    const d = await res.json();
+    if (!d.success) {
+      document.getElementById('roList').innerHTML = '<div class="empty-hint">載入失敗：' + (d.message || '未知錯誤') + '</div>';
+      return;
+    }
+    renderList(d.items || []);
+  } catch (e) {
+    document.getElementById('roList').innerHTML = '<div class="empty-hint">連線失敗，請確認伺服器已重啟</div>';
+  }
+}
+
+function renderList(items) {
+  const container = document.getElementById('roList');
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-hint">目前沒有工單</div>';
+    return;
+  }
+  container.innerHTML = items.map(r => `
+    <div class="ro-card" onclick="openOrder('${r.order_no}')">
+      <div>
+        <div class="ro-no">${r.order_no}</div>
+        <div class="ro-meta">${r.customer_name || '未指定客戶'} · ${r.brand || ''} ${r.model || ''}</div>
+        <div class="ro-meta">${r.symptom ? r.symptom.substring(0,40) : ''}</div>
+        <div class="ro-meta" style="font-size:.7rem; margin-top:2px;">${r.created_at || ''}</div>
+      </div>
+      <div>
+        <span class="ro-status-badge st-${r.status}">${r.status}</span>
+        <div style="text-align:right; margin-top:6px; font-size:.82rem; font-weight:600;">
+          ${formatNum(r.total_amount || 0)}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterStatus(status, el) {
+  currentFilter = status;
+  document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadList();
+}
+
+/* ═══ 常用語句 ═══ */
+async function loadPhrases() {
+  try {
+    const res = await fetch('/api/repair/phrases');
+    const d = await res.json();
+    if (!d.success) return;
+    phrases = { symptom: [], diagnosis: [], repair_note: [] };
+    (d.phrases || []).forEach(p => {
+      if (phrases[p.category]) phrases[p.category].push(p.phrase);
+    });
+  } catch {}
+}
+
+function renderPhraseChips(category, containerId) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  const arr = phrases[category] || [];
+  c.innerHTML = arr.map(p =>
+    `<span class="phrase-chip" onclick="insertPhrase('${category}','${p.replace(/'/g,"\\'")}')">${p}</span>`
+  ).join('');
+}
+
+function insertPhrase(category, text) {
+  const fieldMap = { symptom: 'editSymptom', diagnosis: 'editDiagnosis', repair_note: 'editNote' };
+  const el = document.getElementById(fieldMap[category]);
+  if (!el) return;
+  if (el.value && !el.value.endsWith('、') && !el.value.endsWith('\n')) el.value += '、';
+  el.value += text;
+}
+
+/* ═══ 分段控制 ═══ */
+function setStepState(stepNum, state) {
+  // state: 'locked' | 'active' | 'done'
+  const sec = document.getElementById('step' + stepNum);
+  if (!sec) return;
+  sec.classList.remove('locked', 'active', 'done');
+  sec.classList.add(state);
+  const tag = sec.querySelector('.step-tag');
+  if (tag) {
+    tag.className = 'step-tag';
+    if (state === 'done')   tag.classList.add('tag-done');
+    if (state === 'active') tag.classList.add('tag-active');
+    if (state === 'locked') tag.classList.add('tag-pending');
+    tag.textContent = state === 'done' ? '已完成' : state === 'active' ? '進行中' : '待解鎖';
+  }
+}
+
+function activateStepsForStatus(status) {
+  const idx = STEP_STATUS_MAP[status] || 1;
+  for (let i = 1; i <= 6; i++) {
+    if (i < idx)       setStepState(i, 'done');
+    else if (i === idx) setStepState(i, 'active');
+    else               setStepState(i, 'locked');
+  }
+}
+
+/* ═══ 新建工單 ═══ */
+function showCreateForm() {
+  currentOrder = null;
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detailView').style.display = 'block';
+  document.getElementById('detailTitle').textContent = '新建維修工單';
+
+  // 清空所有欄位
+  ['editCustomerId','editCustomerName','editPhone','editDeviceType',
+   'editBrand','editModel','editSerial','editSymptom',
+   'editDiagnosis','editNote','editLaborFee'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('editTechnician').value = window._user?.name || '';
+  document.getElementById('editSalesLink').style.display = 'none';
+  document.getElementById('partsBody').innerHTML = '';
+  partRowId = 0;
+  addPartRow();
+  updateFee();
+
+  // 新建：只顯示 step1 active，其餘鎖定
+  for (let i = 1; i <= 6; i++) setStepState(i, i === 1 ? 'active' : 'locked');
+
+  // 解鎖 step1 欄位可編輯
+  unlockStepFields(1);
+
+  renderPhraseChips('symptom', 'symptomChips');
+  renderPhraseChips('diagnosis', 'diagnosisChips');
+  renderPhraseChips('repair_note', 'noteChips');
+
+  // 新建時隱藏列印按鈕
+  document.getElementById('step1PrintBar').style.display = 'none';
+  document.getElementById('btnPrintWorkorder').style.display = 'none';
+
+  genPreviewOrderNo();
+}
+
+async function genPreviewOrderNo() {
+  const staff = window._user?.name || '';
+  try {
+    const res = await fetch('/api/repair/gen-order-no?staff=' + encodeURIComponent(staff));
+    const d = await res.json();
+    if (d.success) document.getElementById('editOrderNo').textContent = d.order_no;
+  } catch {}
+}
+
+function unlockStepFields(stepNum) {
+  const sec = document.getElementById('step' + stepNum);
+  if (!sec) return;
+  sec.querySelectorAll('.f-input, .f-select, .f-textarea').forEach(el => {
+    el.style.pointerEvents = '';
+    el.style.background = '';
+  });
+}
+
+/* ═══ 確認收件（Step 1 → Step 2） ═══ */
+async function confirmStep1() {
+  const customerName = document.getElementById('editCustomerName').value.trim();
+  const symptom = document.getElementById('editSymptom').value.trim();
+  if (!symptom) { alert('請填寫故障描述'); return; }
+
+  // Step1 只收集收件階段的欄位
+  const step1Fields = {
+    customer_id: document.getElementById('editCustomerId').value.trim(),
+    customer_name: customerName,
+    phone: document.getElementById('editPhone').value.trim(),
+    device_type: document.getElementById('editDeviceType').value.trim(),
+    brand: document.getElementById('editBrand').value.trim(),
+    model: document.getElementById('editModel').value.trim(),
+    serial_no: document.getElementById('editSerial').value.trim(),
+    symptom,
+    received_by: window._user?.name || '',
+    technician: document.getElementById('editTechnician').value.trim(),
+  };
+
+  try {
+    let url, body;
+    if (currentOrder) {
+      // 已存在 → 只更新 step1 欄位 + 推進狀態，不覆蓋後續階段資料
+      url = '/api/repair/update';
+      body = { ...step1Fields, order_no: currentOrder.order_no, operator: window._user?.name || '', status: '檢測中' };
+    } else {
+      // 新建 → 帶入完整初始值
+      url = '/api/repair/create';
+      body = { ...step1Fields, diagnosis: '', repair_note: '', labor_fee: 0, parts: [] };
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const d = await res.json();
+    if (d.success) {
+      const orderNo = d.order_no || (currentOrder && currentOrder.order_no);
+      if (!currentOrder) {
+        currentOrder = { order_no: orderNo, status: '檢測中' };
+      } else {
+        currentOrder.status = '檢測中';
+      }
+      document.getElementById('editOrderNo').textContent = orderNo;
+      document.getElementById('detailTitle').textContent = '工單 ' + orderNo;
+
+      // step1 done, step2 active（API 已直接以「檢測中」建立）
+      setStepState(1, 'done');
+      setStepState(2, 'active');
+      unlockStepFields(2);
+      loadStats();
+
+      // 顯示收件單列印按鈕（不自動列印）
+      showStep1PrintBar(orderNo);
+    } else {
+      alert(d.message || '收件失敗');
+    }
+  } catch { alert('連線失敗'); }
+}
+
+/* ═══ 確認檢測（Step 2 → Step 3） ═══ */
+async function confirmStep2() {
+  const diagnosis = document.getElementById('editDiagnosis').value.trim();
+  if (!diagnosis) { alert('請填寫檢測診斷結果'); return; }
+
+  try {
+    const res = await fetch('/api/repair/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_no: currentOrder.order_no,
+        operator: window._user?.name || '',
+        diagnosis,
+        status: '待確認'
+      })
+    });
+    const d = await res.json();
+    if (d.success) {
+      currentOrder.status = '待確認';
+      setStepState(2, 'done');
+      setStepState(3, 'active');
+      unlockStepFields(3);
+      loadStats();
+    } else { alert(d.message || '更新失敗'); }
+  } catch { alert('連線失敗'); }
+}
+
+/* ═══ 確認報價（Step 3 → Step 4） ═══ */
+async function confirmStep3() {
+  // 收集零件
+  const parts = collectParts();
+  const laborFee = parseInt(document.getElementById('editLaborFee').value) || 0;
+
+  try {
+    const res = await fetch('/api/repair/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_no: currentOrder.order_no,
+        operator: window._user?.name || '',
+        labor_fee: laborFee,
+        parts,
+        status: '維修中'
+      })
+    });
+    const d = await res.json();
+    if (d.success) {
+      currentOrder.status = '維修中';
+      setStepState(3, 'done');
+      setStepState(4, 'active');
+      unlockStepFields(4);
+      loadStats();
+
+      // 產生正式維修單供列印
+      printWorkorder(currentOrder.order_no);
+    } else { alert(d.message || '更新失敗'); }
+  } catch { alert('連線失敗'); }
+}
+
+/* ═══ 確認完修（Step 4 → Step 5） ═══ */
+async function confirmStep4() {
+  const repairNote = document.getElementById('editNote').value.trim();
+  try {
+    const res = await fetch('/api/repair/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_no: currentOrder.order_no,
+        operator: window._user?.name || '',
+        repair_note: repairNote,
+        status: '待取件'
+      })
+    });
+    const d = await res.json();
+    if (d.success) {
+      currentOrder.status = '待取件';
+      setStepState(4, 'done');
+      setStepState(5, 'active');
+      loadStats();
+    } else { alert(d.message || '更新失敗'); }
+  } catch { alert('連線失敗'); }
+}
+
+/* ═══ 轉銷貨結案（Step 5 → Step 6） ═══ */
+function confirmStep5() {
+  if (!currentOrder) return;
+  window.location.href = '/sales_input?repair_order=' + encodeURIComponent(currentOrder.order_no);
+}
+
+/* ═══ 收集零件 ═══ */
+function collectParts() {
+  const parts = [];
+  document.querySelectorAll('#partsBody tr').forEach(tr => {
+    const n = tr.id.replace('part-','');
+    const code = document.getElementById(`pcode-${n}`)?.value?.trim() || '';
+    const name = document.getElementById(`pname-${n}`)?.value?.trim() || '';
+    const qty = parseInt(document.getElementById(`pqty-${n}`)?.value) || 0;
+    const price = parseInt(document.getElementById(`pprice-${n}`)?.value) || 0;
+    if (name || code) parts.push({ product_code: code, product_name: name, quantity: qty, price });
+  });
+  return parts;
+}
+
+/* ═══ 開啟既有工單 ═══ */
+async function openOrder(orderNo) {
+  try {
+    const res = await fetch('/api/repair/detail/' + encodeURIComponent(orderNo));
+    const d = await res.json();
+    if (!d.success) { alert(d.message || '載入失敗'); return; }
+    currentOrder = d.order;
+    document.getElementById('listView').style.display = 'none';
+    document.getElementById('detailView').style.display = 'block';
+    document.getElementById('detailTitle').textContent = '工單 ' + orderNo;
+    document.getElementById('editOrderNo').textContent = orderNo;
+
+    const o = d.order;
+    // 填入 step1 欄位
+    document.getElementById('editCustomerId').value = o.customer_id || '';
+    document.getElementById('editCustomerName').value = o.customer_name || '';
+    document.getElementById('editPhone').value = o.phone || '';
+    document.getElementById('editDeviceType').value = o.device_type || '';
+    document.getElementById('editBrand').value = o.brand || '';
+    document.getElementById('editModel').value = o.model || '';
+    document.getElementById('editSerial').value = o.serial_no || '';
+    document.getElementById('editSymptom').value = o.symptom || '';
+    // step2 欄位
+    document.getElementById('editDiagnosis').value = o.diagnosis || '';
+    // step3 欄位
+    document.getElementById('editLaborFee').value = o.labor_fee || 0;
+    document.getElementById('editTechnician').value = o.technician || '';
+    // step4 欄位
+    document.getElementById('editNote').value = o.repair_note || '';
+
+    // 零件
+    document.getElementById('partsBody').innerHTML = '';
+    partRowId = 0;
+    const items = d.items || [];
+    if (items.length) {
+      items.forEach(it => addPartRow(it.product_code, it.product_name, it.quantity, it.price));
+    } else {
+      addPartRow();
+    }
+    updateFee();
+
+    // 依狀態設定各段落
+    activateStepsForStatus(o.status);
+    // 解鎖當前段落
+    const curStep = STEP_STATUS_MAP[o.status] || 1;
+    unlockStepFields(curStep);
+
+    // 銷貨連結（step5/6）
+    const salesLink = document.getElementById('editSalesLink');
+    if (o.sales_invoice_no) {
+      salesLink.querySelector('span').textContent = o.sales_invoice_no;
+      salesLink.style.display = '';
+    } else {
+      salesLink.querySelector('span').textContent = '尚未開立';
+      salesLink.style.display = (o.status === '待取件' || o.status === '已結案') ? '' : 'none';
+    }
+
+    // 已結案 → 全部 done
+    if (o.status === '已結案') {
+      for (let i = 1; i <= 6; i++) setStepState(i, 'done');
+      salesLink.style.display = '';
+    }
+
+    // 收件完成 → 顯示收件單列印選項
+    const step1Print = document.getElementById('step1PrintBar');
+    if (curStep >= 2) {
+      step1Print.style.display = 'flex';
+      step1Print.setAttribute('data-order', orderNo);
+    } else {
+      step1Print.style.display = 'none';
+    }
+
+    // 報價確認後 → 顯示正式維修單列印按鈕
+    const woBtn = document.getElementById('btnPrintWorkorder');
+    woBtn.style.display = (curStep >= 4 || o.status === '維修中' || o.status === '待取件' || o.status === '已結案') ? '' : 'none';
+
+    renderPhraseChips('symptom', 'symptomChips');
+    renderPhraseChips('diagnosis', 'diagnosisChips');
+    renderPhraseChips('repair_note', 'noteChips');
+  } catch (e) {
+    alert('載入失敗：' + e.message);
+  }
+}
+
+/* ═══ 收件完成後顯示列印選項 ═══ */
+function showStep1PrintBar(orderNo) {
+  const bar = document.getElementById('step1PrintBar');
+  if (bar) {
+    bar.style.display = 'flex';
+    bar.setAttribute('data-order', orderNo);
+  }
+}
+
+/* ═══ 列印收件單 ═══ */
+function printReceipt(orderNo) {
+  window.open('/repair_receipt/' + encodeURIComponent(orderNo), '_blank');
+}
+
+/* ═══ 列印正式維修單 ═══ */
+function printWorkorder(orderNo) {
+  window.open('/repair_workorder/' + encodeURIComponent(orderNo), '_blank');
+}
+
+/* ═══ 零件明細 ═══ */
+function addPartRow(code, name, qty, price) {
+  partRowId++;
+  const n = partRowId;
+  const tr = document.createElement('tr');
+  tr.id = `part-${n}`;
+  tr.innerHTML = `
+    <td>
+      <div class="prod-wrap" style="display:flex;gap:4px;align-items:center;">
+        <input id="pcode-${n}" value="${code||''}" placeholder="產品編號"
+               oninput="searchPartProd(${n})" autocomplete="off" style="flex:1">
+        <span class="scan-btn" onclick="scanForPart(${n})" title="掃描條碼">⌗</span>
+        <div class="prod-list" id="pplist-${n}"></div>
+      </div>
+    </td>
+    <td>
+      <div class="prod-wrap">
+        <input id="pname-${n}" value="${name||''}" placeholder="品名" style="min-width:120px"
+               oninput="searchPartByName(${n})" autocomplete="off">
+        <div class="prod-list" id="pnlist-${n}"></div>
+      </div>
+    </td>
+    <td><input id="pqty-${n}" type="number" min="1" value="${qty||1}" style="width:60px" oninput="updateFee()"></td>
+    <td><input id="pprice-${n}" type="number" min="0" value="${price||0}" style="width:80px" oninput="updateFee()"></td>
+    <td style="text-align:right" id="psub-${n}">${formatNum((qty||1)*(price||0))}</td>
+    <td><button class="del-btn" onclick="delPartRow(${n})">刪除</button></td>
+  `;
+  document.getElementById('partsBody').appendChild(tr);
+}
+
+function delPartRow(n) {
+  const tr = document.getElementById(`part-${n}`);
+  if (tr) tr.remove();
+  updateFee();
+}
+
+function updateFee() {
+  let partsTotal = 0;
+  document.querySelectorAll('#partsBody tr').forEach(tr => {
+    const n = tr.id.replace('part-','');
+    const qty = parseInt(document.getElementById(`pqty-${n}`)?.value) || 0;
+    const price = parseInt(document.getElementById(`pprice-${n}`)?.value) || 0;
+    const sub = qty * price;
+    partsTotal += sub;
+    const subEl = document.getElementById(`psub-${n}`);
+    if (subEl) subEl.textContent = formatNum(sub);
+  });
+  const labor = parseInt(document.getElementById('editLaborFee')?.value) || 0;
+  document.getElementById('feeParts').textContent = formatNum(partsTotal);
+  document.getElementById('feeLabor').textContent = formatNum(labor);
+  document.getElementById('feeTotal').textContent = formatNum(partsTotal + labor);
+}
+
+/* ── 零件產品搜尋 ── */
+async function searchPartProd(n) {
+  const q = (document.getElementById(`pcode-${n}`)?.value || '').trim();
+  if (q.length < 2) { closePartProdList(n); return; }
+  clearTimeout(prodTimers[n]);
+  prodTimers[n] = setTimeout(async () => {
+    const res = await fetch('/api/products/search?q=' + encodeURIComponent(q));
+    const list = await res.json();
+    if (!Array.isArray(list) || !list.length) { closePartProdList(n); return; }
+    const el = document.getElementById(`pplist-${n}`);
+    el.style.display = 'block';
+    el.innerHTML = list.slice(0,15).map(p =>
+      `<div class="prod-item" onclick="selectPartProd(${n},'${(p.product_code||'').replace(/'/g,"\\'")}','${(p.product_name||'').replace(/'/g,"\\'")}',${p.unit_cost||0})">
+        <div>${p.product_name||''}</div>
+        <div class="pid">${p.product_code||''}</div>
+      </div>`
+    ).join('');
+  }, 250);
+}
+
+function selectPartProd(n, code, name, cost) {
+  document.getElementById(`pcode-${n}`).value = code;
+  document.getElementById(`pname-${n}`).value = name;
+  if (cost > 0) {
+    const priceEl = document.getElementById(`pprice-${n}`);
+    if (priceEl && (!priceEl.value || priceEl.value === '0')) {
+      priceEl.value = Math.round(cost * 1.2);
+    }
+  }
+  closePartProdList(n);
+  updateFee();
+}
+
+function closePartProdList(n) {
+  const el = document.getElementById(`pplist-${n}`);
+  if (el) el.style.display = 'none';
+  const el2 = document.getElementById(`pnlist-${n}`);
+  if (el2) el2.style.display = 'none';
+}
+
+/* ── 零件品名搜尋 ── */
+async function searchPartByName(n) {
+  const q = (document.getElementById(`pname-${n}`)?.value || '').trim();
+  if (q.length < 1) { const el = document.getElementById(`pnlist-${n}`); if (el) el.style.display = 'none'; return; }
+  clearTimeout(prodTimers['n' + n]);
+  prodTimers['n' + n] = setTimeout(async () => {
+    const res = await fetch('/api/products/search?q=' + encodeURIComponent(q));
+    const list = await res.json();
+    if (!Array.isArray(list) || !list.length) { const el = document.getElementById(`pnlist-${n}`); if (el) el.style.display = 'none'; return; }
+    const el = document.getElementById(`pnlist-${n}`);
+    el.style.display = 'block';
+    el.innerHTML = list.slice(0,15).map(p =>
+      `<div class="prod-item" onclick="selectPartProd(${n},'${(p.product_code||'').replace(/'/g,"\\'")}','${(p.product_name||'').replace(/'/g,"\\'")}',${p.unit_cost||0})">
+        <div>${p.product_name||''}</div>
+        <div class="pid">${p.product_code||''}</div>
+      </div>`
+    ).join('');
+  }, 250);
+}
+
+function scanForPart(n) {
+  startBarcodeScan(function(code) {
+    const el = document.getElementById(`pcode-${n}`);
+    if (el) { el.value = code; searchPartProd(n); }
+  });
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.prod-wrap') && !e.target.closest('.cust-wrap')) {
+    document.querySelectorAll('.prod-list, .cust-list').forEach(el => { el.style.display = 'none'; });
+  }
+});
+
+/* ═══ 客戶搜尋 ═══ */
+let custTimer = null;
+async function searchCustomer() {
+  const q = (document.getElementById('editCustomerName')?.value || '').trim();
+  if (q.length < 1) { document.getElementById('custDropdown').style.display = 'none'; return; }
+  clearTimeout(custTimer);
+  custTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/customers/search?q=' + encodeURIComponent(q));
+      const d = await res.json();
+      const list = d.data || d.items || [];
+      if (!list.length) { document.getElementById('custDropdown').style.display = 'none'; return; }
+      const el = document.getElementById('custDropdown');
+      el.style.display = 'block';
+      el.innerHTML = list.slice(0,15).map(c =>
+        `<div class="cust-item" onclick="selectCustomer('${(c.customer_id||'').replace(/'/g,"\\'")}','${(c.short_name||'').replace(/'/g,"\\'")}','${(c.phone1||c.mobile||'').replace(/'/g,"\\'")}')">
+          <div>${c.short_name||''}</div>
+          <div class="cid">${c.customer_id||''} · ${c.phone1||c.mobile||''}</div>
+        </div>`
+      ).join('');
+    } catch {}
+  }, 300);
+}
+
+function selectCustomer(id, name, phone) {
+  document.getElementById('editCustomerId').value = id;
+  document.getElementById('editCustomerName').value = name;
+  document.getElementById('editPhone').value = phone;
+  document.getElementById('custDropdown').style.display = 'none';
+}
+
+/* ═══ 返回列表 ═══ */
+function backToList() {
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('listView').style.display = 'block';
+  currentOrder = null;
+  loadStats();
+  loadList();
+}
+
+/* ═══ 轉銷貨 ═══ */
+function goToSalesInput() {
+  if (!currentOrder) return;
+  window.location.href = '/sales_input?repair_order=' + encodeURIComponent(currentOrder.order_no);
+}
+
+/* ═══ 客戶不維修 / 無法維修 → 結案 ═══ */
+async function cancelRepair() {
+  if (!currentOrder) return;
+  const reason = prompt('請輸入結案原因（例如：客戶不維修、無法維修、零件停產…）');
+  if (reason === null) return; // 按了取消
+  const note = (document.getElementById('editNote')?.value || '').trim();
+  const finalNote = note ? note + '\n【結案】' + (reason || '客戶取消') : '【結案】' + (reason || '客戶取消');
+
+  try {
+    const res = await fetch('/api/repair/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_no: currentOrder.order_no,
+        operator: window._user?.name || '',
+        repair_note: finalNote,
+        status: '已結案'
+      })
+    });
+    const d = await res.json();
+    if (d.success) {
+      alert('工單已結案');
+      backToList();
+    } else { alert(d.message || '更新失敗'); }
+  } catch { alert('連線失敗'); }
+}
+
+/* ═══ 格式化 ═══ */
+function formatNum(n) {
+  return (n || 0).toLocaleString('zh-TW');
+}
+
+/* ── 搜尋防抖 ── */
+let searchTimer = null;
+function onSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadList(), 350);
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="ro-layout">
+
+  <!-- ═══ 列表視圖 ═══ -->
+  <div id="listView">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">維修工單</span>
+        <button class="btn-primary" onclick="showCreateForm()">新建工單</button>
+      </div>
+      <div class="card-body">
+        <div class="status-tabs">
+          <span class="status-tab active" data-status="" onclick="filterStatus('',this)">全部 <span class="badge">0</span></span>
+          <span class="status-tab" data-status="待處理" onclick="filterStatus('待處理',this)">待處理 <span class="badge">0</span></span>
+          <span class="status-tab" data-status="檢測中" onclick="filterStatus('檢測中',this)">檢測中 <span class="badge">0</span></span>
+          <span class="status-tab" data-status="待確認" onclick="filterStatus('待確認',this)">待確認 <span class="badge">0</span></span>
+          <span class="status-tab" data-status="維修中" onclick="filterStatus('維修中',this)">維修中 <span class="badge">0</span></span>
+          <span class="status-tab" data-status="待取件" onclick="filterStatus('待取件',this)">待取件 <span class="badge">0</span></span>
+          <span class="status-tab" data-status="已結案" onclick="filterStatus('已結案',this)">已結案 <span class="badge">0</span></span>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <input class="f-input" id="searchInput" placeholder="搜尋工單號、客戶、品牌、型號…"
+                 oninput="onSearch()" style="max-width:400px;">
+        </div>
+
+        <div id="roList" class="ro-list">
+          <div class="empty-hint">載入中…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 詳情/編輯視圖（分段漸進式） ═══ -->
+  <div id="detailView" style="display:none;">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title" id="detailTitle">新建維修工單</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn-secondary" onclick="if(currentOrder) printReceipt(currentOrder.order_no)" title="列印收件單">收件單</button>
+          <button class="btn-secondary" id="btnPrintWorkorder" onclick="if(currentOrder) printWorkorder(currentOrder.order_no)" style="display:none;" title="列印維修單">維修單</button>
+          <button class="btn-secondary" onclick="backToList()">返回列表</button>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <!-- 工單號 -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:.76rem; color:var(--text-sub); margin-bottom:4px;">工單號碼</div>
+          <div id="editOrderNo" style="font-size:1rem; font-weight:600; color:var(--text);"></div>
+        </div>
+
+        <!-- ═══ Step 1：收件 ═══ -->
+        <div class="step-section active" id="step1">
+          <div class="step-header">
+            <div style="display:flex; align-items:center;">
+              <span class="step-num">1</span>
+              <span class="step-title">收件登記</span>
+            </div>
+            <span class="step-tag tag-active">進行中</span>
+          </div>
+          <div class="step-body">
+            <!-- 客戶資訊 -->
+            <div style="font-size:.74rem; color:var(--text-sub); letter-spacing:.08em; margin-bottom:10px;">
+              客戶資訊
+            </div>
+            <div class="form-grid">
+              <div>
+                <div class="field-label">客戶名稱</div>
+                <div class="cust-wrap">
+                  <input class="f-input" id="editCustomerName" placeholder="輸入搜尋或直接填寫"
+                         oninput="searchCustomer()" autocomplete="off">
+                  <input type="hidden" id="editCustomerId">
+                  <div class="cust-list" id="custDropdown"></div>
+                </div>
+              </div>
+              <div>
+                <div class="field-label">聯絡電話</div>
+                <input class="f-input" id="editPhone" placeholder="電話">
+              </div>
+            </div>
+
+            <!-- 設備資訊 -->
+            <div style="font-size:.74rem; color:var(--text-sub); letter-spacing:.08em; margin:18px 0 10px;">
+              設備資訊
+            </div>
+            <div class="form-grid">
+              <div>
+                <div class="field-label">設備類型</div>
+                <select class="f-select" id="editDeviceType">
+                  <option value="">請選擇</option>
+                  <option>桌上型電腦</option>
+                  <option>筆記型電腦</option>
+                  <option>平板</option>
+                  <option>手機</option>
+                  <option>印表機</option>
+                  <option>螢幕</option>
+                  <option>NAS/伺服器</option>
+                  <option>網通設備</option>
+                  <option>其他</option>
+                </select>
+              </div>
+              <div>
+                <div class="field-label">品牌</div>
+                <input class="f-input" id="editBrand" placeholder="品牌">
+              </div>
+              <div>
+                <div class="field-label">型號</div>
+                <input class="f-input" id="editModel" placeholder="型號">
+              </div>
+              <div>
+                <div class="field-label">序號</div>
+                <input class="f-input" id="editSerial" placeholder="序號（選填）">
+              </div>
+            </div>
+
+            <!-- 故障描述 -->
+            <div style="font-size:.74rem; color:var(--text-sub); letter-spacing:.08em; margin:18px 0 10px;">
+              故障描述（客戶陳述）
+            </div>
+            <div>
+              <textarea class="f-textarea" id="editSymptom" placeholder="客戶描述的故障情況" rows="3"></textarea>
+              <div class="phrase-chips" id="symptomChips"></div>
+            </div>
+
+            <!-- 收件人 -->
+            <div class="form-grid" style="margin-top:14px;">
+              <div>
+                <div class="field-label">維修技術人員</div>
+                <input class="f-input" id="editTechnician" placeholder="技術人員" readonly style="background:var(--bg);cursor:default;">
+              </div>
+            </div>
+
+            <div class="step-confirm-bar">
+              <button class="btn-primary" onclick="confirmStep1()">確認收件</button>
+              <button class="btn-secondary" onclick="backToList()">取消</button>
+            </div>
+            <!-- 收件完成後顯示的列印選項 -->
+            <div id="step1PrintBar" style="display:none; gap:10px; align-items:center; padding-top:10px; margin-top:10px; border-top:1px dashed rgba(107,95,82,.15);">
+              <span style="font-size:.82rem; color:#2e6b2e; font-weight:300;">✓ 已收件</span>
+              <button class="btn-secondary" onclick="printReceipt(this.closest('[data-order]')?.dataset.order || currentOrder?.order_no)">列印收件單</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Step 2：檢測 ═══ -->
+        <div class="step-section locked" id="step2">
+          <div class="step-header">
+            <div style="display:flex; align-items:center;">
+              <span class="step-num">2</span>
+              <span class="step-title">檢測診斷</span>
+            </div>
+            <span class="step-tag tag-pending">待解鎖</span>
+          </div>
+          <div class="step-body">
+            <div>
+              <div class="field-label">檢測結果</div>
+              <textarea class="f-textarea" id="editDiagnosis" placeholder="技術人員的檢測結果" rows="3"></textarea>
+              <div class="phrase-chips" id="diagnosisChips"></div>
+            </div>
+            <div class="step-confirm-bar">
+              <button class="btn-primary" onclick="confirmStep2()">確認檢測結果</button>
+              <button class="btn-secondary" onclick="cancelRepair()" style="color:#8b3a3a;border-color:rgba(139,58,58,.2);">無法維修，結案</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Step 3：報價 ═══ -->
+        <div class="step-section locked" id="step3">
+          <div class="step-header">
+            <div style="display:flex; align-items:center;">
+              <span class="step-num">3</span>
+              <span class="step-title">報價確認</span>
+            </div>
+            <span class="step-tag tag-pending">待解鎖</span>
+          </div>
+          <div class="step-body">
+            <div style="font-size:.74rem; color:var(--text-sub); letter-spacing:.08em; margin-bottom:10px;">
+              零件/材料
+            </div>
+            <div style="overflow:visible;">
+              <table class="parts-table">
+                <thead>
+                  <tr>
+                    <th style="min-width:130px">產品編號</th>
+                    <th style="min-width:120px">品名</th>
+                    <th style="width:70px">數量</th>
+                    <th style="width:90px">單價</th>
+                    <th style="width:80px;text-align:right">小計</th>
+                    <th style="width:50px"></th>
+                  </tr>
+                </thead>
+                <tbody id="partsBody"></tbody>
+              </table>
+            </div>
+            <button class="add-row-btn" onclick="addPartRow()">新增零件</button>
+
+            <div style="font-size:.74rem; color:var(--text-sub); letter-spacing:.08em; margin:18px 0 10px;">
+              費用
+            </div>
+            <div class="form-grid" style="max-width:300px;">
+              <div>
+                <div class="field-label">工資</div>
+                <input class="f-input" id="editLaborFee" type="number" min="0" value="0" oninput="updateFee()">
+              </div>
+            </div>
+            <div class="fee-summary">
+              <div class="fee-item">零件合計：<strong id="feeParts">0</strong></div>
+              <div class="fee-item">工資：<strong id="feeLabor">0</strong></div>
+              <div class="fee-item" style="font-size:.92rem;">總計：<strong id="feeTotal" style="color:var(--text); font-size:1rem;">0</strong></div>
+            </div>
+
+            <div class="step-confirm-bar">
+              <button class="btn-primary" onclick="confirmStep3()">確認報價，開始維修</button>
+              <button class="btn-secondary" onclick="cancelRepair()" style="color:#8b3a3a;border-color:rgba(139,58,58,.2);">客戶不維修，結案</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Step 4：維修 ═══ -->
+        <div class="step-section locked" id="step4">
+          <div class="step-header">
+            <div style="display:flex; align-items:center;">
+              <span class="step-num">4</span>
+              <span class="step-title">維修作業</span>
+            </div>
+            <span class="step-tag tag-pending">待解鎖</span>
+          </div>
+          <div class="step-body">
+            <div>
+              <div class="field-label">維修備註</div>
+              <textarea class="f-textarea" id="editNote" placeholder="維修過程記錄" rows="3"></textarea>
+              <div class="phrase-chips" id="noteChips"></div>
+            </div>
+            <div class="step-confirm-bar">
+              <button class="btn-primary" onclick="confirmStep4()">維修完成，通知取件</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Step 5：待取件 ═══ -->
+        <div class="step-section locked" id="step5">
+          <div class="step-header">
+            <div style="display:flex; align-items:center;">
+              <span class="step-num">5</span>
+              <span class="step-title">取件結帳</span>
+            </div>
+            <span class="step-tag tag-pending">待解鎖</span>
+          </div>
+          <div class="step-body">
+            <div id="editSalesLink" style="display:none; margin-bottom:12px;">
+              <div class="field-label">關聯銷貨單</div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <span style="font-size:.84rem; color:var(--text);"></span>
+              </div>
+            </div>
+            <p style="font-size:.84rem; color:var(--text-sub); font-weight:300; margin-bottom:12px;">
+              客戶取件後，請開立銷貨單完成結帳流程。
+            </p>
+            <div class="step-confirm-bar" style="border-top:none; margin-top:0; padding-top:0;">
+              <button class="btn-primary" onclick="confirmStep5()">前往銷貨開單</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Step 6：已結案 ═══ -->
+        <div class="step-section locked" id="step6">
+          <div class="step-header">
+            <div style="display:flex; align-items:center;">
+              <span class="step-num">6</span>
+              <span class="step-title">已結案</span>
+            </div>
+            <span class="step-tag tag-pending">待解鎖</span>
+          </div>
+          <div class="step-body">
+            <p style="font-size:.84rem; color:#2e6b2e; font-weight:300;">
+              此工單已完成所有流程。
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

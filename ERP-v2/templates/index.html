@@ -148,6 +148,35 @@
 
 .overdue-dismiss:hover { color: var(--text-sub); }
 
+/* ── 回訪提醒 ───────────── */
+.followup-banner {
+  background: rgba(39, 174, 96, 0.06);
+  border: 1px solid rgba(39, 174, 96, 0.20);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 28px;
+  display: none;
+}
+.followup-banner.has-overdue {
+  background: rgba(192, 57, 43, 0.06);
+  border-color: rgba(192, 57, 43, 0.20);
+}
+.followup-banner-title {
+  font-size: 0.85rem; font-weight: 300; color: #27ae60;
+  margin-bottom: 8px; letter-spacing: 0.04em;
+}
+.followup-banner.has-overdue .followup-banner-title { color: #c0392b; }
+.followup-item {
+  font-size: 0.82rem; font-weight: 200; color: var(--text-sub);
+  padding: 5px 0; border-bottom: 1px solid var(--border); line-height: 1.5;
+}
+.followup-item:last-of-type { border-bottom: none; }
+.followup-link {
+  display: block; text-align: right; margin-top: 8px;
+  font-size: 0.78rem; color: var(--text-light); cursor: pointer; letter-spacing: 0.06em;
+}
+.followup-link:hover { color: var(--text-sub); }
+
 /* ── 圖表區 ─────────────── */
 .chart-card {
   background: var(--bg-card);
@@ -278,6 +307,13 @@
   <span class="overdue-dismiss" onclick="document.getElementById('overdueBanner').style.display='none'">已知悉，暫時關閉</span>
 </div>
 
+<!-- 回訪任務提醒 -->
+<div class="followup-banner" id="followupBanner">
+  <div class="followup-banner-title" id="followupTitle">今日回訪任務</div>
+  <div id="followupItems"></div>
+  <a class="followup-link" href="/followup">查看全部回訪任務 →</a>
+</div>
+
 <!-- ① 本季統計（第一視覺焦點） -->
 <div class="stats-row">
   <div class="stat-card">
@@ -300,7 +336,7 @@
     <div class="chart-title" id="chartTitle">本季每日銷售趨勢</div>
     <div class="chart-legend">
       <div class="chart-legend-item">
-        <div class="legend-dot" style="background:#6b5f52"></div>
+        <div class="legend-dot" style="background:var(--accent)"></div>
         <span>門市部</span>
       </div>
       <div class="chart-legend-item">
@@ -381,7 +417,7 @@ async function loadChart() {
           {
             label: '門市部',
             data: data.map(d => d.store),
-            backgroundColor: '#6b5f52',
+            backgroundColor: 'var(--accent)',
             borderRadius: 3,
             borderWidth: 0,
             stack: 's',
@@ -578,9 +614,36 @@ async function loadOverdue() {
 }
 
 // ── 初始化（登入後由 base.html 呼叫） ────────
+async function loadFollowup(user) {
+  try {
+    const staffId = user.staff_id || '';
+    if (!staffId) return;
+    const r = await fetch('/api/followup/today?staff_id=' + encodeURIComponent(staffId));
+    const d = await r.json();
+    if (!d.success || !d.items || !d.items.length) return;
+    const banner = document.getElementById('followupBanner');
+    const today = new Date().toISOString().slice(0, 10);
+    const overdueCount = d.items.filter(t => t.due_date < today).length;
+    if (overdueCount > 0) {
+      banner.classList.add('has-overdue');
+      document.getElementById('followupTitle').textContent =
+        `您有 ${d.items.length} 筆回訪任務（${overdueCount} 筆已逾期）`;
+    } else {
+      document.getElementById('followupTitle').textContent =
+        `您今日有 ${d.items.length} 筆回訪任務`;
+    }
+    document.getElementById('followupItems').innerHTML = d.items.slice(0, 5).map(t => {
+      const tag = t.due_date < today ? ' <span style="color:#c0392b;font-size:.72rem">逾期</span>' : '';
+      return `<div class="followup-item">${t.due_date}${tag}　${t.customer_name}　${t.task_no}</div>`;
+    }).join('') + (d.items.length > 5 ? `<div class="followup-item" style="color:var(--text-light)">…還有 ${d.items.length - 5} 筆</div>` : '');
+    banner.style.display = 'block';
+  } catch(e) { console.error('loadFollowup', e); }
+}
+
 function onAppReady(user) {
   loadAnnouncements();
   loadOverdue();
+  loadFollowup(user);
   loadSummary();
   loadChart();
   loadNeeds();
